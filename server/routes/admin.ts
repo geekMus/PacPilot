@@ -128,7 +128,7 @@ export function adminRoutes(
       webhookFailureBody: "",
     });
     if (errors.length) {
-      res.status(400).json({ error: errors.join("\\n") });
+      res.status(400).json({ error: errors.join("\n") });
       return;
     }
 
