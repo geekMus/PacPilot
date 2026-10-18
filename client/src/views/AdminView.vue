@@ -27,6 +27,7 @@ const genpacProbe = ref<GenpacProbe | null>(null);
 const securityStatus = ref({ isDefaultPassword: false, mustChangePassword: false });
 const timezoneMenuOpen = ref(false);
 const timezoneQuery = ref("");
+const mobileTimezoneOpen = ref(false);
 const passwordSaving = ref(false);
 const passwordForm = reactive({ currentPassword: "", newPassword: "", confirmPassword: "" });
 const webhookTestState = reactive({
@@ -114,9 +115,14 @@ function selectTimeZone(value: string) {
   form.timezone = value;
   timezoneQuery.value = value;
   timezoneMenuOpen.value = false;
+  mobileTimezoneOpen.value = false;
 }
 function closeTimezoneMenu() {
   window.setTimeout(() => { timezoneMenuOpen.value = false; }, 140);
+}
+function openMobileTimezonePicker() {
+  timezoneQuery.value = "";
+  mobileTimezoneOpen.value = true;
 }
 
 const modeHint = computed(() =>
@@ -500,7 +506,7 @@ async function logout() {
           </div>
           <div class="field">
             <label for="timezone">时区</label>
-            <div class="timezone-picker">
+            <div class="timezone-picker desktop-timezone-picker">
               <input id="timezone" v-model="form.timezone" autocomplete="off" spellcheck="false"
                 placeholder="搜索国家/地区或输入 IANA 时区，例如日本、美国、Asia/Tokyo"
                 @focus="timezoneMenuOpen = true; timezoneQuery = ''"
@@ -516,7 +522,36 @@ async function logout() {
                 <p v-if="filteredTimeZones.length === 0" class="timezone-no-results">没有匹配项；可以直接输入有效的 IANA 时区名称。</p>
               </div>
             </div>
+            <button type="button" class="mobile-timezone-trigger" @click="openMobileTimezonePicker">
+              <span>{{ form.timezone || "选择时区" }}</span>
+              <span class="mobile-timezone-trigger-icon" aria-hidden="true">⌄</span>
+            </button>
             <p class="field-hint">支持按国家/地区名称或时区代码搜索，也可直接输入其他有效的 IANA 时区名称。该设置用于定时任务、状态页时间和 Webhook 通知。</p>
+          </div>
+
+          <div v-if="mobileTimezoneOpen" class="timezone-sheet-backdrop" @click.self="mobileTimezoneOpen = false">
+            <section class="timezone-sheet" role="dialog" aria-modal="true" aria-labelledby="mobile-timezone-title">
+              <header class="timezone-sheet-head">
+                <h3 id="mobile-timezone-title">选择时区</h3>
+                <button type="button" class="timezone-sheet-close" aria-label="关闭时区选择" @click="mobileTimezoneOpen = false">×</button>
+              </header>
+              <input v-model="timezoneQuery" class="timezone-sheet-search" type="search" autocomplete="off"
+                placeholder="搜索地区或输入 IANA 时区，如 Asia/Tokyo" />
+              <div class="timezone-sheet-options" role="listbox" aria-label="时区建议">
+                <button v-for="zone in filteredTimeZones" :key="zone.value" type="button" role="option"
+                  :aria-selected="form.timezone === zone.value" class="timezone-option"
+                  @click="selectTimeZone(zone.value)">
+                  <span>{{ zone.label }}</span><code>{{ zone.value }}</code>
+                </button>
+                <button v-if="timezoneQuery.trim() && isValidTimeZone(timezoneQuery) && !commonTimeZones.some(zone => zone.value.toLowerCase() === timezoneQuery.trim().toLowerCase())"
+                  type="button" role="option" class="timezone-option timezone-custom-option"
+                  @click="selectTimeZone(timezoneQuery.trim())">
+                  <span>使用自定义时区</span><code>{{ timezoneQuery.trim() }}</code>
+                </button>
+                <p v-if="filteredTimeZones.length === 0 && !isValidTimeZone(timezoneQuery)" class="timezone-no-results">没有匹配项。请输入有效的 IANA 时区名称。</p>
+              </div>
+              <p class="timezone-sheet-hint">选择后会填入配置；保存页面时才会应用。可输入其他有效的 IANA 时区代码。</p>
+            </section>
           </div>
           <div class="chip-row timezone-presets">
             <button v-for="zone in commonTimeZones.slice(0, 6)" :key="zone.value" type="button" class="chip"
@@ -1418,9 +1453,28 @@ textarea.body-area {
 .timezone-presets { margin: 8px 0 0; }
 .timezone-picker { position:relative; }
 .timezone-options-menu { position:absolute; z-index:30; top:calc(100% + 5px); left:0; right:0; max-height:270px; overflow:auto; padding:5px; border:1px solid var(--line); border-radius:10px; background:var(--surface); box-shadow:var(--shadow); }
-.timezone-option { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:40px; padding:8px 10px; border:0; border-radius:7px; background:transparent; color:var(--text); text-align:left; cursor:pointer; }
+.timezone-option { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:44px; padding:9px 10px; border:0; border-radius:7px; background:transparent; color:var(--text); text-align:left; cursor:pointer; }
 .timezone-option:hover,.timezone-option[aria-selected="true"] { background:var(--accent-soft); color:var(--accent); }
 .timezone-option span { font-size:12px; }
 .timezone-option code { color:var(--muted); font-size:11px; white-space:nowrap; }
 .timezone-no-results { margin:0; padding:12px 10px; color:var(--muted); font-size:12px; }
+.mobile-timezone-trigger { display:none; }
+.timezone-sheet-backdrop { display:none; }
+@media (max-width:720px) {
+  .desktop-timezone-picker { display:none; }
+  .mobile-timezone-trigger { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:46px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:var(--text); font:inherit; text-align:left; }
+  .mobile-timezone-trigger span:first-child { overflow-wrap:anywhere; }
+  .mobile-timezone-trigger-icon { color:var(--muted); font-size:18px; }
+  .timezone-sheet-backdrop { display:flex; position:fixed; z-index:1000; inset:0; align-items:flex-end; justify-content:center; padding:0; background:rgba(0,0,0,.48); }
+  .timezone-sheet { display:flex; flex-direction:column; width:100%; max-height:min(82dvh,720px); padding:16px 16px max(16px,env(safe-area-inset-bottom)); border-radius:18px 18px 0 0; border:1px solid var(--line); border-bottom:0; background:var(--surface); box-shadow:0 -8px 32px rgba(0,0,0,.18); }
+  .timezone-sheet-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+  .timezone-sheet-head h3 { margin:0; font-size:16px; }
+  .timezone-sheet-close { width:36px; height:36px; border:0; border-radius:8px; background:var(--surface-2); color:var(--text); font-size:24px; line-height:1; }
+  .timezone-sheet-search { flex:0 0 auto; width:100%; min-height:44px; margin-bottom:10px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:var(--text); font:inherit; font-size:16px; }
+  .timezone-sheet-options { min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+  .timezone-sheet .timezone-option { min-height:48px; }
+  .timezone-sheet .timezone-option code { overflow-wrap:anywhere; white-space:normal; text-align:right; }
+  .timezone-custom-option { border-top:1px solid var(--line); margin-top:4px; }
+  .timezone-sheet-hint { margin:10px 0 0; color:var(--muted); font-size:12px; line-height:1.45; }
+}
 </style>
