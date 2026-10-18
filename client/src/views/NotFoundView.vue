@@ -6,7 +6,7 @@ import AppHeader from "../components/AppHeader.vue";
   <main class="page">
     <AppHeader brand="genpac-runner" sub="404">
       <RouterLink to="/">首页</RouterLink>
-      <a href="/proxy.pac">查看 PAC</a>
+      <a href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC</a>
       <RouterLink class="primary" to="/admin">后台</RouterLink>
     </AppHeader>
 
@@ -16,7 +16,7 @@ import AppHeader from "../components/AppHeader.vue";
       <p class="desc">可用入口：首页、PAC 原文与后台管理。</p>
       <div class="links">
         <RouterLink class="btn primary" to="/">返回首页</RouterLink>
-        <a class="btn" href="/proxy.pac">查看 PAC</a>
+        <a class="btn" href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC</a>
         <RouterLink class="btn" to="/admin">后台</RouterLink>
       </div>
     </section>

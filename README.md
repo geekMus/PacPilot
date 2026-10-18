@@ -140,7 +140,7 @@ docker compose up -d --build
 | 路径 | 说明 |
 |------|------|
 | `/` | 首页：当前 PAC 规则状态 |
-| `/proxy.pac` | PAC 原文（浏览器内查看；加 `?download=1` 下载） |
+| `/proxy.pac` | PAC 原文（浏览器内查看） |
 | `/admin` | 后台管理（需 `ADMIN_PASSWORD`） |
 | 其他 | 返回 404 页面 |
 

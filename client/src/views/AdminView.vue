@@ -175,7 +175,7 @@ async function logout() {
   <main class="page admin-page">
     <AppHeader brand="genpac-runner" sub="Admin">
       <RouterLink to="/">首页</RouterLink>
-      <a href="/proxy.pac">查看 PAC</a>
+      <a href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC</a>
       <button type="button" class="linkish" @click="logout">退出</button>
     </AppHeader>
 

@@ -43,8 +43,7 @@ function ruleDesc(rule: string) {
 <template>
   <main class="page">
     <AppHeader brand="genpac-runner" sub="Status">
-      <a href="/proxy.pac">查看 PAC</a>
-      <a href="/proxy.pac?download=1">下载 PAC</a>
+      <a href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC</a>
       <RouterLink v-if="meta?.adminEnabled" class="primary" to="/admin">后台</RouterLink>
     </AppHeader>
 
@@ -169,7 +168,7 @@ function ruleDesc(rule: string) {
         <strong>{{ status.mode === "custom" ? "默认代理范围" : "提示" }}</strong>
         {{ status.notice }}
         <template v-if="status.mode !== 'custom'">
-          <a href="/proxy.pac"> 查看 PAC 原文</a>
+          <a href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC 原文</a>
         </template>
       </div>
 

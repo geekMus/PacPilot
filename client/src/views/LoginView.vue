@@ -43,7 +43,7 @@ async function onSubmit() {
   <main class="page">
     <AppHeader brand="genpac-runner" sub="Admin">
       <RouterLink to="/">首页</RouterLink>
-      <a href="/proxy.pac">查看 PAC</a>
+      <a href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC</a>
     </AppHeader>
 
     <div class="card">
