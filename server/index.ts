@@ -36,7 +36,7 @@ async function main(): Promise<void> {
         : `http://${env.host}:${env.port}`;
     console.log(`[boot] listening on ${env.host}:${env.port}`);
     console.log(`[boot] PAC    -> ${local}/proxy.pac`);
-    console.log(`[boot] status -> ${local}/status`);
+    console.log(`[boot] status -> ${local}/`);
     if (adminEnabled(env)) {
       console.log(`[boot] admin  -> ${local}/admin`);
     }

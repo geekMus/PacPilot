@@ -1,28 +1,31 @@
 :root {
   color-scheme: light dark;
-  --bg: #f0f3f8;
+  --bg: #eef2f7;
   --surface: #ffffff;
-  --surface-2: #f7f9fc;
+  --surface-2: #f6f8fb;
   --text: #152033;
   --muted: #66758a;
   --line: #e2e8f0;
   --accent: #3b6cf5;
-  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
   --green: #159a66;
-  --green-soft: color-mix(in srgb, var(--green) 12%, transparent);
+  --green-soft: color-mix(in srgb, var(--green) 14%, transparent);
   --red: #d1435b;
-  --red-soft: color-mix(in srgb, var(--red) 12%, transparent);
+  --red-soft: color-mix(in srgb, var(--red) 14%, transparent);
   --warn: #c98a1a;
-  --warn-soft: color-mix(in srgb, var(--warn) 14%, transparent);
-  --shadow: 0 8px 24px rgba(21, 32, 51, 0.06);
-  --radius: 14px;
-  --radius-sm: 10px;
-  --space-1: 6px;
-  --space-2: 10px;
-  --space-3: 14px;
-  --space-4: 18px;
-  --space-5: 24px;
-  --space-6: 32px;
+  --warn-soft: color-mix(in srgb, var(--warn) 16%, transparent);
+  --shadow: 0 10px 30px rgba(21, 32, 51, 0.06);
+  --radius: 16px;
+  --radius-sm: 12px;
+  --space-1: 8px;
+  --space-2: 12px;
+  --space-3: 16px;
+  --space-4: 20px;
+  --space-5: 28px;
+  --space-6: 40px;
+  --page-max: 920px;
+  --page-pad: 20px;
+  --touch: 44px;
 }
 
 html.theme-light {
@@ -31,9 +34,9 @@ html.theme-light {
 
 html.theme-dark {
   color-scheme: dark;
-  --bg: #0d1118;
-  --surface: #161c26;
-  --surface-2: #1c2430;
+  --bg: #0c1017;
+  --surface: #151b24;
+  --surface-2: #1a222d;
   --text: #e8eef7;
   --muted: #9aa8bc;
   --line: #2a3444;
@@ -41,19 +44,25 @@ html.theme-dark {
   --green: #5fd4a4;
   --red: #ff8fa0;
   --warn: #e8b45c;
-  --shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
-  min-height: 100vh;
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -76,4 +85,49 @@ select {
 code {
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 0.92em;
+  padding: 0.1em 0.35em;
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+
+/* Shared layout helpers used across pages */
+.page {
+  width: min(var(--page-max), calc(100% - var(--page-pad) * 2));
+  margin: 0 auto;
+  padding: var(--space-5) 0 var(--space-6);
+}
+
+.page-hero {
+  margin-bottom: var(--space-5);
+}
+
+.page-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.page-title {
+  margin: 6px 0 10px;
+  font-size: clamp(1.45rem, 4vw, 1.85rem);
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  font-weight: 750;
+}
+
+.page-intro {
+  margin: 0;
+  color: var(--muted);
+  max-width: 40em;
+  font-size: 0.98rem;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --page-pad: 16px;
+    --space-5: 22px;
+    --space-6: 32px;
+  }
 }

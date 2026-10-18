@@ -1,6 +1,6 @@
 {
   "name": "genpac-runner",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "private": true,
   "description": "自动生成 PAC 文件工具，支持自定义规则 / GFWList、Vue3 后台与 Webhook（Bun 运行时）",
   "type": "module",

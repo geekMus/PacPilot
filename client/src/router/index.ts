@@ -4,8 +4,8 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
-      path: "/status",
-      name: "status",
+      path: "/",
+      name: "home",
       component: () => import("../views/StatusView.vue"),
     },
     {
@@ -20,9 +20,13 @@ const router = createRouter({
     },
     {
       path: "/:pathMatch(.*)*",
-      redirect: "/status",
+      name: "not-found",
+      component: () => import("../views/NotFoundView.vue"),
     },
   ],
+  scrollBehavior() {
+    return { top: 0 };
+  },
 });
 
 export default router;

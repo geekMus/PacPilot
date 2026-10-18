@@ -172,17 +172,17 @@ async function logout() {
 </script>
 
 <template>
-  <main class="wrap">
+  <main class="page admin-page">
     <AppHeader brand="genpac-runner" sub="ADMIN">
-      <RouterLink to="/status">规则状态</RouterLink>
-      <a href="/proxy.pac">PAC 原文</a>
+      <RouterLink to="/">首页</RouterLink>
+      <a href="/proxy.pac">PAC</a>
       <button type="button" class="linkish" @click="logout">退出</button>
     </AppHeader>
 
-    <section class="hero">
-      <div class="kicker">控制台</div>
-      <h1>配置管理</h1>
-      <p class="intro">
+    <section class="page-hero">
+      <div class="page-kicker">控制台</div>
+      <h1 class="page-title">配置管理</h1>
+      <p class="page-intro">
         业务参数保存在 SQLite。修改后可立即重新生成 PAC。
       </p>
     </section>
@@ -421,30 +421,8 @@ async function logout() {
 </template>
 
 <style scoped>
-.wrap {
-  width: min(920px, calc(100% - 32px));
-  margin: 28px auto 56px;
-}
-.hero {
-  margin-bottom: var(--space-5);
-}
-.kicker {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-h1 {
-  margin: 6px 0 8px;
-  font-size: 28px;
-  letter-spacing: -0.03em;
-  line-height: 1.2;
-}
-.intro {
-  margin: 0;
-  color: var(--muted);
-  max-width: 36em;
+.admin-page {
+  padding-bottom: var(--space-6);
 }
 .state-msg {
   color: var(--muted);
@@ -495,13 +473,13 @@ h1 {
 .stack {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
 .card {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: var(--space-4) var(--space-5);
+  padding: clamp(16px, 3vw, 24px) clamp(16px, 3.5vw, 28px);
   box-shadow: var(--shadow);
 }
 .card-head {
@@ -651,17 +629,32 @@ textarea {
   line-height: 1.45;
 }
 .checks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 4px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
 }
 .check {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  min-height: var(--touch);
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
   font-size: 14px;
   cursor: pointer;
+  user-select: none;
+}
+.check input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+.check span {
+  line-height: 1.3;
 }
 .split {
   display: grid;
@@ -680,7 +673,8 @@ textarea {
   background: var(--surface);
   color: var(--text);
   border-radius: var(--radius-sm);
-  padding: 10px 16px;
+  min-height: var(--touch);
+  padding: 10px 18px;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
@@ -768,8 +762,11 @@ tr:last-child td {
   .split {
     grid-template-columns: 1fr;
   }
-  .card {
-    padding: 16px;
+  .actions {
+    flex-direction: column;
+  }
+  .actions .btn {
+    width: 100%;
   }
 }
 </style>

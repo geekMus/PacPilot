@@ -41,11 +41,10 @@ function ruleDesc(rule: string) {
 </script>
 
 <template>
-  <main class="wrap">
-    <AppHeader brand="genpac-runner" sub="PAC RULE INSPECTOR">
-      <RouterLink to="/status">规则状态</RouterLink>
-      <a href="/proxy.pac">查看 PAC 原文 ↗</a>
-      <RouterLink v-if="meta?.adminEnabled" to="/admin">后台管理</RouterLink>
+  <main class="page">
+    <AppHeader brand="genpac-runner" sub="HOME">
+      <a href="/proxy.pac">PAC</a>
+      <RouterLink v-if="meta?.adminEnabled" to="/admin">后台</RouterLink>
     </AppHeader>
 
     <section>

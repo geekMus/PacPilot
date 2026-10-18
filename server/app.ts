@@ -22,7 +22,10 @@ export function createApp(
   app.use(publicRoutes(env));
   app.use(adminRoutes(env, database));
 
-  const here = typeof import.meta.dir === "string" ? import.meta.dir : path.dirname(fileURLToPath(import.meta.url));
+  const here =
+    typeof import.meta.dir === "string"
+      ? import.meta.dir
+      : path.dirname(fileURLToPath(import.meta.url));
   const clientDir = path.resolve(here, "../dist/client");
   const indexHtml = path.join(clientDir, "index.html");
 
@@ -32,18 +35,31 @@ export function createApp(
 
   const sendSpa = (_req: express.Request, res: express.Response) => {
     if (!fs.existsSync(indexHtml)) {
-      res.status(503).send("Frontend not built. Run bun run build:client");
+      res.status(503).type("text/plain").send(
+        "Frontend not built. Run: bun run build"
+      );
       return;
     }
     res.sendFile(indexHtml);
   };
 
-  app.get("/status", sendSpa);
+  // Vue SPA：首页与后台
+  app.get("/", sendSpa);
   app.get("/admin", sendSpa);
   app.get(/^\/admin\/.*/, sendSpa);
 
-  app.use((_req, res) => {
-    res.status(404).send("Not Found");
+  // 其余未知路径交给 SPA 的 404 页（返回 index，由前端路由展示 404）
+  app.use((req, res) => {
+    if (req.path.startsWith("/api/")) {
+      res.status(404).json({ error: "Not Found" });
+      return;
+    }
+    if (fs.existsSync(indexHtml)) {
+      res.status(404);
+      res.sendFile(indexHtml);
+      return;
+    }
+    res.status(404).type("text/plain").send("Not Found");
   });
 
   return app;

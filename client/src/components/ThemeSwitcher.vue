@@ -29,12 +29,12 @@ const options: { value: ThemeMode; label: string; title: string }[] = [
 <style scoped>
 .theme-switch {
   position: fixed;
-  top: 14px;
-  right: 14px;
+  top: 12px;
+  right: 12px;
   z-index: 50;
   display: inline-flex;
   gap: 2px;
-  padding: 3px;
+  padding: 4px;
   border-radius: 999px;
   border: 1px solid var(--line);
   background: var(--surface);
@@ -48,18 +48,30 @@ const options: { value: ThemeMode; label: string; title: string }[] = [
   color: var(--muted);
   font-size: 12px;
   font-weight: 600;
-  padding: 6px 10px;
+  min-height: 32px;
+  padding: 0 12px;
   border-radius: 999px;
   cursor: pointer;
   line-height: 1;
 }
 
 .theme-btn.active {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  background: var(--accent-soft);
   color: var(--accent);
 }
 
 .theme-btn:hover {
   color: var(--text);
+}
+
+@media (max-width: 720px) {
+  .theme-switch {
+    top: 10px;
+    right: 10px;
+  }
+  .theme-btn {
+    min-height: 36px;
+    padding: 0 11px;
+  }
 }
 </style>

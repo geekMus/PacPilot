@@ -113,7 +113,7 @@ bun start            # NODE_ENV=production，数据目录按操作系统选择
 docker compose up -d --build
 ```
 
-- 宿主机访问：`http://主机:17321/proxy.pac`、`/status`、`/admin`
+- 宿主机访问：`http://主机:17321/proxy.pac`、`/`、`/admin`
 - 容器内数据目录：`/data`（卷 `genpac-data`）
 
 ---
@@ -139,10 +139,11 @@ docker compose up -d --build
 
 | 路径 | 说明 |
 |------|------|
-| `/proxy.pac` | 当前 PAC |
-| `/status` | 规则状态页（只读实际 PAC） |
+| `/` | 首页：当前 PAC 规则状态 |
+| `/proxy.pac` | PAC 文件 |
 | `/admin` | 后台管理（需 `ADMIN_PASSWORD`） |
-| `/api/*` | JSON API |
+| 其他 | 返回 404 页面 |
+
 
 主题：页面右上角可切换 **自动 / 浅色 / 深色**（默认跟随系统）。
 

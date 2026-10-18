@@ -40,10 +40,10 @@ async function onSubmit() {
 </script>
 
 <template>
-  <main class="wrap">
+  <main class="page">
     <AppHeader brand="genpac-runner" sub="ADMIN">
-      <RouterLink to="/status">规则状态</RouterLink>
-      <a href="/proxy.pac">PAC 原文</a>
+      <RouterLink to="/">首页</RouterLink>
+      <a href="/proxy.pac">PAC</a>
     </AppHeader>
 
     <div class="card">
@@ -75,17 +75,14 @@ async function onSubmit() {
 </template>
 
 <style scoped>
-.wrap {
-  width: min(960px, calc(100% - 32px));
-  margin: 28px auto 48px;
-}
 .card {
   max-width: 400px;
-  margin: 10vh auto 0;
+  width: 100%;
+  margin: min(10vh, 48px) auto 0;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 28px 24px 24px;
+  padding: clamp(20px, 4vw, 28px) clamp(18px, 4vw, 24px);
   box-shadow: var(--shadow);
 }
 .icon-badge {
@@ -134,6 +131,7 @@ button {
   background: var(--surface);
   color: var(--text);
   border-radius: var(--radius-sm);
+  min-height: var(--touch);
   padding: 11px 14px;
   font-weight: 600;
   cursor: pointer;
