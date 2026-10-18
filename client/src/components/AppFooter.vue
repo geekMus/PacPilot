@@ -12,7 +12,8 @@ const hasUpdate = computed(() => Boolean(updateInfo.value?.updateAvailable && up
 const latestVersion = computed(() => updateInfo.value?.latestVersion || "暂时未知");
 async function readLatestVersionDirectly(): Promise<string | null> {
   const sources = [
-    "https://raw.githubusercontent.com/geekMus/genpac-runner/main/package.json",
+    "https://github.mus.pp.ua/https://raw.githubusercontent.com/geekMus/genpac-runner/refs/heads/main/package.json",
+    "https://raw.githubusercontent.com/geekMus/genpac-runner/refs/heads/main/package.json",
     "https://cdn.jsdelivr.net/gh/geekMus/genpac-runner@main/package.json",
   ];
   for (const url of sources) {
