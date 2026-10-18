@@ -1,0 +1,36 @@
+name: 删除已完成的旧功能分支
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/delete-completed-branch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  delete-merged-branch:
+    name: 删除已合并的 refactor/modular-sqlite-admin
+    runs-on: ubuntu-latest
+    steps:
+      - name: 删除已完成分支
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ref = "heads/refactor/modular-sqlite-admin";
+            try {
+              await github.rest.git.deleteRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref
+              });
+              core.notice("已删除远程分支 refactor/modular-sqlite-admin。");
+            } catch (error) {
+              if (error.status === 404) {
+                core.info("分支已经不存在，无需再次删除。");
+              } else {
+                throw error;
+              }
+            }

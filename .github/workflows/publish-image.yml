@@ -1,11 +1,14 @@
 name: 构建并发布 Docker 镜像
 
 on:
-  # 自动发布只允许 main 分支的 push 事件触发。
+  # 只有 main 分支的 package.json 变更会自动触发检查。
+  # 只有 package.json.version 相比上一提交更新，才会推送镜像。
   push:
     branches:
       - main
-  # 其他分支只能手动运行；非 main 分支的手动运行不会覆盖 latest。
+    paths:
+      - package.json
+  # 可手动验证任意分支的构建；手动运行不会发布镜像或创建 Release。
   workflow_dispatch:
 
 permissions:
@@ -16,14 +19,56 @@ jobs:
     name: 构建并发布多架构镜像
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      actions: read
+      contents: write
       packages: write
     steps:
-      - name: 检出完整提交历史
+      - name: 检出完整提交历史与版本标签
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: 检查项目版本与发布条件
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(jq -r '.version // empty' package.json)"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::package.json 的 version 必须是有效的 x.y.z 版本号，可带预发布后缀。"
+            exit 1
+          fi
+
+          VERSION_TAG="v$VERSION"
+          PREVIOUS_VERSION="$(git show "${GITHUB_SHA}^:package.json" 2>/dev/null | jq -r '.version // empty' 2>/dev/null || true)"
+          PUBLISH="false"
+          PUBLISH_LATEST="false"
+          REASON="手动触发：仅验证构建，不推送镜像或创建 Release。"
+
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == "refs/heads/main" ]]; then
+            if [[ "$VERSION" == "$PREVIOUS_VERSION" ]]; then
+              REASON="package.json.version 没有变化，跳过镜像发布。"
+            elif git rev-parse -q --verify "refs/tags/$VERSION_TAG" >/dev/null; then
+              REASON="版本标签 $VERSION_TAG 已存在，防止重复发布。"
+            else
+              PUBLISH="true"
+              REASON="检测到项目版本从 ${PREVIOUS_VERSION:-未设置} 更新为 $VERSION，将发布新镜像。"
+              if [[ "$VERSION" != *-* ]]; then
+                PUBLISH_LATEST="true"
+              fi
+            fi
+          fi
+
+          {
+            echo "version=$VERSION"
+            echo "version_tag=$VERSION_TAG"
+            echo "previous_version=$PREVIOUS_VERSION"
+            echo "publish=$PUBLISH"
+            echo "publish_latest=$PUBLISH_LATEST"
+            echo "reason=$REASON"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "项目版本：$VERSION"
+          echo "发布判断：$REASON"
 
       - name: 启用 ARM64 构建支持
         uses: docker/setup-qemu-action@v3
@@ -34,99 +79,111 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: 登录 GitHub 容器镜像仓库
+        if: steps.version.outputs.publish == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 生成镜像标签和元数据
+      - name: 生成版本化镜像标签与元数据
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/geekmus/genpac-runner
           tags: |
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=ref,event=branch
-            type=ref,event=tag
-            type=sha
+            type=raw,value=${{ steps.version.outputs.version }},enable=${{ steps.version.outputs.publish == 'true' }}
+            type=raw,value=latest,enable=${{ steps.version.outputs.publish_latest == 'true' }}
           labels: |
             org.opencontainers.image.title=genpac-runner
             org.opencontainers.image.description=自动生成 PAC 文件的工具
             org.opencontainers.image.source=https://github.com/geekMus/genpac-runner
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
 
-      - name: 输出本次镜像的提交变更摘要
+      - name: 生成版本变更摘要
         env:
-          GH_TOKEN: ${{ github.token }}
-          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+          VERSION: ${{ steps.version.outputs.version }}
+          PUBLISH: ${{ steps.version.outputs.publish }}
+          PUBLISH_LATEST: ${{ steps.version.outputs.publish_latest }}
+          REASON: ${{ steps.version.outputs.reason }}
+        shell: bash
         run: |
           set -euo pipefail
           SUMMARY="$GITHUB_STEP_SUMMARY"
-          echo "# Docker 镜像发布摘要" >> "$SUMMARY"
-          echo "" >> "$SUMMARY"
-          echo "- 仓库：`$GITHUB_REPOSITORY`" >> "$SUMMARY"
-          echo "- 本次提交：[`$GITHUB_SHA`](https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA)" >> "$SUMMARY"
-          echo "- 触发方式：`$GITHUB_EVENT_NAME`" >> "$SUMMARY"
-          echo "- 构建平台：`linux/amd64`、`linux/arm64`" >> "$SUMMARY"
-          echo "- 镜像标签：" >> "$SUMMARY"
-          while IFS= read -r tag; do
-            [ -n "$tag" ] && echo "  - `$tag`" >> "$SUMMARY"
-          done <<< "$IMAGE_TAGS"
+          PREVIOUS_TAG="$(git tag --merged "${GITHUB_SHA}^" --list 'v[0-9]*' --sort=-version:refname | head -n 1 || true)"
 
-          RUNS="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/publish-image.yml/runs?per_page=100")"
-          PREVIOUS_SHA="$(printf '%s' "$RUNS" | jq -r --arg current "$GITHUB_SHA" '[.workflow_runs[] | select(.conclusion == "success" and .head_sha != $current and .head_branch == "main")] | first | .head_sha // empty')"
-
-          # 首次 main 发布时，使用最近一次成功发布的分支构建作为对比基线。
-          if [ -z "$PREVIOUS_SHA" ]; then
-            PREVIOUS_SHA="$(printf '%s' "$RUNS" | jq -r --arg current "$GITHUB_SHA" '[.workflow_runs[] | select(.conclusion == "success" and .head_sha != $current)] | first | .head_sha // empty')"
-          fi
-
-          echo "" >> "$SUMMARY"
-          if [ -n "$PREVIOUS_SHA" ] && git cat-file -e "$PREVIOUS_SHA^{commit}" 2>/dev/null; then
-            echo "## 与上一次成功发布的镜像相比" >> "$SUMMARY"
-            echo "" >> "$SUMMARY"
-            echo "上一次发布提交：[`$PREVIOUS_SHA`](https://github.com/$GITHUB_REPOSITORY/commit/$PREVIOUS_SHA)" >> "$SUMMARY"
-            echo "变更比较：[查看完整提交和文件差异](https://github.com/$GITHUB_REPOSITORY/compare/$PREVIOUS_SHA...$GITHUB_SHA)" >> "$SUMMARY"
-            echo "" >> "$SUMMARY"
-            echo "### 提交记录" >> "$SUMMARY"
-            echo "" >> "$SUMMARY"
-            COMMITS="$(git log --format='- %h %s' "$PREVIOUS_SHA..$GITHUB_SHA" || true)"
-            if [ -n "$COMMITS" ]; then
-              printf '%s\n' "$COMMITS" >> "$SUMMARY"
+          {
+            printf '# genpac-runner 镜像构建摘要\n\n'
+            printf -- '- 项目版本：%s\n' "$VERSION"
+            printf -- '- 本次提交：[%s](https://github.com/%s/commit/%s)\n' "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$GITHUB_SHA"
+            printf -- '- 构建平台：linux/amd64、linux/arm64\n'
+            printf -- '- 发布判断：%s\n' "$REASON"
+            if [[ "$PUBLISH" == "true" ]]; then
+              printf -- '- 版本镜像：ghcr.io/geekmus/genpac-runner:%s\n' "$VERSION"
+              if [[ "$PUBLISH_LATEST" == "true" ]]; then
+                printf -- '- 稳定版标签：ghcr.io/geekmus/genpac-runner:latest\n'
+              else
+                printf -- '- 预发布版本不会覆盖 latest。\n'
+              fi
             else
-              echo "未发现新增提交；本次可能只是重新构建或手动发布。" >> "$SUMMARY"
+              printf '\n本次只执行构建验证，不会推送镜像或创建 GitHub Release。\n'
             fi
+          } >> "$SUMMARY"
+
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            {
+              printf '\n## 与上一个版本相比\n\n'
+              printf -- '- 上一个版本：[%s](https://github.com/%s/releases/tag/%s)\n' "$PREVIOUS_TAG" "$GITHUB_REPOSITORY" "$PREVIOUS_TAG"
+              printf -- '- 完整差异：[查看提交与文件变更](https://github.com/%s/compare/%s...%s)\n' "$GITHUB_REPOSITORY" "$PREVIOUS_TAG" "$GITHUB_SHA"
+              printf '\n### 提交记录\n\n'
+            } >> "$SUMMARY"
+            git log --no-decorate --format="- [%h](https://github.com/${GITHUB_REPOSITORY}/commit/%H) %s" "$PREVIOUS_TAG..$GITHUB_SHA" >> "$SUMMARY"
           else
-            echo "## 提交记录" >> "$SUMMARY"
-            echo "" >> "$SUMMARY"
-            echo "没有找到可用的上一次成功发布提交，这是首次发布，或历史发布信息暂不可用。" >> "$SUMMARY"
-            echo "" >> "$SUMMARY"
-            git log -10 --format='- %h %s' "$GITHUB_SHA" >> "$SUMMARY"
+            {
+              printf '\n## 提交记录\n\n'
+              printf '这是尚无版本标签的首次版本发布，以下列出最近的提交。\n\n'
+            } >> "$SUMMARY"
+            git log -10 --no-decorate --format="- [%h](https://github.com/${GITHUB_REPOSITORY}/commit/%H) %s" "$GITHUB_SHA" >> "$SUMMARY"
           fi
 
-      - name: 显示本次构建平台
-        run: |
-          echo "开始构建 genpac-runner 多架构镜像。"
-          echo "支持平台：linux/amd64（x86_64，64 位 Intel/AMD）和 linux/arm64（64 位 ARM）。"
-          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
-            echo "当前来自 main 分支，将更新 latest 标签。"
-          else
-            echo "当前为手动触发的非 main 构建，不会覆盖 latest 标签。"
-          fi
-
-      - name: 构建并推送多架构镜像
+      - name: 构建并按条件推送多架构镜像
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
+          push: ${{ steps.version.outputs.publish == 'true' }}
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: 输出镜像发布完成提示
+      - name: 创建 GitHub 版本发布与自动变更说明
+        if: steps.version.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          VERSION_TAG: ${{ steps.version.outputs.version_tag }}
+        shell: bash
         run: |
-          echo "genpac-runner 多架构镜像构建与推送成功。"
-          echo "本次源代码提交：$GITHUB_SHA"
-          echo "镜像地址：ghcr.io/geekmus/genpac-runner"
+          set -euo pipefail
+          PREVIOUS_TAG="$(git tag --merged "${GITHUB_SHA}^" --list 'v[0-9]*' --sort=-version:refname | head -n 1 || true)"
+          RELEASE_ARGS=(release create "$VERSION_TAG" --target "$GITHUB_SHA" --title "genpac-runner $VERSION_TAG" --generate-notes)
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            RELEASE_ARGS+=(--notes-start-tag "$PREVIOUS_TAG")
+          fi
+          if [[ "$VERSION" == *-* ]]; then
+            RELEASE_ARGS+=(--prerelease)
+          fi
+          gh "${RELEASE_ARGS[@]}"
+
+      - name: 输出构建结果
+        env:
+          PUBLISH: ${{ steps.version.outputs.publish }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if [[ "$PUBLISH" == "true" ]]; then
+            echo "多架构镜像已发布：ghcr.io/geekmus/genpac-runner:$VERSION"
+          else
+            echo "本次已执行构建验证，未发布镜像。"
+          fi
