@@ -63,10 +63,18 @@ export async function getUpdateInfo(forceRefresh = false): Promise<UpdateInfo> {
 
   inFlight = (async () => {
     try {
-      const response = await fetch(PROJECT_PACKAGE_JSON_URL, {
+      // 每次真正请求远端时都使用唯一查询参数，降低 GitHub Raw 或中间代理/CDN 返回旧缓存的概率。
+      // 同时要求 HTTP 缓存重新验证；即使上游不遵守这些指令，唯一 URL 仍可避免复用同一缓存键。
+      const sourceUrl = new URL(PROJECT_PACKAGE_JSON_URL);
+      sourceUrl.searchParams.set("_cacheBust", `${Date.now()}-${crypto.randomUUID()}`);
+
+      const response = await fetch(sourceUrl, {
+        cache: "no-store",
         headers: {
           "User-Agent": `genpac-runner/${APP_VERSION}`,
           Accept: "application/json",
+          "Cache-Control": "no-cache, no-store, max-age=0",
+          Pragma: "no-cache",
         },
         signal: AbortSignal.timeout(7000),
       });
