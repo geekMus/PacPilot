@@ -10,6 +10,11 @@ on:
   # 其他分支只能手动触发；手动运行仅验证构建，绝不推送镜像。
   workflow_dispatch:
 
+# 同一分支只保留最新一次运行；新提交到来时取消旧的构建/发布任务。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
