@@ -6,7 +6,8 @@ FROM m.daocloud.io/docker.io/oven/bun:1-alpine AS builder
 WORKDIR /app
 # 先复制 Bun 配置，确保依赖安装阶段使用国内 npm 镜像源。
 COPY package.json bun.lockb* bunfig.toml ./
-RUN bun install --frozen-lockfile || bun install
+RUN NPM_CONFIG_REGISTRY=https://registry.npmmirror.com bun install --frozen-lockfile \\
+ || NPM_CONFIG_REGISTRY=https://registry.npmmirror.com bun install
 
 COPY server ./server
 COPY client ./client
@@ -25,7 +26,8 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 WORKDIR /app
 # 运行阶段也使用相同的国内 npm 镜像源。
 COPY package.json bun.lockb* bunfig.toml ./
-RUN bun install --production --frozen-lockfile || bun install --production
+RUN NPM_CONFIG_REGISTRY=https://registry.npmmirror.com bun install --production --frozen-lockfile \\
+ || NPM_CONFIG_REGISTRY=https://registry.npmmirror.com bun install --production
 
 COPY server ./server
 COPY --from=builder /app/dist ./dist
