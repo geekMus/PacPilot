@@ -1,200 +1,172 @@
 # genpac-runner
 
-基于 **Bun** 的自动 PAC 生成工具。
+一个用于生成 PAC 代理规则文件的轻量工具，带有网页管理界面。你可以配置代理、直连域名、黑名单、远程规则列表、定时生成和 Webhook 通知。
 
-- **开发 / 生产** 在 Windows、Linux、macOS、Docker 下均可运行
-- 业务配置经 **Vue 3 后台** 写入 **SQLite**（`bun:sqlite`）
-- 启动只需少量环境变量；其余（模式、代理、列表、Webhook、Cron）在面板中配置
+**推荐使用 Docker Compose 部署。** 配置和生成记录保存在 SQLite 中，不需要手动编辑配置文件。
 
----
+## Docker Compose 部署（推荐）
 
-## 目录结构
+### 1. 安装 Docker
 
-```
-server/          # Bun 直接运行的 TypeScript 后端
-client/          # Vue 3 + Vite 前端
-scripts/         # dev / 生产启动脚本（跨平台设置环境）
-dist/client/     # 前端构建产物（生产由后端托管）
-```
+需要 Docker Engine 和 Docker Compose。
 
----
+- **Windows / macOS：** 安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)。
+- **Linux：** 安装 Docker Engine 和 [Docker Compose 插件](https://docs.docker.com/compose/install/linux/)。
 
-## 数据目录（生成文件放在哪里）
-
-服务会在数据目录中写入：
-
-| 文件 | 说明 |
-|------|------|
-| `genpac.db` | SQLite：后台配置与生成日志 |
-| `proxy.pac` | 当前生成的 PAC 文件 |
-
-### 解析优先级（从高到低）
-
-1. **环境变量 `DATA_DIR`**（显式指定时始终优先，适合任意自定义路径）
-2. **Docker / 容器** → `/data`（请挂载卷持久化）
-3. **生产环境** → 见下表「各系统默认路径」
-4. **开发环境** → 当前工作目录下的 `./data`
-
-如何判定环境：
-
-| 场景 | 判定方式 | 典型启动命令 |
-|------|----------|----------------|
-| 开发 | `NODE_ENV` / `GENPAC_ENV` 为 development，或使用 `bun run dev` | `bun run dev` / `bun run dev:server` |
-| 生产 | `NODE_ENV=production`（`bun start` 会自动设置） | `bun start` |
-| Docker | 存在 `/.dockerenv` 或 `RUNNING_IN_DOCKER=1` | `docker compose up` |
-
-### 各系统默认路径（未设置 `DATA_DIR` 时）
-
-| 环境 | 默认数据目录 |
-|------|----------------|
-| **开发（任意 OS）** | `<项目当前工作目录>/data` |
-| **生产 · Windows** | `%LOCALAPPDATA%\genpac-runner`（例如 `C:\Users\<用户>\AppData\Local\genpac-runner`） |
-| **生产 · macOS** | `~/Library/Application Support/genpac-runner` |
-| **生产 · Linux** | `$XDG_DATA_HOME/genpac-runner`，若未设置 XDG 则为 `~/.local/share/genpac-runner` |
-| **Docker** | `/data`（compose 中已配置命名卷） |
-
-启动日志会打印实际路径，例如：
-
-```text
-[boot] profile=development
-[boot] dataDir=/path/to/genpac-runner/data
-```
-
-或生产 Windows：
-
-```text
-[boot] profile=production
-[boot] dataDir=C:\Users\...\AppData\Local\genpac-runner
-```
-
-### 自定义路径示例
-
-```env
-# .env 或系统环境变量
-DATA_DIR=D:\pac-data
-# Linux 服务也可：
-# DATA_DIR=/var/lib/genpac-runner
-```
-
----
-
-## 快速开始
-
-### 1. 安装依赖
+先确认命令可用：
 
 ```bash
-bun install
+docker --version
+docker compose version
+```
+
+新版 Compose 使用空格形式的 `docker compose`。如果你的系统只提供旧式独立命令，也可以使用 `docker-compose`。
+
+### 2. 下载项目
+
+安装了 Git 的设备执行：
+
+```bash
+git clone --branch refactor/modular-sqlite-admin --single-branch https://github.com/geekMus/genpac-runner.git
+cd genpac-runner
+```
+
+当前部署命令指定了本项目分支，以确保获取这里记录的版本。也可以在 GitHub 项目页选择 **Code → Download ZIP**，解压后进入包含 `docker-compose.yml` 的项目目录。
+
+### 3. 设置管理密码
+
+在项目根目录复制环境变量示例文件：
+
+```bash
 cp .env.example .env
-# 编辑 .env：至少设置 ADMIN_PASSWORD；端口冲突时改 PORT
 ```
 
-### 2. 开发
+Windows PowerShell 可使用：
 
-```bash
-bun run dev          # 后端热重载 + 前端 Vite
-# 或仅后端：
-bun run dev:server
+```powershell
+Copy-Item .env.example .env
 ```
 
-- 数据默认写在 **项目下的 `data/`**
-- 前端开发服务器：`http://127.0.0.1:5173`（API 代理到后端）
-- 后端默认：`http://127.0.0.1:17321`
+打开 `.env`，设置一个自己的管理密码：
 
-### 3. 生产（本机直接跑）
-
-```bash
-bun run build        # 构建 Vue 到 dist/client
-bun start            # NODE_ENV=production，数据目录按操作系统选择
+```dotenv
+ADMIN_PASSWORD=请替换为你自己的强密码
+HOST_PORT=17321
+TZ=Asia/Shanghai
 ```
 
-### 4. Docker
+**必须修改 `ADMIN_PASSWORD`，不能留空，也不要使用示例密码。** 如果 17321 端口已被占用，可以把 `HOST_PORT` 改成其他端口，例如 `17322`。
+
+### 4. 构建并启动
+
+确认终端当前目录是项目根目录（里面有 `docker-compose.yml`），然后执行：
 
 ```bash
 docker compose up -d --build
 ```
 
-- 宿主机访问：`http://主机:17321/proxy.pac`、`/`、`/admin`
-- 容器内数据目录：`/data`（卷 `genpac-data`）
+如果系统使用的是旧式独立命令，则执行：
 
----
+```bash
+docker-compose up -d --build
+```
 
-## 环境变量（仅启动级）
+这条命令会根据项目中的 `Dockerfile` 构建镜像，并在后台启动容器。首次构建需要下载 Bun 基础镜像和安装项目依赖，请确保设备可以访问相应的软件源。**不需要先执行 `docker pull genpac-runner`**，本项目的 Compose 配置是从源码构建应用镜像。
 
-| 变量 | 说明 |
-|------|------|
-| `DATA_DIR` | 数据目录（可选；不设则按上文规则自动选择） |
-| `PORT` | HTTP 端口，默认 `17321` |
-| `HOST` | 监听地址，默认 `0.0.0.0` |
-| `ADMIN_PASSWORD` | 设置后启用 `/admin`；不设置则后台关闭 |
-| `SESSION_SECRET` | Cookie 签名（可选） |
-| `TZ` | 时区，默认 `Asia/Shanghai` |
-| `NODE_ENV` / `GENPAC_ENV` | `development` 或 `production`（一般由 `dev` / `start` 脚本设置） |
-| `RUNNING_IN_DOCKER` | 镜像内已设为 `1`，用于识别容器 |
+查看运行状态和日志：
 
-业务参数（生成模式、代理、直连/黑名单、Cron、Webhook）**不要**写在环境变量里，请在后台面板配置。运行概览会基于实际生成的 PAC 显示规则摘要；远程列表模式下，自定义直连与黑名单同样会注入并优先匹配。
+```bash
+docker compose ps
+docker compose logs -f genpac
+```
 
----
+### 5. 打开网页
 
-## 路由
+假设部署设备的 IP 是 `192.168.1.20)，且 `HOST_PORT=17321)：
 
-| 路径 | 说明 |
-|------|------|
-| `/` | 运行概览：展示实际 PAC、规则数量与匹配顺序 |
-| `/proxy.pac` | PAC 原文（浏览器内查看） |
-| `/admin` | 后台管理（需 `ADMIN_PASSWORD`） |
-| 其他 | 返回 404 页面 |
+- 运行概览：`http://192.168.1.20:17321/`
+- 配置管理：`http://192.168.1.20:17321/admin`
+- PAC 文件：`http://192.168.1.20:17321/proxy.pac`
 
+将示例 IP 换成实际部署设备的地址。如果修改了 `HOST_PORT`，访问时也要使用修改后的端口。
 
-主题：页面导航栏可切换 **自动 / 浅色 / 深色**（默认跟随系统）。
+### 常用命令
 
----
+以下命令都要在项目目录中执行：
 
-## 启动模式（后台可切换）
+```bash
+# 查看日志
+docker compose logs -f genpac
 
-1. **自定义规则（custom）**  
-   在后台维护直连列表、黑名单；未命中则走你配置的 `pacProxy`。内网始终直连。
+# 重启
+docker compose restart
 
-2. **远程规则列表（remote）**  
-   在后台填写**任意**规则列表 URL，由 **Bun 内置引擎**下载并生成 PAC。  
-   支持内容格式：
-   - 标准 **GFWList**（Base64）
-   - 域名型 **AutoProxy / ABP** 规则（如 `||example.com^`，`@@||example.com^` 表示例外）
-   - **明文域名列表**（每行一个域名，`#` 注释）
+# 停止并移除容器（配置数据仍会保留）
+docker compose down
 
-   规则会提取域名后用于 PAC 匹配，不会保留 URL 路径、资源类型等复杂过滤条件。命中代理列表的域名走代理，例外和未命中项直连。后台填写的自定义黑名单和直连列表同样写入 PAC，并且优先于远程列表规则。
+# 拉取最新代码并重新构建、启动
+git pull
+docker compose up -d --build
+```
 
----
+**不要随意执行 `docker compose down -v`**：`-v` 会同时删除本项目的数据卷，可能导致配置和生成记录丢失。
+
+## 功能简介
+
+- **自定义规则：** 配置直连域名、黑名单和默认代理；本机及私有内网地址优先直连。
+- **远程规则列表：** 从 URL 获取规则，支持 GFWList（Base64）、域名型 AutoProxy / ABP 规则，以及每行一个域名的明文列表。
+- **定时生成：** 使用 Cron 表达式安排自动生成；留空即关闭定时任务。
+- **Webhook 通知：** 分别配置生成成功和失败时的通知渠道，支持自定义 HTTP Webhook 和钉钉机器人。
+- **主题：** 网页支持自动、浅色和深色主题。
+
+远程列表模式会提取规则中的域名进行 PAC 匹配，不会保留 URL 路径、资源类型等复杂过滤条件。自定义直连和黑名单规则优先于远程列表。
+
+## 数据与配置
+
+Docker 部署时，命名卷 `genpac-data` 挂载到容器的 `/data` 目录，保存：
+
+- `genpac.db`：后台配置和生成记录。
+- `proxy.pac`：当前生成的 PAC 文件。
+
+执行 `docker compose down` 不会删除该数据卷。迁移或备份时请一并保存卷中的数据。
+
+业务配置都在网页的「配置管理」中完成。只有启动级设置（如管理密码、时区和端口）需要通过环境变量设置。
 
 ## 常见问题
 
-### 端口被占用
+**提示 `docker: 'compose' is not a docker command`**
 
-```text
-Failed to start server. Is port 17321 in use?
+说明 Docker Compose 插件未安装，或 Docker CLI 无法找到它。请按 [Docker Compose 官方安装文档](https://docs.docker.com/compose/install/) 安装后，再运行 `docker compose version` 检查。若系统已安装旧式独立命令，可尝试 `docker-compose --version` 和 `docker-compose up -d --build`。
+
+**访问不了网页**
+
+检查容器是否启动成功、端口是否被占用，并查看 `docker compose logs -f genpac`。如果从局域网其他设备访问，请确认服务器防火墙允许访问所配置的宿主机端口。
+
+**后台无法登录**
+
+检查项目根目录的 `.env` 是否设置了 `ADMIN_PASSWORD)，然后重新创建容器：
+
+```bash
+docker compose up -d
 ```
 
-- Windows：`netstat -ano | findstr :17321`，再 `taskkill /PID <pid> /F`
-- 或在 `.env` 中设置 `PORT=17322`
+**远程列表生成失败**
 
-### 远程列表模式生成失败
+确认容器可以访问列表 URL，且列表内容属于上方支持的格式。当前解析器按域名提取规则，不是完整的通用 ABP 过滤引擎。
 
-内置引擎会请求你在后台配置的列表 URL。请确认：
+## 本机开发（可选）
 
-- 本机/容器能访问该 URL
-- 内容为 GFWList、域名型 AutoProxy / ABP 规则或每行一个域名的明文列表
+如需修改源码，可先安装 [Bun](https://bun.sh/)：
 
-自定义规则模式不下载远程列表。
+```bash
+bun install
+cp .env.example .env
+# 在 .env 中设置 ADMIN_PASSWORD
+bun run dev
+```
 
-### 后台打不开
-
-确认已设置 `ADMIN_PASSWORD`（`.env` 或系统环境变量），然后看启动日志是否为 `admin=enabled`。
-
-### 生产环境找不到生成的文件
-
-先看启动日志里的 `dataDir=`。未设置 `DATA_DIR` 时，生产文件在系统标准目录（见上文表格），**不在**项目文件夹里。
-
----
+开发服务器默认监听后端 `17321`，前端开发页面为 `http://127.0.0.1:5173`。生产构建可运行 `bun run build`，然后执行 `bun start`。
 
 ## License
 
-MIT
+[MIT](LICENSE)
