@@ -25,7 +25,7 @@ def _e(value):
     return escape(str(value if value is not None else ""), quote=True)
 
 
-def render_login(csrf, error=False):
+def render_login(csrf="", error=False):
     error_html = (
         '<div class="notice error">密码不正确或登录验证已过期，请重试。</div>'
         if error else ""
