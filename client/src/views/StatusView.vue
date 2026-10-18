@@ -251,7 +251,7 @@ const activeRuleCount = computed(() => {
             />
             <button type="submit" class="action-button primary" :disabled="!domainInput.trim()">判断路由</button>
           </form>
-          <p class="domain-check-note">按照 PAC 规则顺序进行判断。IP 直连检测仅针对输入的 IP 字面量，不会在浏览器中执行 DNS 解析。</p>
+          <p class="domain-check-note">按当前 PAC 的主机名匹配顺序判断，不会执行 DNS 查询。只有本机名称、无点主机名及私有或回环 IP 地址会命中本地直连规则；其他 IP 不会自动判为直连。</p>
           <div v-if="domainRoute" class="domain-check-result" :class="'result-' + domainRoute.kind" role="status" aria-live="polite">
             <span class="result-mark" aria-hidden="true">
               {{ domainRoute.kind === "direct" ? "✓" : domainRoute.kind === "proxy" ? "↗" : domainRoute.kind === "blocked" ? "×" : "!" }}
