@@ -199,7 +199,6 @@ const activeRuleCount = computed(() => {
 <template>
   <main class="page status-page">
     <AppHeader brand="genpac-runner" sub="运行概览">
-      <a href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC</a>
       <RouterLink v-if="meta?.adminEnabled" class="primary" to="/admin">配置管理</RouterLink>
     </AppHeader>
 
@@ -338,12 +337,12 @@ const activeRuleCount = computed(() => {
       </template>
 
       <section v-else class="state-card warning-card">
-        <div class="state-icon">i</div><div class="state-copy"><strong>{{ status.modeLabel }}</strong><p>{{ status.notice }}</p><a href="/proxy.pac" target="_blank" rel="noopener noreferrer" class="action-button">查看 PAC 文件</a></div>
+        <div class="state-icon">i</div><div class="state-copy"><strong>{{ status.modeLabel }}</strong><p>{{ status.notice }}</p></div>
       </section>
 
       <section v-if="status.mode !== 'empty'" class="source-footer">
-        <div><span class="source-dot"></span><span>摘要来自当前已生成的 PAC 文件</span></div>
-        <div class="source-actions"><span>文件更新时间：{{ status.updatedAt }}</span><a href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC 文件</a><a href="/proxy.pac?download=1">下载 PAC</a><button type="button" @click="loadStatus">刷新状态</button></div>
+        <div class="source-caption"><span class="source-dot" aria-hidden="true"></span><span>摘要来自当前已生成的 PAC 文件</span></div>
+        <div class="source-actions"><span class="source-updated">文件更新时间：{{ status.updatedAt }}</span><a href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC</a><a href="/proxy.pac?download=1">下载 PAC</a><button type="button" @click="loadStatus" :disabled="loading">{{ loading ? "刷新中…" : "刷新状态" }}</button></div>
       </section>
     </template>
     <AppFooter />
@@ -482,10 +481,16 @@ const activeRuleCount = computed(() => {
 .default-proxy span { color:var(--muted); font-size:11px; font-weight:650; }
 .default-proxy code { max-width:100%; overflow-wrap:anywhere; color:var(--accent); font-size:13px; }
 .default-proxy p { margin:0; color:var(--muted); font-size:12px; line-height:1.5; }
-.source-footer { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding-top:18px; color:var(--muted); font-size:11px; }
-.source-footer > div:first-child,.source-actions { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
-.source-dot { width:7px; height:7px; border-radius:50%; background:var(--green); }
-.source-actions button { appearance:none; border:0; background:transparent; color:var(--accent); font:inherit; cursor:pointer; padding:0; }
+.source-footer { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px 20px; padding-top:18px; color:var(--muted); font-size:11px; }
+.source-caption,.source-actions { display:flex; align-items:center; flex-wrap:wrap; }
+.source-caption { gap:8px; min-width:0; line-height:1.5; }
+.source-actions { gap:6px; }
+.source-updated { margin-right:6px; line-height:1.5; font-variant-numeric:tabular-nums; }
+.source-dot { display:inline-block; flex:0 0 7px; width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px var(--green-soft); }
+.source-actions a,.source-actions button { display:inline-flex; align-items:center; justify-content:center; min-height:30px; padding:0 9px; border:1px solid transparent; border-radius:7px; background:transparent; color:var(--accent); font:inherit; text-decoration:none; white-space:nowrap; cursor:pointer; transition:background .15s,border-color .15s,color .15s; }
+.source-actions a:hover,.source-actions button:hover:not(:disabled) { background:var(--surface-2); border-color:var(--line); color:var(--text); text-decoration:none; }
+.source-actions a:focus-visible,.source-actions button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.source-actions button:disabled { opacity:.55; cursor:wait; }
 .state-card { display:flex; align-items:flex-start; gap:14px; padding:18px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
 .state-card strong { font-size:14px; }
 .state-card p { margin:5px 0 12px; color:var(--muted); font-size:13px; }
@@ -507,7 +512,9 @@ const activeRuleCount = computed(() => {
   .stat-card { min-height:112px; padding:13px; }
   .stat-number { font-size:25px; }
   .section-head { flex-direction:column; align-items:flex-start; gap:6px; }
-  .source-footer,.source-actions { align-items:flex-start; }
+  .source-footer { align-items:flex-start; }
+  .source-actions { align-items:center; gap:4px; }
+  .source-updated { flex-basis:100%; margin:0 0 3px; }
   .rule-tabs { gap:5px; padding:4px; }
   .rule-tabs button { gap:4px; padding:0 4px; font-size:11px; }
   .rule-tabs button strong { min-width:20px; min-height:20px; padding:0 4px; }
