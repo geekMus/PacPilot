@@ -412,7 +412,7 @@ async function logout() {
                   <span class="mode-name">远程规则列表</span>
                   <span class="tag">Bun 内置</span>
                 </div>
-                <p class="mode-desc">从任意可访问的规则列表 URL 生成；命中走代理，其余直连。</p>
+                <p class="mode-desc">从远程规则列表生成；匹配到代理域名时走代理，例外及未命中域名直连。</p>
               </div>
             </label>
           </div>
