@@ -124,7 +124,7 @@ Docker 部署时，建议在 `docker-compose.yml` 中启用一种 `/data` 持久
 
 容器数据路径固定为 `/data`，且该目录已通过 Dockerfile 的 `VOLUME` 声明；容器默认工作目录也设置为 `/data`，例如执行 `docker exec -it genpac-runner sh` 进入 shell 后，当前目录就是 `/data`。建议在 Compose 中启用一种显式挂载：使用命名卷时，执行 `docker compose down` 不会删除该数据卷；使用 `./data:/data` 目录挂载时，数据保存在项目的 `data` 目录。若不配置显式挂载，Docker 会创建匿名卷，容器重建时不一定自动复用旧卷。迁移或备份时请一并保存相应数据。
 
-业务配置都在网页的「配置管理」中完成。Docker 部署时，只有后台管理密码 `ADMIN_PASSWORD` 必须通过环境变量设置。容器时区固定为 `Asia/Shanghai`，监听地址固定为 `0.0.0.0`，内部端口固定为 `17321`，数据目录固定为 `/data`；宿主机端口映射和数据挂载则直接在 `docker-compose.yml` 中按需取消注释并修改。
+业务配置都在网页的「配置管理」中完成。Docker 部署时，后台管理密码在 `docker-compose.yml` 中配置，默认值为 `password`，部署前应尽快修改。容器时区固定为 `Asia/Shanghai`，监听地址固定为 `0.0.0.0`，内部端口固定为 `17321`，数据目录固定为 `/data`；宿主机端口映射和数据挂载则直接在 `docker-compose.yml` 中按需取消注释并修改。
 
 ## 常见问题
 
@@ -142,7 +142,7 @@ Docker 部署时，建议在 `docker-compose.yml` 中启用一种 `/data` 持久
 
 **后台无法登录**
 
-确认创建容器时设置了 `ADMIN_PASSWORD`，然后在包含该环境变量的终端会话中重新创建容器：
+检查 `docker-compose.yml` 中的 `ADMIN_PASSWORD` 是否设置为你实际使用的密码。修改后重新创建容器使配置生效：
 
 ```bash
 docker compose up -d --force-recreate
