@@ -10,6 +10,8 @@ export interface PacStatusPayload {
   blockList: string[];
   directList: string[];
   pacProxy: string | null;
+  remoteProxyList: string[];
+  remoteDirectList: string[];
   remoteProxyCount: number;
   remoteDirectCount: number;
   notice: string;
@@ -65,6 +67,7 @@ function basePayload(
 ): PacStatusPayload {
   return {
     mode, modeLabel, blockList: [], directList: [], pacProxy: null,
+    remoteProxyList: [], remoteDirectList: [],
     remoteProxyCount: 0, remoteDirectCount: 0, notice, updatedAt, hasPac,
   };
 }
@@ -101,6 +104,8 @@ export function parsePacStatus(pac: string, tz = "Asia/Shanghai", generatedAt: D
         "自定义黑名单 " + blockList.length + " 条、自定义直连 " + directList.length +
         " 条优先生效；随后匹配远程例外直连与代理列表，其余流量直连。"),
       blockList, directList, pacProxy,
+      remoteProxyList: remoteProxy,
+      remoteDirectList: remoteDirect,
       remoteProxyCount: remoteProxy.length,
       remoteDirectCount: remoteDirect.length,
     };

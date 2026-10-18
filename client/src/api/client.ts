@@ -24,6 +24,8 @@ export interface PacStatus {
   blockList: string[];
   directList: string[];
   pacProxy: string | null;
+  remoteProxyList: string[];
+  remoteDirectList: string[];
   remoteProxyCount: number;
   remoteDirectCount: number;
   notice: string;
