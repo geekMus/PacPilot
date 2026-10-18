@@ -10,59 +10,22 @@ const isCheckingVersion = ref(false);
 const refreshFailed = ref(false);
 const hasUpdate = computed(() => Boolean(updateInfo.value?.updateAvailable && updateInfo.value.latestVersion));
 const latestVersion = computed(() => updateInfo.value?.latestVersion || "暂时未知");
-async function readLatestVersionDirectly(): Promise<string | null> {
-  const sources = [
-    "https://github.mus.pp.ua/https://raw.githubusercontent.com/geekMus/genpac-runner/refs/heads/main/package.json",
-    "https://raw.githubusercontent.com/geekMus/genpac-runner/refs/heads/main/package.json",
-    "https://cdn.jsdelivr.net/gh/geekMus/genpac-runner@main/package.json",
-  ];
-  for (const url of sources) {
-    try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(7000), cache: "no-store" });
-      if (!response.ok) continue;
-      const data = await response.json() as { version?: unknown };
-      if (typeof data.version === "string" && /^\d{4}\.\d{2}\.\d{2}(?:-r[1-9]\d*)?$/.test(data.version)) return data.version;
-    } catch { /* 尝试下一个镜像源。 */ }
-  }
-  return null;
-}
-function isVersionNewer(candidate: string, current: string): boolean {
-  const parse = (value: string) => {
-    const match = /^(\d{4})\.(\d{2})\.(\d{2})(?:-r([1-9]\d*))?$/.exec(value);
-    return match ? { date: `${match[1]}.${match[2]}.${match[3]}`, revision: Number(match[4] || 0) } : null;
-  };
-  const next = parse(candidate);
-  const installed = parse(current);
-  if (!next || !installed) return false;
-  return next.date > installed.date || (next.date === installed.date && next.revision > installed.revision);
-}
 async function loadVersionInfo(forceRefresh = false) {
   if (isCheckingVersion.value) return;
   isCheckingVersion.value = true;
   refreshFailed.value = false;
   if (forceRefresh) updateInfo.value = null;
+
   try {
     const result = await api.checkForUpdates(forceRefresh);
     if (result.currentVersion) currentVersion.value = result.currentVersion;
     updateInfo.value = result;
-  } catch { /* 服务端版本检查不可用时尝试浏览器直连。 */ }
-
-  if (!updateInfo.value?.latestVersion) {
-    const latest = await readLatestVersionDirectly();
-    if (latest) {
-      const current = currentVersion.value;
-      updateInfo.value = {
-        currentVersion: current,
-        latestVersion: latest,
-        updateAvailable: isVersionNewer(latest, current),
-        checked: true,
-        repositoryUrl: projectUrl,
-      };
-    } else {
-      refreshFailed.value = true;
-    }
+    refreshFailed.value = !result.latestVersion;
+  } catch {
+    refreshFailed.value = true;
+  } finally {
+    isCheckingVersion.value = false;
   }
-  isCheckingVersion.value = false;
 }
 onMounted(() => { void loadVersionInfo(true); });
 </script>
