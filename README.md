@@ -42,9 +42,6 @@ Linux / macOS / Git Bash：
 ```bash
 export ADMIN_PASSWORD='替换成你自己的强密码'
 export COMPOSE_DISABLE_ENV_FILE=1
-
-# 以下配置可选；不设置时使用默认值
-# export SESSION_SECRET='建议使用独立的长随机字符串'
 ```
 
 Windows PowerShell：
@@ -52,14 +49,11 @@ Windows PowerShell：
 ```powershell
 $env:ADMIN_PASSWORD = "替换成你自己的强密码"
 $env:COMPOSE_DISABLE_ENV_FILE = "1"
-
-# 以下配置可选；不设置时使用默认值
-# $env:SESSION_SECRET = "建议使用独立的长随机字符串"
 ```
 
 请把密码替换成自己的强密码。设置 `COMPOSE_DISABLE_ENV_FILE=1` 是为了让 Docker Compose 不读取项目目录中的默认 `.env` 文件——这样即使同一个目录里存在供本机开发使用的 `.env`，Docker 部署也只会采用当前终端或部署平台注入的环境变量。详情见 [Docker Compose 官方说明](https://docs.docker.com/compose/how-tos/environment-variables/envvars/)。
 
-这些变量在当前终端会话中有效。后续更新或执行其他 Compose 命令时，请继续使用该会话，或在部署平台 / 服务管理器中配置同样的环境变量。只有后台密码和可选会话签名密钥由外部环境变量提供；时区固定为 `Asia/Shanghai`，容器内部端口固定为 `17321`，数据目录固定为 `/data`。
+这些变量在当前终端会话中有效。后续更新或执行其他 Compose 命令时，请继续使用该会话，或在部署平台 / 服务管理器中配置同样的环境变量。只有后台登录密码通过外部环境变量提供；时区固定为 `Asia/Shanghai`，容器内部端口固定为 `17321`，监听地址固定为 `0.0.0.0`，数据目录固定为 `/data`。会话签名密钥由程序根据后台密码生成，不需要单独配置。
 
 默认网络是 Compose 项目自己的 `bridge` 驱动网络，容器可以与连接到同一网络的其他容器通信；**默认不映射宿主机端口**。如果另一个容器加入同一网络，可以通过服务名访问，例如 `http://genpac:17321/proxy.pac`。若需从宿主机或局域网直接访问，请在 `docker-compose.yml` 中取消 `ports` 两行的注释。
 
@@ -146,7 +140,7 @@ Docker 部署时，建议在 `docker-compose.yml` 中启用一种 `/data` 持久
 
 容器数据路径固定为 `/data`，且该目录已通过 Dockerfile 的 `VOLUME` 声明；容器默认工作目录也设置为 `/data`，例如执行 `docker exec -it genpac-runner sh` 进入 shell 后，当前目录就是 `/data`。建议在 Compose 中启用一种显式挂载：使用命名卷时，执行 `docker compose down` 不会删除该数据卷；使用 `./data:/data` 目录挂载时，数据保存在项目的 `data` 目录。若不配置显式挂载，Docker 会创建匿名卷，容器重建时不一定自动复用旧卷。迁移或备份时请一并保存相应数据。
 
-业务配置都在网页的「配置管理」中完成。Docker 部署时，后台管理密码 `ADMIN_PASSWORD` 必须通过环境变量设置，`SESSION_SECRET` 可作为独立的可选会话签名密钥。容器时区固定为 `Asia/Shanghai`，内部端口固定为 `17321`，数据目录固定为 `/data`；宿主机端口映射和数据挂载则直接在 `docker-compose.yml` 中按需取消注释并修改。
+业务配置都在网页的「配置管理」中完成。Docker 部署时，只有后台管理密码 `ADMIN_PASSWORD` 必须通过环境变量设置。容器时区固定为 `Asia/Shanghai`，监听地址固定为 `0.0.0.0`，内部端口固定为 `17321`，数据目录固定为 `/data`；宿主机端口映射和数据挂载则直接在 `docker-compose.yml` 中按需取消注释并修改。
 
 ## 常见问题
 
