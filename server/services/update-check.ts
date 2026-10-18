@@ -62,46 +62,25 @@ export async function getUpdateInfo(forceRefresh = false): Promise<UpdateInfo> {
   if (inFlight) return inFlight;
 
   inFlight = (async () => {
-    const sources = [
-      PROJECT_PACKAGE_JSON_URL,
-      "https://cdn.jsdelivr.net/gh/geekMus/genpac-runner@main/package.json",
-      "https://api.github.com/repos/geekMus/genpac-runner/contents/package.json",
-    ];
+    try {
+      const response = await fetch(PROJECT_PACKAGE_JSON_URL, {
+        headers: {
+          "User-Agent": `genpac-runner/${APP_VERSION}`,
+          Accept: "application/json",
+        },
+        signal: AbortSignal.timeout(7000),
+      });
+      if (!response.ok) throw new Error(`Version request failed: ${response.status}`);
 
-    for (const url of sources) {
-      try {
-        const response = await fetch(url, {
-          headers: {
-            "User-Agent": `genpac-runner/${APP_VERSION}`,
-            Accept: url.includes("api.github.com")
-              ? "application/vnd.github+json"
-              : "application/json",
-          },
-          signal: AbortSignal.timeout(7000),
-        });
-        if (!response.ok) continue;
+      const data = await response.json() as { version?: unknown };
+      const latest = typeof data.version === "string" ? data.version : "";
+      if (!parseCalendarVersion(latest)) throw new Error("Invalid version in package.json");
 
-        let latest = "";
-        if (url.includes("api.github.com")) {
-          const data = await response.json() as { content?: unknown; encoding?: unknown };
-          if (typeof data.content === "string" && data.encoding === "base64") {
-            const decoded = Buffer.from(data.content.replace(/\s/g, ""), "base64").toString("utf8");
-            const packageData = JSON.parse(decoded) as { version?: unknown };
-            latest = typeof packageData.version === "string" ? packageData.version : "";
-          }
-        } else {
-          const data = await response.json() as { version?: unknown };
-          latest = typeof data.version === "string" ? data.version : "";
-        }
-
-        if (parseCalendarVersion(latest)) return makeInfo(latest, true);
-      } catch {
-        // 尝试下一个独立来源；所有来源都失败时再返回未知状态。
-      }
+      return makeInfo(latest, true);
+    } catch {
+      // 版本检查失败不影响主页与 PAC 服务。
+      return makeInfo(null, false);
     }
-
-    // 更新检查不可用时不影响主页与 PAC 服务，也不弹出错误提示。
-    return makeInfo(null, false);
   })();
 
   const request = inFlight;
