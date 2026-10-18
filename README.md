@@ -67,7 +67,9 @@ $env:TZ = "Asia/Shanghai"
 
 ### 4. 构建并启动
 
-确认终端当前目录是项目根目录（里面有 `docker-compose.yml`），并且已设置上述环境变量，然后执行：
+本项目默认通过 **DaoCloud 国内镜像代理**拉取 Bun 基础镜像：`m.daocloud.io/docker.io/oven/bun:1-alpine`，以减少直接连接 Docker Hub 失败或超时的情况。这个地址使用 DaoCloud 文档推荐的镜像前缀格式，详情见 [DaoCloud 公共镜像说明](https://github.com/DaoCloud/public-image-mirror)。
+
+确认当前目录是项目根目录（里面有 `docker-compose.yml`），并且已设置上述环境变量，然后执行：
 
 ```bash
 docker compose up -d --build
@@ -79,7 +81,25 @@ docker compose up -d --build
 docker-compose up -d --build
 ```
 
-这条命令会根据项目中的 `Dockerfile` 构建镜像，并在后台启动容器。首次构建需要下载 Bun 基础镜像和安装项目依赖，请确保设备可以访问相应的软件源。**不需要先执行 `docker pull genpac-runner`**，本项目的 Compose 配置会从源码构建应用镜像。
+这条命令会根据项目中的 `Dockerfile` 构建镜像，并在后台启动容器。不需要先执行 `docker pull genpac-runner`，本项目会从源码构建自己的应用镜像。
+
+**如果 DaoCloud 镜像代理也无法访问**，可以将基础镜像切换到其他可用源。例如使用毫秒镜像时，Linux / macOS / Git Bash 执行：
+
+```bash
+export BUN_BASE_IMAGE=docker.1ms.run/oven/bun:1-alpine
+docker compose build --no-cache
+docker compose up -d
+```
+
+Windows PowerShell 执行：
+
+```powershell
+$env:BUN_BASE_IMAGE = "docker.1ms.run/oven/bun:1-alpine"
+docker compose build --no-cache
+docker compose up -d
+```
+
+`BUN_BASE_IMAGE` 只影响 Dockerfile 使用的 Bun 基础镜像地址，默认值已经设置好，通常无需手动配置。国内镜像代理也可能发生拥堵或限流；如果换源后仍然失败，请先按镜像服务商当前文档验证其可用性。基础镜像成功下载后，构建过程中安装系统依赖、Bun 包等步骤仍需要网络访问。
 
 查看运行状态和日志：
 
@@ -145,6 +165,10 @@ Docker 部署时，命名卷 `genpac-data` 挂载到容器的 `/data` 目录，�
 **提示 `docker: 'compose' is not a docker command`**
 
 说明 Docker Compose 插件未安装，或 Docker CLI 无法找到它。请按 [Docker Compose 官方安装文档](https://docs.docker.com/compose/install/) 安装后，再运行 `docker compose version` 检查。若系统已安装旧式独立命令，可尝试 `docker-compose --version` 和 `docker-compose up -d --build`。
+
+**拉取 `oven/bun:1-alpine` 时提示 EOF、超时或连接重置**
+
+当前项目已默认改用 DaoCloud 镜像代理。先确保拉取的是最新项目代码并重试 `docker compose up -d --build`；如果 DaoCloud 源不可用，可按上方说明设置 `BUN_BASE_IMAGE`，改用其他镜像代理。
 
 **访问不了网页**
 
