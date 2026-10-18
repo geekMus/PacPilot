@@ -44,14 +44,13 @@ Invoke-WebRequest https://raw.githubusercontent.com/geekMus/genpac-runner/main/d
 
 ### 3. 检查部署配置
 
-**Docker 部署不需要创建 `.env` 文件，也不需要设置额外的配置环境变量。** 请直接检查项目根目录的 `docker-compose.yml`：
+**Docker 部署不需要创建 `.env` 文件，也不需要设置业务配置环境变量。** 代理字符串、生成模式、直连列表、黑名单、远程列表、Webhook、定时任务、时区和管理密码都由后台管理页面统一配置，并保存在 `/data/genpac.db`。
 
-- `ADMIN_PASSWORD` 默认是 `password`。**请务必在部署前尽快修改为自己的强密码**，否则任何能访问后台登录页的人都可能尝试这个公开的默认密码。
-- `SESSION_SECRET` 默认注释，不启用单独的签名密钥。程序会根据 `ADMIN_PASSWORD` 派生默认签名密钥。需要使用单独的会话签名密钥时，再取消对应注释并设置自己的随机字符串。
-- 时区通过 Compose 的 `TZ` 环境变量设置，默认 `Asia/Shanghai`；容器内部端口、监听地址和数据目录固定。
-- 默认使用 `bridge` 网络，不发布宿主机端口；需要从宿主机访问时再启用端口映射。数据持久化则按前文所述选择一种挂载方式。
+- 首次启动的默认管理密码是 `password`。登录后会在后台看到安全提醒，请尽快改成至少 12 个字符的强密码。
+- 时区默认为 `Asia/Shanghai`，可在「配置管理 → 常规设置」中通过搜索选择常见国家/地区时区，也可输入其他有效的 IANA 时区名称。
+- 容器内部端口、监听地址和数据目录属于运行参数，分别固定为 `17321`、`0.0.0.0` 和 `/data`；端口映射与数据持久化挂载仍在 `docker-compose.yml` 中按需启用。
 
-本项目的 Compose 文件不通过 `${...}` 从 shell 或 `.env` 中读取配置。即使部署目录内已有开发用的 `.env`，这些配置也不会被其覆盖。需要调整时区时，直接修改 Compose 中的 `TZ`，然后重建容器即可。
+Compose 不再声明 `ADMIN_PASSWORD`、`SESSION_SECRET` 或 `TZ`。升级时，若仍保留旧版 `ADMIN_PASSWORD` 环境变量，首次初始化管理员凭据时会尝试一次性导入；数据库凭据建立后，环境变量不再控制管理员密码。
 ### 4. 拉取镜像并启动
 
 本项目的多架构预构建镜像发布在 GitHub Container Registry：
@@ -130,7 +129,7 @@ Docker 部署时，建议在 `docker-compose.yml` 中启用一种 `/data` 持久
 
 容器数据路径固定为 `/data`，且该目录已通过 Dockerfile 的 `VOLUME` 声明；容器默认工作目录也设置为 `/data`，例如执行 `docker exec -it genpac-runner sh` 进入 shell 后，当前目录就是 `/data`。建议在 Compose 中启用一种显式挂载：使用命名卷时，执行 `docker compose down` 不会删除该数据卷；使用 `./data:/data` 目录挂载时，数据保存在项目的 `data` 目录。若不配置显式挂载，Docker 会创建匿名卷，容器重建时不一定自动复用旧卷。迁移或备份时请一并保存相应数据。
 
-业务配置都在网页的「配置管理」中完成。Docker 部署时，后台管理密码在 `docker-compose.yml` 中配置，默认值为 `password`，部署前应尽快修改。容器时区通过 `TZ` 环境变量设置，默认值为 `Asia/Shanghai`；你也可以改为 `Etc/UTC`、`Asia/Tokyo` 或其他 IANA 时区名称。Dockerfile 安装 `tzdata` 以支持这些时区。监听地址固定为 `0.0.0.0`，内部端口固定为 `17321`，数据目录固定为 `/data`；宿主机端口映射和数据挂载则直接在 `docker-compose.yml` 中按需取消注释并修改。
+业务配置都在网页的「配置管理」中完成。代理、直连与黑名单规则、远程列表、定时任务、Webhook、时区以及管理密码均保存在 SQLite。时区选择器支持搜索常用国家/地区；后端也会校验输入的 IANA 时区名称。密码以带随机盐的 scrypt 哈希保存，不会以明文写入数据库。监听地址固定为 `0.0.0.0`，内部端口固定为 `17321`，数据目录固定为 `/data`；宿主机端口映射和数据挂载则直接在 `docker-compose.yml` 中按需取消注释并修改。
 
 ## 常见问题
 
@@ -146,13 +145,19 @@ Docker 部署时，建议在 `docker-compose.yml` 中启用一种 `/data` 持久
 
 检查容器是否启动成功、端口是否被占用，并查看 `docker compose logs -f genpac`。如果从局域网其他设备访问，请确认服务器防火墙允许访问所配置的宿主机端口。
 
-**后台无法登录**
+**忘记管理密码**
 
-检查 `docker-compose.yml` 中的 `ADMIN_PASSWORD` 是否设置为你实际使用的密码。修改后重新创建容器使配置生效：
+在宿主机上执行下面的命令。程序会生成随机的一次性临时密码，命令输出只显示一次：
 
 ```bash
-docker compose up -d --force-recreate
+docker exec -it genpac-runner bun run /app/scripts/reset-admin-password.ts
 ```
+
+使用临时密码登录后，在后台「管理密码」卡片中设置新密码。为避免临时密码长期有效，其他管理操作会在完成修改前保持锁定。重置只更新管理员凭据，不会删除代理规则、直连/黑名单、时区、Webhook 或生成记录。
+
+**旧版环境变量密码迁移**
+
+如果旧版部署曾使用自定义 `ADMIN_PASSWORD`，请在首次升级启动时保留旧变量，让程序将它一次性迁移到数据库。初始化后即可从 Compose 删除该变量；之后请只在后台修改密码。若已移除变量且无法登录，可以使用上方的重置命令。
 
 **远程列表生成失败**
 
@@ -175,10 +180,10 @@ Windows PowerShell 可使用：
 Copy-Item .env.example .env
 ```
 
-打开 `.env`，设置 `ADMIN_PASSWORD` 等开发配置，然后运行：
+打开 `.env`，按需设置仅用于本机开发启动的 `PORT`、`HOST` 或 `DATA_DIR`，然后运行：
 
 ```bash
 bun run dev
 ```
 
-开发服务器默认监听后端 `17321`，前端开发页面为 `http://127.0.0.1:5173`。生产构建可运行 `bun run build`，然后执行 `bun start`；生产运行使用进程环境变量，不需要 `.env` 文件。
+开发服务器默认监听后端 `17321`，前端开发页面为 `http://127.0.0.1:5173`。生产构建可运行 `bun run typecheck` 检查类型，再运行 `bun run build` 并执行 `bun start`。业务设置、时区和管理密码保存在 SQLite，不通过环境变量维护。

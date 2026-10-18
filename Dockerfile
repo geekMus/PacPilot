@@ -12,7 +12,7 @@ COPY server ./server
 COPY client ./client
 COPY scripts ./scripts
 
-RUN echo "正在编译前端资源……" && bun run build:client
+RUN echo "正在检查 TypeScript 类型并编译前端资源……" && bun run typecheck && bun run build:client
 
 # ---------- 运行阶段 ----------
 FROM oven/bun:1-alpine
