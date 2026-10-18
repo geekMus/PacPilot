@@ -73,7 +73,7 @@ function normalizedWebhookConfig(
 const modeHint = computed(() =>
   form.mode === "custom"
     ? "使用直连 / 黑名单列表，默认走代理；内网始终直连。"
-    : "从你配置的远程 URL 拉取规则列表并生成 PAC（可用 GFWList，也可用其他域名列表）。"
+    : "从远程规则列表生成 PAC；匹配到代理域名时走代理，例外及未命中域名直连。自定义规则优先。"
 );
 
 
@@ -334,7 +334,7 @@ async function testWebhook(kind: "success" | "failure") {
     const result = await api.testWebhook({ config: { ...config } });
     state.ok = result.success;
     state.message = result.success
-      ? `测试通知已送达（HTTP ${result.status ?? "未知"}）。`
+      ? `目标端点已接受测试请求（HTTP ${result.status ?? "未知"}）。`
       : result.status
         ? `测试失败：${result.message}（HTTP ${result.status}）`
         : `测试失败：${result.message}`;
@@ -441,7 +441,7 @@ async function logout() {
               </span>
               <div>
                 <h2>代理与远程列表</h2>
-                <p class="card-sub">PAC 返回的代理字符串与 GFWList 源</p>
+                <p class="card-sub">设置默认代理字符串，并指定远程规则列表来源</p>
               </div>
             </div>
           </div>
@@ -455,19 +455,17 @@ async function logout() {
             />
           </div>
           <div class="field">
-            <label for="listUrl">规则列表 URL <span class="lab-hint">GFWList / 明文域名 / ABP 规则均可</span></label>
-            <input id="listUrl" v-model="form.listUrl" placeholder="https://example.com/list.txt" />
+            <label for="listUrl">规则列表 URL <span class="lab-hint">GFWList / 域名型 AutoProxy、ABP / 明文域名</span></label>
+            <input id="listUrl" v-model="form.listUrl" :disabled="form.mode !== 'remote'" placeholder="https://example.com/list.txt" />
+            <p class="field-hint">按提取出的域名进行匹配；URL 路径、资源类型等复杂过滤条件不会保留。</p>
           </div>
           <div class="checks">
             <label class="check">
-              <input v-model="form.pacCompress" type="checkbox" />
-              <span>压缩 PAC</span>
-            </label>
-            <label class="check">
-              <input v-model="form.pacPrecise" type="checkbox" />
-              <span>精确模式</span>
+              <input v-model="form.pacCompress" type="checkbox" :disabled="form.mode !== 'remote'" />
+              <span>压缩远程 PAC</span>
             </label>
           </div>
+          <p class="field-hint">压缩选项仅在远程规则列表模式下生效。</p>
         </section>
 
         <!-- 规则列表 -->
@@ -487,9 +485,9 @@ async function logout() {
           <details class="help">
             <summary>如何配置？生效顺序说明</summary>
             <div class="help-body">
-              <p><strong>写法：</strong>每行一条规则。支持完整域名 <code>example.com</code>，或通配 <code>*.example.com</code>。<code>#</code> 开头为注释（保存时仍会保留在文本里，生成时请勿依赖注释行作为规则）。</p>
+              <p><strong>写法：</strong>每行填写一条域名规则。支持完整域名 <code>example.com</code> 和通配符 <code>*.example.com</code>。自定义直连与黑名单列表不支持注释行，请只填写规则，不要添加说明文字。</p>
               <p><strong>直连列表：</strong>命中后返回 <code>DIRECT</code>（不走代理）。</p>
-              <p><strong>黑名单：</strong>命中后返回 <code>PROXY 0.0.0.0:0</code>（连接被拒绝，常用于屏蔽广告/追踪域名）。</p>
+              <p><strong>黑名单：</strong>命中后返回 <code>PROXY 0.0.0.0:0</code>，让客户端连接不可用的代理地址以阻止访问；具体提示取决于客户端。</p>
               <p><strong>匹配优先级（两种模式相同）：</strong></p>
               <ol>
                 <li>本机 / 内网地址 → 始终直连</li>
@@ -530,7 +528,7 @@ async function logout() {
               </span>
               <div>
                 <h2>定时与 Webhook</h2>
-                <p class="card-sub">均可选。定时控制自动生成；Webhook 在每次生成成功/失败时 POST 通知</p>
+                <p class="card-sub">均可选。定时任务按计划生成 PAC；Webhook 在生成成功或失败时发送通知，HTTP 方法按渠道配置（钉钉固定使用 POST）。</p>
               </div>
             </div>
           </div>
