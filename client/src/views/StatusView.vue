@@ -288,25 +288,9 @@ const activeRuleCount = computed(() => {
           </article>
         </section>
 
-        <section class="section-card">
-          <div class="section-head">
-            <div><div class="section-kicker">REQUEST FLOW</div><h2>请求会怎样处理？</h2></div>
-            <span class="section-note">按照 PAC 中的匹配顺序</span>
-          </div>
-          <ol class="flow-list">
-            <li><span class="flow-number">01</span><div><strong>本地与内网</strong><p>localhost、无点号主机名，以及常见私有 IPv4 网段直接连接。</p></div><span class="flow-result direct">直连</span></li>
-            <li><span class="flow-number">02</span><div><strong>自定义黑名单</strong><p>先检查后台填写的黑名单，命中时返回拒绝连接的代理地址。</p></div><span class="flow-result blocked">拦截</span></li>
-            <li><span class="flow-number">03</span><div><strong>自定义直连列表</strong><p>检查你在「配置管理 → 自定义规则」中填写的直连域名。</p></div><span class="flow-result direct">直连</span></li>
-            <li v-if="status.mode === 'remote'"><span class="flow-number">04</span><div><strong>远程列表例外规则</strong><p>远程列表中标记为例外的域名不走代理。</p></div><span class="flow-result direct">直连</span></li>
-            <li v-if="status.mode === 'remote'"><span class="flow-number">05</span><div><strong>远程代理规则</strong><p>命中远程代理域名列表后，使用配置的代理字符串。</p></div><span class="flow-result proxy">代理</span></li>
-            <li><span class="flow-number">{{ status.mode === 'remote' ? '06' : '04' }}</span><div><strong>{{ status.mode === 'remote' ? "其他域名" : "未命中以上规则" }}</strong><p>{{ status.mode === 'remote' ? "不在远程代理列表中的域名默认直接连接。" : `使用默认代理：${status.pacProxy || "未识别"}。` }}</p></div><span class="flow-result" :class="status.mode === 'remote' ? 'direct' : 'proxy'">{{ status.mode === 'remote' ? "直连" : "代理" }}</span></li>
-          </ol>
-        </section>
-
         <section class="rules-section section-card">
           <div class="section-head rules-section-head">
             <div>
-              <div class="section-kicker">DOMAIN ROUTING</div>
               <h2>域名路由明细</h2>
               <p class="section-description">按类别查看当前 PAC 中的规则，无需搜索；列表较长时可在固定区域内滚动。</p>
             </div>
@@ -390,15 +374,6 @@ const activeRuleCount = computed(() => {
 .section-kicker { color:var(--muted); font:700 10px/1.3 var(--font-mono); letter-spacing:.15em; margin-bottom:5px; }
 .section-head h2 { margin:0; font-size:18px; letter-spacing:-.02em; }
 .section-note { color:var(--muted); font-size:11px; padding-top:5px; text-align:right; }
-.flow-list { list-style:none; padding:0; margin:0; }
-.flow-list li { display:grid; grid-template-columns:34px minmax(0,1fr) auto; align-items:center; gap:12px; padding:14px 0; border-top:1px solid var(--line); }
-.flow-number { align-self:start; color:var(--muted); font:600 11px/1.6 var(--font-mono); }
-.flow-list strong { font-size:13px; }
-.flow-list p { margin:3px 0 0; color:var(--muted); font-size:12px; line-height:1.5; }
-.flow-result { align-self:center; padding:4px 9px; border-radius:999px; font-size:11px; font-weight:700; white-space:nowrap; }
-.flow-result.direct { color:var(--green); background:var(--green-soft); }
-.flow-result.proxy { color:var(--accent); background:var(--accent-soft); }
-.flow-result.blocked { color:var(--red); background:var(--red-soft); }
 .rules-section { margin-top:24px; }
 .rules-section-head { align-items:end; margin-bottom:16px; }
 .section-description { margin:7px 0 0; color:var(--muted); font-size:12px; }
@@ -478,8 +453,6 @@ const activeRuleCount = computed(() => {
   .stat-number { font-size:25px; }
   .section-head { flex-direction:column; gap:6px; }
   .section-note { text-align:left; }
-  .flow-list li { grid-template-columns:26px minmax(0,1fr); gap:8px; }
-  .flow-result { grid-column:2; justify-self:start; }
   .source-footer,.source-actions { align-items:flex-start; }
   .domain-check-form { grid-template-columns:minmax(0,1fr); }
   .domain-check-form button { width:100%; }
