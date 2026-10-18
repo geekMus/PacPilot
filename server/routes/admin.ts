@@ -17,7 +17,7 @@ import {
 } from "../middleware/auth";
 import { generatePac, probeGenpac } from "../services/pac-generator";
 import { reschedule } from "../services/scheduler";
-import { validateWebhookSettings } from "../services/webhook";
+import { sendWebhookTest, validateWebhookSettings } from "../services/webhook";
 import cron from "node-cron";
 
 function parseList(raw: unknown): string[] {
@@ -111,6 +111,30 @@ export function adminRoutes(
     const next = updateSettings(database, patch);
     reschedule(database, env.dataDir);
     res.json(next);
+  });
+
+  router.post("/api/admin/webhook-test", requireAdmin(env), async (req, res) => {
+    const url = String(req.body?.url ?? "").trim();
+    const body = String(req.body?.body ?? "");
+    if (!url) {
+      res.status(400).json({ error: "请先填写 Webhook URL。" });
+      return;
+    }
+
+    const errors = validateWebhookSettings({
+      webhookSuccessUrl: url,
+      webhookSuccessBody: body,
+      webhookFailureUrl: "",
+      webhookFailureBody: "",
+    });
+    if (errors.length) {
+      res.status(400).json({ error: errors.join("\\n") });
+      return;
+    }
+
+    const result = await sendWebhookTest(url, body);
+    // 测试发送失败作为业务结果返回，让界面展示具体 HTTP 状态/网络错误。
+    res.json(result);
   });
 
   router.post("/api/admin/generate", requireAdmin(env), async (_req, res) => {

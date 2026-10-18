@@ -29,6 +29,12 @@ export interface AppSettings {
   webhookFailureBody: string;
 }
 
+export interface WebhookTestResult {
+  success: boolean;
+  status?: number;
+  message: string;
+}
+
 export interface GenerationLog {
   id: number;
   success: boolean;
@@ -91,6 +97,11 @@ export const api = {
   saveSettings: (body: AppSettings) =>
     request<AppSettings>("/api/admin/settings", {
       method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  testWebhook: (body: { url: string; body: string }) =>
+    request<WebhookTestResult>("/api/admin/webhook-test", {
+      method: "POST",
       body: JSON.stringify(body),
     }),
   generate: () =>

@@ -11,6 +11,7 @@ import AppHeader from "../components/AppHeader.vue";
 import DomainListEditor from "../components/DomainListEditor.vue";
 import WebhookBodyEditor from "../components/WebhookBodyEditor.vue";
 import cronstrue from "cronstrue";
+import { CronExpressionParser } from "cron-parser";
 import "cronstrue/locales/zh_CN";
 
 const router = useRouter();
@@ -21,6 +22,10 @@ const flashOk = ref(true);
 const error = ref("");
 const logs = ref<GenerationLog[]>([]);
 const genpacProbe = ref<GenpacProbe | null>(null);
+const webhookTestState = reactive({
+  success: { pending: false, ok: null as boolean | null, message: "" },
+  failure: { pending: false, ok: null as boolean | null, message: "" },
+});
 
 const form = reactive({
   mode: "custom" as "custom" | "remote",
@@ -63,6 +68,7 @@ function parseCronDescription(expr: string): { description: string; error: strin
     return { description: "", error: "请使用标准的 5 段格式：分 时 日 月 周。" };
   }
   try {
+    CronExpressionParser.parse(value);
     return {
       description: cronstrue.toString(value, {
         locale: "zh_CN",
@@ -255,6 +261,47 @@ async function saveAndGenerate() {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
     saving.value = false;
+  }
+}
+
+async function testWebhook(kind: "success" | "failure") {
+  const state = webhookTestState[kind];
+  const url = kind === "success" ? form.webhookSuccessUrl.trim() : form.webhookFailureUrl.trim();
+  const body = kind === "success" ? form.webhookSuccessBody : form.webhookFailureBody;
+  const bodyError = kind === "success" ? successBodyError.value : failureBodyError.value;
+
+  state.message = "";
+  state.ok = null;
+  if (!url) {
+    state.ok = false;
+    state.message = "请先填写 Webhook URL。";
+    return;
+  }
+  if (!looksLikeUrl(url)) {
+    state.ok = false;
+    state.message = "URL 格式无效，请使用 HTTP(S) 地址且不要在 URL 中嵌入账号密码。";
+    return;
+  }
+  if (bodyError) {
+    state.ok = false;
+    state.message = bodyError;
+    return;
+  }
+
+  state.pending = true;
+  try {
+    const result = await api.testWebhook({ url, body });
+    state.ok = result.success;
+    state.message = result.success
+      ? `测试请求已送达（HTTP ${result.status ?? "未知"}）。`
+      : result.status
+        ? `测试失败：${result.message}（HTTP ${result.status}）`
+        : `测试失败：${result.message}`;
+  } catch (e) {
+    state.ok = false;
+    state.message = e instanceof Error ? e.message : String(e);
+  } finally {
+    state.pending = false;
   }
 }
 
@@ -478,8 +525,10 @@ async function logout() {
           <div class="webhook-grid">
             <div class="webhook-panel ok">
               <div class="webhook-panel-title">
-                <span class="dot ok" />
-                成功时通知
+                <span class="webhook-panel-label"><span class="dot ok" />成功时通知</span>
+                <button type="button" class="webhook-test-button" :disabled="webhookTestState.success.pending" @click="testWebhook('success')">
+                  {{ webhookTestState.success.pending ? "发送中…" : "发送测试" }}
+                </button>
               </div>
               <div class="field">
                 <label>Webhook URL</label>
@@ -502,12 +551,17 @@ async function logout() {
                 />
                 <p class="field-hint">留空时发送 {"ok":true}；自定义内容按 application/json 原样 POST。</p>
               </div>
+              <p v-if="webhookTestState.success.message" class="webhook-test-result" :class="webhookTestState.success.ok ? 'ok' : 'bad'" role="status">
+                {{ webhookTestState.success.message }}
+              </p>
             </div>
 
             <div class="webhook-panel bad">
               <div class="webhook-panel-title">
-                <span class="dot bad" />
-                失败时通知
+                <span class="webhook-panel-label"><span class="dot bad" />失败时通知</span>
+                <button type="button" class="webhook-test-button" :disabled="webhookTestState.failure.pending" @click="testWebhook('failure')">
+                  {{ webhookTestState.failure.pending ? "发送中…" : "发送测试" }}
+                </button>
               </div>
               <div class="field">
                 <label>Webhook URL</label>
@@ -530,6 +584,9 @@ async function logout() {
                 />
                 <p class="field-hint">留空时发送 {"ok":false}；仅当失败通知 URL 非空时才会请求。</p>
               </div>
+              <p v-if="webhookTestState.failure.message" class="webhook-test-result" :class="webhookTestState.failure.ok ? 'ok' : 'bad'" role="status">
+                {{ webhookTestState.failure.message }}
+              </p>
             </div>
           </div>
         </section>
@@ -1079,10 +1136,52 @@ textarea.body-area {
 .webhook-panel-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 10px;
   font-size: 13px;
   font-weight: 700;
   margin-bottom: 12px;
+}
+.webhook-panel-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.webhook-test-button {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 5px 10px;
+  min-height: 30px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.webhook-test-button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.webhook-test-button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.webhook-test-result {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.webhook-test-result.ok {
+  background: var(--green-soft);
+  color: var(--green);
+}
+.webhook-test-result.bad {
+  background: var(--red-soft);
+  color: var(--red);
 }
 .dot {
   width: 8px;
