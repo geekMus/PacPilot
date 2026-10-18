@@ -58,7 +58,7 @@ Invoke-WebRequest https://raw.githubusercontent.com/geekMus/genpac-runner/refact
 
 - **官方镜像地址：** `ghcr.io/geekmus/genpac-runner:latest`
 - **支持架构：** `linux/amd64`（64 位 Intel/AMD x86）和 `linux/arm64`（64 位 ARM）；官方 Bun 镜像不提供 32 位 `386/i386` 运行时。
-- **自动更新：** 向 `refactor/modular-sqlite-admin` 分支推送代码时，GitHub Actions 会实际构建并发布更新后的 `latest` 镜像；推送版本标签（例如 `v2.3.0`）时也会发布对应版本标签。
+- **自动更新：** 只有向 `main` 分支推送提交时才会自动构建并发布 `latest`；其他分支不会因普通提交自动触发发布。需要测试其他分支时，可在 GitHub Actions 中手动运行工作流，生成该分支对应的测试标签，但不会覆盖 `latest`。
 - **标准构建配置：** Dockerfile 使用官方 `oven/bun:1-alpine` 基础镜像、Bun 默认 npm registry 和 Alpine 官方软件源，不依赖地区专用镜像。
 
 确认当前目录中有 `docker-compose.yml`，按需修改管理员密码、端口映射和数据挂载，然后执行：
@@ -69,6 +69,8 @@ docker compose up -d
 ```
 
 使用旧版独立命令时，可将 `docker compose` 替换为 `docker-compose`。此处无需使用 `--build`，因为镜像已由 GitHub Actions 构建并发布，部署设备只负责拉取、创建和启动容器。
+
+每次成功发布时，GitHub Actions 的 **Summary（摘要）** 都会列出从上一次成功的镜像到本次提交之间的提交记录，并提供 GitHub 比较链接。镜像还会包含标准 OCI 标签，例如源码仓库地址、版本和提交 SHA，便于追溯镜像对应的代码。
 
 首次发布后，需要在 GitHub 的 **Packages** 中把 `genpac-runner` 容器包的可见性设置为 **Public**，其他人才能无需登录直接拉取。GitHub 容器包首次发布时默认是 Private；发布工作流会自动将包关联到此仓库。
 
