@@ -4,30 +4,31 @@
 FROM m.daocloud.io/docker.io/oven/bun:1-alpine AS builder
 
 WORKDIR /app
-COPY package.json bun.lockb* ./
+# 先复制 Bun 配置，确保依赖安装阶段使用国内 npm 镜像源。
+COPY package.json bun.lockb* bunfig.toml ./
 RUN bun install --frozen-lockfile || bun install
 
 COPY server ./server
 COPY client ./client
 COPY scripts ./scripts
-COPY bunfig.toml* ./
 
 RUN bun run build:client
 
 # ---------- runtime ----------
 FROM m.daocloud.io/docker.io/oven/bun:1-alpine
 
-RUN apk add --no-cache tzdata curl \
- && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime || true
+# 将 Alpine 软件源切换到阿里云镜像，再安装系统依赖。
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
+ && apk add --no-cache tzdata curl \
+ && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
 WORKDIR /app
-
-COPY package.json bun.lockb* ./
+# 运行阶段也使用相同的国内 npm 镜像源。
+COPY package.json bun.lockb* bunfig.toml ./
 RUN bun install --production --frozen-lockfile || bun install --production
 
 COPY server ./server
 COPY --from=builder /app/dist ./dist
-COPY bunfig.toml* ./
 
 ENV HOST=0.0.0.0 \
     TZ=Asia/Shanghai \
@@ -40,7 +41,7 @@ EXPOSE 17321
 # 声明容器数据目录。宿主机是否挂载，由 docker-compose.yml 或启动命令决定。
 VOLUME ["/data"]
 
-# 默认进入容器时位于数据目录；应用仍从 /app 启动。
+# 默认进入容器时位于数据目录；应用仍从 /app/server/index.ts 启动。
 WORKDIR /data
 
 # 容器只读取 Docker 注入的环境变量，不自动加载 .env 文件。
