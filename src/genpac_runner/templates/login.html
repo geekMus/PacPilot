@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>后台登录 · genpac-runner</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<main class="wrap login">
+<header class="topbar">
+  <div class="brand">genpac-runner<small>ADMINISTRATION</small></div>
+  <a href="/status">返回状态页</a>
+</header>
+<section class="card login-card">
+  <span class="badge">后台登录</span>
+  <h1>管理你的 PAC 配置</h1>
+  <p class="muted">登录后可以切换生成模式、编辑规则、设置定时更新和 Webhook 通知。</p>
+  {{ERROR_HTML}}
+  <form method="post" action="/login" autocomplete="on">
+    <input type="hidden" name="login_csrf" value="{{LOGIN_CSRF}}">
+    <div class="field">
+      <label for="password">管理密码</label>
+      <input type="password" id="password" name="password" required autocomplete="current-password" autofocus>
+    </div>
+    <button type="submit">登录后台</button>
+  </form>
+</section>
+</main>
+</body>
+</html>
