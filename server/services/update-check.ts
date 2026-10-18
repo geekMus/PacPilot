@@ -54,9 +54,9 @@ function makeInfo(latestVersion: string | null, checked: boolean): UpdateInfo {
   };
 }
 
-export async function getUpdateInfo(): Promise<UpdateInfo> {
+export async function getUpdateInfo(forceRefresh = false): Promise<UpdateInfo> {
   const now = Date.now();
-  if (cachedInfo && now - cachedAt < (cachedInfo.checked ? CACHE_TTL_MS : FAILURE_CACHE_TTL_MS)) {
+  if (!forceRefresh && cachedInfo && now - cachedAt < (cachedInfo.checked ? CACHE_TTL_MS : FAILURE_CACHE_TTL_MS)) {
     return cachedInfo;
   }
   if (inFlight) return inFlight;
