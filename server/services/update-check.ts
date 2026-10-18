@@ -104,8 +104,13 @@ export async function getUpdateInfo(): Promise<UpdateInfo> {
     return makeInfo(null, false);
   })();
 
-  const result = await inFlight;
-  cachedInfo = result;
-  cachedAt = Date.now();
-  return result;
+  const request = inFlight;
+  try {
+    const result = await request;
+    cachedInfo = result;
+    cachedAt = Date.now();
+    return result;
+  } finally {
+    if (inFlight === request) inFlight = null;
+  }
 }
