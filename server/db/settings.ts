@@ -16,12 +16,26 @@ export interface WebhookConfig {
   headers: string;
   /** Custom Webhook only: raw JSON payload, supports {{event}} etc. */
   body: string;
-  /** DingTalk robot signature secret (SEC...). Empty when signature is disabled. */
+  /** DingTalk robot signature Secret. Required for DingTalk notifications. */
   dingTalkSecret: string;
   dingTalkMessageType: DingTalkMessageType;
-  /** DingTalk text/Markdown template. */
+  /** Custom Webhook test payload (JSON). */
+  testBody: string;
+  /** Task notification template for this success/failure channel. */
   messageTemplate: string;
+  /** Test notification template, separate from task notifications. */
+  testMessageTemplate: string;
 }
+
+export const DEFAULT_TASK_BODY = JSON.stringify({
+  ok: "{{ok}}",
+  event: "{{event}}",
+  message: "{{message}}",
+  timestamp: "{{timestamp}}",
+}, null, 2);
+export const DEFAULT_TASK_MESSAGE_TEMPLATE = "genpac-runner 通知\n事件：{{event}}\n状态：{{status}}\n时间：{{timestamp}}\n详情：{{message}}";
+export const DEFAULT_TEST_MESSAGE_TEMPLATE = "genpac-runner 测试通知\n时间：{{timestamp}}\n结果：{{message}}";
+export const DEFAULT_TEST_BODY = DEFAULT_TASK_BODY;
 
 export function createDefaultWebhookConfig(): WebhookConfig {
   return {
@@ -32,7 +46,9 @@ export function createDefaultWebhookConfig(): WebhookConfig {
     body: "",
     dingTalkSecret: "",
     dingTalkMessageType: "text",
-    messageTemplate: "",
+    testBody: DEFAULT_TEST_BODY,
+    messageTemplate: DEFAULT_TASK_MESSAGE_TEMPLATE,
+    testMessageTemplate: DEFAULT_TEST_MESSAGE_TEMPLATE,
   };
 }
 
@@ -53,7 +69,9 @@ export function normalizeWebhookConfig(
     body: String(raw.body ?? legacyBody),
     dingTalkSecret: String(raw.dingTalkSecret ?? ""),
     dingTalkMessageType: raw.dingTalkMessageType === "markdown" ? "markdown" : "text",
-    messageTemplate: String(raw.messageTemplate ?? ""),
+    testBody: String(raw.testBody ?? defaults.testBody),
+    messageTemplate: String(raw.messageTemplate || defaults.messageTemplate),
+    testMessageTemplate: String(raw.testMessageTemplate || defaults.testMessageTemplate),
   };
 }
 

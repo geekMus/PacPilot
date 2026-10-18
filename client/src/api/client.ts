@@ -15,7 +15,9 @@ export interface WebhookConfig {
   body: string;
   dingTalkSecret: string;
   dingTalkMessageType: DingTalkMessageType;
+  testBody: string;
   messageTemplate: string;
+  testMessageTemplate: string;
 }
 
 export interface PacStatus {

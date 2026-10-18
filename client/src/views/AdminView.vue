@@ -49,7 +49,9 @@ function defaultWebhookConfig(): WebhookConfig {
   return {
     provider: "custom", url: "", method: "POST", headers: "{}", body: "",
     dingTalkSecret: "", dingTalkMessageType: "text",
-    messageTemplate: "",
+    testBody: JSON.stringify({ ok: "{{ok}}", event: "{{event}}", message: "{{message}}", timestamp: "{{timestamp}}" }, null, 2),
+    messageTemplate: "genpac-runner 通知\n事件：{{event}}\n状态：{{status}}\n时间：{{timestamp}}\n详情：{{message}}",
+    testMessageTemplate: "genpac-runner 测试通知\n时间：{{timestamp}}\n结果：{{message}}",
   };
 }
 function normalizedWebhookConfig(
@@ -62,6 +64,9 @@ function normalizedWebhookConfig(
     ...value,
     url: value?.url ?? legacyUrl,
     body: value?.body ?? legacyBody,
+    testBody: value?.testBody ?? defaultWebhookConfig().testBody,
+    messageTemplate: value?.messageTemplate?.trim() ? value.messageTemplate : defaultWebhookConfig().messageTemplate,
+    testMessageTemplate: value?.testMessageTemplate?.trim() ? value.testMessageTemplate : defaultWebhookConfig().testMessageTemplate,
   };
 }
 
@@ -133,6 +138,7 @@ function validateWebhookDraft(config: WebhookConfig, label: string): string[] {
     if (!active) return errors;
     if (!config.url.trim() || !looksLikeUrl(config.url.trim())) errors.push(`${label}需要有效的 HTTP(S) URL。`);
     if (config.body.trim() && jsonBodyError(config.body)) errors.push(`${label}请求 Body 必须是合法 JSON 对象或数组。`);
+    if (config.testBody.trim() && jsonBodyError(config.testBody)) errors.push(`${label}测试请求 Body 必须是合法 JSON 对象或数组。`);
     if (config.headers.trim()) {
       try {
         const headers: unknown = JSON.parse(config.headers);
@@ -146,10 +152,11 @@ function validateWebhookDraft(config: WebhookConfig, label: string): string[] {
     }
   } else if (config.provider === "dingtalk") {
     if (config.url.trim()) {
-      if (!looksLikeUrl(config.url.trim())) errors.push(`${label}钉钉 URL 必须是有效的 HTTP(S) 地址。`);
-      else if (!new URL(config.url.trim()).searchParams.has("access_token")) errors.push(`${label}钉钉 URL 缺少 access_token。`);
+      if (!looksLikeUrl(config.url.trim())) errors.push(label + "钉钉 URL 必须是有效的 HTTP(S) 地址。");
+      else if (!new URL(config.url.trim()).searchParams.has("access_token")) errors.push(label + "钉钉 URL 缺少 access_token。");
+      if (!config.dingTalkSecret.trim()) errors.push(label + "钉钉机器人必须填写 Secret 加签密钥。");
     } else if (config.dingTalkSecret.trim()) {
-      errors.push(`${label}填写加签密钥前，请先填写机器人 Webhook URL。`);
+      errors.push(label + "填写 Secret 前，请先填写机器人 Webhook URL。");
     }
   }
   return errors;
@@ -590,10 +597,12 @@ async function logout() {
           <div class="actions">
             <button
               type="submit"
-              class="btn primary"
+              class="btn primary btn-save"
               :disabled="!canSubmit"
             >
-              {{ saving ? "保存并生成中…" : "保存并生成 PAC" }}
+              <svg v-if="saving" class="save-spinner" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="42 16" /></svg>
+              <svg v-else viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 4h12l3 3v13H4V4z"/><path d="M8 4v6h8V4M8 20v-6h8v6"/></svg>
+              <span>{{ saving ? "保存并生成中…" : "保存并生成 PAC" }}</span>
             </button>
           </div>
           <p class="actions-hint">
@@ -918,6 +927,47 @@ textarea {
 .btn.primary:hover:not(:disabled) {
   filter: brightness(1.05);
 }
+.admin-page .actions .btn-save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-width: 190px;
+  min-height: 46px;
+  padding: 11px 20px;
+  background: #405fe8;
+  border: 1px solid #405fe8;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
+  font-weight: 750;
+  letter-spacing: .01em;
+  box-shadow: 0 5px 14px rgba(64, 95, 232, .22);
+  transition: background .15s, box-shadow .15s, transform .15s;
+}
+.admin-page .actions .btn-save svg { flex: 0 0 auto; }
+.admin-page .actions .btn-save:hover:not(:disabled) {
+  background: #304fd4;
+  border-color: #304fd4;
+  box-shadow: 0 7px 18px rgba(64, 95, 232, .28);
+  filter: none;
+  transform: translateY(-1px);
+}
+.admin-page .actions .btn-save:focus-visible {
+  outline: 3px solid color-mix(in srgb, #405fe8 28%, transparent);
+  outline-offset: 3px;
+}
+.admin-page .actions .btn-save:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+  background: #8999d9;
+  border-color: #8999d9;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
+  box-shadow: none;
+  transform: none;
+}
+.save-spinner { width: 17px; height: 17px; animation: save-spin .8s linear infinite; }
+@keyframes save-spin { to { transform: rotate(360deg); } }
 .btn.ghost {
   background: transparent;
 }

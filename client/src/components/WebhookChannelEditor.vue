@@ -28,9 +28,15 @@ const providers: { value: WebhookProvider; label: string; description: string }[
 const bodySample = computed(() => JSON.stringify({
   event: props.kind === "success" ? "pac.generated" : "pac.generation_failed",
   ok: props.kind === "success",
-  message: props.kind === "success" ? "PAC generated successfully" : "PAC generation failed",
+  message: "{{message}}",
   timestamp: "{{timestamp}}",
 }, null, 2));
+const testBodySample = JSON.stringify({
+  event: "webhook.test",
+  ok: "{{ok}}",
+  message: "{{message}}",
+  timestamp: "{{timestamp}}",
+}, null, 2);
 
 function update<K extends keyof WebhookConfig>(key: K, value: WebhookConfig[K]) {
   emit("update:modelValue", { ...props.modelValue, [key]: value });
@@ -38,7 +44,7 @@ function update<K extends keyof WebhookConfig>(key: K, value: WebhookConfig[K]) 
 function inputValue(event: Event): string {
   return (event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).value;
 }
-const channelReady = computed(() => Boolean(config.value.url.trim()));
+const channelReady = computed(() => Boolean(config.value.url.trim()) && (config.value.provider !== "dingtalk" || Boolean(config.value.dingTalkSecret.trim())));
 </script>
 
 <template>
@@ -98,7 +104,14 @@ const channelReady = computed(() => Boolean(config.value.url.trim()));
         <WebhookBodyEditor :model-value="config.body" :height="190" :sample="bodySample"
           placeholder="输入 JSON 对象或数组…"
           @update:model-value="update('body', $event)" />
-        <p class="field-hint">留空时发送包含 ok、event、message 和 timestamp 的默认 JSON 事件。</p>
+        <p class="field-hint">支持 {{event}}、{{status}}、{{message}}、{{timestamp}}、{{ok}} 变量；留空时发送默认 JSON 事件。</p>
+      </div>
+      <div class="field">
+        <label>测试请求 Body <span class="label-hint">仅用于「发送测试」</span></label>
+        <WebhookBodyEditor :model-value="config.testBody" :height="150" :sample="testBodySample"
+          placeholder="配置测试发送使用的 JSON 对象或数组…"
+          @update:model-value="update('testBody', $event)" />
+        <p class="field-hint">测试发送独立使用此请求体；留空时回退到任务 Body。也支持相同的模板变量。</p>
       </div>
     </template>
 
@@ -112,7 +125,7 @@ const channelReady = computed(() => Boolean(config.value.url.trim()));
         <p class="field-hint">在钉钉群机器人设置中复制完整的 Webhook 地址，URL 包含 access_token。</p>
       </div>
       <div class="field">
-        <label>加签密钥 <span class="label-hint">可选；开启加签时填写</span></label>
+        <label>Secret 加签密钥 <span class="label-hint">必填</span></label>
         <div class="secret-field">
           <input :value="config.dingTalkSecret" :type="showDingTalkSecret ? 'text' : 'password'"
             autocomplete="new-password" placeholder="SEC 开头的密钥"
@@ -121,7 +134,7 @@ const channelReady = computed(() => Boolean(config.value.url.trim()));
             {{ showDingTalkSecret ? "隐藏" : "显示" }}
           </button>
         </div>
-        <p class="field-hint">启用后服务端会按钉钉规范使用 HMAC-SHA256 生成 timestamp 和 sign 参数；自定义关键词、IP 白名单仍需在钉钉后台设置。<a href="https://open.dingtalk.com/document/robots/customize-robot-security-settings" target="_blank" rel="noopener noreferrer">查看官方安全设置文档 ↗</a></p>
+        <p class="field-hint">本项目仅支持 Secret 加签方式。发送时自动按钉钉规范计算 HMAC-SHA256，并添加 timestamp 与 sign 参数。<a href="https://open.dingtalk.com/document/robots/customize-robot-security-settings" target="_blank" rel="noopener noreferrer">查看官方安全设置文档 ↗</a></p>
       </div>
       <div class="field">
         <label>消息类型</label>
@@ -131,12 +144,20 @@ const channelReady = computed(() => Boolean(config.value.url.trim()));
         </div>
       </div>
       <div class="field">
-        <label>消息模板 <span class="label-hint">可选</span></label>
+        <label>任务通知模板 <span class="label-hint">成功 / 失败按当前卡片分别配置</span></label>
         <CodeMirrorField :model-value="config.messageTemplate" language="text" :height="148"
-          aria-label="钉钉消息模板"
-          placeholder="留空使用内置消息模板。可用变量：{{event}}、{{status}}、{{message}}、{{timestamp}}、{{ok}}"
+          aria-label="钉钉任务通知模板"
+          placeholder="事件：{{event}} · 状态：{{status}} · 时间：{{timestamp}} · 详情：{{message}}"
           @update:model-value="update('messageTemplate', $event)" />
-        <p class="field-hint">Markdown 消息可使用钉钉支持的 Markdown 语法。模板变量会在发送时替换。</p>
+        <p class="field-hint">用于定时任务或手动生成触发的通知。可用变量：{{event}}、{{status}}、{{message}}、{{timestamp}}、{{ok}}。</p>
+      </div>
+      <div class="field">
+        <label>测试通知模板 <span class="label-hint">仅用于「发送测试」</span></label>
+        <CodeMirrorField :model-value="config.testMessageTemplate" language="text" :height="112"
+          aria-label="钉钉测试通知模板"
+          placeholder="测试通知 · 时间：{{timestamp}} · 结果：{{message}}"
+          @update:model-value="update('testMessageTemplate', $event)" />
+        <p class="field-hint">测试发送单独使用此模板，不会调用任务通知模板。</p>
       </div>
     </template>
 
@@ -144,7 +165,7 @@ const channelReady = computed(() => Boolean(config.value.url.trim()));
 
     <div class="channel-footer">
       <span class="configured-dot" :class="{ ready: channelReady }"></span>
-      <span>{{ channelReady ? "已填写发送目标" : "尚未填写发送目标" }}</span>
+      <span>{{ channelReady ? "发送目标与安全参数已填写" : "请填写发送目标" }}</span>
       <span class="footer-spacer"></span>
       <span class="timeout-note">请求超时：10 秒</span>
     </div>

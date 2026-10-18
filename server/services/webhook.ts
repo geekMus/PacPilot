@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import type { AppSettings, WebhookConfig } from "../db/settings";
-import { normalizeWebhookConfig } from "../db/settings";
+import { createDefaultWebhookConfig, normalizeWebhookConfig } from "../db/settings";
 
 const WEBHOOK_TIMEOUT_MS = 10_000;
 export interface WebhookDeliveryResult {
@@ -53,6 +53,8 @@ export function validateWebhookConfig(input: WebhookConfig): string[] {
   if (config.provider === "custom") {
     const bodyError = parseJson(config.body, "Webhook Body", true);
     if (bodyError) errors.push(bodyError);
+    const testBodyError = parseJson(config.testBody, "Webhook 测试 Body", true);
+    if (testBodyError) errors.push(testBodyError);
     const headersError = parseJson(config.headers, "请求头");
     if (headersError) errors.push(headersError);
     if (!headersError) {
@@ -68,10 +70,15 @@ export function validateWebhookConfig(input: WebhookConfig): string[] {
         }
       }
     }
-  } else if (!urlError) {
-    const target = new URL(config.url);
-    if (!target.searchParams.has("access_token")) {
-      errors.push("钉钉机器人 URL 缺少 access_token，请粘贴完整的机器人 Webhook 地址。");
+  } else {
+    if (!config.dingTalkSecret.trim()) {
+      errors.push("钉钉机器人必须配置 Secret 加签密钥。");
+    }
+    if (!urlError) {
+      const target = new URL(config.url);
+      if (!target.searchParams.has("access_token")) {
+        errors.push("钉钉机器人 URL 缺少 access_token，请粘贴完整的机器人 Webhook 地址。");
+      }
     }
   }
   return errors;
@@ -81,25 +88,16 @@ function buildContext(kind: EventKind, message?: string): MessageContext {
   const ok = kind === "success";
   return {
     event: kind === "test" ? "webhook.test" : ok ? "pac.generated" : "pac.generation_failed",
-    ok: kind === "success",
-    message: kind === "test" ? "这是一条 genpac-runner 测试通知。" : message || (ok ? "PAC 已成功生成。" : "PAC 生成失败。"),
+    ok: kind === "test" ? true : kind === "success",
+    message: kind === "test" ? "测试通知请求已触发。" : message || (ok ? "PAC 已成功生成。" : "PAC 生成失败。"),
     timestamp: new Date().toLocaleString("zh-CN", { timeZone: process.env.TZ || "Asia/Shanghai" }),
   };
-}
-
-function defaultMessage(context: MessageContext): string {
-  if (context.event === "webhook.test") {
-    return "genpac-runner 测试通知\n时间：" + context.timestamp + "\n如果看到此消息，通知渠道已连接。";
-  }
-  return context.ok
-    ? "✅ genpac-runner：PAC 生成成功\n时间：" + context.timestamp
-    : "⚠️ genpac-runner：PAC 生成失败\n时间：" + context.timestamp + "\n原因：" + context.message;
 }
 
 function templateValues(context: MessageContext): Record<string, string> {
   return {
     event: context.event,
-    status: context.ok ? "success" : "failure",
+    status: context.event === "webhook.test" ? "test" : context.ok ? "success" : "failure",
     message: context.message,
     timestamp: context.timestamp,
     ok: String(context.ok),
@@ -174,9 +172,11 @@ async function sendCustom(config: WebhookConfig, context: MessageContext): Promi
   if (errors.length) return { success: false, message: errors.join("\n") };
   try {
     const headers = JSON.parse(config.headers || "{}") as Record<string, string>;
-    const payload = config.body.trim()
-      ? renderCustomBody(config.body, context)
-      : JSON.stringify({ ok: context.ok, event: context.event, message: context.message, timestamp: context.timestamp });
+    const defaults = createDefaultWebhookConfig();
+    const configuredBody = context.event === "webhook.test"
+      ? (config.testBody.trim() || config.body.trim() || defaults.body || defaults.testBody)
+      : (config.body.trim() || defaults.body || defaults.testBody);
+    const payload = renderCustomBody(configuredBody, context);
     const response = await fetch(config.url.trim(), {
       method: config.method,
       headers: { "Content-Type": "application/json", ...headers },
@@ -196,19 +196,23 @@ async function sendDingTalk(config: WebhookConfig, context: MessageContext): Pro
   if (errors.length) return { success: false, message: errors.join("\n") };
 
   const target = new URL(config.url);
-  if (config.dingTalkSecret.trim()) {
-    const timestamp = String(Date.now());
-    const stringToSign = timestamp + "\n" + config.dingTalkSecret.trim();
-    const signature = createHmac("sha256", config.dingTalkSecret.trim())
-      .update(stringToSign, "utf8")
-      .digest("base64");
-    target.searchParams.set("timestamp", timestamp);
-    target.searchParams.set("sign", signature);
-  }
+  const secret = config.dingTalkSecret.trim();
+  const timestamp = String(Date.now());
+  const stringToSign = timestamp + "\n" + secret;
+  const signature = createHmac("sha256", secret)
+    .update(stringToSign, "utf8")
+    .digest("base64");
+  target.searchParams.set("timestamp", timestamp);
+  target.searchParams.set("sign", signature);
 
-  const content = renderMessage(config.messageTemplate.trim() || defaultMessage(context), context);
+  const defaults = createDefaultWebhookConfig();
+  const template = context.event === "webhook.test"
+    ? (config.testMessageTemplate.trim() || defaults.testMessageTemplate)
+    : (config.messageTemplate.trim() || defaults.messageTemplate);
+  const content = renderMessage(template, context);
+  const markdownTitle = content.split(/\r?\n/).map((line) => line.trim()).find(Boolean)?.slice(0, 64) || context.event;
   const payload = config.dingTalkMessageType === "markdown"
-    ? { msgtype: "markdown", markdown: { title: context.ok ? "PAC 生成成功" : "PAC 生成通知", text: content } }
+    ? { msgtype: "markdown", markdown: { title: markdownTitle, text: content } }
     : { msgtype: "text", text: { content } };
 
   try {
