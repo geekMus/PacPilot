@@ -17,6 +17,7 @@ jobs:
   publish:
     name: 检查版本并构建多架构镜像
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     permissions:
       contents: read
       packages: write
