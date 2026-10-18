@@ -74,7 +74,59 @@ function jsonBodyError(raw: string): string {
 }
 
 const successBodyError = computed(() => jsonBodyError(form.webhookSuccessBody));
+
 const failureBodyError = computed(() => jsonBodyError(form.webhookFailureBody));
+
+function looksLikeUrl(s: string): boolean {
+  try {
+    const u = new URL(s);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function cronLooksValid(expr: string): boolean {
+  const parts = expr.trim().split(/\s+/);
+  if (parts.length !== 5) return false;
+  // 宽松校验：每段为数字、*、*/n、a-b、列表等常见写法
+  return parts.every((p) => /^[\d*,\/\-]+$/.test(p));
+}
+
+/** 保存前校验；返回可读错误列表（空表示可提交） */
+const formErrors = computed(() => {
+  const errs: string[] = [];
+  if (!form.pacProxy.trim()) {
+    errs.push("请填写 PAC 代理字符串。");
+  }
+  if (form.mode === "remote") {
+    if (!form.listUrl.trim()) {
+      errs.push("远程列表模式需要填写规则列表 URL。");
+    } else if (!looksLikeUrl(form.listUrl.trim())) {
+      errs.push("规则列表 URL 格式无效，请使用 http(s):// 开头的地址。");
+    }
+  }
+  const cron = form.cronSchedule.trim();
+  if (cron && !cronLooksValid(cron)) {
+    errs.push("Cron 表达式应为 5 段（分 时 日 月 周），请检查格式。");
+  }
+  if (form.webhookSuccessUrl.trim() && !looksLikeUrl(form.webhookSuccessUrl.trim())) {
+    errs.push("成功 Webhook URL 格式无效。");
+  }
+  if (form.webhookFailureUrl.trim() && !looksLikeUrl(form.webhookFailureUrl.trim())) {
+    errs.push("失败 Webhook URL 格式无效。");
+  }
+  if (successBodyError.value) {
+    errs.push("成功 Webhook Body 不是合法 JSON。");
+  }
+  if (failureBodyError.value) {
+    errs.push("失败 Webhook Body 不是合法 JSON。");
+  }
+  return errs;
+});
+
+const canSubmit = computed(() => formErrors.value.length === 0 && !saving.value);
+
 
 
 function applySettings(s: AppSettings) {
@@ -159,43 +211,25 @@ function showFlash(msg: string, ok = true) {
   flashOk.value = ok;
 }
 
-async function save(andGenerate: boolean) {
+async function saveAndGenerate() {
   flash.value = "";
   error.value = "";
+  if (formErrors.value.length) {
+    showFlash(formErrors.value.join("\n"), false);
+    return;
+  }
   saving.value = true;
   try {
     await api.saveSettings(toPayload());
-    if (andGenerate) {
-      const result = await api.generate();
-      showFlash(
-        result.success
-          ? "配置已保存，PAC 生成成功"
-          : `配置已保存，但生成失败：${result.message}`,
-        result.success
-      );
-    } else {
-      showFlash("配置已保存");
-    }
-    logs.value = await api.logs();
-    genpacProbe.value = await api.genpacStatus().catch(() => genpacProbe.value);
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    saving.value = false;
-  }
-}
-
-async function generateOnly() {
-  flash.value = "";
-  error.value = "";
-  saving.value = true;
-  try {
     const result = await api.generate();
     showFlash(
-      result.success ? "PAC 生成成功" : `生成失败：${result.message}`,
+      result.success
+        ? "配置已保存，PAC 生成成功"
+        : `配置已保存，但生成失败：\n${result.message}`,
       result.success
     );
     logs.value = await api.logs();
+    genpacProbe.value = await api.genpacStatus().catch(() => genpacProbe.value);
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -236,7 +270,7 @@ async function logout() {
     </div>
 
     <template v-if="!loading && !error.includes('未启用')">
-      <form class="stack" @submit.prevent="save(false)">
+      <form class="stack" @submit.prevent="saveAndGenerate">
         <!-- 模式 -->
         <section class="card">
           <div class="card-head">
@@ -483,19 +517,25 @@ async function logout() {
           </div>
         </section>
 
-        <div class="actions">
-          <button type="submit" class="btn" :disabled="saving">保存配置</button>
-          <button
-            type="button"
-            class="btn primary"
-            :disabled="saving"
-            @click="save(true)"
-          >
-            保存并生成 PAC
-          </button>
-          <button type="button" class="btn ghost" :disabled="saving" @click="generateOnly">
-            仅重新生成
-          </button>
+        <div class="actions-block">
+          <div v-if="formErrors.length" class="validation-box">
+            <div class="validation-title">请先修正以下问题后再保存</div>
+            <ul>
+              <li v-for="(e, i) in formErrors" :key="i">{{ e }}</li>
+            </ul>
+          </div>
+          <div class="actions">
+            <button
+              type="submit"
+              class="btn primary"
+              :disabled="!canSubmit"
+            >
+              {{ saving ? "保存并生成中…" : "保存并生成 PAC" }}
+            </button>
+          </div>
+          <p class="actions-hint">
+            将写入配置并立即按当前模式重新生成 PAC。校验未通过时按钮不可用。
+          </p>
         </div>
       </form>
 
@@ -1039,6 +1079,37 @@ textarea.body-area {
   .webhook-grid {
     grid-template-columns: 1fr;
   }
+}
+
+
+.actions-block {
+  margin: 8px 0 12px;
+}
+.validation-box {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--line));
+  background: var(--warn-soft);
+  font-size: 13px;
+}
+.validation-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+.validation-box ul {
+  margin: 0;
+  padding-left: 1.2em;
+  color: var(--text);
+}
+.validation-box li {
+  margin-bottom: 4px;
+}
+.actions-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--muted);
 }
 
 </style>
