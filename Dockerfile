@@ -1,20 +1,21 @@
 # 使用 毫秒镜像 Docker Hub 代理获取 Bun 基础镜像。
 # 如果该镜像源不可用，请同时修改下面两个 FROM 行中的镜像地址。
-# ---------- build ----------
+# ---------- 构建阶段 ----------
 FROM docker.1ms.run/oven/bun:1-alpine AS builder
 
 WORKDIR /app
 # 先复制项目 Bun 配置；下面的安装命令会单独指定国内 npm 镜像源。
 COPY package.json bun.lockb* bunfig.toml ./
-RUN NPM_CONFIG_REGISTRY=https://registry.npmmirror.com bun install --frozen-lockfile || NPM_CONFIG_REGISTRY=https://registry.npmmirror.com bun install
+RUN echo "正在安装构建阶段依赖……" \
+ && (NPM_CONFIG_REGISTRY=https://registry.npmmirror.com bun install --frozen-lockfile || NPM_CONFIG_REGISTRY=https://registry.npmmirror.com bun install)
 
 COPY server ./server
 COPY client ./client
 COPY scripts ./scripts
 
-RUN bun run build:client
+RUN echo "正在编译前端资源……" && bun run build:client
 
-# ---------- runtime ----------
+# ---------- 运行阶段 ----------
 FROM docker.1ms.run/oven/bun:1-alpine
 
 # 应用不依赖 curl；避免为时区下载 tzdata，减少 Alpine APK 源这一外部构建依赖。
@@ -22,7 +23,8 @@ FROM docker.1ms.run/oven/bun:1-alpine
 WORKDIR /app
 # 运行阶段也使用相同的国内 npm 镜像源。
 COPY package.json bun.lockb* bunfig.toml ./
-RUN NPM_CONFIG_REGISTRY=https://registry.npmmirror.com bun install --production --frozen-lockfile || NPM_CONFIG_REGISTRY=https://registry.npmmirror.com bun install --production
+RUN echo "正在安装运行阶段依赖……" \
+ && (NPM_CONFIG_REGISTRY=https://registry.npmmirror.com bun install --production --frozen-lockfile || NPM_CONFIG_REGISTRY=https://registry.npmmirror.com bun install --production)
 
 COPY server ./server
 COPY --from=builder /app/dist ./dist
