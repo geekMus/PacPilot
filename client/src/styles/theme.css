@@ -6,7 +6,8 @@
   --text: #1a2332;
   --muted: #6b7a90;
   --line: #e4e9f0;
-  --accent: #4f6ef7;
+  --accent: #3f5fe5;
+  --accent-contrast: #ffffff;
   --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
   --green: #1a9f6e;
   --green-soft: color-mix(in srgb, var(--green) 12%, transparent);
@@ -44,6 +45,7 @@ html.theme-dark {
   --muted: #93a0b4;
   --line: #2a3342;
   --accent: #7b95ff;
+  --accent-contrast: #0e1218;
   --green: #4ecf9a;
   --red: #f08a98;
   --warn: #e0b35a;
@@ -86,6 +88,11 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+:where(button, a, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 code {
@@ -162,12 +169,12 @@ code {
 .nav-btn.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--accent-contrast);
 }
 
 .nav-btn.primary:hover {
   filter: brightness(1.05);
-  color: #fff;
+  color: var(--accent-contrast);
 }
 
 .nav-btn.ghost {
