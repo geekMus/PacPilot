@@ -1,6 +1,7 @@
 """Configuration defaults and validation for the web-managed settings."""
 import json
 import re
+from datetime import timedelta, timezone
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -27,6 +28,23 @@ DEFAULTS = {
         indent=2,
     ),
 }
+
+
+def resolve_timezone(name):
+    """Resolve common zones even in minimal images without a zoneinfo database."""
+    try:
+        return ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError):
+        fixed_offsets = {
+            "UTC": timezone.utc,
+            "Etc/UTC": timezone.utc,
+            "Asia/Shanghai": timezone(timedelta(hours=8), name="Asia/Shanghai"),
+            "Asia/Singapore": timezone(timedelta(hours=8), name="Asia/Singapore"),
+            "Asia/Tokyo": timezone(timedelta(hours=9), name="Asia/Tokyo"),
+        }
+        if name in fixed_offsets:
+            return fixed_offsets[name]
+        raise ValueError("系统没有该时区数据；请安装 tzdata 或选择 UTC / Asia/Shanghai / Asia/Singapore / Asia/Tokyo。")
 
 
 def as_bool(value):
