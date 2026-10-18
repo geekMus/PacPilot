@@ -13,7 +13,7 @@ import { loadDevelopmentDotEnv } from "./load-dotenv";
  * - 生产环境和容器：不加载 .env，只使用进程环境变量。
  *
  * 数据目录默认值：
- * - Docker / 容器 → /data
+ * - Docker / 容器 → 固定使用 /data，忽略 DATA_DIR 环境变量
  * - 生产环境 → 各操作系统标准数据目录
  * - 开发环境 → 当前工作目录下的 ./data
  */
@@ -22,7 +22,7 @@ export interface EnvConfig {
   dataDir: string;
   /** 当前解析到的运行环境标签，便于日志与排查 */
   runtimeProfile: "docker" | "production" | "development";
-  /** HTTP 监听端口 */
+  /** HTTP 监听端口；容器中固定为 17321 */
   port: number;
   /** 监听地址，默认 0.0.0.0 */
   host: string;
@@ -100,19 +100,15 @@ function resolveDataDir(): {
   dataDir: string;
   runtimeProfile: EnvConfig["runtimeProfile"];
 } {
-  const fromEnv = str("DATA_DIR");
-  if (fromEnv) {
-    // 显式指定时仍标注 profile，便于日志理解
-    const profile = isContainer()
-      ? "docker"
-      : isProduction()
-        ? "production"
-        : "development";
-    return { dataDir: path.resolve(fromEnv), runtimeProfile: profile };
-  }
-
+  // 容器内的数据目录固定为 /data，不允许用 DATA_DIR 环境变量覆盖。
   if (isContainer()) {
     return { dataDir: path.resolve("/data"), runtimeProfile: "docker" };
+  }
+
+  const fromEnv = str("DATA_DIR");
+  if (fromEnv) {
+    const profile = isProduction() ? "production" : "development";
+    return { dataDir: path.resolve(fromEnv), runtimeProfile: profile };
   }
 
   if (isProduction()) {
@@ -140,7 +136,8 @@ export function loadEnv(): EnvConfig {
       ? `genpac-runner:${adminPassword}`
       : "genpac-runner-disabled-admin");
 
-  const portRaw = str("PORT", "17321")!;
+  // 容器内监听端口固定为 17321；PORT 只用于非容器的本机运行。
+  const portRaw = isContainer() ? "17321" : str("PORT", "17321")!;
   const port = Number(portRaw);
   if (!Number.isFinite(port) || port <= 0 || port > 65535) {
     throw new Error(`Invalid PORT: ${portRaw}`);
