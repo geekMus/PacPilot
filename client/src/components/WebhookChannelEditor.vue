@@ -22,21 +22,24 @@ const providerId = useId();
 const showDingTalkSecret = ref(false);
 const providers: { value: WebhookProvider; label: string; description: string }[] = [
   { value: "custom", label: "自定义 Webhook", description: "对接任意支持 HTTP 请求的服务。" },
-  { value: "dingtalk", label: "钉钉机器人", description: "支持普通文本、Markdown 与加签。" },
+  { value: "dingtalk", label: "钉钉机器人", description: "支持文本或 Markdown 消息，并使用 Secret 加签。" },
 ];
 
 const bodySample = computed(() => JSON.stringify({
-  event: props.kind === "success" ? "pac.generated" : "pac.generation_failed",
-  ok: props.kind === "success",
+  event: "{{event}}",
+  status: "{{status}}",
+  ok: "{{ok}}",
   message: "{{message}}",
   timestamp: "{{timestamp}}",
 }, null, 2));
 const testBodySample = JSON.stringify({
-  event: "webhook.test",
+  event: "{{event}}",
+  status: "{{status}}",
   ok: "{{ok}}",
   message: "{{message}}",
   timestamp: "{{timestamp}}",
 }, null, 2);
+const testBodyEmptyHint = "留空时回退到任务请求体；任务请求体也留空时使用默认 JSON 请求体。"
 
 function update<K extends keyof WebhookConfig>(key: K, value: WebhookConfig[K]) {
   emit("update:modelValue", { ...props.modelValue, [key]: value });
@@ -45,6 +48,11 @@ function inputValue(event: Event): string {
   return (event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).value;
 }
 const channelReady = computed(() => Boolean(config.value.url.trim()) && (config.value.provider !== "dingtalk" || Boolean(config.value.dingTalkSecret.trim())));
+const channelStatusText = computed(() => {
+  if (!config.value.url.trim()) return "请填写通知目标 URL";
+  if (config.value.provider === "dingtalk" && !config.value.dingTalkSecret.trim()) return "请填写 Secret 加签密钥";
+  return "已填写通知目标及必填信息";
+});
 </script>
 
 <template>
@@ -88,7 +96,7 @@ const channelReady = computed(() => Boolean(config.value.url.trim()) && (config.
           </select>
         </div>
         <div class="field">
-          <label>请求 Content-Type</label>
+          <label>Content-Type（固定）</label>
           <div class="field-static">application/json</div>
         </div>
       </div>
@@ -97,21 +105,21 @@ const channelReady = computed(() => Boolean(config.value.url.trim()) && (config.
         <CodeMirrorField :model-value="config.headers" language="json" :height="126"
           aria-label="额外请求头 JSON" placeholder='{"Authorization":"Bearer …"}'
           @update:model-value="update('headers', $event)" />
-        <p class="field-hint">用于 Authorization、X-API-Key 等请求头。不要覆盖 Host、Content-Length 等传输层字段。</p>
+        <p class="field-hint">用于 Authorization、X-API-Key 等请求头。Content-Type 固定为 application/json；不要覆盖 Host、Content-Length、Connection 等传输字段。</p>
       </div>
       <div class="field">
         <label>请求 Body <span class="label-hint">JSON，可留空</span></label>
-        <WebhookBodyEditor :model-value="config.body" :height="190" :sample="bodySample"
+        <WebhookBodyEditor :model-value="config.body" :height="190" :sample="bodySample" empty-hint="留空时使用默认 JSON 请求体。"
           placeholder="输入 JSON 对象或数组…"
           @update:model-value="update('body', $event)" />
-        <p class="field-hint">支持 {{event}}、{{status}}、{{message}}、{{timestamp}}、{{ok}} 变量；留空时发送默认 JSON 事件。</p>
+        <p class="field-hint">支持模板变量：<code v-pre>{{event}}</code>、<code v-pre>{{status}}</code>、<code v-pre>{{message}}</code>、<code v-pre>{{timestamp}}</code>、<code v-pre>{{ok}}</code>。变量必须放在 JSON 字符串值中；留空时使用默认 JSON 请求体。</p>
       </div>
       <div class="field">
         <label>测试请求 Body <span class="label-hint">仅用于「发送测试」</span></label>
-        <WebhookBodyEditor :model-value="config.testBody" :height="150" :sample="testBodySample"
+        <WebhookBodyEditor :model-value="config.testBody" :height="150" :sample="testBodySample" :empty-hint="testBodyEmptyHint"
           placeholder="配置测试发送使用的 JSON 对象或数组…"
           @update:model-value="update('testBody', $event)" />
-        <p class="field-hint">测试发送独立使用此请求体；留空时回退到任务 Body。也支持相同的模板变量。</p>
+        <p class="field-hint">仅「发送测试」使用此请求体；留空时回退到任务请求体，任务请求体也留空时使用默认 JSON 请求体。模板变量必须放在 JSON 字符串值中。</p>
       </div>
     </template>
 
@@ -149,7 +157,7 @@ const channelReady = computed(() => Boolean(config.value.url.trim()) && (config.
           aria-label="钉钉任务通知模板"
           placeholder="事件：{{event}} · 状态：{{status}} · 时间：{{timestamp}} · 详情：{{message}}"
           @update:model-value="update('messageTemplate', $event)" />
-        <p class="field-hint">用于定时任务或手动生成触发的通知。可用变量：{{event}}、{{status}}、{{message}}、{{timestamp}}、{{ok}}。</p>
+        <p class="field-hint">用于定时任务或手动生成触发的通知。可用变量：<code v-pre>{{event}}</code>、<code v-pre>{{status}}</code>、<code v-pre>{{message}}</code>、<code v-pre>{{timestamp}}</code>、<code v-pre>{{ok}}</code>。状态值为 success、failure 或 test。</p>
       </div>
       <div class="field">
         <label>测试通知模板 <span class="label-hint">仅用于「发送测试」</span></label>
@@ -165,7 +173,7 @@ const channelReady = computed(() => Boolean(config.value.url.trim()) && (config.
 
     <div class="channel-footer">
       <span class="configured-dot" :class="{ ready: channelReady }"></span>
-      <span>{{ channelReady ? "发送目标与安全参数已填写" : "请填写发送目标" }}</span>
+      <span>{{ channelStatusText }}</span>
       <span class="footer-spacer"></span>
       <span class="timeout-note">请求超时：10 秒</span>
     </div>
