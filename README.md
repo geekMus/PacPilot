@@ -33,32 +33,16 @@ cd genpac-runner
 
 当前克隆命令指定了项目分支，以确保获取这里记录的版本。也可以在 GitHub 项目页选择 **Code → Download ZIP**，解压后进入包含 `docker-compose.yml` 的项目目录。
 
-### 3. 设置环境变量
+### 3. 检查部署配置
 
-**Docker 部署不需要创建或复制 `.env` 文件。** 容器使用 Docker Compose 注入的环境变量。至少需要设置 `ADMIN_PASSWORD`。
+**Docker 部署不需要创建 `.env` 文件，也不需要设置额外的配置环境变量。** 请直接检查项目根目录的 `docker-compose.yml`：
 
-Linux / macOS / Git Bash：
+- `ADMIN_PASSWORD` 默认是 `password`。**请务必在部署前尽快修改为自己的强密码**，否则任何能访问后台登录页的人都可能尝试这个公开的默认密码。
+- `SESSION_SECRET` 默认注释，不启用单独的签名密钥。程序会根据 `ADMIN_PASSWORD` 派生默认签名密钥。需要使用单独的会话签名密钥时，再取消对应注释并设置自己的随机字符串。
+- 时区、监听地址、容器内部端口和数据目录都已固定，不需要在 shell 或部署平台里设置环境变量。
+- 默认使用 `bridge` 网络，不发布宿主机端口；需要从宿主机访问时再启用端口映射。数据持久化则按前文所述选择一种挂载方式。
 
-```bash
-export ADMIN_PASSWORD='替换成你自己的强密码'
-export COMPOSE_DISABLE_ENV_FILE=1
-```
-
-Windows PowerShell：
-
-```powershell
-$env:ADMIN_PASSWORD = "替换成你自己的强密码"
-$env:COMPOSE_DISABLE_ENV_FILE = "1"
-```
-
-请把密码替换成自己的强密码。设置 `COMPOSE_DISABLE_ENV_FILE=1` 是为了让 Docker Compose 不读取项目目录中的默认 `.env` 文件——这样即使同一个目录里存在供本机开发使用的 `.env`，Docker 部署也只会采用当前终端或部署平台注入的环境变量。详情见 [Docker Compose 官方说明](https://docs.docker.com/compose/how-tos/environment-variables/envvars/)。
-
-这些变量在当前终端会话中有效。后续更新或执行其他 Compose 命令时，请继续使用该会话，或在部署平台 / 服务管理器中配置同样的环境变量。只有后台登录密码通过外部环境变量提供；时区固定为 `Asia/Shanghai`，容器内部端口固定为 `17321`，监听地址固定为 `0.0.0.0`，数据目录固定为 `/data`。会话签名密钥由程序根据后台密码生成，不需要单独配置。
-
-默认网络是 Compose 项目自己的 `bridge` 驱动网络，容器可以与连接到同一网络的其他容器通信；**默认不映射宿主机端口**。如果另一个容器加入同一网络，可以通过服务名访问，例如 `http://genpac:17321/proxy.pac`。若需从宿主机或局域网直接访问，请在 `docker-compose.yml` 中取消 `ports` 两行的注释。
-
-数据目录 `/data` 已在 Dockerfile 中声明为卷。建议在 `docker-compose.yml` 中选择并启用一种持久化挂载：命名卷方案需要同时取消文件底部 `volumes: genpac-data:` 的注释；或者使用 `./data:/data` 将数据放在项目目录里。两种方案不要同时启用。
-
+本项目的 Compose 文件不通过 `${...}` 从 shell 或 `.env` 中读取配置。即使部署目录内已有开发用的 `.env`，这些配置也不会被其覆盖。
 ### 4. 构建并启动
 
 构建依赖默认使用国内镜像源：
