@@ -1,8 +1,7 @@
 services:
   genpac:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # 使用 GHCR 已发布的多架构镜像；部署设备无需克隆源代码或本地构建。
+    image: ghcr.io/geekmus/genpac-runner:latest
     container_name: genpac-runner
     restart: unless-stopped
 
