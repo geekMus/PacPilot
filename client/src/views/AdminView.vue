@@ -23,6 +23,9 @@ const flashOk = ref(true);
 const error = ref("");
 const logs = ref<GenerationLog[]>([]);
 const genpacProbe = ref<GenpacProbe | null>(null);
+const securityStatus = ref({ isDefaultPassword: false, mustChangePassword: false });
+const passwordSaving = ref(false);
+const passwordForm = reactive({ currentPassword: "", newPassword: "", confirmPassword: "" });
 const webhookTestState = reactive({
   success: { pending: false, ok: null as boolean | null, message: "" },
   failure: { pending: false, ok: null as boolean | null, message: "" },
@@ -37,6 +40,7 @@ const form = reactive({
   directListText: "",
   blockListText: "",
   cronSchedule: "",
+  timezone: "Asia/Shanghai",
   webhookSuccessUrl: "",
   webhookSuccessBody: "",
   webhookFailureUrl: "",
@@ -68,6 +72,34 @@ function normalizedWebhookConfig(
     messageTemplate: value?.messageTemplate?.trim() ? value.messageTemplate : defaultWebhookConfig().messageTemplate,
     testMessageTemplate: value?.testMessageTemplate?.trim() ? value.testMessageTemplate : defaultWebhookConfig().testMessageTemplate,
   };
+}
+
+const commonTimeZones = [
+  { value: "Asia/Shanghai", label: "中国大陆 · 北京/上海" },
+  { value: "Asia/Taipei", label: "中国台湾 · 台北" },
+  { value: "Asia/Hong_Kong", label: "中国香港" },
+  { value: "Asia/Tokyo", label: "日本 · 东京" },
+  { value: "Asia/Seoul", label: "韩国 · 首尔" },
+  { value: "Asia/Singapore", label: "新加坡" },
+  { value: "Asia/Bangkok", label: "泰国 · 曼谷" },
+  { value: "Asia/Kolkata", label: "印度 · 加尔各答" },
+  { value: "Asia/Dubai", label: "阿联酋 · 迪拜" },
+  { value: "Europe/London", label: "英国 · 伦敦" },
+  { value: "Europe/Paris", label: "法国 · 巴黎" },
+  { value: "Europe/Berlin", label: "德国 · 柏林" },
+  { value: "America/New_York", label: "美国东部 · 纽约" },
+  { value: "America/Chicago", label: "美国中部 · 芝加哥" },
+  { value: "America/Denver", label: "美国山地 · 丹佛" },
+  { value: "America/Los_Angeles", label: "美国西部 · 洛杉矶" },
+  { value: "America/Toronto", label: "加拿大 · 多伦多" },
+  { value: "Australia/Sydney", label: "澳大利亚 · 悉尼" },
+  { value: "Pacific/Auckland", label: "新西兰 · 奥克兰" },
+  { value: "Etc/UTC", label: "协调世界时 · UTC" },
+] as const;
+
+function isValidTimeZone(value: string): boolean {
+  try { new Intl.DateTimeFormat("en-US", { timeZone: value.trim() }).format(new Date()); return true; }
+  catch { return false; }
 }
 
 const modeHint = computed(() =>
@@ -112,7 +144,7 @@ const cronParse = computed(() => parseCronDescription(form.cronSchedule));
 const cronHint = computed(() => {
   if (!form.cronSchedule.trim()) return "已关闭定时任务；保存后不会按计划自动生成 PAC。";
   if (cronParse.value.error) return `表达式无效：${cronParse.value.error}`;
-  return `计划说明：${cronParse.value.description}。按服务端运行环境的时区执行。`;
+  return `计划说明：${cronParse.value.description}。按所选时区 ${form.timezone} 执行。`;
 });
 
 function applyCronPreset(value: string) {
@@ -189,6 +221,7 @@ const formErrors = computed(() => {
   if (cron && cronParse.value.error) {
     errs.push("Cron 表达式无效，请检查五段格式与字段取值。");
   }
+  if (!isValidTimeZone(form.timezone)) errs.push("时区无效，请从建议列表选择，或输入有效的 IANA 时区名称。");
   errs.push(...validateWebhookDraft(form.webhookSuccessConfig, "成功通知"));
   errs.push(...validateWebhookDraft(form.webhookFailureConfig, "失败通知"));
   return errs;
@@ -207,6 +240,7 @@ function applySettings(s: AppSettings) {
   form.directListText = s.directList.join("\n");
   form.blockListText = s.blockList.join("\n");
   form.cronSchedule = s.cronSchedule;
+  form.timezone = s.timezone || "Asia/Shanghai";
   form.webhookSuccessUrl = s.webhookSuccessUrl;
   form.webhookSuccessBody = s.webhookSuccessBody;
   form.webhookFailureUrl = s.webhookFailureUrl;
@@ -230,6 +264,7 @@ function toPayload(): AppSettings {
     directList: split(form.directListText),
     blockList: split(form.blockListText),
     cronSchedule: form.cronSchedule,
+    timezone: form.timezone.trim(),
     webhookSuccessUrl: form.webhookSuccessConfig.url,
     webhookSuccessBody: form.webhookSuccessConfig.body,
     webhookFailureUrl: form.webhookFailureConfig.url,
@@ -243,16 +278,16 @@ async function load() {
   loading.value = true;
   error.value = "";
   try {
-    const meta = await api.meta();
-    if (!meta.adminEnabled) {
-      error.value = "后台未启用：请设置环境变量 ADMIN_PASSWORD";
-      return;
-    }
     const session = await api.session();
+    securityStatus.value = {
+      isDefaultPassword: session.isDefaultPassword,
+      mustChangePassword: session.mustChangePassword,
+    };
     if (!session.loggedIn) {
       await router.replace("/admin/login");
       return;
     }
+    if (session.mustChangePassword) return;
     const [settings, logList, probe] = await Promise.all([
       api.settings(),
       api.logs(),
@@ -346,6 +381,26 @@ async function testWebhook(kind: "success" | "failure") {
   }
 }
 
+async function changeAdminPassword() {
+  flash.value = "";
+  error.value = "";
+  if (!passwordForm.currentPassword) { error.value = "请输入当前管理密码。"; return; }
+  if (passwordForm.newPassword.length < 12) { error.value = "新密码至少需要 12 个字符。"; return; }
+  if (passwordForm.newPassword !== passwordForm.confirmPassword) { error.value = "两次输入的新密码不一致。"; return; }
+  passwordSaving.value = true;
+  try {
+    await api.changePassword({
+      currentPassword: passwordForm.currentPassword,
+      newPassword: passwordForm.newPassword,
+    });
+    await router.replace({ path: "/admin/login", query: { passwordChanged: "1" } });
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : "修改密码失败，请重试。";
+  } finally {
+    passwordSaving.value = false;
+  }
+}
+
 async function logout() {
   await api.logout();
   await router.push("/admin/login");
@@ -378,8 +433,71 @@ async function logout() {
       <pre class="banner-text">{{ error }}</pre>
     </div>
 
-    <template v-if="!loading && !error.includes('未启用')">
-      <form class="stack" @submit.prevent="saveAndGenerate">
+    <template v-if="!loading && !error">
+      <section class="card security-card">
+        <div class="card-head">
+          <div>
+            <h2>管理密码</h2>
+            <p class="card-sub">密码保存在本地数据库，不再通过环境变量配置。</p>
+          </div>
+        </div>
+        <div v-if="securityStatus.isDefaultPassword" class="password-warning" role="alert">
+          <strong>安全提醒：当前仍使用默认密码 password</strong>
+          <p>请尽快修改为只有你知道的强密码，避免其他人通过默认密码进入管理后台。</p>
+        </div>
+        <div v-if="securityStatus.mustChangePassword" class="password-warning" role="alert">
+          <strong>需要设置新密码</strong>
+          <p>当前使用的是容器命令生成的一次性临时密码。完成修改前，其他管理功能会保持锁定。</p>
+        </div>
+        <form class="password-change-form" @submit.prevent="changeAdminPassword">
+          <div class="field">
+            <label for="current-admin-password">当前管理密码</label>
+            <input id="current-admin-password" v-model="passwordForm.currentPassword" type="password" autocomplete="current-password" required />
+          </div>
+          <div class="field">
+            <label for="new-admin-password">新管理密码</label>
+            <input id="new-admin-password" v-model="passwordForm.newPassword" type="password" autocomplete="new-password" minlength="12" required placeholder="至少 12 个字符" />
+          </div>
+          <div class="field">
+            <label for="confirm-admin-password">确认新密码</label>
+            <input id="confirm-admin-password" v-model="passwordForm.confirmPassword" type="password" autocomplete="new-password" minlength="12" required />
+          </div>
+          <div class="actions">
+            <button type="submit" class="btn primary" :disabled="passwordSaving">
+              {{ passwordSaving ? "正在修改…" : "修改管理密码" }}
+            </button>
+          </div>
+        </form>
+        <p class="field-hint">忘记密码时，可在宿主机执行 <code>docker exec -it genpac-runner bun run /app/scripts/reset-admin-password.ts</code>，然后使用命令输出的一次性密码登录。</p>
+      </section>
+
+      <form v-if="!securityStatus.mustChangePassword" class="stack" @submit.prevent="saveAndGenerate">
+        <!-- 常规设置 -->
+        <section class="card">
+          <div class="card-head">
+            <div class="card-title">
+              <span class="icon-badge" aria-hidden="true">◷</span>
+              <div>
+                <h2>常规设置</h2>
+                <p class="card-sub">常规选项保存在数据库中，不需要编辑 Docker 环境变量。</p>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="timezone">时区</label>
+            <input id="timezone" v-model="form.timezone" list="timezone-options" autocomplete="off" spellcheck="false"
+              placeholder="输入国家、地区常用时区，例如 Asia/Tokyo" />
+            <datalist id="timezone-options">
+              <option v-for="zone in commonTimeZones" :key="zone.value" :value="zone.value" :label="zone.label" />
+            </datalist>
+            <p class="field-hint">可以输入关键词搜索建议项，也可以输入有效的 IANA 时区名称。该设置会用于定时任务、状态页时间和 Webhook 通知。</p>
+          </div>
+          <div class="chip-row timezone-presets">
+            <button v-for="zone in commonTimeZones.slice(0, 6)" :key="zone.value" type="button" class="chip"
+              :class="{ active: form.timezone === zone.value }" @click="form.timezone = zone.value">{{ zone.label }}</button>
+          </div>
+        </section>
+
         <!-- 模式 -->
         <section class="card">
           <div class="card-head">
@@ -1265,4 +1383,10 @@ textarea.body-area {
   color: var(--muted);
 }
 
+.security-card { margin-bottom: 18px; }
+.password-warning { margin: 0 0 14px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--line)); border-radius: var(--radius-sm); background: var(--warn-soft); color: var(--text); font-size: 13px; }
+.password-warning p { margin: 5px 0 0; color: var(--muted); line-height: 1.5; }
+.password-change-form { max-width: 620px; }
+.password-change-form .actions { margin-top: 10px; }
+.timezone-presets { margin: 8px 0 0; }
 </style>

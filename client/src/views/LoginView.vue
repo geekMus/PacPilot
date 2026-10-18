@@ -1,23 +1,22 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { api } from "../api/client";
 import AppHeader from "../components/AppHeader.vue";
 
 const router = useRouter();
+const route = useRoute();
 const password = ref("");
+const notice = ref("");
 const error = ref("");
 const loading = ref(false);
 const adminEnabled = ref<boolean | null>(null);
 
 onMounted(async () => {
+  if (route.query.passwordChanged === "1") notice.value = "管理密码已修改，请使用新密码登录。";
   try {
     const meta = await api.meta();
     adminEnabled.value = meta.adminEnabled;
-    if (!meta.adminEnabled) {
-      error.value = "后台尚未启用，请在服务端设置 ADMIN_PASSWORD。";
-      return;
-    }
     const session = await api.session();
     if (session.loggedIn) await router.replace("/admin");
   } catch (e) {
@@ -50,23 +49,25 @@ async function onSubmit() {
         <div class="page-kicker">ADMINISTRATION</div>
         <h1 class="page-title">管理你的 PAC 配置</h1>
         <p>登录后可以切换生成模式、维护直连和黑名单、设置定时生成，并管理 Webhook 通知。</p>
-        <div class="security-note"><span aria-hidden="true">◈</span><span>使用部署时配置的 <code>ADMIN_PASSWORD</code>。密码只用于验证，不会显示在页面上。</span></div>
+        <div class="security-note"><span aria-hidden="true">◈</span><span>首次启动默认管理密码为 <code>password</code>；登录后请立即修改。忘记密码可在容器内运行密码重置命令。</span></div>
       </div>
       <section class="login-card">
         <div class="login-mark" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4.5" y="10" width="15" height="11" rx="2.5"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/><path d="M12 14v3"/></svg>
         </div>
         <h2>后台登录</h2><p class="login-subtitle">输入管理密码以继续</p>
+        <div v-if="notice" class="alert success-alert" role="status">{{ notice }}</div>
         <div v-if="error" class="alert" :class="{ warning: adminEnabled === false }" role="alert">{{ error }}</div>
         <form @submit.prevent="onSubmit">
           <label for="pw">管理密码</label>
           <input id="pw" v-model="password" type="password" required autocomplete="current-password"
-            placeholder="输入 ADMIN_PASSWORD" :disabled="adminEnabled === false" autofocus />
+            placeholder="输入管理密码" :disabled="adminEnabled === false" autofocus />
           <button type="submit" class="login-submit" :disabled="loading || !password || adminEnabled === false">
             {{ loading ? "正在验证…" : "登录控制台" }}<span v-if="!loading" aria-hidden="true">→</span>
           </button>
         </form>
-        <p class="login-footnote">请勿在公共设备上保存管理密码。</p>
+        <p class="login-footnote">请勿在公共设备上保存管理密码。忘记密码时执行：</p>
+        <p class="login-footnote"><code>docker exec -it genpac-runner bun run /app/scripts/reset-admin-password.ts</code></p>
       </section>
     </section>
   </main>
@@ -93,4 +94,5 @@ async function onSubmit() {
 .alert { padding:10px 12px; border:1px solid color-mix(in srgb,var(--red) 35%,var(--line)); border-radius:9px; background:var(--red-soft); margin-bottom:14px; font-size:12px; line-height:1.5; }
 .alert.warning { border-color:color-mix(in srgb,var(--warn) 35%,var(--line)); background:var(--warn-soft); }
 @media(max-width:680px) { .auth-layout { grid-template-columns:1fr; align-content:start; gap:24px; padding-top:12px; } .auth-intro .page-title { max-width:13em; font-size:32px; } .security-note { margin-top:16px; } .login-card { justify-self:stretch; max-width:none; } }
+.success-alert { border-color: var(--green); background: var(--green-soft); color: var(--green); }
 </style>

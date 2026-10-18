@@ -4,6 +4,12 @@ export interface Meta {
   repositoryUrl: string;
 }
 
+export interface AdminSession {
+  loggedIn: boolean;
+  isDefaultPassword: boolean;
+  mustChangePassword: boolean;
+}
+
 export interface UpdateInfo {
   currentVersion: string;
   latestVersion: string | null;
@@ -53,6 +59,7 @@ export interface AppSettings {
   blockList: string[];
   directList: string[];
   cronSchedule: string;
+  timezone: string;
   webhookSuccessUrl: string;
   webhookSuccessBody: string;
   webhookFailureUrl: string;
@@ -109,7 +116,11 @@ export const api = {
   meta: () => request<Meta>("/api/meta"),
   checkForUpdates: () => request<UpdateInfo>("/api/meta/update"),
   status: () => request<PacStatus>("/api/status"),
-  session: () => request<{ loggedIn: boolean }>("/api/admin/session"),
+  session: () => request<AdminSession>("/api/admin/session"),
+  changePassword: (body: { currentPassword: string; newPassword: string }) =>
+    request<{ ok: boolean }>("/api/admin/password", {
+      method: "POST", body: JSON.stringify(body),
+    }),
   login: (password: string) => request<{ ok: boolean }>("/api/admin/login", {
     method: "POST", body: JSON.stringify({ password }),
   }),
