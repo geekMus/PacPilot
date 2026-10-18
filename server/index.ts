@@ -1,24 +1,21 @@
-import { loadEnv, adminEnabled } from "./config/env";
+import { loadEnv } from "./config/env";
 import { getDb, closeDb } from "./db/sqlite";
 import { createApp } from "./app";
 import { generatePac } from "./services/pac-generator";
 import { reschedule, stopScheduler } from "./services/scheduler";
+import { ensureAdminAuth } from "./services/admin-credentials";
 
 async function main(): Promise<void> {
   const env = loadEnv();
   const database = getDb(env.dataDir);
+  const adminSecurity = ensureAdminAuth(database);
 
-  console.log("[boot] genpac-runner v2 starting...");
+  console.log("[boot] genpac-runner starting...");
   console.log(`[boot] profile=${env.runtimeProfile}`);
   console.log(`[boot] dataDir=${env.dataDir}`);
   console.log(`[boot] listen=${env.host}:${env.port}`);
-  console.log(
-    `[boot] admin=${
-      adminEnabled(env)
-        ? "enabled"
-        : "disabled — set ADMIN_PASSWORD in development .env or process environment to enable /admin"
-    }`
-  );
+  console.log("[boot] admin=enabled");
+  if (adminSecurity.isDefaultPassword) console.warn("[security] 当前仍使用默认管理密码 password，请登录后台立即修改。");
 
   const result = await generatePac(database, env.dataDir);
   if (!result.success) {
@@ -37,9 +34,7 @@ async function main(): Promise<void> {
     console.log(`[boot] listening on ${env.host}:${env.port}`);
     console.log(`[boot] PAC    -> ${local}/proxy.pac`);
     console.log(`[boot] status -> ${local}/`);
-    if (adminEnabled(env)) {
-      console.log(`[boot] admin  -> ${local}/admin`);
-    }
+    console.log(`[boot] admin  -> ${local}/admin`);
   });
 
   server.on("error", (err: NodeJS.ErrnoException) => {

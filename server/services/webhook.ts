@@ -84,13 +84,13 @@ export function validateWebhookConfig(input: WebhookConfig): string[] {
   return errors;
 }
 
-function buildContext(kind: EventKind, message?: string): MessageContext {
+function buildContext(kind: EventKind, message?: string, timeZone = "Asia/Shanghai"): MessageContext {
   const ok = kind === "success";
   return {
     event: kind === "test" ? "webhook.test" : ok ? "pac.generated" : "pac.generation_failed",
     ok: kind === "test" ? true : kind === "success",
     message: kind === "test" ? "测试通知请求已触发。" : message || (ok ? "PAC 已成功生成。" : "PAC 生成失败。"),
-    timestamp: new Date().toLocaleString("zh-CN", { timeZone: process.env.TZ || "Asia/Shanghai" }),
+    timestamp: new Date().toLocaleString("zh-CN", { timeZone }),
   };
 }
 
@@ -233,29 +233,30 @@ async function sendDingTalk(config: WebhookConfig, context: MessageContext): Pro
 export async function sendWebhook(
   input: WebhookConfig,
   kind: EventKind,
-  detail?: string
+  detail?: string,
+  timeZone = "Asia/Shanghai"
 ): Promise<WebhookDeliveryResult> {
   const config = normalizeWebhookConfig(input);
-  const context = buildContext(kind, detail);
+  const context = buildContext(kind, detail, timeZone);
   return config.provider === "dingtalk"
     ? sendDingTalk(config, context)
     : sendCustom(config, context);
 }
 
-export async function sendWebhookTest(config: WebhookConfig): Promise<WebhookDeliveryResult> {
-  return sendWebhook(config, "test");
+export async function sendWebhookTest(config: WebhookConfig, timeZone = "Asia/Shanghai"): Promise<WebhookDeliveryResult> {
+  return sendWebhook(config, "test", undefined, timeZone);
 }
 
-async function notify(config: WebhookConfig, kind: "success" | "failure", message?: string): Promise<void> {
+async function notify(config: WebhookConfig, kind: "success" | "failure", message?: string, timeZone = "Asia/Shanghai"): Promise<void> {
   if (!config.url.trim()) return;
-  const result = await sendWebhook(config, kind, message);
+  const result = await sendWebhook(config, kind, message, timeZone);
   if (!result.success) console.error("[webhook] " + config.provider + ": " + result.message);
   else console.info("[webhook] " + config.provider + " delivered (HTTP " + result.status + ")");
 }
 
 export async function notifySuccess(settings: AppSettings): Promise<void> {
-  await notify(getNotificationConfig(settings, "success"), "success");
+  await notify(getNotificationConfig(settings, "success"), "success", undefined, settings.timezone);
 }
 export async function notifyFailure(settings: AppSettings, message?: string): Promise<void> {
-  await notify(getNotificationConfig(settings, "failure"), "failure", message);
+  await notify(getNotificationConfig(settings, "failure"), "failure", message, settings.timezone);
 }

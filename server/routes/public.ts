@@ -1,8 +1,8 @@
 import { Router } from "express";
 import type { EnvConfig } from "../config/env";
-import { adminEnabled } from "../config/env";
 import { pacFileMtime, readPacFile } from "../services/pac-generator";
 import { parsePacStatus } from "../services/pac-parser";
+import { getSettings, type AppDatabase } from "../db/sqlite";
 import { getUpdateInfo } from "../services/update-check";
 import { APP_VERSION, PROJECT_URL } from "../version";
 
@@ -37,14 +37,14 @@ function sendPac(
   res.send(pac);
 }
 
-export function publicRoutes(env: EnvConfig): Router {
+export function publicRoutes(env: EnvConfig, database: AppDatabase): Router {
   const router = Router();
 
   router.get("/proxy.pac", (req, res) => sendPac(req, res, env.dataDir));
 
   router.get("/api/meta", (_req, res) => {
     res.json({
-      adminEnabled: adminEnabled(env),
+      adminEnabled: true,
       version: APP_VERSION,
       repositoryUrl: PROJECT_URL,
     });
@@ -57,7 +57,7 @@ export function publicRoutes(env: EnvConfig): Router {
 
   router.get("/api/status", (_req, res) => {
     const pac = readPacFile(env.dataDir);
-    res.json(parsePacStatus(pac, env.tz, pacFileMtime(env.dataDir)));
+    res.json(parsePacStatus(pac, getSettings(database).timezone, pacFileMtime(env.dataDir)));
   });
 
   return router;

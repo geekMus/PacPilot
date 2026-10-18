@@ -99,7 +99,8 @@ export function appendGenerationLog(
 
 export function recentLogs(
   database: AppDatabase,
-  limit = 20
+  limit = 20,
+  timeZone = "Asia/Shanghai"
 ): Array<{
   id: number;
   success: boolean;
@@ -127,10 +128,14 @@ export function recentLogs(
     success: Boolean(r.success),
     mode: r.mode,
     message: r.message,
-    created_at: r.created_at,
+    created_at: (() => {
+      const parsed = new Date(r.created_at.replace(" ", "T") + "Z");
+      return Number.isNaN(parsed.getTime()) ? r.created_at : parsed.toLocaleString("zh-CN", { timeZone });
+    })(),
   }));
 }
 
+function normalizeTimeZone(value:string):string {try{new Intl.DateTimeFormat("en-US",{timeZone:value.trim()}).format(new Date());return value.trim();}catch{return DEFAULT_SETTINGS.timezone;}}
 function normalizeSettings(
   s: AppSettings & { gfwlistUrl?: string; mode?: string }
 ): AppSettings {
@@ -168,6 +173,7 @@ function normalizeSettings(
       ? s.directList.map((x) => String(x).trim()).filter(Boolean)
       : [],
     cronSchedule: String(s.cronSchedule || "").trim(),
+    timezone: normalizeTimeZone(String(s.timezone || DEFAULT_SETTINGS.timezone)),
     webhookSuccessUrl,
     webhookSuccessBody,
     webhookFailureUrl,

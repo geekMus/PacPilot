@@ -19,7 +19,7 @@ export function createApp(
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
 
-  app.use(publicRoutes(env));
+  app.use(publicRoutes(env, database));
   app.use(adminRoutes(env, database));
 
   const here =

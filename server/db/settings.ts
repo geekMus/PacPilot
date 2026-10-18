@@ -84,6 +84,8 @@ export interface AppSettings {
   blockList: string[];
   directList: string[];
   cronSchedule: string;
+  /** IANA timezone used by scheduled tasks and displayed timestamps. */
+  timezone: string;
   /** Legacy fields retained for smooth migration from earlier versions. */
   webhookSuccessUrl: string;
   webhookSuccessBody: string;
@@ -104,6 +106,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   blockList: [],
   directList: [],
   cronSchedule: "",
+  timezone: "Asia/Shanghai",
   webhookSuccessUrl: "",
   webhookSuccessBody: "",
   webhookFailureUrl: "",

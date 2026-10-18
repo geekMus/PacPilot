@@ -27,10 +27,10 @@ RUN echo "正在安装运行阶段依赖……" \
  && (bun install --production --frozen-lockfile || bun install --production)
 
 COPY server ./server
+COPY scripts ./scripts
 COPY --from=builder /app/dist ./dist
 
 ENV HOST=0.0.0.0 \
-    TZ=Asia/Shanghai \
     RUNNING_IN_DOCKER=1 \
     NODE_ENV=production
 
