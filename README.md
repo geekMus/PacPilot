@@ -2,7 +2,7 @@
 
 一个用于生成 PAC 代理规则文件的轻量工具，带有网页管理界面。你可以配置代理、直连域名、黑名单、远程规则列表、定时生成和 Webhook 通知。
 
-**推荐使用 Docker Compose 部署。** 配置和生成记录保存在 SQLite 中，不需要手动编辑配置文件。
+**推荐使用 Docker Compose 部署。** 配置和生成记录保存在 SQLite 中，不需要手动编辑业务配置文件。
 
 ## Docker Compose 部署（推荐）
 
@@ -31,47 +31,55 @@ git clone --branch refactor/modular-sqlite-admin --single-branch https://github.
 cd genpac-runner
 ```
 
-当前部署命令指定了本项目分支，以确保获取这里记录的版本。也可以在 GitHub 项目页选择 **Code → Download ZIP**，解压后进入包含 `docker-compose.yml` 的项目目录。
+当前克隆命令指定了项目分支，以确保获取这里记录的版本。也可以在 GitHub 项目页选择 **Code → Download ZIP**，解压后进入包含 `docker-compose.yml` 的项目目录。
 
-### 3. 设置管理密码
+### 3. 设置环境变量
 
-在项目根目录复制环境变量示例文件：
+**Docker 部署不需要创建或复制 `.env` 文件。** 容器使用 Docker Compose 注入的环境变量。至少需要设置 `ADMIN_PASSWORD`。
+
+Linux / macOS / Git Bash：
 
 ```bash
-cp .env.example .env
+export ADMIN_PASSWORD='替换成你自己的强密码'
+export COMPOSE_DISABLE_ENV_FILE=1
+
+# 以下配置可选；不设置时使用默认值
+export HOST_PORT=17321
+export TZ=Asia/Shanghai
+# export SESSION_SECRET='建议使用独立的长随机字符串'
 ```
 
-Windows PowerShell 可使用：
+Windows PowerShell：
 
 ```powershell
-Copy-Item .env.example .env
+$env:ADMIN_PASSWORD = "替换成你自己的强密码"
+$env:COMPOSE_DISABLE_ENV_FILE = "1"
+
+# 以下配置可选；不设置时使用默认值
+$env:HOST_PORT = "17321"
+$env:TZ = "Asia/Shanghai"
+# $env:SESSION_SECRET = "建议使用独立的长随机字符串"
 ```
 
-打开 `.env`，设置一个自己的管理密码：
+请把密码替换成自己的强密码。设置 `COMPOSE_DISABLE_ENV_FILE=1` 是为了让 Docker Compose 不读取项目目录中的默认 `.env` 文件——这样即使同一个目录里存在供本机开发使用的 `.env`，Docker 部署也只会采用当前终端或部署平台注入的环境变量。详情见 [Docker Compose 官方说明](https://docs.docker.com/compose/how-tos/environment-variables/envvars/)。
 
-```dotenv
-ADMIN_PASSWORD=请替换为你自己的强密码
-HOST_PORT=17321
-TZ=Asia/Shanghai
-```
-
-**必须修改 `ADMIN_PASSWORD`，不能留空，也不要使用示例密码。** 如果 17321 端口已被占用，可以把 `HOST_PORT` 改成其他端口，例如 `17322`。
+这些变量在当前终端会话中有效。后续更新或执行其他 Compose 命令时，请继续使用该会话，或在部署平台 / 服务管理器中配置同样的环境变量。若 `17321` 端口已被占用，可将 `HOST_PORT` 改成其他端口，例如 `17322`。
 
 ### 4. 构建并启动
 
-确认终端当前目录是项目根目录（里面有 `docker-compose.yml`），然后执行：
+确认终端当前目录是项目根目录（里面有 `docker-compose.yml`），并且已设置上述环境变量，然后执行：
 
 ```bash
 docker compose up -d --build
 ```
 
-如果系统使用的是旧式独立命令，则执行：
+如果系统使用旧式独立命令，则执行：
 
 ```bash
 docker-compose up -d --build
 ```
 
-这条命令会根据项目中的 `Dockerfile` 构建镜像，并在后台启动容器。首次构建需要下载 Bun 基础镜像和安装项目依赖，请确保设备可以访问相应的软件源。**不需要先执行 `docker pull genpac-runner`**，本项目的 Compose 配置是从源码构建应用镜像。
+这条命令会根据项目中的 `Dockerfile` 构建镜像，并在后台启动容器。首次构建需要下载 Bun 基础镜像和安装项目依赖，请确保设备可以访问相应的软件源。**不需要先执行 `docker pull genpac-runner`**，本项目的 Compose 配置会从源码构建应用镜像。
 
 查看运行状态和日志：
 
@@ -92,7 +100,7 @@ docker compose logs -f genpac
 
 ### 常用命令
 
-以下命令都要在项目目录中执行：
+以下命令都要在项目目录中、且环境变量已设置的终端会话里执行：
 
 ```bash
 # 查看日志
@@ -130,7 +138,7 @@ Docker 部署时，命名卷 `genpac-data` 挂载到容器的 `/data` 目录，�
 
 执行 `docker compose down` 不会删除该数据卷。迁移或备份时请一并保存卷中的数据。
 
-业务配置都在网页的「配置管理」中完成。只有启动级设置（如管理密码、时区和端口）需要通过环境变量设置。
+业务配置都在网页的「配置管理」中完成。启动级设置通过环境变量配置：例如 `ADMIN_PASSWORD` 是后台管理密码，`HOST_PORT` 是宿主机访问端口，`TZ` 是时区，`SESSION_SECRET` 是可选的会话签名密钥。
 
 ## 常见问题
 
@@ -144,10 +152,10 @@ Docker 部署时，命名卷 `genpac-data` 挂载到容器的 `/data` 目录，�
 
 **后台无法登录**
 
-检查项目根目录的 `.env` 是否设置了 `ADMIN_PASSWORD`，然后重新创建容器：
+确认创建容器时设置了 `ADMIN_PASSWORD`，然后在包含该环境变量的终端会话中重新创建容器：
 
 ```bash
-docker compose up -d
+docker compose up -d --force-recreate
 ```
 
 **远程列表生成失败**
@@ -156,14 +164,25 @@ docker compose up -d
 
 ## 本机开发（可选）
 
-如需修改源码，可先安装 [Bun](https://bun.sh/)：
+如需修改源码，可先安装 [Bun](https://bun.sh/)。
+
+在项目根目录创建仅用于本机开发的 `.env`：
 
 ```bash
 bun install
 cp .env.example .env
-# 在 .env 中设置 ADMIN_PASSWORD
+```
+
+Windows PowerShell 可使用：
+
+```powershell
+Copy-Item .env.example .env
+```
+
+打开 `.env`，设置 `ADMIN_PASSWORD` 等开发配置，然后运行：
+
+```bash
 bun run dev
 ```
 
-开发服务器默认监听后端 `17321`，前端开发页面为 `http://127.0.0.1:5173`。生产构建可运行 `bun run build`，然后执行 `bun start`。
-
+开发服务器默认监听后端 `17321`，前端开发页面为 `http://127.0.0.1:5173`。生产构建可运行 `bun run build`，然后执行 `bun start`；生产运行使用进程环境变量，不需要 `.env` 文件。
