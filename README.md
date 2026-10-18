@@ -65,7 +65,7 @@ $env:TZ = "Asia/Shanghai"
 
 ### 4. 构建并启动
 
-本项目固定使用 **DaoCloud 国内镜像代理**拉取 Bun 基础镜像：`m.daocloud.io/docker.io/oven/bun:1-alpine`。该地址按 DaoCloud 公共镜像项目推荐的“增加前缀”方式配置（[官方说明](https://github.com/DaoCloud/public-image-mirror)）。Dockerfile 的构建阶段和运行阶段均写死该地址，不提供 `BUN_BASE_IMAGE` 或其他环境变量覆盖方式。
+本项目固定使用 **DaoCloud 国内镜像代理**拉取 Bun 基础镜像：`m.daocloud.io/docker.io/oven/bun:1-alpine`。该地址按 DaoCloud 公共镜像项目推荐的“增加前缀”方式配置（[官方说明](https://github.com/DaoCloud/public-image-mirror)）。Dockerfile 的构建阶段和运行阶段均写死该地址，不提供环境变量覆盖方式。
 
 如果该镜像代理也无法连接，可在 `Dockerfile` 中将两处 `FROM m.daocloud.io/docker.io/oven/bun:1-alpine` 手动改成你确认可用的镜像地址，再重新构建。基础镜像成功下载后，构建过程中安装系统依赖和 Bun 包等步骤仍需要网络访问。
 
