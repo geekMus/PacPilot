@@ -16,7 +16,7 @@ async function main(): Promise<void> {
     `[boot] admin=${
       adminEnabled(env)
         ? "enabled"
-        : "disabled — set ADMIN_PASSWORD in .env or environment to enable /admin"
+        : "disabled — set ADMIN_PASSWORD in development .env or process environment to enable /admin"
     }`
   );
 
@@ -46,7 +46,7 @@ async function main(): Promise<void> {
     if (err.code === "EADDRINUSE") {
       console.error(
         `[boot] 端口 ${env.port} 已被占用。\n` +
-          `  - 换端口: 在 .env 里设置 PORT=8081 后重试\n` +
+          `  - 换端口: 在开发环境 .env 或进程环境中设置 PORT=8081 后重试\n` +
           `  - Windows 查占用: netstat -ano | findstr :${env.port}\n` +
           `  - Linux/macOS: lsof -i :${env.port}  或  ss -tlnp | grep ${env.port}`
       );
