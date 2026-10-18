@@ -42,14 +42,15 @@ function ruleDesc(rule: string) {
 
 <template>
   <main class="page">
-    <AppHeader brand="genpac-runner" sub="HOME">
-      <a href="/proxy.pac">PAC</a>
-      <RouterLink v-if="meta?.adminEnabled" to="/admin">后台</RouterLink>
+    <AppHeader brand="genpac-runner" sub="Status">
+      <a href="/proxy.pac">查看 PAC</a>
+      <a href="/proxy.pac?download=1">下载 PAC</a>
+      <RouterLink v-if="meta?.adminEnabled" class="primary" to="/admin">后台</RouterLink>
     </AppHeader>
 
     <section>
       <div class="kicker">Current configuration</div>
-      <h1>PAC 规则状态</h1>
+      <h1>规则状态</h1>
       <p class="intro">
         查看当前生成文件中的分流规则。这里读取的是实际
         <code>proxy.pac</code>，不是单纯展示配置。

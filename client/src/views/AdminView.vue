@@ -173,9 +173,9 @@ async function logout() {
 
 <template>
   <main class="page admin-page">
-    <AppHeader brand="genpac-runner" sub="ADMIN">
+    <AppHeader brand="genpac-runner" sub="Admin">
       <RouterLink to="/">首页</RouterLink>
-      <a href="/proxy.pac">PAC</a>
+      <a href="/proxy.pac">查看 PAC</a>
       <button type="button" class="linkish" @click="logout">退出</button>
     </AppHeader>
 
@@ -183,7 +183,7 @@ async function logout() {
       <div class="page-kicker">控制台</div>
       <h1 class="page-title">配置管理</h1>
       <p class="page-intro">
-        业务参数保存在 SQLite。修改后可立即重新生成 PAC。
+        参数保存在本地数据库，保存后可立即重新生成 PAC。
       </p>
     </section>
 
@@ -491,13 +491,14 @@ async function logout() {
   align-items: flex-start;
 }
 .icon-badge {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
   display: grid;
   place-items: center;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--surface-2);
+  color: var(--muted);
+  border: 1px solid var(--line);
   flex-shrink: 0;
 }
 h2 {
@@ -531,7 +532,7 @@ h2 {
 }
 .mode-card.active {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  box-shadow: 0 0 0 2px var(--accent-soft);
   background: var(--surface);
 }
 .mode-top {

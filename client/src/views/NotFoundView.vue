@@ -6,18 +6,18 @@ import AppHeader from "../components/AppHeader.vue";
   <main class="page">
     <AppHeader brand="genpac-runner" sub="404">
       <RouterLink to="/">首页</RouterLink>
-      <a href="/proxy.pac">PAC</a>
-      <RouterLink to="/admin">后台</RouterLink>
+      <a href="/proxy.pac">查看 PAC</a>
+      <RouterLink class="primary" to="/admin">后台</RouterLink>
     </AppHeader>
 
     <section class="panel">
       <p class="code">404</p>
       <h1>页面不存在</h1>
-      <p class="desc">当前只提供首页、PAC 下载与后台管理。请从下方入口继续。</p>
+      <p class="desc">可用入口：首页、PAC 原文与后台管理。</p>
       <div class="links">
         <RouterLink class="btn primary" to="/">返回首页</RouterLink>
-        <a class="btn" href="/proxy.pac">打开 PAC</a>
-        <RouterLink class="btn" to="/admin">后台管理</RouterLink>
+        <a class="btn" href="/proxy.pac">查看 PAC</a>
+        <RouterLink class="btn" to="/admin">后台</RouterLink>
       </div>
     </section>
   </main>

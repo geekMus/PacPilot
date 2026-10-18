@@ -41,9 +41,9 @@ async function onSubmit() {
 
 <template>
   <main class="page">
-    <AppHeader brand="genpac-runner" sub="ADMIN">
+    <AppHeader brand="genpac-runner" sub="Admin">
       <RouterLink to="/">首页</RouterLink>
-      <a href="/proxy.pac">PAC</a>
+      <a href="/proxy.pac">查看 PAC</a>
     </AppHeader>
 
     <div class="card">
@@ -54,7 +54,7 @@ async function onSubmit() {
         </svg>
       </div>
       <h1>后台登录</h1>
-      <p class="muted">使用环境变量 <code>ADMIN_PASSWORD</code> 设置的密码。</p>
+      <p class="muted">使用启动时配置的 <code>ADMIN_PASSWORD</code> 登录。</p>
       <div v-if="error" class="alert">{{ error }}</div>
       <form @submit.prevent="onSubmit">
         <label for="pw">密码</label>
