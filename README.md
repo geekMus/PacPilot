@@ -82,7 +82,7 @@ docker compose logs -f genpac
 
 ### 5. 打开网页
 
-假设部署设备的 IP 是 `192.168.1.20)，且 `HOST_PORT=17321)：
+假设部署设备的 IP 是 `192.168.1.20`，且 `HOST_PORT=17321`：
 
 - 运行概览：`http://192.168.1.20:17321/`
 - 配置管理：`http://192.168.1.20:17321/admin`
@@ -144,7 +144,7 @@ Docker 部署时，命名卷 `genpac-data` 挂载到容器的 `/data` 目录，�
 
 **后台无法登录**
 
-检查项目根目录的 `.env` 是否设置了 `ADMIN_PASSWORD)，然后重新创建容器：
+检查项目根目录的 `.env` 是否设置了 `ADMIN_PASSWORD`，然后重新创建容器：
 
 ```bash
 docker compose up -d
@@ -169,4 +169,4 @@ bun run dev
 
 ## License
 
-[MIT](LICENSE)
+MIT
