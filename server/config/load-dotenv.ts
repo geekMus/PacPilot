@@ -20,29 +20,37 @@ export function loadDevelopmentDotEnv(): boolean {
 
   if (inContainer) return false;
 
+  const runtimeProfile = (process.env.GENPAC_ENV || "").toLowerCase();
+  const nodeEnv = (process.env.NODE_ENV || "").toLowerCase();
+  const explicitDevelopment =
+    runtimeProfile === "development" || runtimeProfile === "dev";
+  const explicitProduction =
+    runtimeProfile === "production" || runtimeProfile === "prod";
+
+  // 明确以生产模式启动时，完全跳过 .env 文件。
+  if (explicitProduction || (!explicitDevelopment && nodeEnv === "production")) {
+    return false;
+  }
+
   const envPath = path.resolve(process.cwd(), ".env");
   if (!fs.existsSync(envPath) || !fs.statSync(envPath).isFile()) {
     return false;
   }
 
   const parsed = dotenv.parse(fs.readFileSync(envPath));
-  const runtimeProfile = (process.env.GENPAC_ENV || "").toLowerCase();
-  const nodeEnv = (process.env.NODE_ENV || "").toLowerCase();
 
-  // 启动命令指定 production 时，忽略 .env。也防止有人只在文件中写入生产标记。
-  const fileProfile = (parsed.GENPAC_ENV || "").toLowerCase();
-  const fileNodeEnv = (parsed.NODE_ENV || "").toLowerCase();
-  const isProduction =
-    runtimeProfile === "production" ||
-    runtimeProfile === "prod" ||
-    (runtimeProfile !== "development" &&
-      runtimeProfile !== "dev" &&
-      (nodeEnv === "production" ||
-        (!nodeEnv && (fileProfile === "production" ||
-          fileProfile === "prod" ||
-          fileNodeEnv === "production"))));
-
-  if (isProduction) return false;
+  // 未通过启动命令明确指定模式时，也避免仅凭 .env 中的生产标记加载配置。
+  if (!explicitDevelopment && !nodeEnv) {
+    const fileProfile = (parsed.GENPAC_ENV || "").toLowerCase();
+    const fileNodeEnv = (parsed.NODE_ENV || "").toLowerCase();
+    if (
+      fileProfile === "production" ||
+      fileProfile === "prod" ||
+      fileNodeEnv === "production"
+    ) {
+      return false;
+    }
+  }
 
   let loaded = false;
   for (const [name, value] of Object.entries(parsed)) {
