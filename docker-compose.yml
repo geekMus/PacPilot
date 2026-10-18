@@ -6,10 +6,9 @@ services:
     container_name: genpac-runner
     restart: unless-stopped
 
+    # 只从外部注入后台登录密码；固定配置均已写入 Dockerfile。
     environment:
-      # 管理密码和可选的会话密钥属于敏感配置，由宿主机环境变量注入。
       ADMIN_PASSWORD: "${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in the process environment before starting}"
-      SESSION_SECRET: "${SESSION_SECRET:-}"
 
     # 默认使用 bridge 驱动的 Compose 项目网络，但不向宿主机发布端口。
     # 如需直接从宿主机 / 局域网访问，才取消下面两行的注释。
