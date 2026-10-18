@@ -97,7 +97,7 @@ export function parsePacStatus(pac: string, tz = "Asia/Shanghai", generatedAt: D
     if (blockList === null || directList === null || remoteProxy === null ||
         remoteDirect === null || pacProxy === null) {
       return basePayload("custom_parse_error", "远程规则 PAC（摘要解析异常）", updatedAt, hasPac,
-        "识别到远程列表模板，但无法完整读取规则摘要。PAC 原文仍可查看；这不代表生成文件中的规则失效。");
+        "识别到远程列表模板，但无法完整读取规则摘要。仍可直接查看 PAC 文件内容；摘要解析失败不代表生成文件中的规则失效。");
     }
     return {
       ...basePayload("remote", "远程规则列表 + 自定义规则", updatedAt, hasPac,
@@ -121,7 +121,7 @@ export function parsePacStatus(pac: string, tz = "Asia/Shanghai", generatedAt: D
     const pacProxy = parseJsString(pac, "PAC_PROXY");
     if (blockList === null || directList === null || pacProxy === null) {
       return basePayload("custom_parse_error", "自定义规则 PAC（摘要解析异常）", updatedAt, hasPac,
-        "识别到自定义规则模板，但无法完整读取规则变量。PAC 原文仍可查看。");
+        "识别到自定义规则模板，但无法完整读取规则变量。仍可直接查看 PAC 文件内容。");
     }
     return {
       ...basePayload("custom", "自定义规则", updatedAt, hasPac,
@@ -131,5 +131,5 @@ export function parsePacStatus(pac: string, tz = "Asia/Shanghai", generatedAt: D
   }
 
   return basePayload("other", "第三方或旧版 PAC 模板", updatedAt, hasPac,
-    "当前文件不属于已识别的 genpac-runner 模板，因此无法可靠展示规则数量。可以查看 PAC 原文确认实际逻辑。");
+    "当前文件不属于已识别的 genpac-runner 模板，因此无法可靠展示规则数量。可以打开 PAC 文件，检查其实际内容与逻辑。");
 }
