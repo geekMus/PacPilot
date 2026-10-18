@@ -35,7 +35,6 @@ function toJsArray(list: string[]): string {
 function buildCustomPac(settings: AppSettings): string {
   const blockJs = toJsArray(settings.blockList);
   const directJs = toJsArray(settings.directList);
-  const proxy = settings.pacProxy.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
   return `// User defined PAC (custom mode)
 function isMatch(host, list) {
@@ -52,7 +51,7 @@ function isMatch(host, list) {
 
 var BLOCK_LIST  = [${blockJs}];
 var DIRECT_LIST = [${directJs}];
-var PAC_PROXY   = "${proxy}";
+var PAC_PROXY   = ${JSON.stringify(settings.pacProxy)};
 
 function FindProxyForURL(url, host) {
     if (
