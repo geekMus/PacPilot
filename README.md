@@ -167,6 +167,3 @@ bun run dev
 
 开发服务器默认监听后端 `17321`，前端开发页面为 `http://127.0.0.1:5173`。生产构建可运行 `bun run build`，然后执行 `bun start`。
 
-## License
-
-MIT
