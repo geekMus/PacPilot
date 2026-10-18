@@ -79,7 +79,7 @@ function normalizedWebhookConfig(
 }
 
 const commonTimeZones = [
-  { value: "Asia/Shanghai", label: "中国大陆 · 北京/上海" },
+  { value: "Asia/Shanghai", label: "中国标准时间（UTC+08:00）" },
   { value: "Asia/Taipei", label: "中国台湾 · 台北" },
   { value: "Asia/Hong_Kong", label: "中国香港" },
   { value: "Asia/Tokyo", label: "日本 · 东京" },
@@ -508,7 +508,7 @@ async function logout() {
             <label for="timezone">时区</label>
             <div class="timezone-picker desktop-timezone-picker">
               <input id="timezone" v-model="form.timezone" autocomplete="off" spellcheck="false"
-                placeholder="搜索国家/地区或输入 IANA 时区，例如日本、美国、Asia/Tokyo"
+                placeholder="搜索时区名称或代码，例如中国标准时间、Asia/Tokyo"
                 @focus="timezoneMenuOpen = true; timezoneQuery = ''"
                 @input="timezoneQuery = form.timezone"
                 @blur="closeTimezoneMenu"
@@ -526,7 +526,7 @@ async function logout() {
               <span>{{ form.timezone || "选择时区" }}</span>
               <span class="mobile-timezone-trigger-icon" aria-hidden="true">⌄</span>
             </button>
-            <p class="field-hint">支持按国家/地区名称或时区代码搜索，也可直接输入其他有效的 IANA 时区名称。该设置用于定时任务、状态页时间和 Webhook 通知。</p>
+            <p class="field-hint">可按地区名称或 IANA 时区代码搜索，也可直接输入有效的时区代码。该设置统一用于定时任务、运行记录和 Webhook 通知的时间显示。</p>
           </div>
 
           <div v-if="mobileTimezoneOpen" class="timezone-sheet-backdrop" @click.self="mobileTimezoneOpen = false">
@@ -536,7 +536,7 @@ async function logout() {
                 <button type="button" class="timezone-sheet-close" aria-label="关闭时区选择" @click="mobileTimezoneOpen = false">×</button>
               </header>
               <input v-model="timezoneQuery" class="timezone-sheet-search" type="search" autocomplete="off"
-                placeholder="搜索地区或输入 IANA 时区，如 Asia/Tokyo" @keydown.enter.prevent />
+                placeholder="搜索时区名称或代码，如 Asia/Tokyo" @keydown.enter.prevent />
               <div class="timezone-sheet-options" role="listbox" aria-label="时区建议">
                 <button v-for="zone in filteredTimeZones" :key="zone.value" type="button" role="option"
                   :aria-selected="form.timezone === zone.value" class="timezone-option"
@@ -550,7 +550,7 @@ async function logout() {
                 </button>
                 <p v-if="filteredTimeZones.length === 0 && !isValidTimeZone(timezoneQuery)" class="timezone-no-results">没有匹配项。请输入有效的 IANA 时区名称。</p>
               </div>
-              <p class="timezone-sheet-hint">选择后会填入配置；保存页面时才会应用。可输入其他有效的 IANA 时区代码。</p>
+              <p class="timezone-sheet-hint">选择后会填入配置，保存后生效。也可输入其他有效的 IANA 时区代码。</p>
             </section>
           </div>
           <div class="chip-row timezone-presets">
