@@ -1,5 +1,9 @@
+# 基础镜像可通过 Docker Compose 的 BUN_BASE_IMAGE 构建参数覆盖。
+# 默认使用 DaoCloud 的 Docker Hub 镜像代理，便于中国大陆网络环境构建。
+ARG BUN_BASE_IMAGE=m.daocloud.io/docker.io/oven/bun:1-alpine
+
 # ---------- build ----------
-FROM oven/bun:1-alpine AS builder
+FROM ${BUN_BASE_IMAGE} AS builder
 
 WORKDIR /app
 COPY package.json bun.lockb* ./
@@ -13,7 +17,7 @@ COPY bunfig.toml* ./
 RUN bun run build:client
 
 # ---------- runtime ----------
-FROM oven/bun:1-alpine
+FROM ${BUN_BASE_IMAGE}
 
 RUN apk add --no-cache tzdata curl \
  && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime || true
