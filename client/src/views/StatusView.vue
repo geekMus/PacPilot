@@ -206,7 +206,7 @@ const activeRuleCount = computed(() => {
     <section class="page-hero">
       <div class="page-kicker">运行状态</div>
       <h1 class="page-title">PAC 规则概览</h1>
-      <p class="page-intro">这里会读取当前 <code>proxy.pac</code>，展示可识别的规则摘要，并根据主机名规则判断域名会直连、走代理还是被拦截。</p>
+      <p class="page-intro">这里会读取当前生成的 <code>proxy.pac</code> 文件并展示可识别的规则摘要。域名路由判断根据已解析的规则摘要进行估算，供排查参考；它不会执行 PAC 脚本，也不等同于代理客户端的完整实际结果。</p>
       <div v-if="status" class="hero-meta">
         <span class="status-indicator" :class="status.hasPac ? 'online' : 'idle'"></span>
         <strong>{{ status.modeLabel }}</strong><span class="meta-divider">·</span>
@@ -237,7 +237,7 @@ const activeRuleCount = computed(() => {
           <div class="domain-check-head">
             <div>
               <h2>域名路由判断</h2>
-              <p>输入域名或 URL，按当前 PAC 可识别的主机名规则判断路由结果。</p>
+              <p>输入域名或 URL，按当前 PAC 中可识别的规则摘要估算路由结果。</p>
             </div>
           </div>
           <form class="domain-check-form" @submit.prevent="checkDomain">
@@ -252,7 +252,7 @@ const activeRuleCount = computed(() => {
             />
             <button type="submit" class="action-button primary" :disabled="!domainInput.trim()">判断路由</button>
           </form>
-          <p class="domain-check-note">检查器不会查询 DNS。本机名称、无点主机名及私有或回环 IPv4 会命中本地直连规则；其他地址按当前模式的默认规则处理（自定义模式走默认代理，远程模式默认直连）。</p>
+          <p class="domain-check-note">此工具仅根据 PAC 中可识别的规则摘要进行估算，不查询 DNS，也不会执行 PAC 脚本。部分复杂规则或代理客户端行为可能无法完整反映；本机名称、无点主机名及私有或回环 IPv4 按本项目的本地直连规则处理。</p>
           <div v-if="domainRoute" class="domain-check-result" :class="'result-' + domainRoute.kind" role="status" aria-live="polite">
             <span class="result-mark" aria-hidden="true">
               {{ domainRoute.kind === "direct" ? "✓" : domainRoute.kind === "proxy" ? "↗" : domainRoute.kind === "blocked" ? "×" : "!" }}
@@ -338,12 +338,12 @@ const activeRuleCount = computed(() => {
       </template>
 
       <section v-else class="state-card warning-card">
-        <div class="state-icon">i</div><div class="state-copy"><strong>{{ status.modeLabel }}</strong><p>{{ status.notice }}</p><a href="/proxy.pac" target="_blank" rel="noopener noreferrer" class="action-button">查看 PAC 原文</a></div>
+        <div class="state-icon">i</div><div class="state-copy"><strong>{{ status.modeLabel }}</strong><p>{{ status.notice }}</p><a href="/proxy.pac" target="_blank" rel="noopener noreferrer" class="action-button">查看 PAC 文件</a></div>
       </section>
 
       <section v-if="status.mode !== 'empty'" class="source-footer">
         <div><span class="source-dot"></span><span>摘要来自当前已生成的 PAC 文件</span></div>
-        <div class="source-actions"><span>最近文件时间：{{ status.updatedAt }}</span><a href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看原文</a><a href="/proxy.pac?download=1">下载 PAC</a><button type="button" @click="loadStatus">刷新状态</button></div>
+        <div class="source-actions"><span>文件更新时间：{{ status.updatedAt }}</span><a href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC 文件</a><a href="/proxy.pac?download=1">下载 PAC</a><button type="button" @click="loadStatus">刷新状态</button></div>
       </section>
     </template>
     <AppFooter />
