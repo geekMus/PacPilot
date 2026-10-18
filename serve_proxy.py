@@ -58,9 +58,9 @@ def render_rule_items(rules, empty_text):
         else:
             description = "根域名及所有层级的子域名"
         rows.append(
-            '<li class="rule-item" data-rule="' + safe_rule.lower() + '">'
-            '<code>' + safe_rule + "</code>"
-            '<span class="rule-desc">' + description + "</span>"
+            '<li class="rule-item" data-rule="' + safe_rule.lower() + '">' +
+            '<code>' + safe_rule + "</code>" +
+            '<span class="rule-desc">' + description + "</span>" +
             "</li>"
         )
     return "\n".join(rows)
@@ -95,29 +95,30 @@ def render_status_page():
             )
         else:
             summary = (
-                '<div class="stat"><span class="stat-label">直连规则</span>'
-                '<strong>' + str(len(direct_list)) + '</strong><span class="stat-unit">条</span></div>'
-                '<div class="stat"><span class="stat-label">黑名单规则</span>'
-                '<strong>' + str(len(block_list)) + '</strong><span class="stat-unit">条</span></div>'
-                '<div class="stat"><span class="stat-label">默认代理</span>'
-                '<strong class="stat-proxy">已启用</strong><span class="stat-unit">兜底规则</span></div>'
+                f'<div class="stat"><span class="stat-label">直连规则</span><strong>{len(direct_list)}</strong><span class="stat-unit">条</span></div>'
+                f'<div class="stat"><span class="stat-label">黑名单规则</span><strong>{len(block_list)}</strong><span class="stat-unit">条</span></div>'
+                '<div class="stat"><span class="stat-label">默认代理</span><strong class="stat-proxy">已启用</strong><span class="stat-unit">兜底规则</span></div>'
             )
-            rules_html = (
-                '<section class="panel"><div class="panel-head"><div><span class="eyebrow">DIRECT</span>'
-                '<h2>直连规则</h2></div><span class="count">' + str(len(direct_list)) + ' 条</span></div>'
-                '<p class="panel-desc">命中以下规则的域名直接连接，不经过代理。</p>'
-                '<ul class="rule-list">' + render_rule_items(direct_list, "没有配置额外的直连域名。") + '</ul></section>'
-                '<section class="panel"><div class="panel-head"><div><span class="eyebrow">BLOCK</span>'
-                '<h2>黑名单 / 拦截规则</h2></div><span class="count">' + str(len(block_list)) + ' 条</span></div>'
-                '<p class="panel-desc">命中以下规则时，PAC 返回 <code>PROXY 0.0.0.0:0</code>，这是拦截尝试，不是普通代理。</p>'
-                '<ul class="rule-list">' + render_rule_items(block_list, "没有配置黑名单规则。") + '</ul></section>'
-            )
+            rules_html = "".join([
+                '<section class="panel"><div class="panel-head"><div><span class="eyebrow">DIRECT</span>',
+                f'<h2>直连规则</h2></div><span class="count">{len(direct_list)} 条</span></div>',
+                '<p class="panel-desc">命中以下规则的域名直接连接，不经过代理。</p>',
+                '<ul class="rule-list">',
+                render_rule_items(direct_list, "没有配置额外的直连域名。"),
+                '</ul></section>',
+                '<section class="panel"><div class="panel-head"><div><span class="eyebrow">BLOCK</span>',
+                f'<h2>黑名单 / 拦截规则</h2></div><span class="count">{len(block_list)} 条</span></div>',
+                '<p class="panel-desc">命中以下规则时，PAC 返回 <code>PROXY 0.0.0.0:0</code>，这是拦截尝试，不是普通代理。</p>',
+                '<ul class="rule-list">',
+                render_rule_items(block_list, "没有配置黑名单规则。"),
+                '</ul></section>',
+            ])
             proxy_text = escape(proxy_text)
             notice = (
                 '<div class="notice"><strong>默认代理范围</strong>'
                 '未命中内网/本地直连规则、黑名单或直连列表的其他主机，都会返回 '
                 '<code>' + proxy_text + '</code>。若代理字符串包含 <code>; DIRECT</code>，'
-                "浏览器在代理不可用时可能回退直连。</div>"
+                + "浏览器在代理不可用时可能回退直连。</div>"
             )
     else:
         mode = "非自定义模板（可能为 genpac 模式）"
