@@ -35,7 +35,7 @@ def parse_js_array(source, name):
 def parse_js_string(source, name):
     """Read a quoted string variable embedded in the active custom PAC."""
     match = re.search(
-        r"\bvar\s+" + re.escape(name) + r"\s*=\s*("(?:\\.|[^"\\])*")\s*;",
+        r'\s*=\s*("(?:\\.|[^"\\])*")\s*;',
         source,
     )
     if not match:
