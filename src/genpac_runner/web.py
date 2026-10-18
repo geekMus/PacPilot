@@ -167,7 +167,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 return
             csrf_valid = auth.validate_login_csrf(self, form.get("login_csrf", ""))
             if not csrf_valid:
-                _send(self, 403, render_login(error=True))
+                _send(self, 403, render_login(auth.create_login_csrf(self), error=True))
                 return
             authenticated, blocked = auth.authenticate(self, form.get("password", ""))
             if authenticated:
