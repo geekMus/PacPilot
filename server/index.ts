@@ -9,9 +9,15 @@ async function main(): Promise<void> {
   const database = getDb(env.dataDir);
 
   console.log("[boot] genpac-runner v2 starting...");
-  console.log(`[boot] dataDir=${env.dataDir} port=${env.port}`);
+  console.log(`[boot] profile=${env.runtimeProfile}`);
+  console.log(`[boot] dataDir=${env.dataDir}`);
+  console.log(`[boot] listen=${env.host}:${env.port}`);
   console.log(
-    `[boot] admin=${adminEnabled(env) ? "enabled" : "disabled (set ADMIN_PASSWORD to enable)"}`
+    `[boot] admin=${
+      adminEnabled(env)
+        ? "enabled"
+        : "disabled — set ADMIN_PASSWORD in .env or environment to enable /admin"
+    }`
   );
 
   const result = await generatePac(database, env.dataDir);
@@ -22,13 +28,34 @@ async function main(): Promise<void> {
   reschedule(database, env.dataDir);
 
   const app = createApp(env, database);
-  const server = app.listen(env.port, () => {
-    console.log(`[boot] listening on :${env.port}`);
-    console.log(`[boot] PAC    -> http://0.0.0.0:${env.port}/proxy.pac`);
-    console.log(`[boot] status -> http://0.0.0.0:${env.port}/status`);
+
+  const server = app.listen(env.port, env.host, () => {
+    const local =
+      env.host === "0.0.0.0" || env.host === "::"
+        ? `http://127.0.0.1:${env.port}`
+        : `http://${env.host}:${env.port}`;
+    console.log(`[boot] listening on ${env.host}:${env.port}`);
+    console.log(`[boot] PAC    -> ${local}/proxy.pac`);
+    console.log(`[boot] status -> ${local}/status`);
     if (adminEnabled(env)) {
-      console.log(`[boot] admin  -> http://0.0.0.0:${env.port}/admin`);
+      console.log(`[boot] admin  -> ${local}/admin`);
     }
+  });
+
+  server.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(
+        `[boot] 端口 ${env.port} 已被占用。\n` +
+          `  - 换端口: 在 .env 里设置 PORT=8081 后重试\n` +
+          `  - Windows 查占用: netstat -ano | findstr :${env.port}\n` +
+          `  - Linux/macOS: lsof -i :${env.port}  或  ss -tlnp | grep ${env.port}`
+      );
+    } else {
+      console.error("[boot] server error:", err);
+    }
+    stopScheduler();
+    closeDb();
+    process.exit(1);
   });
 
   const shutdown = (): void => {

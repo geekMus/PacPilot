@@ -9,13 +9,15 @@ services:
     environment:
       TZ: Asia/Shanghai
       DATA_DIR: /data
-      PORT: "8080"
-      # 设置后启用 Vue 后台 /admin；不设置则后台不可用
+      PORT: "17321"
+      HOST: "0.0.0.0"
+      RUNNING_IN_DOCKER: "1"
+      # 设置后启用 Vue 后台 /admin
       ADMIN_PASSWORD: "change-me"
       # SESSION_SECRET: "random-long-string"
 
     ports:
-      - "1200:8080"
+      - "17321:17321"
 
     volumes:
       - genpac-data:/data

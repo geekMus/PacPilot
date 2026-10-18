@@ -15,7 +15,6 @@ RUN bun run build:client
 # ---------- runtime ----------
 FROM oven/bun:1-alpine
 
-# genpac 仍依赖 Python CLI
 RUN apk add --no-cache python3 py3-pip tzdata curl \
  && pip3 install --no-cache-dir --break-system-packages genpac \
  || pip3 install --no-cache-dir genpac \
@@ -31,12 +30,13 @@ COPY --from=builder /app/dist ./dist
 COPY bunfig.toml* ./
 
 ENV DATA_DIR=/data \
-    PORT=8080 \
+    PORT=17321 \
+    HOST=0.0.0.0 \
     TZ=Asia/Shanghai \
+    RUNNING_IN_DOCKER=1 \
     NODE_ENV=production
 
 VOLUME ["/data"]
-EXPOSE 8080
+EXPOSE 17321
 
-# 生产环境直接用 Bun 跑 TypeScript 入口
 CMD ["bun", "run", "server/index.ts"]

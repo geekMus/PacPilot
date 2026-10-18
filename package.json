@@ -1,16 +1,16 @@
 {
   "name": "genpac-runner",
-  "version": "2.0.0",
+  "version": "2.0.2",
   "private": true,
   "description": "自动生成 PAC 文件工具，支持自定义规则 / GFWList、Vue3 后台与 Webhook（Bun 运行时）",
   "type": "module",
   "scripts": {
     "dev": "bun run scripts/dev.ts",
-    "dev:server": "bun --hot server/index.ts",
+    "dev:server": "bun run scripts/dev-server.ts",
     "dev:client": "bunx --bun vite --config client/vite.config.ts",
     "build": "bun run build:client",
     "build:client": "bunx --bun vite build --config client/vite.config.ts",
-    "start": "bun run server/index.ts",
+    "start": "bun run scripts/start-prod.ts",
     "typecheck": "bunx tsc -p server/tsconfig.json --noEmit && bunx vue-tsc -p client/tsconfig.json --noEmit"
   },
   "engines": {
