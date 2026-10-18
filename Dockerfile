@@ -17,10 +17,21 @@ RUN bun run build:client
 # ---------- runtime ----------
 FROM m.daocloud.io/docker.io/oven/bun:1-alpine
 
-# 将 Alpine 软件源切换到阿里云镜像，再安装系统依赖。
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
- && apk add --no-cache tzdata curl \
- && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+# 优先使用阿里云 Alpine 镜像；若镜像 DNS/网络异常，重试一次后回退到基础镜像自带的官方源。
+# 这里只需要 tzdata；应用无需额外安装 curl。
+RUN set -eux; \
+    cp /etc/apk/repositories /tmp/apk-repositories.default; \
+    sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories; \
+    if ! apk add --no-cache tzdata; then \
+      echo "阿里云 Alpine 源暂时不可用，重试一次"; \
+      sleep 2; \
+      if ! apk add --no-cache tzdata; then \
+        echo "阿里云 Alpine 源仍不可用，回退到官方 Alpine 源"; \
+        cp /tmp/apk-repositories.default /etc/apk/repositories; \
+        apk add --no-cache tzdata; \
+      fi; \
+    fi; \
+    cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
 WORKDIR /app
 # 运行阶段也使用相同的国内 npm 镜像源。
