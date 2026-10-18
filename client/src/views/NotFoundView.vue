@@ -33,6 +33,6 @@ import AppFooter from "../components/AppFooter.vue";
 .not-found-card>p { max-width:39em; color:var(--muted); font-size:14px; line-height:1.7; }
 .not-found-actions { display:flex; flex-wrap:wrap; gap:9px; margin-top:24px; }
 .action-button { display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:0 14px; border:1px solid var(--line); border-radius:9px; background:var(--surface-2); color:var(--text); text-decoration:none; font-size:12px; font-weight:650; }
-.action-button.primary { background:var(--accent); border-color:var(--accent); color:white; }
+.action-button.primary { background:var(--accent); border-color:var(--accent); color:var(--accent-contrast); }
 @media(max-width:520px) { .not-found-actions { flex-direction:column; } .not-found-actions>* { width:100%; } }
 </style>
