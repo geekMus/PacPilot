@@ -326,7 +326,7 @@ async function logout() {
               <label>直连列表</label>
               <DomainListEditor
                 v-model="form.directListText"
-                :min-height="220"
+                :height="320"
                 placeholder="baidu.com&#10;*.cn"
               />
             </div>
@@ -334,7 +334,7 @@ async function logout() {
               <label>黑名单</label>
               <DomainListEditor
                 v-model="form.blockListText"
-                :min-height="220"
+                :height="320"
                 placeholder="ads.example.com"
               />
             </div>
@@ -834,17 +834,10 @@ tr:last-child td {
 }
 .help-body li { margin-bottom: 4px; }
 .split.editors {
-  align-items: stretch;
-  grid-auto-rows: 1fr;
+  align-items: start;
 }
 .split.editors .field {
-  display: flex;
-  flex-direction: column;
   margin-bottom: 0;
-  min-height: 220px;
-}
-.split.editors .field > :last-child {
-  flex: 1;
 }
 
 </style>

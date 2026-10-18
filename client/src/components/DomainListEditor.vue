@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, watch } from "vue";
-import { EditorView, keymap, lineNumbers, highlightActiveLine } from "@codemirror/view";
+import {
+  EditorView,
+  keymap,
+  lineNumbers,
+  highlightActiveLine,
+} from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { oneDark } from "@codemirror/theme-one-dark";
@@ -9,9 +14,10 @@ const props = withDefaults(
   defineProps<{
     modelValue: string;
     placeholder?: string;
-    minHeight?: number;
+    /** 固定高度（px），内容超出时在编辑器内滚动 */
+    height?: number;
   }>(),
-  { placeholder: "", minHeight: 200 }
+  { placeholder: "", height: 320 }
 );
 
 const emit = defineEmits<{
@@ -27,6 +33,7 @@ function isDark(): boolean {
 }
 
 function buildExtensions(dark: boolean) {
+  const h = props.height;
   const base = [
     lineNumbers(),
     highlightActiveLine(),
@@ -40,18 +47,17 @@ function buildExtensions(dark: boolean) {
     }),
     EditorView.theme({
       "&": {
-        minHeight: `${props.minHeight}px`,
-        height: "100%",
+        height: `${h}px`,
+        maxHeight: `${h}px`,
         fontSize: "13px",
       },
       ".cm-scroller": {
+        overflow: "auto",
         fontFamily:
           'ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace',
         lineHeight: "1.5",
-        overflow: "auto",
       },
       ".cm-content": {
-        minHeight: `${props.minHeight - 8}px`,
         padding: "10px 0",
       },
       "&.cm-focused": { outline: "none" },
@@ -108,7 +114,7 @@ watch(
 </script>
 
 <template>
-  <div class="editor-shell" :style="{ minHeight: minHeight + 'px' }">
+  <div class="editor-shell" :style="{ height: height + 'px' }">
     <div ref="host" class="cm-host" />
     <div v-if="!modelValue && placeholder" class="ph">{{ placeholder }}</div>
   </div>
@@ -121,20 +127,21 @@ watch(
   border-radius: var(--radius-sm);
   background: var(--bg);
   overflow: hidden;
-  height: 100%;
-  min-height: inherit;
-  display: flex;
-  flex-direction: column;
+  /* 固定高度，不随内容增高 */
+  flex-shrink: 0;
 }
 
 .cm-host {
-  flex: 1;
-  min-height: inherit;
+  height: 100%;
 }
 
 .cm-host :deep(.cm-editor) {
   height: 100%;
   background: transparent;
+}
+
+.cm-host :deep(.cm-scroller) {
+  overflow: auto !important;
 }
 
 .cm-host :deep(.cm-gutters) {
