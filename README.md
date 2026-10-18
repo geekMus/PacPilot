@@ -11,7 +11,7 @@
 - 支持 SOCKS5 或 HTTP 代理规则
 - 支持 PAC 压缩和精确模式
 - 支持 Webhook 成功/失败通知（钉钉示例）
-- 内置简单 HTTP 服务，只暴露 `/proxy.pac`，浏览器直接显示 UTF-8 内容
+- 内置 HTTP 服务，提供 `/proxy.pac` 和 `/status` 两个路由；PAC 原文以 UTF-8 显示，状态页展示当前生成文件中的直连、黑名单和默认代理范围
 - 支持定时任务（Cron）自动更新 PAC 文件
 
 ---
@@ -24,7 +24,19 @@
 | `docker-compose.yml` | Docker Compose 配置，设置环境变量和端口 |
 | `entrypoint.sh` | 容器入口脚本，初始化时区、生成 PAC、启动 cron 和 HTTP 服务 |
 | `update.sh` | 自动生成 PAC 的脚本，并触发 webhook |
-| `serve_proxy.py` | 内置 HTTP 服务，提供 `/proxy.pac` 下载或浏览器访问 |
+| `serve_proxy.py` | 内置 HTTP 服务，提供 `/proxy.pac` 和 `/status` 规则状态页 |
+
+---
+
+## 路由
+
+| 路径 | 说明 |
+|------|------|
+| `/proxy.pac` | 返回当前生成的 PAC 文件 |
+| `/status` | PAC 规则状态页：在自定义规则模式下列出直连和黑名单规则，并说明未命中时的默认代理；若当前文件为 genpac 等其他格式，则提示自定义列表不一定生效 |
+| `/` | 保持兼容，重定向至 `/proxy.pac` |
+
+状态页读取 `/data/proxy.pac` 当前内容，不会把未注入 PAC 的环境变量列表误报为生效规则。修改规则后刷新页面即可查看最新生成结果。
 
 ---
 
