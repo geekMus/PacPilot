@@ -69,7 +69,7 @@ $env:COMPOSE_DISABLE_ENV_FILE = "1"
 - **Bun / npm 包：** Dockerfile 中的依赖安装命令临时指定 `NPM_CONFIG_REGISTRY=https://registry.npmmirror.com`，只影响镜像构建，不改变本机开发时的包源。Bun 支持通过该环境变量指定 registry（[Bun 文档](https://bun.com/docs/pm/npmrc)）。
 - **Alpine 系统依赖：** Dockerfile 在安装 `tzdata` 和 `curl` 前，将 Alpine APK 软件源切换到阿里云镜像 `mirrors.aliyun.com`（[阿里云 Alpine 镜像说明](https://developer.aliyun.com/mirror/alpine/)）。
 
-这些国内镜像源都写在项目配置中，不从环境变量读取。如果某个源不可用，请根据对应镜像站的最新说明手动修改相应配置文件后再构建。基础镜像成功下载后，构建过程中仍需访问 npm 包源和 Alpine 软件源。
+这些国内镜像地址都固定写在项目配置中，不依赖部署者额外设置镜像环境变量。如果某个源不可用，请根据对应镜像站的最新说明手动修改相应配置文件后再构建。基础镜像成功下载后，构建过程中仍需访问 npm 包源和 Alpine 软件源。
 
 确认当前目录是项目根目录（里面有 `docker-compose.yml`），并且已设置上述环境变量、完成所需的 Compose 配置，然后执行：
 
