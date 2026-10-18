@@ -61,13 +61,17 @@ $env:TZ = "Asia/Shanghai"
 
 请把密码替换成自己的强密码。设置 `COMPOSE_DISABLE_ENV_FILE=1` 是为了让 Docker Compose 不读取项目目录中的默认 `.env` 文件——这样即使同一个目录里存在供本机开发使用的 `.env`，Docker 部署也只会采用当前终端或部署平台注入的环境变量。详情见 [Docker Compose 官方说明](https://docs.docker.com/compose/how-tos/environment-variables/envvars/)。
 
-这些变量在当前终端会话中有效。后续更新或执行其他 Compose 命令时，请继续使用该会话，或在部署平台 / 服务管理器中配置同样的环境变量。端口和数据挂载不通过环境变量控制，而是在 `docker-compose.yml` 里用注释预先标出，按需取消注释和修改。
+这些变量在当前终端会话中有效。后续更新或执行其他 Compose 命令时，请继续使用该会话，或在部署平台 / 服务管理器中配置同样的环境变量。容器时区固定为 `Asia/Shanghai`，容器内部端口固定为 `17321`，数据目录固定为 `/data`；这些值不从环境变量读取。端口映射和宿主机数据挂载均在 `docker-compose.yml` 里用注释预先标出，按需取消注释和修改。
 
 ### 4. 构建并启动
 
-本项目固定使用 **DaoCloud 国内镜像代理**拉取 Bun 基础镜像：`m.daocloud.io/docker.io/oven/bun:1-alpine`。该地址按 DaoCloud 公共镜像项目推荐的“增加前缀”方式配置（[官方说明](https://github.com/DaoCloud/public-image-mirror)）。Dockerfile 的构建阶段和运行阶段均写死该地址，不提供环境变量覆盖方式。
+构建依赖默认使用国内镜像源：
 
-如果该镜像代理也无法连接，可在 `Dockerfile` 中将两处 `FROM m.daocloud.io/docker.io/oven/bun:1-alpine` 手动改成你确认可用的镜像地址，再重新构建。基础镜像成功下载后，构建过程中安装系统依赖和 Bun 包等步骤仍需要网络访问。
+- **Bun 基础镜像：** DaoCloud Docker Hub 代理 `m.daocloud.io/docker.io/oven/bun:1-alpine`，在 Dockerfile 中固定配置（[DaoCloud 说明](https://github.com/DaoCloud/public-image-mirror)）。
+- **Bun / npm 包：** `bunfig.toml` 固定使用 `https://registry.npmmirror.com`。
+- **Alpine 系统依赖：** Dockerfile 在安装 `tzdata` 和 `curl` 前，将 Alpine APK 软件源切换到阿里云镜像 `mirrors.aliyun.com`（[阿里云 Alpine 镜像说明](https://developer.aliyun.com/mirror/alpine/)）。
+
+这些国内镜像源都写在项目配置中，不从环境变量读取。如果某个源不可用，请根据对应镜像站的最新说明手动修改相应配置文件后再构建。基础镜像成功下载后，构建过程中仍需访问 npm 包源和 Alpine 软件源。
 
 确认当前目录是项目根目录（里面有 `docker-compose.yml`），并且已设置上述环境变量、完成所需的 Compose 配置，然后执行：
 
@@ -98,7 +102,7 @@ docker compose logs -f genpac
 - 配置管理：`http://192.168.1.20:17321/admin`
 - PAC 文件：`http://192.168.1.20:17321/proxy.pac`
 
-将示例 IP 换成实际部署设备的地址。容器内部监听端口固定为 `17321`。
+将示例 IP 换成实际部署设备的地址。该访问方式只有在手动启用 Compose 中的端口映射后才可用。
 
 ### 常用命令
 
@@ -148,9 +152,9 @@ Docker 部署时，建议在 `docker-compose.yml` 中启用一种 `/data` 持久
 
 说明 Docker Compose 插件未安装，或 Docker CLI 无法找到它。请按 [Docker Compose 官方安装文档](https://docs.docker.com/compose/install/) 安装后，再运行 `docker compose version` 检查。若系统已安装旧式独立命令，可尝试 `docker-compose --version` 和 `docker-compose up -d --build`。
 
-**拉取 Bun 基础镜像时提示 EOF、超时或连接重置**
+**下载容器依赖时提示 EOF、超时或连接重置**
 
-当前项目固定使用 DaoCloud 镜像代理。可以先重试构建；如果该代理仍不可用，请按上方说明手动修改 Dockerfile 中两处 `FROM` 镜像地址。
+项目默认使用 DaoCloud Bun 基础镜像代理、npmmirror 的 Bun/npm 包源以及阿里云 Alpine APK 源。如果其中一个源不可用，分别检查 Dockerfile 中的 `FROM` 镜像地址、`bunfig.toml` 的 `install.registry`，或 Dockerfile 中的 Alpine 软件源替换规则。
 
 **访问不了网页**
 
