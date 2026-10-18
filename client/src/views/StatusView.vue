@@ -496,7 +496,7 @@ const activeRuleCount = computed(() => {
 .empty-hero h2 { margin:0; font-size:19px; }
 .empty-hero p { max-width:36em; margin:10px auto 18px; color:var(--muted); font-size:13px; }
 .action-button { display:inline-flex; align-items:center; justify-content:center; min-height:38px; padding:0 14px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--text); font-size:12px; font-weight:650; text-decoration:none; cursor:pointer; }
-.action-button.primary { color:#fff; background:var(--accent); border-color:var(--accent); }
+.action-button.primary { color:var(--accent-contrast); background:var(--accent); border-color:var(--accent); }
 .action-button:disabled { opacity:.5; cursor:not-allowed; }
 .spinner { width:18px; height:18px; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; flex:0 0 auto; }
 .state-copy { min-width:0; }
