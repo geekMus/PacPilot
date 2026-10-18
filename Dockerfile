@@ -1,6 +1,6 @@
 # 使用官方 Bun Alpine 镜像和默认软件源，保持标准构建流程。
 # ---------- 构建阶段 ----------
-FROM oven/bun:1-alpine AS builder
+FROM --platform=$BUILDPLATFORM oven/bun:1-alpine AS builder
 
 WORKDIR /app
 # 先复制依赖清单，使用 Bun 默认的官方 npm registry。
