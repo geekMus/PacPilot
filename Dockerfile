@@ -1,8 +1,9 @@
 # 基于 genpac 官方镜像
 FROM docker.1ms.run/jinnlynn/genpac:latest
 
-# 安装依赖
-RUN apk add --no-cache curl tzdata python3 py3-pip bash dos2unix \
+# 更换基础镜像预设的清华 APK 镜像源，避免源站临时不可达导致 apk 索引下载失败
+RUN sed -i 's#https://mirrors.tuna.tsinghua.edu.cn/alpine/#https://dl-cdn.alpinelinux.org/alpine/#g' /etc/apk/repositories \
+    && apk add --no-cache curl tzdata python3 py3-pip bash dos2unix \
     && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && python3 -m ensurepip
 
