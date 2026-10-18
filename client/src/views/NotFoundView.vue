@@ -7,17 +7,17 @@ import AppFooter from "../components/AppFooter.vue";
   <main class="page not-found-page">
     <AppHeader brand="genpac-runner" sub="404">
       <RouterLink to="/">运行概览</RouterLink>
-      <a href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC</a>
+      <a href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC 文件</a>
       <RouterLink class="primary" to="/admin">配置管理</RouterLink>
     </AppHeader>
     <section class="not-found-card">
       <div class="not-found-code">404</div>
       <div class="page-kicker">PAGE NOT FOUND</div>
       <h1 class="page-title">这个页面不存在</h1>
-      <p>地址可能已失效，或页面已经移动。你可以回到运行概览，查看当前 PAC，或者打开配置管理。</p>
+      <p>地址可能已失效，或页面已经移动。你可以回到运行概览，查看当前 PAC 文件，或者打开配置管理。</p>
       <div class="not-found-actions">
         <RouterLink class="action-button primary" to="/">返回运行概览</RouterLink>
-        <a class="action-button" href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC 原文</a>
+        <a class="action-button" href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC 文件</a>
         <RouterLink class="action-button" to="/admin">配置管理</RouterLink>
       </div>
     </section>
