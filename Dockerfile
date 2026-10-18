@@ -4,7 +4,7 @@
 FROM m.daocloud.io/docker.io/oven/bun:1-alpine AS builder
 
 WORKDIR /app
-# 先复制 Bun 配置，确保依赖安装阶段使用国内 npm 镜像源。
+# 先复制项目 Bun 配置；下面的安装命令会单独指定国内 npm 镜像源。
 COPY package.json bun.lockb* bunfig.toml ./
 RUN NPM_CONFIG_REGISTRY=https://registry.npmmirror.com bun install --frozen-lockfile || NPM_CONFIG_REGISTRY=https://registry.npmmirror.com bun install
 
