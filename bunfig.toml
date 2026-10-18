@@ -3,8 +3,6 @@
 env = false
 
 [install]
-# 中国大陆网络环境下，Bun / npm 包默认从 npmmirror 镜像下载。
-registry = "https://registry.npmmirror.com"
 peer = true
 
 [run]
