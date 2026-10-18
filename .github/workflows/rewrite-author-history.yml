@@ -1,0 +1,66 @@
+name: 修复旧提交作者身份（一次性）
+
+on:
+  # 仅在 main 新增或修改本文件时触发一次，不用于日常 CI。
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/rewrite-author-history.yml
+
+permissions:
+  contents: write
+
+jobs:
+  rewrite-author:
+    name: 将旧 mus 邮箱纠正为 geekMus
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出完整 Git 历史
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: 修正提交作者与提交者邮箱
+        shell: bash
+        run: |
+          set -euo pipefail
+          OLD_EMAIL="mus@users.noreply.github.com"
+          NEW_EMAIL="geekMus@qq.com"
+
+          git fetch origin main
+          git checkout -B main origin/main
+
+          BAD_COUNT="$(git log main --format='%ae%n%ce' | grep -Fxc "$OLD_EMAIL" || true)"
+          if [[ "$BAD_COUNT" == "0" ]]; then
+            echo "未发现需要修复的旧邮箱，跳过历史改写。"
+            exit 0
+          fi
+
+          echo "发现 $BAD_COUNT 条作者/提交者邮箱记录需要修复。"
+          echo "开始重写 main 历史。提交内容、说明和原始作者/提交者时间将保留。"
+
+          git filter-branch --force --env-filter '
+            OLD_EMAIL="mus@users.noreply.github.com"
+            NEW_EMAIL="geekMus@qq.com"
+            if [ "$GIT_AUTHOR_EMAIL" = "$OLD_EMAIL" ]; then
+              export GIT_AUTHOR_NAME="Mus"
+              export GIT_AUTHOR_EMAIL="$NEW_EMAIL"
+            fi
+            if [ "$GIT_COMMITTER_EMAIL" = "$OLD_EMAIL" ]; then
+              export GIT_COMMITTER_NAME="Mus"
+              export GIT_COMMITTER_EMAIL="$NEW_EMAIL"
+            fi
+          ' -- main
+
+          REMAINING="$(git log main --format='%ae%n%ce' | grep -Fxc "$OLD_EMAIL" || true)"
+          if [[ "$REMAINING" != "0" ]]; then
+            echo "::error::重写后仍检测到旧邮箱记录，拒绝推送。"
+            exit 1
+          fi
+
+          git push --force origin refs/heads/main:refs/heads/main
+          echo "已将旧邮箱 $OLD_EMAIL 纠正为 $NEW_EMAIL。"
+          echo "新 main 提交：$(git rev-parse main)"
+          echo "提示：历史 SHA 已改变，原提交链接将不再对应 main 中的重写提交。"
