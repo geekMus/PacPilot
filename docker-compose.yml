@@ -6,6 +6,8 @@ services:
         build:
             context: .
             dockerfile: Dockerfile
+            # 构建阶段使用宿主机网络，复用 iStoreOS 当前可用的 DNS/网络出口
+            network: host
         container_name: genpac-runner
         restart: unless-stopped
         network_mode: bridge
