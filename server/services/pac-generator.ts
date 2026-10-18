@@ -4,6 +4,7 @@ import type { AppDatabase } from "../db/sqlite";
 import type { AppSettings } from "../db/settings";
 import { appendGenerationLog, getSettings } from "../db/sqlite";
 import { notifyFailure, notifySuccess } from "./webhook";
+import { APP_VERSION } from "../version";
 import {
   buildRemoteListPac,
   fetchAndParseRemoteList,
@@ -20,6 +21,11 @@ export interface EngineProbe {
   available: boolean;
   engine: string;
   detail: string;
+}
+
+function withPacVersionHeader(content: string): string {
+  const body = content.replace(/^\/\/ genpac-runner version:.*(?:\r?\n|$)/i, "");
+  return `// genpac-runner version: ${APP_VERSION}\n${body.replace(/^\n+/, "")}`;
 }
 
 function toJsArray(list: string[]): string {
@@ -96,7 +102,7 @@ async function runRemoteMode(
     settings.directList,
     settings.pacCompress
   );
-  fs.writeFileSync(outFile, pac, "utf8");
+  fs.writeFileSync(outFile, withPacVersionHeader(pac), "utf8");
   return `SUCCESS (remote list, format=${parsed.format}, proxy=${parsed.proxyHosts.length}, direct=${parsed.directHosts.length})`;
 }
 
@@ -113,7 +119,7 @@ export async function generatePac(
     if (settings.mode === "remote") {
       message = await runRemoteMode(settings, pacPath);
     } else {
-      fs.writeFileSync(pacPath, buildCustomPac(settings), "utf8");
+      fs.writeFileSync(pacPath, withPacVersionHeader(buildCustomPac(settings)), "utf8");
       message = "SUCCESS (custom rules mode)";
     }
 
@@ -133,7 +139,17 @@ export async function generatePac(
 export function readPacFile(dataDir: string): string {
   const pacPath = path.join(dataDir, "proxy.pac");
   try {
-    return fs.readFileSync(pacPath, "utf8");
+    const original = fs.readFileSync(pacPath, "utf8");
+    const versioned = withPacVersionHeader(original);
+    // 为升级前已生成的 PAC 补上当前版本头；规则正文不变。
+    if (versioned !== original) {
+      try {
+        fs.writeFileSync(pacPath, versioned, "utf8");
+      } catch {
+        // 即使数据目录只读，也返回带版本头的内容供浏览器查看。
+      }
+    }
+    return versioned;
   } catch {
     return "";
   }

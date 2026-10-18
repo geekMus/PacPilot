@@ -58,7 +58,7 @@ Invoke-WebRequest https://raw.githubusercontent.com/geekMus/genpac-runner/main/d
 
 - **官方镜像地址：** `ghcr.io/geekmus/genpac-runner:latest`
 - **支持架构：** `linux/amd64`（64 位 Intel/AMD x86）和 `linux/arm64`（64 位 ARM）；官方 Bun 镜像不提供 32 位 `386/i386` 运行时。
-- **版本发布：** 使用日历版本（CalVer），版本以 `package.json` 的 `version` 为唯一依据，格式为 `YYYY.MM.DD`，例如 `2026.10.18`，同一天需要多次修订时使用 `2026.10.18-r1`、`2026.10.18-r2`。只有 `main` 分支修改 `package.json` 且版本发生有效变化时才会推送镜像；首次从旧式版本切换到日期版本时允许迁移，后续日期与同日修订序号必须递增。成功发布后更新版本标签和 `latest`。
+- **版本发布：** 使用日历版本（CalVer），版本以 `package.json` 的 `version` 为唯一依据，格式为 `YYYY.MM.DD`，例如 `2026.10.19`，同一天需要多次修订时使用 `2026.10.19-r1`、`2026.10.19-r2`。只有 `main` 分支修改 `package.json` 且版本发生有效变化时才会推送镜像；首次从旧式版本切换到日期版本时允许迁移，后续日期与同日修订序号必须递增。成功发布后更新版本标签和 `latest`。
 - **标准构建配置：** Dockerfile 使用官方 `oven/bun:1-alpine` 基础镜像、Bun 默认 npm registry 和 Alpine 官方软件源，不依赖地区专用镜像。
 
 确认当前目录中有 `docker-compose.yml`，按需修改管理员密码、端口映射和数据挂载，然后执行：
@@ -71,6 +71,8 @@ docker compose up -d
 使用旧版独立命令时，可将 `docker compose` 替换为 `docker-compose`。此处无需使用 `--build`，因为镜像已由 GitHub Actions 构建并发布，部署设备只负责拉取、创建和启动容器。
 
 每次运行会在 GitHub Actions 的 **Summary（摘要）** 中列出项目版本、发布判断、上一版本提交、提交记录和完整差异链接。镜像包含标准 OCI 标签，例如源码仓库地址、版本和提交 SHA，便于追溯镜像对应的代码。
+
+网页顶部会显示当前项目版本。程序还会定期检查 GitHub 主分支中的 `package.json` 版本；如果发现比当前版本更新的日期版本，会在运行概览页显示更新提示，并链接到本项目主页。若运行设备无法访问 GitHub，版本检查会静默跳过，不影响 PAC 和后台功能。生成或访问 `proxy.pac` 时，文件头也会显示当前 `genpac-runner version`，便于确认文件对应的程序版本。
 
 普通代码提交和分支合并不会触发镜像工作流；只有 `main` 上的 `package.json` 变更会触发版本检查。如果只是修改了依赖或其他字段、但没有改变 `version`，工作流不会发布镜像。发布新版本时请将 `version` 更新为当天的 `YYYY.MM.DD`，同日后续修订使用递增的 `-rN` 后缀。其他分支的普通提交不会自动触发；手动运行仅验证构建，不会推送镜像。
 

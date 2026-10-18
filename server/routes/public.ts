@@ -3,6 +3,8 @@ import type { EnvConfig } from "../config/env";
 import { adminEnabled } from "../config/env";
 import { pacFileMtime, readPacFile } from "../services/pac-generator";
 import { parsePacStatus } from "../services/pac-parser";
+import { getUpdateInfo } from "../services/update-check";
+import { APP_VERSION, PROJECT_URL } from "../version";
 
 function sendPac(
   req: import("express").Request,
@@ -43,8 +45,14 @@ export function publicRoutes(env: EnvConfig): Router {
   router.get("/api/meta", (_req, res) => {
     res.json({
       adminEnabled: adminEnabled(env),
-      version: "2.2.0",
+      version: APP_VERSION,
+      repositoryUrl: PROJECT_URL,
     });
+  });
+
+  router.get("/api/meta/update", async (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.json(await getUpdateInfo());
   });
 
   router.get("/api/status", (_req, res) => {

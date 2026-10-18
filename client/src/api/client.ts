@@ -1,6 +1,15 @@
 export interface Meta {
   adminEnabled: boolean;
   version: string;
+  repositoryUrl: string;
+}
+
+export interface UpdateInfo {
+  currentVersion: string;
+  latestVersion: string | null;
+  updateAvailable: boolean;
+  checked: boolean;
+  repositoryUrl: string;
 }
 
 export type WebhookProvider = "custom" | "dingtalk";
@@ -98,6 +107,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   meta: () => request<Meta>("/api/meta"),
+  checkForUpdates: () => request<UpdateInfo>("/api/meta/update"),
   status: () => request<PacStatus>("/api/status"),
   session: () => request<{ loggedIn: boolean }>("/api/admin/session"),
   login: (password: string) => request<{ ok: boolean }>("/api/admin/login", {
