@@ -4,13 +4,13 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        # 默认使用 DaoCloud 国内镜像代理；需要时可手动替换下面的镜像地址
-        BUN_BASE_IMAGE: m.daocloud.io/docker.io/oven/bun:1-alpine
+        # 默认走 DaoCloud 国内镜像代理；可通过 BUN_BASE_IMAGE 环境变量切换
+        BUN_BASE_IMAGE: ${BUN_BASE_IMAGE:-m.daocloud.io/docker.io/oven/bun:1-alpine}
     container_name: genpac-runner
     restart: unless-stopped
 
     environment:
-      TZ: Asia/Shanghai
+      TZ: ${TZ:-Asia/Shanghai}
       DATA_DIR: /data
       PORT: "17321"
       HOST: "0.0.0.0"
