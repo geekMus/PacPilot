@@ -3,6 +3,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # 默认使用 DaoCloud 中国镜像代理；可通过环境变量 BUN_BASE_IMAGE 覆盖
+        BUN_BASE_IMAGE: ${BUN_BASE_IMAGE:-m.daocloud.io/docker.io/oven/bun:1-alpine}
     container_name: genpac-runner
     restart: unless-stopped
 
