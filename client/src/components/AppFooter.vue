@@ -18,10 +18,20 @@ async function readLatestVersionDirectly(): Promise<string | null> {
       const response = await fetch(url, { signal: AbortSignal.timeout(7000), cache: "no-store" });
       if (!response.ok) continue;
       const data = await response.json() as { version?: unknown };
-      if (typeof data.version === "string" && /^\\d{4}\\.\\d{2}\\.\\d{2}(?:-r[1-9]\\d*)?$/.test(data.version)) return data.version;
+      if (typeof data.version === "string" && /^\d{4}\.\d{2}\.\d{2}(?:-r[1-9]\d*)?$/.test(data.version)) return data.version;
     } catch { /* 尝试下一个镜像源。 */ }
   }
   return null;
+}
+function isVersionNewer(candidate: string, current: string): boolean {
+  const parse = (value: string) => {
+    const match = /^(\d{4})\.(\d{2})\.(\d{2})(?:-r([1-9]\d*))?$/.exec(value);
+    return match ? { date: \`\${match[1]}.\${match[2]}.\${match[3]}\`, revision: Number(match[4] || 0) } : null;
+  };
+  const next = parse(candidate);
+  const installed = parse(current);
+  if (!next || !installed) return false;
+  return next.date > installed.date || (next.date === installed.date && next.revision > installed.revision);
 }
 async function loadVersionInfo() {
   try {
@@ -35,7 +45,7 @@ async function loadVersionInfo() {
       updateInfo.value = {
         currentVersion: current,
         latestVersion: latest,
-        updateAvailable: latest > current,
+        updateAvailable: isVersionNewer(latest, current),
         checked: true,
         repositoryUrl: projectUrl,
       };
