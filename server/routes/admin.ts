@@ -17,6 +17,8 @@ import {
 } from "../middleware/auth";
 import { generatePac, probeGenpac } from "../services/pac-generator";
 import { reschedule } from "../services/scheduler";
+import { validateWebhookSettings } from "../services/webhook";
+import cron from "node-cron";
 
 function parseList(raw: unknown): string[] {
   if (Array.isArray(raw)) {
@@ -29,7 +31,7 @@ function parseList(raw: unknown): string[] {
     .filter(Boolean);
 }
 
-function bodyToSettings(body: Record<string, unknown>): Partial<AppSettings> {
+function bodyToSettings(body: Record<string, unknown>): AppSettings {
   const raw = String(body.mode ?? "");
   const mode: GenerationMode =
     raw === "remote" || raw === "genpac" ? "remote" : "custom";
@@ -91,7 +93,22 @@ export function adminRoutes(
   });
 
   router.put("/api/admin/settings", requireAdmin(env), (req, res) => {
-    const next = updateSettings(database, bodyToSettings(req.body || {}));
+    const patch = bodyToSettings((req.body || {}) as Record<string, unknown>);
+    const cronSchedule = patch.cronSchedule.trim();
+    if (cronSchedule && (cronSchedule.split(/\s+/).length !== 5 || !cron.validate(cronSchedule))) {
+      res.status(400).json({
+        error: "Cron 表达式无效；请使用服务端支持的 5 段表达式（分 时 日 月 周）。",
+      });
+      return;
+    }
+
+    const webhookErrors = validateWebhookSettings(patch);
+    if (webhookErrors.length) {
+      res.status(400).json({ error: webhookErrors.join("\n") });
+      return;
+    }
+
+    const next = updateSettings(database, patch);
     reschedule(database, env.dataDir);
     res.json(next);
   });

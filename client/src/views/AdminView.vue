@@ -9,6 +9,9 @@ import {
 } from "../api/client";
 import AppHeader from "../components/AppHeader.vue";
 import DomainListEditor from "../components/DomainListEditor.vue";
+import WebhookBodyEditor from "../components/WebhookBodyEditor.vue";
+import cronstrue from "cronstrue";
+import "cronstrue/locales/zh_CN";
 
 const router = useRouter();
 const loading = ref(true);
@@ -34,6 +37,9 @@ const form = reactive({
   webhookFailureBody: "",
 });
 
+const successWebhookSample = JSON.stringify({ event: "pac.generated", ok: true }, null, 2);
+const failureWebhookSample = JSON.stringify({ event: "pac.generation_failed", ok: false }, null, 2);
+
 const modeHint = computed(() =>
   form.mode === "custom"
     ? "使用直连 / 黑名单列表，默认走代理；内网始终直连。"
@@ -50,12 +56,32 @@ const cronPresets = [
   { label: "每周一 0 点", value: "0 0 * * 1", hint: "每周一 00:00" },
 ] as const;
 
+function parseCronDescription(expr: string): { description: string; error: string } {
+  const value = expr.trim();
+  if (!value) return { description: "", error: "" };
+  if (value.split(/\s+/).length !== 5) {
+    return { description: "", error: "请使用标准的 5 段格式：分 时 日 月 周。" };
+  }
+  try {
+    return {
+      description: cronstrue.toString(value, {
+        locale: "zh_CN",
+        dayOfWeekStartIndexZero: false,
+        use24HourTimeFormat: true,
+        throwExceptionOnParseError: true,
+      }),
+      error: "",
+    };
+  } catch {
+    return { description: "", error: "无法解析该表达式，请检查字段范围和语法。" };
+  }
+}
+
+const cronParse = computed(() => parseCronDescription(form.cronSchedule));
 const cronHint = computed(() => {
-  const v = form.cronSchedule.trim();
-  if (!v) return "未设置：不会按计划自动生成 PAC。";
-  const hit = cronPresets.find((p) => p.value === v);
-  if (hit && hit.value) return `当前：${hit.hint}（标准 5 段 cron：分 时 日 月 周）`;
-  return "自定义 cron（5 段：分 时 日 月 周）。留空表示关闭定时。";
+  if (!form.cronSchedule.trim()) return "已关闭定时任务；保存后不会按计划自动生成 PAC。";
+  if (cronParse.value.error) return `表达式无效：${cronParse.value.error}`;
+  return `计划说明：${cronParse.value.description}。按服务端运行环境的时区执行。`;
 });
 
 function applyCronPreset(value: string) {
@@ -66,10 +92,11 @@ function jsonBodyError(raw: string): string {
   const s = raw.trim();
   if (!s) return "";
   try {
-    JSON.parse(s);
+    const value: unknown = JSON.parse(s);
+    if (value === null || typeof value !== "object") return "JSON 顶层必须是对象或数组。";
     return "";
   } catch {
-    return "内容不是合法 JSON；保存后仍会原样发送，请确认。";
+    return "JSON 格式错误，请检查括号、引号和逗号。";
   }
 }
 
@@ -80,17 +107,11 @@ const failureBodyError = computed(() => jsonBodyError(form.webhookFailureBody));
 function looksLikeUrl(s: string): boolean {
   try {
     const u = new URL(s);
-    return u.protocol === "http:" || u.protocol === "https:";
+    return (u.protocol === "http:" || u.protocol === "https:") &&
+      Boolean(u.hostname) && !u.username && !u.password;
   } catch {
     return false;
   }
-}
-
-function cronLooksValid(expr: string): boolean {
-  const parts = expr.trim().split(/\s+/);
-  if (parts.length !== 5) return false;
-  // 宽松校验：每段为数字、*、*/n、a-b、列表等常见写法
-  return parts.every((p) => /^[\d*,\/\-]+$/.test(p));
 }
 
 /** 保存前校验；返回可读错误列表（空表示可提交） */
@@ -107,8 +128,8 @@ const formErrors = computed(() => {
     }
   }
   const cron = form.cronSchedule.trim();
-  if (cron && !cronLooksValid(cron)) {
-    errs.push("Cron 表达式应为 5 段（分 时 日 月 周），请检查格式。");
+  if (cron && cronParse.value.error) {
+    errs.push("Cron 表达式无效，请检查五段格式与字段取值。");
   }
   if (form.webhookSuccessUrl.trim() && !looksLikeUrl(form.webhookSuccessUrl.trim())) {
     errs.push("成功 Webhook URL 格式无效。");
@@ -116,11 +137,11 @@ const formErrors = computed(() => {
   if (form.webhookFailureUrl.trim() && !looksLikeUrl(form.webhookFailureUrl.trim())) {
     errs.push("失败 Webhook URL 格式无效。");
   }
-  if (successBodyError.value) {
-    errs.push("成功 Webhook Body 不是合法 JSON。");
+  if (form.webhookSuccessUrl.trim() && successBodyError.value) {
+    errs.push("成功 Webhook Body 必须是合法的 JSON 对象或数组。");
   }
-  if (failureBodyError.value) {
-    errs.push("失败 Webhook Body 不是合法 JSON。");
+  if (form.webhookFailureUrl.trim() && failureBodyError.value) {
+    errs.push("失败 Webhook Body 必须是合法的 JSON 对象或数组。");
   }
   return errs;
 });
@@ -473,15 +494,13 @@ async function logout() {
               </div>
               <div class="field">
                 <label>请求 Body <span class="lab-hint">JSON，可空</span></label>
-                <textarea
+                <WebhookBodyEditor
                   v-model="form.webhookSuccessBody"
-                  class="mono body-area"
-                  rows="5"
-                  spellcheck="false"
-                  placeholder='{"event":"pac_success"}'
+                  :height="220"
+                  :sample="successWebhookSample"
+                  placeholder="输入 JSON 对象或数组…"
                 />
-                <p v-if="successBodyError" class="field-warn">{{ successBodyError }}</p>
-                <p v-else class="field-hint">留空则发送 {"ok":true}；需填写合法 JSON 对象或数组。</p>
+                <p class="field-hint">留空时发送 {"ok":true}；自定义内容按 application/json 原样 POST。</p>
               </div>
             </div>
 
@@ -503,15 +522,13 @@ async function logout() {
               </div>
               <div class="field">
                 <label>请求 Body <span class="lab-hint">JSON，可空</span></label>
-                <textarea
+                <WebhookBodyEditor
                   v-model="form.webhookFailureBody"
-                  class="mono body-area"
-                  rows="5"
-                  spellcheck="false"
-                  placeholder='{"event":"pac_failure"}'
+                  :height="220"
+                  :sample="failureWebhookSample"
+                  placeholder="输入 JSON 对象或数组…"
                 />
-                <p v-if="failureBodyError" class="field-warn">{{ failureBodyError }}</p>
-                <p v-else class="field-hint">留空则发送 {"ok":true}。仅当上方 URL 非空时才会请求。</p>
+                <p class="field-hint">留空时发送 {"ok":false}；仅当失败通知 URL 非空时才会请求。</p>
               </div>
             </div>
           </div>
