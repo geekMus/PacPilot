@@ -7,8 +7,8 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import { json } from "@codemirror/lang-json";
 
 const props = withDefaults(
-  defineProps<{ modelValue: string; placeholder?: string; sample?: string; height?: number }>(),
-  { placeholder: "", sample: "", height: 220 }
+  defineProps<{ modelValue: string; placeholder?: string; sample?: string; height?: number; emptyHint?: string }>(),
+  { placeholder: "", sample: "", height: 220, emptyHint: "留空时使用默认 JSON 请求体。" }
 );
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 const host = ref<HTMLDivElement | null>(null);
@@ -17,7 +17,7 @@ let themeObserver: MutationObserver | null = null;
 
 const jsonStatus = computed(() => {
   const raw = props.modelValue.trim();
-  if (!raw) return { kind: "empty", text: "留空将发送默认 JSON 请求体。" };
+  if (!raw) return { kind: "empty", text: props.emptyHint };
   try {
     const value: unknown = JSON.parse(raw);
     if (value === null || typeof value !== "object") return { kind: "invalid", text: "JSON 顶层必须是对象或数组。" };
