@@ -37,9 +37,6 @@ ENV HOST=0.0.0.0 \
 # 容器内部服务端口固定为 17321。
 EXPOSE 17321
 
-# 声明容器数据目录。宿主机是否挂载，由 docker-compose.yml 或启动命令决定。
-VOLUME ["/data"]
-
 # 默认进入容器时位于数据目录；应用仍从 /app/server/index.ts 启动。
 WORKDIR /data
 
