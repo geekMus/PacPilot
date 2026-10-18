@@ -46,7 +46,7 @@ Invoke-WebRequest https://raw.githubusercontent.com/geekMus/genpac-runner/main/d
 
 **Docker 部署不需要创建 `.env` 文件，也不需要设置业务配置环境变量。** 代理字符串、生成模式、直连列表、黑名单、远程列表、Webhook、定时任务、时区和管理密码都由后台管理页面统一配置，并保存在 `/data/genpac.db`。
 
-- 首次启动的默认管理密码是 `password`。登录后会在后台看到安全提醒，请尽快改成至少 12 个字符的强密码。
+- 首次启动的默认管理密码是 `password`。登录后后台会提示修改默认密码。新密码的长度和复杂度由用户自行决定，系统不强制设置规则。
 - 时区默认为 `Asia/Shanghai`，可在「配置管理 → 常规设置」中通过搜索选择常见国家/地区时区，也可输入其他有效的 IANA 时区名称。
 - 容器内部端口、监听地址和数据目录属于运行参数，分别固定为 `17321`、`0.0.0.0` 和 `/data`；端口映射与数据持久化挂载仍在 `docker-compose.yml` 中按需启用。
 
@@ -60,7 +60,7 @@ Compose 不再声明 `ADMIN_PASSWORD`、`SESSION_SECRET` 或 `TZ`。管理员密
 - **版本发布：** 使用日历版本（CalVer），版本以 `package.json` 的 `version` 为唯一依据，格式为 `YYYY.MM.DD`，例如 `2026.10.19`，同一天需要多次修订时使用 `2026.10.19-r1`、`2026.10.19-r2`。只有 `main` 分支修改 `package.json` 且版本发生有效变化时才会推送镜像；首次从旧式版本切换到日期版本时允许迁移，后续日期与同日修订序号必须递增。成功发布后更新版本标签和 `latest`。
 - **标准构建配置：** Dockerfile 使用官方 `oven/bun:1-alpine` 基础镜像、Bun 默认 npm registry 和 Alpine 官方软件源，不依赖地区专用镜像。
 
-确认当前目录中有 `docker-compose.yml`，按需修改管理员密码、端口映射和数据挂载，然后执行：
+确认当前目录中有 `docker-compose.yml`，按需在后台修改管理员密码，并自行决定是否启用端口映射和数据挂载，然后执行：
 
 ```bash
 docker compose pull
@@ -71,7 +71,7 @@ docker compose up -d
 
 每次运行会在 GitHub Actions 的 **Summary（摘要）** 中列出项目版本、发布判断、上一版本提交、提交记录和完整差异链接。镜像包含标准 OCI 标签，例如源码仓库地址、版本和提交 SHA，便于追溯镜像对应的代码。
 
-网页底部会显示 GitHub 项目入口和圆角版本标签。点击版本标签可在弹窗中查看当前版本和最新版本；若检测到更新，标签会变为橙色并显示 `New` 标识。程序会检查 GitHub 主分支中的 `package.json`；若网络不可达，会静默跳过版本提示，不影响 PAC 和后台功能。生成或访问 `proxy.pac` 时，文件头也会显示当前 `genpac-runner version`，便于确认文件对应的程序版本。
+网页底部会显示 GitHub 项目入口和圆角版本标签。点击版本标签可在弹窗中查看当前版本和最新版本；若检测到更新，标签会变为橙色并显示 `New` 标识。程序会依次尝试从 GitHub 原始文件、jsDelivr 和 GitHub API 获取主分支中的 `package.json`；前端也会在服务端未获取到版本时尝试备用来源。若所有来源均不可达，最新版本会显示为暂时未知，不影响 PAC 和后台功能。生成或访问 `proxy.pac` 时，文件头也会显示当前 `genpac-runner version`，便于确认文件对应的程序版本。
 
 普通代码提交和分支合并不会触发镜像工作流；只有 `main` 上的 `package.json` 变更会触发版本检查。如果只是修改了依赖或其他字段、但没有改变 `version`，工作流不会发布镜像。发布新版本时请将 `version` 更新为当天的 `YYYY.MM.DD`，同日后续修订使用递增的 `-rN` 后缀。其他分支的普通提交不会自动触发；手动运行仅验证构建，不会推送镜像。
 
@@ -127,7 +127,7 @@ Docker 部署时，建议在 `docker-compose.yml` 中启用一种 `/data` 持久
 - `genpac.db`：后台配置和生成记录。
 - `proxy.pac`：当前生成的 PAC 文件。
 
-容器数据路径固定为 `/data`，且该目录已通过 Dockerfile 的 `VOLUME` 声明；容器默认工作目录也设置为 `/data`，例如执行 `docker exec -it genpac-runner sh` 进入 shell 后，当前目录就是 `/data`。建议在 Compose 中启用一种显式挂载：使用命名卷时，执行 `docker compose down` 不会删除该数据卷；使用 `./data:/data` 目录挂载时，数据保存在项目的 `data` 目录。若不配置显式挂载，Docker 会创建匿名卷，容器重建时不一定自动复用旧卷。迁移或备份时请一并保存相应数据。
+容器数据路径固定为 `/data`，容器默认工作目录也设置为 `/data`，例如执行 `docker exec -it genpac-runner sh` 进入 shell 后，当前目录就是 `/data`。Dockerfile 不声明 `VOLUME`，默认 Compose 配置也不启用数据挂载；是否持久化由用户自行决定。建议按需启用一种显式挂载：使用命名卷时，执行 `docker compose down` 不会删除该数据卷；使用 `./data:/data` 目录挂载时，数据保存在项目的 `data` 目录。不配置挂载时，数据只保存在容器可写层，删除或重建容器可能导致配置和生成记录丢失。迁移或备份时请一并保存相应数据。
 
 业务配置都在网页的「配置管理」中完成。代理、直连与黑名单规则、远程列表、定时任务、Webhook、时区以及管理密码均保存在 SQLite。时区选择器支持搜索常用国家/地区；后端也会校验输入的 IANA 时区名称。密码以带随机盐的 scrypt 哈希保存，不会以明文写入数据库。监听地址固定为 `0.0.0.0`，内部端口固定为 `17321`，数据目录固定为 `/data`；宿主机端口映射和数据挂载则直接在 `docker-compose.yml` 中按需取消注释并修改。
 
