@@ -85,7 +85,7 @@ export async function getUpdateInfo(): Promise<UpdateInfo> {
         if (url.includes("api.github.com")) {
           const data = await response.json() as { content?: unknown; encoding?: unknown };
           if (typeof data.content === "string" && data.encoding === "base64") {
-            const decoded = Buffer.from(data.content.replace(/\\s/g, ""), "base64").toString("utf8");
+            const decoded = Buffer.from(data.content.replace(/\s/g, ""), "base64").toString("utf8");
             const packageData = JSON.parse(decoded) as { version?: unknown };
             latest = typeof packageData.version === "string" ? packageData.version : "";
           }
