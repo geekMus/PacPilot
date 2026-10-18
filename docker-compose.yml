@@ -7,17 +7,17 @@ services:
     restart: unless-stopped
 
     environment:
-      TZ: Asia/Shanghai
+      TZ: ${TZ:-Asia/Shanghai}
       DATA_DIR: /data
       PORT: "17321"
       HOST: "0.0.0.0"
       RUNNING_IN_DOCKER: "1"
-      # 设置后启用 Vue 后台 /admin
-      ADMIN_PASSWORD: "change-me"
-      # SESSION_SECRET: "random-long-string"
+      # 启动前必须在 .env 中设置管理密码
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env before starting}"
+      SESSION_SECRET: "${SESSION_SECRET:-}"
 
     ports:
-      - "17321:17321"
+      - "${HOST_PORT:-17321}:17321"
 
     volumes:
       - genpac-data:/data
