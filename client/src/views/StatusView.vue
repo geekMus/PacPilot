@@ -505,7 +505,6 @@ const activeRuleCount = computed(() => {
   .stat-card { min-height:112px; padding:13px; }
   .stat-number { font-size:25px; }
   .section-head { flex-direction:column; align-items:flex-start; gap:6px; }
-  .section-note { text-align:left; }
   .source-footer,.source-actions { align-items:flex-start; }
   .rule-tabs { gap:5px; padding:4px; }
   .rule-tabs button { gap:4px; padding:0 4px; font-size:11px; }
