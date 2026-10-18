@@ -100,7 +100,7 @@ docker compose logs -f genpac
 # 重启
 docker compose restart
 
-# 停止并移除容器（配置数据仍会保留）
+# 停止并移除容器（若未配置 /data 持久化挂载，容器内数据会随容器删除）
 docker compose down
 
 # 拉取已发布的最新镜像并更新容器
