@@ -37,4 +37,5 @@ ENV DATA_DIR=/data \
 VOLUME ["/data"]
 EXPOSE 17321
 
-CMD ["bun", "run", "server/index.ts"]
+# 容器只读取 Docker 注入的环境变量，不自动加载 .env 文件。
+CMD ["bun", "run", "--no-env-file", "server/index.ts"]
