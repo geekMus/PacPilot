@@ -48,18 +48,18 @@ Invoke-WebRequest https://raw.githubusercontent.com/geekMus/genpac-runner/refact
 
 - `ADMIN_PASSWORD` 默认是 `password`。**请务必在部署前尽快修改为自己的强密码**，否则任何能访问后台登录页的人都可能尝试这个公开的默认密码。
 - `SESSION_SECRET` 默认注释，不启用单独的签名密钥。程序会根据 `ADMIN_PASSWORD` 派生默认签名密钥。需要使用单独的会话签名密钥时，再取消对应注释并设置自己的随机字符串。
-- 时区、监听地址、容器内部端口和数据目录都已固定，不需要在 shell 或部署平台里设置环境变量。
+- 时区通过 Compose 的 `TZ` 环境变量设置，默认 `Asia/Shanghai`；容器内部端口、监听地址和数据目录固定。
 - 默认使用 `bridge` 网络，不发布宿主机端口；需要从宿主机访问时再启用端口映射。数据持久化则按前文所述选择一种挂载方式。
 
-本项目的 Compose 文件不通过 `${...}` 从 shell 或 `.env` 中读取配置。即使部署目录内已有开发用的 `.env`，这些配置也不会被其覆盖。
+本项目的 Compose 文件不通过 `${...}` 从 shell 或 `.env` 中读取配置。即使部署目录内已有开发用的 `.env`，这些配置也不会被其覆盖。需要调整时区时，直接修改 Compose 中的 `TZ`，然后重建容器即可。
 ### 4. 拉取镜像并启动
 
 本项目的多架构预构建镜像发布在 GitHub Container Registry：
 
 - **官方镜像地址：** `ghcr.io/geekmus/genpac-runner:latest`
-- **支持架构：** `linux/amd64` 和 `linux/arm64`。
+- **支持架构：** `linux/amd64`（64 位 Intel/AMD x86）和 `linux/arm64`（64 位 ARM）；官方 Bun 镜像不提供 32 位 `386/i386` 运行时。
 - **自动更新：** 向 `refactor/modular-sqlite-admin` 分支推送代码时，GitHub Actions 会实际构建并发布更新后的 `latest` 镜像；推送版本标签（例如 `v2.3.0`）时也会发布对应版本标签。
-- **中国大陆网络：** Dockerfile 的 Bun 基础镜像已改用毫秒镜像 `docker.1ms.run/oven/bun:1-alpine`。如果部署设备无法直接访问 GHCR，可把 Compose 的镜像地址改为 `ghcr.1ms.run/geekmus/genpac-runner:latest`，使用毫秒镜像提供的 GHCR 通道。
+- **标准构建配置：** Dockerfile 使用官方 `oven/bun:1-alpine` 基础镜像、Bun 默认 npm registry 和 Alpine 官方软件源，不依赖地区专用镜像。
 
 确认当前目录中有 `docker-compose.yml`，按需修改管理员密码、端口映射和数据挂载，然后执行：
 
@@ -124,7 +124,7 @@ Docker 部署时，建议在 `docker-compose.yml` 中启用一种 `/data` 持久
 
 容器数据路径固定为 `/data`，且该目录已通过 Dockerfile 的 `VOLUME` 声明；容器默认工作目录也设置为 `/data`，例如执行 `docker exec -it genpac-runner sh` 进入 shell 后，当前目录就是 `/data`。建议在 Compose 中启用一种显式挂载：使用命名卷时，执行 `docker compose down` 不会删除该数据卷；使用 `./data:/data` 目录挂载时，数据保存在项目的 `data` 目录。若不配置显式挂载，Docker 会创建匿名卷，容器重建时不一定自动复用旧卷。迁移或备份时请一并保存相应数据。
 
-业务配置都在网页的「配置管理」中完成。Docker 部署时，后台管理密码在 `docker-compose.yml` 中配置，默认值为 `password`，部署前应尽快修改。应用内日期格式固定使用 `Asia/Shanghai`（UTC+8）；为避免构建时安装 `tzdata`，系统层通过 POSIX `TZ=UTC-8` 设置相同的固定偏移。监听地址固定为 `0.0.0.0`，内部端口固定为 `17321`，数据目录固定为 `/data`；宿主机端口映射和数据挂载则直接在 `docker-compose.yml` 中按需取消注释并修改。
+业务配置都在网页的「配置管理」中完成。Docker 部署时，后台管理密码在 `docker-compose.yml` 中配置，默认值为 `password`，部署前应尽快修改。容器时区通过 `TZ` 环境变量设置，默认值为 `Asia/Shanghai`；你也可以改为 `Etc/UTC`、`Asia/Tokyo` 或其他 IANA 时区名称。Dockerfile 安装 `tzdata` 以支持这些时区。监听地址固定为 `0.0.0.0`，内部端口固定为 `17321`，数据目录固定为 `/data`；宿主机端口映射和数据挂载则直接在 `docker-compose.yml` 中按需取消注释并修改。
 
 ## 常见问题
 
@@ -134,7 +134,7 @@ Docker 部署时，建议在 `docker-compose.yml` 中启用一种 `/data` 持久
 
 **拉取镜像时提示超时或连接重置**
 
-部署设备无需自行构建镜像。若拉取失败，先检查能否访问 `ghcr.io`，确认 GHCR 中 `genpac-runner` 容器包已设置为 Public，然后执行 `docker compose pull` 重试。中国大陆网络也可以根据实际可用性使用 `ghcr.1ms.run` GHCR 代理地址。
+部署设备无需自行构建镜像。若拉取失败，先检查能否访问 `ghcr.io`，确认 GHCR 中 `genpac-runner` 容器包已设置为 Public，然后执行 `docker compose pull` 重试。
 
 **访问不了网页**
 

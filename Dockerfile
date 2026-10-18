@@ -1,13 +1,12 @@
-# 使用 毫秒镜像 Docker Hub 代理获取 Bun 基础镜像。
-# 如果该镜像源不可用，请同时修改下面两个 FROM 行中的镜像地址。
+# 使用官方 Bun Alpine 镜像和默认软件源，保持标准构建流程。
 # ---------- 构建阶段 ----------
-FROM docker.1ms.run/oven/bun:1-alpine AS builder
+FROM oven/bun:1-alpine AS builder
 
 WORKDIR /app
-# 先复制项目 Bun 配置；下面的安装命令会单独指定国内 npm 镜像源。
+# 先复制依赖清单，使用 Bun 默认的官方 npm registry。
 COPY package.json bun.lockb* bunfig.toml ./
 RUN echo "正在安装构建阶段依赖……" \
- && (NPM_CONFIG_REGISTRY=https://registry.npmmirror.com bun install --frozen-lockfile || NPM_CONFIG_REGISTRY=https://registry.npmmirror.com bun install)
+ && (bun install --frozen-lockfile || bun install)
 
 COPY server ./server
 COPY client ./client
@@ -16,22 +15,22 @@ COPY scripts ./scripts
 RUN echo "正在编译前端资源……" && bun run build:client
 
 # ---------- 运行阶段 ----------
-FROM docker.1ms.run/oven/bun:1-alpine
+FROM oven/bun:1-alpine
 
-# 应用不依赖 curl；避免为时区下载 tzdata，减少 Alpine APK 源这一外部构建依赖。
-# POSIX TZ=UTC-8 表示本地时间固定为 UTC+8；APP_TIME_ZONE 保留应用内 IANA 时区名称。
+# 安装 IANA 时区数据库，使 TZ=Asia/Shanghai、TZ=Etc/UTC 等时区名称可用。
+RUN echo "正在安装时区数据库……" && apk add --no-cache tzdata
+
 WORKDIR /app
-# 运行阶段也使用相同的国内 npm 镜像源。
+# 运行阶段也使用 Bun 默认的官方 npm registry。
 COPY package.json bun.lockb* bunfig.toml ./
 RUN echo "正在安装运行阶段依赖……" \
- && (NPM_CONFIG_REGISTRY=https://registry.npmmirror.com bun install --production --frozen-lockfile || NPM_CONFIG_REGISTRY=https://registry.npmmirror.com bun install --production)
+ && (bun install --production --frozen-lockfile || bun install --production)
 
 COPY server ./server
 COPY --from=builder /app/dist ./dist
 
 ENV HOST=0.0.0.0 \
-    TZ=UTC-8 \
-    APP_TIME_ZONE=Asia/Shanghai \
+    TZ=Asia/Shanghai \
     RUNNING_IN_DOCKER=1 \
     NODE_ENV=production
 
