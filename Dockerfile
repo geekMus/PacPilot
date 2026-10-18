@@ -38,7 +38,6 @@ ENV DATA_DIR=/data \
     RUNNING_IN_DOCKER=1 \
     NODE_ENV=production
 
-VOLUME ["/data"]
 EXPOSE 17321
 
 # 容器只读取 Docker 注入的环境变量，不自动加载 .env 文件。
