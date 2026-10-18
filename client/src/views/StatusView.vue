@@ -56,7 +56,7 @@ function ruleDesc(rule: string) {
       <div v-if="status" class="hero-meta">
         <span class="status-indicator" :class="status.hasPac ? 'online' : 'idle'"></span>
         <strong>{{ status.modeLabel }}</strong><span class="meta-divider">·</span>
-        <span>{{ status.hasPac ? \`生成时间：\${status.updatedAt}\` : "尚无生成文件" }}</span>
+        <span>{{ status.hasPac ? `生成时间：${status.updatedAt}` : "尚无生成文件" }}</span>
       </div>
     </section>
 
@@ -108,7 +108,7 @@ function ruleDesc(rule: string) {
             <li><span class="flow-number">03</span><div><strong>自定义直连列表</strong><p>检查你在「配置管理 → 自定义规则」中填写的直连域名。</p></div><span class="flow-result direct">直连</span></li>
             <li v-if="status.mode === 'remote'"><span class="flow-number">04</span><div><strong>远程列表例外规则</strong><p>远程列表中标记为例外的域名不走代理。</p></div><span class="flow-result direct">直连</span></li>
             <li v-if="status.mode === 'remote'"><span class="flow-number">05</span><div><strong>远程代理规则</strong><p>命中远程代理域名列表后，使用配置的代理字符串。</p></div><span class="flow-result proxy">代理</span></li>
-            <li><span class="flow-number">{{ status.mode === 'remote' ? '06' : '04' }}</span><div><strong>{{ status.mode === 'remote' ? "其他域名" : "未命中以上规则" }}</strong><p>{{ status.mode === 'remote' ? "不在远程代理列表中的域名默认直接连接。" : \`使用默认代理：\${status.pacProxy || "未识别"}。\` }}</p></div><span class="flow-result" :class="status.mode === 'remote' ? 'direct' : 'proxy'">{{ status.mode === 'remote' ? "直连" : "代理" }}</span></li>
+            <li><span class="flow-number">{{ status.mode === 'remote' ? '06' : '04' }}</span><div><strong>{{ status.mode === 'remote' ? "其他域名" : "未命中以上规则" }}</strong><p>{{ status.mode === 'remote' ? "不在远程代理列表中的域名默认直接连接。" : `使用默认代理：${status.pacProxy || "未识别"}。` }}</p></div><span class="flow-result" :class="status.mode === 'remote' ? 'direct' : 'proxy'">{{ status.mode === 'remote' ? "直连" : "代理" }}</span></li>
           </ol>
         </section>
 
