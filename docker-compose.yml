@@ -4,26 +4,34 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        # 默认使用 DaoCloud 中国镜像代理；可通过环境变量 BUN_BASE_IMAGE 覆盖
-        BUN_BASE_IMAGE: ${BUN_BASE_IMAGE:-m.daocloud.io/docker.io/oven/bun:1-alpine}
+        # 默认使用 DaoCloud 国内镜像代理；需要时可手动替换下面的镜像地址
+        BUN_BASE_IMAGE: m.daocloud.io/docker.io/oven/bun:1-alpine
     container_name: genpac-runner
     restart: unless-stopped
 
     environment:
-      TZ: ${TZ:-Asia/Shanghai}
+      TZ: Asia/Shanghai
       DATA_DIR: /data
       PORT: "17321"
       HOST: "0.0.0.0"
       RUNNING_IN_DOCKER: "1"
-      # 从启动 Docker Compose 的 shell / 部署平台读取，不要求项目目录提供 .env
+      # 从当前终端或部署平台注入，不依赖项目目录中的 .env
       ADMIN_PASSWORD: "${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in the process environment before starting}"
       SESSION_SECRET: "${SESSION_SECRET:-}"
 
-    ports:
-      - "${HOST_PORT:-17321}:17321"
+    # 如需从宿主机或局域网访问 Web 界面，取消注释。左侧是宿主机端口，右侧是容器端口。
+    # ports:
+    #   - "17321:17321"
 
-    volumes:
-      - genpac-data:/data
+    # 持久化数据（建议启用一种方式，否则重建容器时 /data 中的数据可能丢失）
+    # 方式 A：Docker 管理的命名卷
+    # volumes:
+    #   - genpac-data:/data
 
-volumes:
-  genpac-data:
+    # 方式 B：挂载到项目目录下的 ./data（请确保目录有读写权限；启用时不要同时启用方式 A）
+    # volumes:
+    #   - ./data:/data
+
+# 仅在选择方式 A（命名卷）时，取消下面两行注释
+# volumes:
+#   genpac-data:
