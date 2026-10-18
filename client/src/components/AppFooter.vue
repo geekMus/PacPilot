@@ -26,7 +26,7 @@ async function readLatestVersionDirectly(): Promise<string | null> {
 function isVersionNewer(candidate: string, current: string): boolean {
   const parse = (value: string) => {
     const match = /^(\d{4})\.(\d{2})\.(\d{2})(?:-r([1-9]\d*))?$/.exec(value);
-    return match ? { date: \`\${match[1]}.\${match[2]}.\${match[3]}\`, revision: Number(match[4] || 0) } : null;
+    return match ? { date: `${match[1]}.${match[2]}.${match[3]}`, revision: Number(match[4] || 0) } : null;
   };
   const next = parse(candidate);
   const installed = parse(current);
