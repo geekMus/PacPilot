@@ -1,14 +1,21 @@
+import { loadDevelopmentDotEnv } from "../server/config/load-dotenv";
+
 /**
  * 开发启动器：同时跑后端（Bun --hot）与 Vite 前端。
  * 使用：bun run dev
  *
- * 强制 NODE_ENV=development，数据目录默认落在项目 ./data
+ * 开发环境优先读取项目根目录的 .env；文件不存在时使用进程环境变量。
+ * 强制开发模式，数据目录默认落在项目 ./data。
  */
+process.env.NODE_ENV = "development";
+process.env.GENPAC_ENV = "development";
+loadDevelopmentDotEnv();
+
 const env: Record<string, string | undefined> = {
   ...process.env,
   NODE_ENV: "development",
-  GENPAC_ENV: process.env.GENPAC_ENV || "development",
-  // 开发默认当前目录 data；若用户已设 DATA_DIR 则尊重用户
+  GENPAC_ENV: "development",
+  // .env 已加载；未配置时开发默认使用当前目录 data
   DATA_DIR: process.env.DATA_DIR || "./data",
   PORT: process.env.PORT || "17321",
   HOST: process.env.HOST || "0.0.0.0",
@@ -19,7 +26,7 @@ console.log(
 );
 if (!env.ADMIN_PASSWORD) {
   console.log(
-    "[dev] 提示: 未设置 ADMIN_PASSWORD，后台 /admin 不会启用。可复制 .env.example 为 .env 后配置。"
+    "[dev] 提示: 未设置 ADMIN_PASSWORD，后台 /admin 不会启用。请在开发环境 .env 中配置，或设置同名环境变量。"
   );
 }
 
