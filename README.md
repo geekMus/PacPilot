@@ -44,7 +44,6 @@ export ADMIN_PASSWORD='替换成你自己的强密码'
 export COMPOSE_DISABLE_ENV_FILE=1
 
 # 以下配置可选；不设置时使用默认值
-export TZ=Asia/Shanghai
 # export SESSION_SECRET='建议使用独立的长随机字符串'
 ```
 
@@ -55,7 +54,6 @@ $env:ADMIN_PASSWORD = "替换成你自己的强密码"
 $env:COMPOSE_DISABLE_ENV_FILE = "1"
 
 # 以下配置可选；不设置时使用默认值
-$env:TZ = "Asia/Shanghai"
 # $env:SESSION_SECRET = "建议使用独立的长随机字符串"
 ```
 
@@ -68,7 +66,7 @@ $env:TZ = "Asia/Shanghai"
 构建依赖默认使用国内镜像源：
 
 - **Bun 基础镜像：** DaoCloud Docker Hub 代理 `m.daocloud.io/docker.io/oven/bun:1-alpine`，在 Dockerfile 中固定配置（[DaoCloud 说明](https://github.com/DaoCloud/public-image-mirror)）。
-- **Bun / npm 包：** `bunfig.toml` 固定使用 `https://registry.npmmirror.com`。
+- **Bun / npm 包：** Dockerfile 中的依赖安装命令临时指定 `NPM_CONFIG_REGISTRY=https://registry.npmmirror.com`，只影响镜像构建，不改变本机开发时的包源。Bun 支持通过该环境变量指定 registry（[Bun 文档](https://bun.com/docs/pm/npmrc)）。
 - **Alpine 系统依赖：** Dockerfile 在安装 `tzdata` 和 `curl` 前，将 Alpine APK 软件源切换到阿里云镜像 `mirrors.aliyun.com`（[阿里云 Alpine 镜像说明](https://developer.aliyun.com/mirror/alpine/)）。
 
 这些国内镜像源都写在项目配置中，不从环境变量读取。如果某个源不可用，请根据对应镜像站的最新说明手动修改相应配置文件后再构建。基础镜像成功下载后，构建过程中仍需访问 npm 包源和 Alpine 软件源。
@@ -144,7 +142,7 @@ Docker 部署时，建议在 `docker-compose.yml` 中启用一种 `/data` 持久
 
 容器数据路径固定为 `/data`，且该目录已通过 Dockerfile 的 `VOLUME` 声明；容器默认工作目录也设置为 `/data`，例如执行 `docker exec -it genpac-runner sh` 进入 shell 后，当前目录就是 `/data`。建议在 Compose 中启用一种显式挂载：使用命名卷时，执行 `docker compose down` 不会删除该数据卷；使用 `./data:/data` 目录挂载时，数据保存在项目的 `data` 目录。若不配置显式挂载，Docker 会创建匿名卷，容器重建时不一定自动复用旧卷。迁移或备份时请一并保存相应数据。
 
-业务配置都在网页的「配置管理」中完成。启动级设置通过环境变量配置：例如 `ADMIN_PASSWORD` 是后台管理密码，`TZ` 是时区，`SESSION_SECRET` 是可选的会话签名密钥。宿主机端口映射和数据挂载则直接在 `docker-compose.yml` 中按需取消注释并修改。
+业务配置都在网页的「配置管理」中完成。Docker 部署时，后台管理密码 `ADMIN_PASSWORD` 必须通过环境变量设置，`SESSION_SECRET` 可作为独立的可选会话签名密钥。容器时区固定为 `Asia/Shanghai`，内部端口固定为 `17321`，数据目录固定为 `/data`；宿主机端口映射和数据挂载则直接在 `docker-compose.yml` 中按需取消注释并修改。
 
 ## 常见问题
 
@@ -154,7 +152,7 @@ Docker 部署时，建议在 `docker-compose.yml` 中启用一种 `/data` 持久
 
 **下载容器依赖时提示 EOF、超时或连接重置**
 
-项目默认使用 DaoCloud Bun 基础镜像代理、npmmirror 的 Bun/npm 包源以及阿里云 Alpine APK 源。如果其中一个源不可用，分别检查 Dockerfile 中的 `FROM` 镜像地址、`bunfig.toml` 的 `install.registry`，或 Dockerfile 中的 Alpine 软件源替换规则。
+项目默认使用 DaoCloud Bun 基础镜像代理、npmmirror 的 Bun/npm 包源以及阿里云 Alpine APK 源。如果其中一个源不可用，分别检查 Dockerfile 中的 `FROM` 镜像地址、依赖安装命令里的 `NPM_CONFIG_REGISTRY`，或 Dockerfile 中的 Alpine 软件源替换规则。
 
 **访问不了网页**
 
