@@ -459,7 +459,7 @@ async function logout() {
         </div>
         <div v-if="securityStatus.isDefaultPassword" class="password-warning" role="alert">
           <strong>安全提醒：当前仍使用默认密码 password</strong>
-          <p>请尽快修改为只有你知道的强密码，避免其他人通过默认密码进入管理后台。</p>
+          <p>建议将默认密码改成只有你知道的密码，避免其他人通过默认密码进入管理后台。新密码不限制长度或复杂度，由你自行决定。</p>
         </div>
         <div v-if="securityStatus.mustChangePassword" class="password-warning" role="alert">
           <strong>需要设置新密码</strong>
@@ -476,7 +476,7 @@ async function logout() {
           </div>
           <div class="field">
             <label for="confirm-admin-password">确认新密码</label>
-            <input id="confirm-admin-password" v-model="passwordForm.confirmPassword" type="password" autocomplete="new-password" minlength="12" required />
+            <input id="confirm-admin-password" v-model="passwordForm.confirmPassword" type="password" autocomplete="new-password" required />
           </div>
           <div class="actions">
             <button type="submit" class="btn primary" :disabled="passwordSaving">
