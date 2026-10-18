@@ -402,7 +402,6 @@ async function changeAdminPassword() {
   flash.value = "";
   error.value = "";
   if (!passwordForm.currentPassword) { error.value = "请输入当前管理密码。"; return; }
-  if (passwordForm.newPassword.length < 12) { error.value = "新密码至少需要 12 个字符。"; return; }
   if (passwordForm.newPassword !== passwordForm.confirmPassword) { error.value = "两次输入的新密码不一致。"; return; }
   passwordSaving.value = true;
   try {
