@@ -50,9 +50,9 @@ export function publicRoutes(env: EnvConfig, database: AppDatabase): Router {
     });
   });
 
-  router.get("/api/meta/update", async (_req, res) => {
+  router.get("/api/meta/update", async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
-    res.json(await getUpdateInfo());
+    res.json(await getUpdateInfo(req.query.refresh === "1"));
   });
 
   router.get("/api/status", (_req, res) => {
