@@ -44,7 +44,6 @@ export ADMIN_PASSWORD='替换成你自己的强密码'
 export COMPOSE_DISABLE_ENV_FILE=1
 
 # 以下配置可选；不设置时使用默认值
-export HOST_PORT=17321
 export TZ=Asia/Shanghai
 # export SESSION_SECRET='建议使用独立的长随机字符串'
 ```
@@ -56,20 +55,21 @@ $env:ADMIN_PASSWORD = "替换成你自己的强密码"
 $env:COMPOSE_DISABLE_ENV_FILE = "1"
 
 # 以下配置可选；不设置时使用默认值
-$env:HOST_PORT = "17321"
 $env:TZ = "Asia/Shanghai"
 # $env:SESSION_SECRET = "建议使用独立的长随机字符串"
 ```
 
 请把密码替换成自己的强密码。设置 `COMPOSE_DISABLE_ENV_FILE=1` 是为了让 Docker Compose 不读取项目目录中的默认 `.env` 文件——这样即使同一个目录里存在供本机开发使用的 `.env`，Docker 部署也只会采用当前终端或部署平台注入的环境变量。详情见 [Docker Compose 官方说明](https://docs.docker.com/compose/how-tos/environment-variables/envvars/)。
 
-这些变量在当前终端会话中有效。后续更新或执行其他 Compose 命令时，请继续使用该会话，或在部署平台 / 服务管理器中配置同样的环境变量。若 `17321` 端口已被占用，可将 `HOST_PORT` 改成其他端口，例如 `17322`。
+这些变量在当前终端会话中有效。后续更新或执行其他 Compose 命令时，请继续使用该会话，或在部署平台 / 服务管理器中配置同样的环境变量。端口和数据挂载不通过环境变量控制，而是在 `docker-compose.yml` 里用注释预先标出，按需取消注释和修改。
 
 ### 4. 构建并启动
 
 本项目默认通过 **DaoCloud 国内镜像代理**拉取 Bun 基础镜像：`m.daocloud.io/docker.io/oven/bun:1-alpine`，以减少直接连接 Docker Hub 失败或超时的情况。这个地址使用 DaoCloud 文档推荐的镜像前缀格式，详情见 [DaoCloud 公共镜像说明](https://github.com/DaoCloud/public-image-mirror)。
 
-确认当前目录是项目根目录（里面有 `docker-compose.yml`），并且已设置上述环境变量，然后执行：
+启动前先打开 `docker-compose.yml`：如需从宿主机或局域网访问网页，取消 `ports` 两行的注释（默认映射为 `17321:17321`）；如需保留 SQLite 配置和生成文件，取消其中一种 `volumes` 配置的注释。命名卷方案还需要取消文件底部 `volumes: genpac-data:` 的注释；宿主机目录方案则使用 `./data:/data`。这两项都不从环境变量取值，用户直接编辑 Compose 文件即可。若不配置端口映射，容器服务不会通过宿主机端口对外提供访问；若不配置数据卷，重建容器时数据可能丢失。
+
+确认当前目录是项目根目录（里面有 `docker-compose.yml`），并且已设置上述环境变量、完成所需的 Compose 配置，然后执行：
 
 ```bash
 docker compose up -d --build
@@ -158,7 +158,7 @@ Docker 部署时，命名卷 `genpac-data` 挂载到容器的 `/data` 目录，�
 
 执行 `docker compose down` 不会删除该数据卷。迁移或备份时请一并保存卷中的数据。
 
-业务配置都在网页的「配置管理」中完成。启动级设置通过环境变量配置：例如 `ADMIN_PASSWORD` 是后台管理密码，`HOST_PORT` 是宿主机访问端口，`TZ` 是时区，`SESSION_SECRET` 是可选的会话签名密钥。
+业务配置都在网页的「配置管理」中完成。启动级设置通过环境变量配置：例如 `ADMIN_PASSWORD` 是后台管理密码，`TZ` 是时区，`SESSION_SECRET` 是可选的会话签名密钥。宿主机端口映射和数据挂载则直接在 `docker-compose.yml` 中按需取消注释并修改。
 
 ## 常见问题
 
