@@ -142,7 +142,26 @@ watch(
 
 .cm-host :deep(.cm-scroller) {
   overflow: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
+
+.cm-host :deep(.cm-scroller::-webkit-scrollbar) {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+.cm-host :deep(.cm-scroller::-webkit-scrollbar-thumb) {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.cm-host :deep(.cm-scroller::-webkit-scrollbar-thumb:hover) {
+  background: var(--scrollbar-thumb-hover);
+}
+
 
 .cm-host :deep(.cm-gutters) {
   background: var(--surface-2);
