@@ -19,8 +19,6 @@ FROM m.daocloud.io/docker.io/oven/bun:1-alpine
 
 # 应用不依赖 curl；避免为时区下载 tzdata，减少 Alpine APK 源这一外部构建依赖。
 # POSIX TZ=UTC-8 表示本地时间固定为 UTC+8；APP_TIME_ZONE 保留应用内 IANA 时区名称。
-
-
 WORKDIR /app
 # 运行阶段也使用相同的国内 npm 镜像源。
 COPY package.json bun.lockb* bunfig.toml ./
