@@ -1,72 +1,180 @@
 # genpac-runner
 
-一个基于 Docker 的 **自动生成 PAC 文件** 工具，支持 GFWList、SOCKS5/DIRECT 代理规则，并可通过 Webhook 通知成功或失败。
+一个用于生成 PAC 代理规则文件的轻量工具，带有网页管理界面。你可以配置代理、直连域名、黑名单、远程规则列表、定时生成和 Webhook 通知。
 
----
+**推荐使用 Docker Compose 部署。** 镜像会自动发布到 GitHub Container Registry（GHCR）；部署设备只需拉取预构建镜像，无需克隆源码或本地构建。配置和生成记录保存在 SQLite 中，不需要手动编辑业务配置文件。
 
-## 功能
+## Docker Compose 部署（推荐）
 
-- 自动生成 PAC 文件 (`proxy.pac`)
-- 支持 GFWList URL 配置
-- 支持 SOCKS5 或 HTTP 代理规则
-- 支持 PAC 压缩和精确模式
-- 支持 Webhook 成功/失败通知（钉钉示例）
-- 内置 HTTP 服务，提供 `/proxy.pac` 和 `/status` 两个路由；PAC 原文以 UTF-8 显示，状态页展示当前生成文件中的直连、黑名单和默认代理范围
-- 支持定时任务（Cron）自动更新 PAC 文件
+### 1. 安装 Docker
 
----
+需要 Docker Engine 和 Docker Compose。
 
-## 文件说明
+- **Windows / macOS：** 安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)。
+- **Linux：** 安装 Docker Engine 和 [Docker Compose 插件](https://docs.docker.com/compose/install/linux/)。
 
-| 文件 | 功能 |
-|------|------|
-| `Dockerfile` | Docker 构建文件，安装依赖并复制脚本 |
-| `docker-compose.yml` | Docker Compose 配置，设置环境变量和端口 |
-| `entrypoint.sh` | 容器入口脚本，初始化时区、生成 PAC、启动 cron 和 HTTP 服务 |
-| `update.sh` | 自动生成 PAC 的脚本，并触发 webhook |
-| `serve_proxy.py` | 内置 HTTP 服务，提供 `/proxy.pac` 和 `/status` 规则状态页 |
-
----
-
-## 路由
-
-| 路径 | 说明 |
-|------|------|
-| `/proxy.pac` | 返回当前生成的 PAC 文件 |
-| `/status` | PAC 规则状态页：在自定义规则模式下列出直连和黑名单规则，并说明未命中时的默认代理；若当前文件为 genpac 等其他格式，则提示自定义列表不一定生效 |
-| `/` | 保持兼容，重定向至 `/proxy.pac` |
-
-状态页读取 `/data/proxy.pac` 当前内容，不会把未注入 PAC 的环境变量列表误报为生效规则。修改规则后刷新页面即可查看最新生成结果。
-
----
-
-## 环境变量
-
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `CRON_SCHEDULE` | - | cron 表达式，控制 PAC 更新频率 |
-| `TZ` | `Asia/Shanghai` | 容器时区 |
-| `PAC_PROXY` | `SOCKS5 127.0.0.1:1080; DIRECT` | PAC 代理规则 |
-| `PAC_COMPRESS` | `true` | 是否压缩 PAC 文件 |
-| `PAC_PRECISE` | `false` | 是否精确模式 |
-| `GFWLIST_URL` | `https://github.com/gfwlist/gfwlist/raw/master/gfwlist.txt` | GFWList 地址 |
-| `WEBHOOK_SUCCESS_URL` | - | 成功 webhook URL，可选 |
-| `WEBHOOK_SUCCESS_OPTIONS` | - | 成功 webhook JSON 配置，可选 |
-| `WEBHOOK_FAILURE_URL` | - | 失败 webhook URL，可选 |
-| `WEBHOOK_FAILURE_OPTIONS` | - | 失败 webhook JSON 配置，可选 |
-| `PAC_BLOCK_LIST` | [] | 黑名单（以,分割） |
-| `PAC_DIRECT_LIST` | [] | 直连列表 |
-
----
-
-## 构建与运行
-
-### 1. 构建镜像
+先确认命令可用：
 
 ```bash
-docker-compose build
+docker --version
+docker compose version
 ```
 
-### 2. 部署并启动
+新版 Compose 使用空格形式的 `docker compose`。如果你的系统只提供旧式独立命令，也可以使用 `docker-compose`。
 
-将仓库放到 dpanel 下的 compose 目录，然后直接在面板启动即可
+### 2. 获取 Compose 配置
+
+部署时不需要克隆整个源代码仓库，只需要保存一份 `docker-compose.yml`。可以从 [GitHub 项目中的 docker-compose.yml](https://github.com/geekMus/genpac-runner/blob/refactor/modular-sqlite-admin/docker-compose.yml) 下载后放进部署目录。
+
+Linux / iStoreOS 上也可以执行：
+
+```bash
+mkdir -p genpac-runner
+cd genpac-runner
+curl -fL https://raw.githubusercontent.com/geekMus/genpac-runner/refactor/modular-sqlite-admin/docker-compose.yml -o docker-compose.yml
+```
+
+Windows PowerShell 可以使用：
+
+```powershell
+New-Item -ItemType Directory -Force genpac-runner
+Set-Location genpac-runner
+Invoke-WebRequest https://raw.githubusercontent.com/geekMus/genpac-runner/refactor/modular-sqlite-admin/docker-compose.yml -OutFile docker-compose.yml
+```
+
+### 3. 检查部署配置
+
+**Docker 部署不需要创建 `.env` 文件，也不需要设置额外的配置环境变量。** 请直接检查项目根目录的 `docker-compose.yml`：
+
+- `ADMIN_PASSWORD` 默认是 `password`。**请务必在部署前尽快修改为自己的强密码**，否则任何能访问后台登录页的人都可能尝试这个公开的默认密码。
+- `SESSION_SECRET` 默认注释，不启用单独的签名密钥。程序会根据 `ADMIN_PASSWORD` 派生默认签名密钥。需要使用单独的会话签名密钥时，再取消对应注释并设置自己的随机字符串。
+- 时区通过 Compose 的 `TZ` 环境变量设置，默认 `Asia/Shanghai`；容器内部端口、监听地址和数据目录固定。
+- 默认使用 `bridge` 网络，不发布宿主机端口；需要从宿主机访问时再启用端口映射。数据持久化则按前文所述选择一种挂载方式。
+
+本项目的 Compose 文件不通过 `${...}` 从 shell 或 `.env` 中读取配置。即使部署目录内已有开发用的 `.env`，这些配置也不会被其覆盖。需要调整时区时，直接修改 Compose 中的 `TZ`，然后重建容器即可。
+### 4. 拉取镜像并启动
+
+本项目的多架构预构建镜像发布在 GitHub Container Registry：
+
+- **官方镜像地址：** `ghcr.io/geekmus/genpac-runner:latest`
+- **支持架构：** `linux/amd64`（64 位 Intel/AMD x86）和 `linux/arm64`（64 位 ARM）；官方 Bun 镜像不提供 32 位 `386/i386` 运行时。
+- **自动更新：** 只有向 `main` 分支推送提交时才会自动构建并发布 `latest`；其他分支不会因普通提交自动触发发布。需要测试其他分支时，可在 GitHub Actions 中手动运行工作流，生成该分支对应的测试标签，但不会覆盖 `latest`。
+- **标准构建配置：** Dockerfile 使用官方 `oven/bun:1-alpine` 基础镜像、Bun 默认 npm registry 和 Alpine 官方软件源，不依赖地区专用镜像。
+
+确认当前目录中有 `docker-compose.yml`，按需修改管理员密码、端口映射和数据挂载，然后执行：
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+使用旧版独立命令时，可将 `docker compose` 替换为 `docker-compose`。此处无需使用 `--build`，因为镜像已由 GitHub Actions 构建并发布，部署设备只负责拉取、创建和启动容器。
+
+每次成功发布时，GitHub Actions 的 **Summary（摘要）** 都会列出从上一次成功的镜像到本次提交之间的提交记录，并提供 GitHub 比较链接。镜像还会包含标准 OCI 标签，例如源码仓库地址、版本和提交 SHA，便于追溯镜像对应的代码。
+
+首次发布后，需要在 GitHub 的 **Packages** 中把 `genpac-runner` 容器包的可见性设置为 **Public**，其他人才能无需登录直接拉取。GitHub 容器包首次发布时默认是 Private；发布工作流会自动将包关联到此仓库。
+
+
+
+### 5. 打开网页
+
+假设你已在 `docker-compose.yml` 中启用固定的 `17321:17321` 端口映射，部署设备的 IP 是 `192.168.1.20`：
+
+- 运行概览：`http://192.168.1.20:17321/`
+- 配置管理：`http://192.168.1.20:17321/admin`
+- PAC 文件：`http://192.168.1.20:17321/proxy.pac`
+
+将示例 IP 换成实际部署设备的地址。该访问方式只有在手动启用 Compose 中的端口映射后才可用。
+
+### 常用命令
+
+以下命令都要在放有 `docker-compose.yml` 的部署目录中执行：
+
+```bash
+# 查看日志
+docker compose logs -f genpac
+
+# 重启
+docker compose restart
+
+# 停止并移除容器（配置数据仍会保留）
+docker compose down
+
+# 拉取已发布的最新镜像并更新容器
+docker compose pull
+docker compose up -d
+```
+
+**若启用了命名卷，不要随意执行 `docker compose down -v`**：`-v` 会同时删除 Compose 管理的数据卷，可能导致配置和生成记录丢失。使用 `./data:/data` 目录挂载时，也请勿手动删除该目录。
+
+## 功能简介
+
+- **自定义规则：** 配置直连域名、黑名单和默认代理；本机及私有内网地址优先直连。
+- **远程规则列表：** 从 URL 获取规则，支持 GFWList（Base64）、域名型 AutoProxy / ABP 规则，以及每行一个域名的明文列表。
+- **定时生成：** 使用 Cron 表达式安排自动生成；留空即关闭定时任务。
+- **Webhook 通知：** 分别配置生成成功和失败时的通知渠道，支持自定义 HTTP Webhook 和钉钉机器人。
+- **主题：** 网页支持自动、浅色和深色主题。
+
+远程列表模式会提取规则中的域名进行 PAC 匹配，不会保留 URL 路径、资源类型等复杂过滤条件。自定义直连和黑名单规则优先于远程列表。
+
+## 数据与配置
+
+Docker 部署时，建议在 `docker-compose.yml` 中启用一种 `/data` 持久化挂载配置。选择命名卷方案时，`genpac-data` 挂载到容器的 `/data` 目录，用于保存：
+
+- `genpac.db`：后台配置和生成记录。
+- `proxy.pac`：当前生成的 PAC 文件。
+
+容器数据路径固定为 `/data`，且该目录已通过 Dockerfile 的 `VOLUME` 声明；容器默认工作目录也设置为 `/data`，例如执行 `docker exec -it genpac-runner sh` 进入 shell 后，当前目录就是 `/data`。建议在 Compose 中启用一种显式挂载：使用命名卷时，执行 `docker compose down` 不会删除该数据卷；使用 `./data:/data` 目录挂载时，数据保存在项目的 `data` 目录。若不配置显式挂载，Docker 会创建匿名卷，容器重建时不一定自动复用旧卷。迁移或备份时请一并保存相应数据。
+
+业务配置都在网页的「配置管理」中完成。Docker 部署时，后台管理密码在 `docker-compose.yml` 中配置，默认值为 `password`，部署前应尽快修改。容器时区通过 `TZ` 环境变量设置，默认值为 `Asia/Shanghai`；你也可以改为 `Etc/UTC`、`Asia/Tokyo` 或其他 IANA 时区名称。Dockerfile 安装 `tzdata` 以支持这些时区。监听地址固定为 `0.0.0.0`，内部端口固定为 `17321`，数据目录固定为 `/data`；宿主机端口映射和数据挂载则直接在 `docker-compose.yml` 中按需取消注释并修改。
+
+## 常见问题
+
+**提示 `docker: 'compose' is not a docker command`**
+
+说明 Docker Compose 插件未安装，或 Docker CLI 无法找到它。请按 [Docker Compose 官方安装文档](https://docs.docker.com/compose/install/) 安装后，再运行 `docker compose version` 检查。若系统已安装旧式独立命令，可尝试 `docker-compose --version` 和 `docker-compose up -d`。
+
+**拉取镜像时提示超时或连接重置**
+
+部署设备无需自行构建镜像。若拉取失败，先检查能否访问 `ghcr.io`，确认 GHCR 中 `genpac-runner` 容器包已设置为 Public，然后执行 `docker compose pull` 重试。
+
+**访问不了网页**
+
+检查容器是否启动成功、端口是否被占用，并查看 `docker compose logs -f genpac`。如果从局域网其他设备访问，请确认服务器防火墙允许访问所配置的宿主机端口。
+
+**后台无法登录**
+
+检查 `docker-compose.yml` 中的 `ADMIN_PASSWORD` 是否设置为你实际使用的密码。修改后重新创建容器使配置生效：
+
+```bash
+docker compose up -d --force-recreate
+```
+
+**远程列表生成失败**
+
+确认容器可以访问列表 URL，且列表内容属于上方支持的格式。当前解析器按域名提取规则，不是完整的通用 ABP 过滤引擎。
+
+## 本机开发（可选）
+
+如需修改源码，可先安装 [Bun](https://bun.sh/)。
+
+在项目根目录创建仅用于本机开发的 `.env`：
+
+```bash
+bun install
+cp .env.example .env
+```
+
+Windows PowerShell 可使用：
+
+```powershell
+Copy-Item .env.example .env
+```
+
+打开 `.env`，设置 `ADMIN_PASSWORD` 等开发配置，然后运行：
+
+```bash
+bun run dev
+```
+
+开发服务器默认监听后端 `17321`，前端开发页面为 `http://127.0.0.1:5173`。生产构建可运行 `bun run build`，然后执行 `bun start`；生产运行使用进程环境变量，不需要 `.env` 文件。

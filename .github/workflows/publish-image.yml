@@ -1,0 +1,132 @@
+name: 构建并发布 Docker 镜像
+
+on:
+  # 自动发布只允许 main 分支的 push 事件触发。
+  push:
+    branches:
+      - main
+  # 其他分支只能手动运行；非 main 分支的手动运行不会覆盖 latest。
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: 构建并发布多架构镜像
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+    steps:
+      - name: 检出完整提交历史
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 启用 ARM64 构建支持
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 GitHub 容器镜像仓库
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 生成镜像标签和元数据
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/geekmus/genpac-runner
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha
+          labels: |
+            org.opencontainers.image.title=genpac-runner
+            org.opencontainers.image.description=自动生成 PAC 文件的工具
+            org.opencontainers.image.source=https://github.com/geekMus/genpac-runner
+
+      - name: 输出本次镜像的提交变更摘要
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          set -euo pipefail
+          SUMMARY="$GITHUB_STEP_SUMMARY"
+          echo "# Docker 镜像发布摘要" >> "$SUMMARY"
+          echo "" >> "$SUMMARY"
+          echo "- 仓库：`$GITHUB_REPOSITORY`" >> "$SUMMARY"
+          echo "- 本次提交：[`$GITHUB_SHA`](https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA)" >> "$SUMMARY"
+          echo "- 触发方式：`$GITHUB_EVENT_NAME`" >> "$SUMMARY"
+          echo "- 构建平台：`linux/amd64`、`linux/arm64`" >> "$SUMMARY"
+          echo "- 镜像标签：" >> "$SUMMARY"
+          while IFS= read -r tag; do
+            [ -n "$tag" ] && echo "  - `$tag`" >> "$SUMMARY"
+          done <<< "$IMAGE_TAGS"
+
+          RUNS="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/publish-image.yml/runs?per_page=100")"
+          PREVIOUS_SHA="$(printf '%s' "$RUNS" | jq -r --arg current "$GITHUB_SHA" '[.workflow_runs[] | select(.conclusion == "success" and .head_sha != $current and .head_branch == "main")] | first | .head_sha // empty')"
+
+          # 首次 main 发布时，使用最近一次成功发布的分支构建作为对比基线。
+          if [ -z "$PREVIOUS_SHA" ]; then
+            PREVIOUS_SHA="$(printf '%s' "$RUNS" | jq -r --arg current "$GITHUB_SHA" '[.workflow_runs[] | select(.conclusion == "success" and .head_sha != $current)] | first | .head_sha // empty')"
+          fi
+
+          echo "" >> "$SUMMARY"
+          if [ -n "$PREVIOUS_SHA" ] && git cat-file -e "$PREVIOUS_SHA^{commit}" 2>/dev/null; then
+            echo "## 与上一次成功发布的镜像相比" >> "$SUMMARY"
+            echo "" >> "$SUMMARY"
+            echo "上一次发布提交：[`$PREVIOUS_SHA`](https://github.com/$GITHUB_REPOSITORY/commit/$PREVIOUS_SHA)" >> "$SUMMARY"
+            echo "变更比较：[查看完整提交和文件差异](https://github.com/$GITHUB_REPOSITORY/compare/$PREVIOUS_SHA...$GITHUB_SHA)" >> "$SUMMARY"
+            echo "" >> "$SUMMARY"
+            echo "### 提交记录" >> "$SUMMARY"
+            echo "" >> "$SUMMARY"
+            COMMITS="$(git log --format='- %h %s' "$PREVIOUS_SHA..$GITHUB_SHA" || true)"
+            if [ -n "$COMMITS" ]; then
+              printf '%s\n' "$COMMITS" >> "$SUMMARY"
+            else
+              echo "未发现新增提交；本次可能只是重新构建或手动发布。" >> "$SUMMARY"
+            fi
+          else
+            echo "## 提交记录" >> "$SUMMARY"
+            echo "" >> "$SUMMARY"
+            echo "没有找到可用的上一次成功发布提交，这是首次发布，或历史发布信息暂不可用。" >> "$SUMMARY"
+            echo "" >> "$SUMMARY"
+            git log -10 --format='- %h %s' "$GITHUB_SHA" >> "$SUMMARY"
+          fi
+
+      - name: 显示本次构建平台
+        run: |
+          echo "开始构建 genpac-runner 多架构镜像。"
+          echo "支持平台：linux/amd64（x86_64，64 位 Intel/AMD）和 linux/arm64（64 位 ARM）。"
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            echo "当前来自 main 分支，将更新 latest 标签。"
+          else
+            echo "当前为手动触发的非 main 构建，不会覆盖 latest 标签。"
+          fi
+
+      - name: 构建并推送多架构镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 输出镜像发布完成提示
+        run: |
+          echo "genpac-runner 多架构镜像构建与推送成功。"
+          echo "本次源代码提交：$GITHUB_SHA"
+          echo "镜像地址：ghcr.io/geekmus/genpac-runner"

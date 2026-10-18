@@ -1,56 +1,40 @@
 services:
-    genpac:
-        build:
-            context: .
-            dockerfile: Dockerfile
-        container_name: genpac-runner
-        restart: unless-stopped
-        network_mode: bridge
+  genpac:
+    # 使用 GHCR 已发布的多架构镜像；部署设备无需克隆源代码或本地构建。
+    image: ghcr.io/geekmus/genpac-runner:latest
+    container_name: genpac-runner
+    restart: unless-stopped
 
-        environment:
-            # 定时任务
-            # CRON_SCHEDULE: "0 0 */3 * *"
+    environment:
+      # 后台管理登录密码。默认是 password，请在部署前尽快改成自己的强密码。
+      ADMIN_PASSWORD: "password"
 
-            # 时区
-            TZ: Asia/Shanghai
+      # 容器时区，可改为 Etc/UTC、Asia/Tokyo、America/Los_Angeles 等 IANA 时区名称。
+      TZ: Asia/Shanghai
 
-            # PAC 配置
-            PAC_PROXY: "SOCKS5 192.168.31.200:7893; DIRECT"
-            # 是否压缩
-            PAC_COMPRESS: "false"
-            # 是否精确匹配
-            PAC_PRECISE: "false"
-            # GFWLIST_URL: "https://github.mus.pp.ua/https://github.com/gfwlist/gfwlist/raw/master/gfwlist.txt"
+      # 可选：后台登录 Cookie 的签名密钥，用于验证会话凭证是否被篡改。
+      # 默认不启用独立密钥；程序会根据 ADMIN_PASSWORD 派生默认签名密钥。
+      # SESSION_SECRET: "replace-with-a-long-random-secret"
 
-            # 自定义列表（只有在未配置GFWLIST_URL时生效）
-            PAC_BLOCK_LIST: ""
-            PAC_DIRECT_LIST: ""
+    # 默认使用 bridge 驱动的 Compose 项目网络，但不向宿主机发布端口。
+    # 如需直接从宿主机 / 局域网访问，才取消下面两行的注释。
+    # ports:
+    #   - "17321:17321"
 
-            # webhook 可选，不设置则不触发
-            WEBHOOK_SUCCESS_URL: "https://oapi.dingtalk.com/robot/send?access_token=Token"
-            WEBHOOK_SUCCESS_OPTIONS: |
-                {
-                  "msgtype": "markdown",
-                  "markdown": {
-                    "title": "tracker",
-                    "text": "✅ genpac 更新成功 \n 📦 proxy.pac 已生成"
-                  }
-                }
+    # 容器数据固定保存在 /data。建议明确启用一种持久化挂载。
+    # 方式 A：Docker 管理的命名卷
+    # volumes:
+    #   - genpac-data:/data
 
-            WEBHOOK_FAILURE_URL: "https://oapi.dingtalk.com/robot/send?access_token=Token"
-            WEBHOOK_FAILURE_OPTIONS: |
-                {
-                  "msgtype": "markdown",
-                  "markdown": {
-                    "title": "tracker",
-                    "text": "❌ genpac 更新失败"
-                  }
-                }
+    # 方式 B：挂载到项目目录下的 ./data（请确保目录有读写权限；启用时不要同时启用方式 A）
+    # volumes:
+    #   - ./data:/data
 
-        # 暴露 HTTP 端口
-        ports:
-            - "1200:8080"
+# 仅在选择方式 A（命名卷）时，取消下面两行注释
+# volumes:
+#   genpac-data:
 
-        # volumes 可以去掉，如果不需要持久化
-        # volumes:
-        #   - /data/genpac-data:/data
+# 明确使用用户自定义 bridge 网络。此设置不等同于发布宿主机端口。
+networks:
+  default:
+    driver: bridge
