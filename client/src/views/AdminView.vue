@@ -8,6 +8,7 @@ import {
   type GenpacProbe,
 } from "../api/client";
 import AppHeader from "../components/AppHeader.vue";
+import DomainListEditor from "../components/DomainListEditor.vue";
 
 const router = useRouter();
 const loading = ref(true);
@@ -298,24 +299,44 @@ async function logout() {
               </span>
               <div>
                 <h2>自定义规则</h2>
-                <p class="card-sub">仅在「自定义规则」模式下写入 PAC</p>
+                <p class="card-sub">直连与黑名单在「自定义」和「远程列表」两种模式下都会生效</p>
               </div>
             </div>
           </div>
 
-          <div class="split">
+          <details class="help">
+            <summary>如何配置？生效顺序说明</summary>
+            <div class="help-body">
+              <p><strong>写法：</strong>每行一条规则。支持完整域名 <code>example.com</code>，或通配 <code>*.example.com</code>。<code>#</code> 开头为注释（保存时仍会保留在文本里，生成时请勿依赖注释行作为规则）。</p>
+              <p><strong>直连列表：</strong>命中后返回 <code>DIRECT</code>（不走代理）。</p>
+              <p><strong>黑名单：</strong>命中后返回 <code>PROXY 0.0.0.0:0</code>（连接被拒绝，常用于屏蔽广告/追踪域名）。</p>
+              <p><strong>匹配优先级（两种模式相同）：</strong></p>
+              <ol>
+                <li>本机 / 内网地址 → 始终直连</li>
+                <li>黑名单 → 拒绝</li>
+                <li>直连列表 → 直连</li>
+                <li>若为远程列表模式：再匹配远程规则（列表中的域名走代理，列表内例外直连）</li>
+                <li>自定义模式剩余流量走「PAC 代理字符串」；远程列表模式剩余流量默认直连</li>
+              </ol>
+            </div>
+          </details>
+
+          <div class="split editors">
             <div class="field">
-              <label for="directList">直连列表 <span class="lab-hint">每行一个域名</span></label>
-              <textarea
-                id="directList"
+              <label>直连列表</label>
+              <DomainListEditor
                 v-model="form.directListText"
-                rows="7"
+                :min-height="220"
                 placeholder="baidu.com&#10;*.cn"
               />
             </div>
             <div class="field">
-              <label for="blockList">黑名单 <span class="lab-hint">命中返回 PROXY 0.0.0.0:0</span></label>
-              <textarea id="blockList" v-model="form.blockListText" rows="7" />
+              <label>黑名单</label>
+              <DomainListEditor
+                v-model="form.blockListText"
+                :min-height="220"
+                placeholder="ads.example.com"
+              />
             </div>
           </div>
         </section>
@@ -770,4 +791,60 @@ tr:last-child td {
     width: 100%;
   }
 }
+
+.help {
+  margin: 0 0 var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  padding: 0 14px;
+}
+.help summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 12px 0;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.help summary::-webkit-details-marker { display: none; }
+.help summary::before {
+  content: "›";
+  display: inline-block;
+  transition: transform 0.15s;
+  color: var(--accent);
+  font-weight: 700;
+}
+.help[open] summary::before {
+  transform: rotate(90deg);
+}
+.help-body {
+  padding: 0 0 14px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.help-body p { margin: 0 0 10px; }
+.help-body ol {
+  margin: 0;
+  padding-left: 1.25em;
+}
+.help-body li { margin-bottom: 4px; }
+.split.editors {
+  align-items: stretch;
+  grid-auto-rows: 1fr;
+}
+.split.editors .field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+  min-height: 220px;
+}
+.split.editors .field > :last-child {
+  flex: 1;
+}
+
 </style>

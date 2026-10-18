@@ -92,6 +92,8 @@ async function runRemoteMode(
     settings.pacProxy,
     parsed.proxyHosts,
     parsed.directHosts,
+    settings.blockList,
+    settings.directList,
     settings.pacCompress
   );
   fs.writeFileSync(outFile, pac, "utf8");
