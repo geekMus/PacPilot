@@ -2,10 +2,9 @@
 from datetime import datetime
 import threading
 import time
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from .settings import _cron_field_values, resolve_timezone
 
 from .pac import generate_pac
-from .settings import _cron_field_values
 from .storage import get_settings
 
 
@@ -47,7 +46,7 @@ def scheduler_loop(stop_event=None, interval=10):
     while not stop_event.is_set():
         try:
             settings = get_settings()
-            zone = ZoneInfo(settings.get("timezone", "Asia/Shanghai"))
+            zone = resolve_timezone(settings.get("timezone", "Asia/Shanghai"))
             now = datetime.now(zone)
             minute_key = now.strftime("%Y%m%d%H%M")
             if minute_key != last_minute:
@@ -59,7 +58,7 @@ def scheduler_loop(stop_event=None, interval=10):
                     except Exception as error:
                         print("[scheduler] PAC 更新失败：%s" % error, flush=True)
                 last_minute = minute_key
-        except (ZoneInfoNotFoundError, ValueError) as error:
+        except ValueError as error:
             print("[scheduler] 时区或调度配置错误：%s" % error, flush=True)
         except Exception as error:
             print("[scheduler] 调度检查失败：%s" % error, flush=True)
