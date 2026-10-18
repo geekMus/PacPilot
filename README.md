@@ -24,14 +24,14 @@ docker compose version
 
 ### 2. 获取 Compose 配置
 
-部署时不需要克隆整个源代码仓库，只需要保存一份 `docker-compose.yml`。可以从 [GitHub 项目中的 docker-compose.yml](https://github.com/geekMus/genpac-runner/blob/refactor/modular-sqlite-admin/docker-compose.yml) 下载后放进部署目录。
+部署时不需要克隆整个源代码仓库，只需要保存一份 `docker-compose.yml`。可以从 [GitHub 项目中的 docker-compose.yml](https://github.com/geekMus/genpac-runner/blob/main/docker-compose.yml) 下载后放进部署目录。
 
 Linux / iStoreOS 上也可以执行：
 
 ```bash
 mkdir -p genpac-runner
 cd genpac-runner
-curl -fL https://raw.githubusercontent.com/geekMus/genpac-runner/refactor/modular-sqlite-admin/docker-compose.yml -o docker-compose.yml
+curl -fL https://raw.githubusercontent.com/geekMus/genpac-runner/main/docker-compose.yml -o docker-compose.yml
 ```
 
 Windows PowerShell 可以使用：
@@ -39,7 +39,7 @@ Windows PowerShell 可以使用：
 ```powershell
 New-Item -ItemType Directory -Force genpac-runner
 Set-Location genpac-runner
-Invoke-WebRequest https://raw.githubusercontent.com/geekMus/genpac-runner/refactor/modular-sqlite-admin/docker-compose.yml -OutFile docker-compose.yml
+Invoke-WebRequest https://raw.githubusercontent.com/geekMus/genpac-runner/main/docker-compose.yml -OutFile docker-compose.yml
 ```
 
 ### 3. 检查部署配置
@@ -58,7 +58,7 @@ Invoke-WebRequest https://raw.githubusercontent.com/geekMus/genpac-runner/refact
 
 - **官方镜像地址：** `ghcr.io/geekmus/genpac-runner:latest`
 - **支持架构：** `linux/amd64`（64 位 Intel/AMD x86）和 `linux/arm64`（64 位 ARM）；官方 Bun 镜像不提供 32 位 `386/i386` 运行时。
-- **版本发布：** 镜像版本以 `package.json` 的 `version` 为唯一依据。例如项目版本为 `2.3.0` 时，会发布 `ghcr.io/geekmus/genpac-runner:2.3.0`。只有 `main` 分支提交使版本号相对上一提交发生变化时，才会推送镜像；稳定版同时更新 `latest`，带预发布后缀的版本不会覆盖 `latest`。
+- **版本发布：** 使用日历版本（CalVer），版本以 `package.json` 的 `version` 为唯一依据，格式为 `YYYY.MM.DD`，例如 `2026.10.18`，同一天需要多次修订时使用 `2026.10.18-r1`、`2026.10.18-r2`。只有 `main` 分支修改 `package.json` 且版本发生有效变化时才会推送镜像；首次从旧式版本切换到日期版本时允许迁移，后续日期与同日修订序号必须递增。成功发布后更新版本标签和 `latest`。
 - **标准构建配置：** Dockerfile 使用官方 `oven/bun:1-alpine` 基础镜像、Bun 默认 npm registry 和 Alpine 官方软件源，不依赖地区专用镜像。
 
 确认当前目录中有 `docker-compose.yml`，按需修改管理员密码、端口映射和数据挂载，然后执行：
@@ -70,9 +70,9 @@ docker compose up -d
 
 使用旧版独立命令时，可将 `docker compose` 替换为 `docker-compose`。此处无需使用 `--build`，因为镜像已由 GitHub Actions 构建并发布，部署设备只负责拉取、创建和启动容器。
 
-每次成功发布时，GitHub Actions 的 **Summary（摘要）** 会列出从上一个版本标签到本次提交之间的提交记录，并提供 GitHub 比较链接；同时创建带自动生成变更说明的 GitHub Release。镜像包含标准 OCI 标签，例如源码仓库地址、版本和提交 SHA，便于追溯镜像对应的代码。
+每次运行会在 GitHub Actions 的 **Summary（摘要）** 中列出项目版本、发布判断、上一版本提交、提交记录和完整差异链接。镜像包含标准 OCI 标签，例如源码仓库地址、版本和提交 SHA，便于追溯镜像对应的代码。
 
-普通代码提交和分支合并不会发布镜像。如果只修改了依赖或代码，但没有提高 `package.json` 的 `version`，工作流会跳过推送。发布新版本前请先按语义化版本规则更新 `package.json`。其他分支的普通提交不会自动触发；手动运行只做构建验证，不会推送镜像。
+普通代码提交和分支合并不会触发镜像工作流；只有 `main` 上的 `package.json` 变更会触发版本检查。如果只是修改了依赖或其他字段、但没有改变 `version`，工作流不会发布镜像。发布新版本时请将 `version` 更新为当天的 `YYYY.MM.DD`，同日后续修订使用递增的 `-rN` 后缀。其他分支的普通提交不会自动触发；手动运行仅验证构建，不会推送镜像。
 
 首次发布后，需要在 GitHub 的 **Packages** 中把 `genpac-runner` 容器包的可见性设置为 **Public**，其他人才能无需登录直接拉取。GitHub 容器包首次发布时默认是 Private；发布工作流会自动将包关联到此仓库。
 
