@@ -150,7 +150,10 @@ export function loadEnv(): EnvConfig {
     host: str("HOST", "0.0.0.0")!,
     adminPassword,
     sessionSecret,
-    tz: str("TZ", "Asia/Shanghai")!,
+    // 容器系统 TZ 使用 POSIX UTC+8；面向用户的日期格式化需使用 IANA 时区名。
+    tz: isContainer()
+      ? str("APP_TIME_ZONE", "Asia/Shanghai")!
+      : str("TZ", "Asia/Shanghai")!,
   };
 }
 
