@@ -28,7 +28,7 @@ function stripHostFromRule(line: string): string | null {
   s = s.replace(/^https?:\/\//i, "");
   s = (s.split("/")[0] ?? s).split("?")[0] ?? s;
   s = s.replace(/:\d+$/, "");
-  s = s.replace(/^\*\./, "").replace(/^\./, "").trim().toLowerCase();
+  s = s.replace(/^\*\./, "").replace(/^\./, "").replace(/\^.*$/, "").trim().toLowerCase();
   if (!s || s.includes("*") || s.includes("^")) return null;
   if (!isLikelyDomain(s) && !/^[a-z0-9._-]+$/i.test(s)) return null;
   return s;
