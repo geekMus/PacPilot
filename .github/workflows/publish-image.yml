@@ -28,6 +28,9 @@ jobs:
 
       - name: 验证日历版本并判断发布条件
         id: version
+        env:
+          # push 事件的 before 是本次整批提交前的 main HEAD。
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
         shell: bash
         run: |
           set -euo pipefail
@@ -49,7 +52,10 @@ jobs:
             exit 1
           fi
 
-          PREVIOUS_VERSION="$(git show "${GITHUB_SHA}^:package.json" 2>/dev/null | jq -r '.version // empty' 2>/dev/null || true)"
+          PREVIOUS_VERSION=""
+          if [[ "$GITHUB_EVENT_NAME" == "push" && -n "${PUSH_BEFORE_SHA:-}" && "$PUSH_BEFORE_SHA" != "0000000000000000000000000000000000000000" ]]; then
+            PREVIOUS_VERSION="$(git show "$PUSH_BEFORE_SHA:package.json" 2>/dev/null | jq -r '.version // empty' 2>/dev/null || true)"
+          fi
           VERSION_TAG="v$VERSION"
           PUBLISH="false"
           PUBLISH_LATEST="false"
