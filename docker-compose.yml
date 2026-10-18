@@ -12,8 +12,8 @@ services:
       PORT: "17321"
       HOST: "0.0.0.0"
       RUNNING_IN_DOCKER: "1"
-      # 启动前必须在 .env 中设置管理密码
-      ADMIN_PASSWORD: "${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env before starting}"
+      # 从启动 Docker Compose 的 shell / 部署平台读取，不要求项目目录提供 .env
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in the process environment before starting}"
       SESSION_SECRET: "${SESSION_SECRET:-}"
 
     ports:
