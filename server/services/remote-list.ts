@@ -172,7 +172,6 @@ export function buildRemoteListPac(
   const remoteDirectObj = remoteDirectHosts
     .map((h) => `"${escapeJsString(h)}":1`)
     .join(compress ? "," : ",\n  ");
-  const proxyStr = escapeJsString(pacProxy);
   const blockJs = toJsArray(userBlockList);
   const directJs = toJsArray(userDirectList);
 
@@ -180,7 +179,7 @@ export function buildRemoteListPac(
 // remote proxy=${proxyHosts.length}, remote direct=${remoteDirectHosts.length}
 // user block=${userBlockList.length}, user direct=${userDirectList.length}
 
-var PROXY = "${proxyStr}";
+var PROXY = ${JSON.stringify(pacProxy)};
 var DIRECT = "DIRECT";
 var BLOCK = "PROXY 0.0.0.0:0";
 
