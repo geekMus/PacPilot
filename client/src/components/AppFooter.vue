@@ -8,7 +8,41 @@ const updateInfo = ref<UpdateInfo | null>(null);
 const dialogOpen = ref(false);
 const hasUpdate = computed(() => Boolean(updateInfo.value?.updateAvailable && updateInfo.value.latestVersion));
 const latestVersion = computed(() => updateInfo.value?.latestVersion || "暂时未知");
-onMounted(async () => { try { updateInfo.value = await api.checkForUpdates(); if (updateInfo.value.currentVersion) currentVersion.value = updateInfo.value.currentVersion; } catch { /* 网络不可用时保留本地版本。 */ } });
+async function readLatestVersionDirectly(): Promise<string | null> {
+  const sources = [
+    "https://raw.githubusercontent.com/geekMus/genpac-runner/main/package.json",
+    "https://cdn.jsdelivr.net/gh/geekMus/genpac-runner@main/package.json",
+  ];
+  for (const url of sources) {
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(7000), cache: "no-store" });
+      if (!response.ok) continue;
+      const data = await response.json() as { version?: unknown };
+      if (typeof data.version === "string" && /^\\d{4}\\.\\d{2}\\.\\d{2}(?:-r[1-9]\\d*)?$/.test(data.version)) return data.version;
+    } catch { /* 尝试下一个镜像源。 */ }
+  }
+  return null;
+}
+async function loadVersionInfo() {
+  try {
+    updateInfo.value = await api.checkForUpdates();
+    if (updateInfo.value.currentVersion) currentVersion.value = updateInfo.value.currentVersion;
+  } catch { /* 服务端版本检查不可用时尝试浏览器直连。 */ }
+  if (!updateInfo.value?.latestVersion) {
+    const latest = await readLatestVersionDirectly();
+    if (latest) {
+      const current = currentVersion.value;
+      updateInfo.value = {
+        currentVersion: current,
+        latestVersion: latest,
+        updateAvailable: latest > current,
+        checked: true,
+        repositoryUrl: projectUrl,
+      };
+    }
+  }
+}
+onMounted(() => { void loadVersionInfo(); });
 </script>
 <template>
   <footer class="app-footer" @keydown.esc.stop.prevent="dialogOpen = false">
