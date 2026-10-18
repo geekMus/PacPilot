@@ -530,13 +530,13 @@ async function logout() {
           </div>
 
           <div v-if="mobileTimezoneOpen" class="timezone-sheet-backdrop" @click.self="mobileTimezoneOpen = false">
-            <section class="timezone-sheet" role="dialog" aria-modal="true" aria-labelledby="mobile-timezone-title">
+            <section class="timezone-sheet" role="dialog" aria-modal="true" aria-labelledby="mobile-timezone-title" @keydown.esc="mobileTimezoneOpen = false">
               <header class="timezone-sheet-head">
                 <h3 id="mobile-timezone-title">选择时区</h3>
                 <button type="button" class="timezone-sheet-close" aria-label="关闭时区选择" @click="mobileTimezoneOpen = false">×</button>
               </header>
               <input v-model="timezoneQuery" class="timezone-sheet-search" type="search" autocomplete="off"
-                placeholder="搜索地区或输入 IANA 时区，如 Asia/Tokyo" />
+                placeholder="搜索地区或输入 IANA 时区，如 Asia/Tokyo" @keydown.enter.prevent />
               <div class="timezone-sheet-options" role="listbox" aria-label="时区建议">
                 <button v-for="zone in filteredTimeZones" :key="zone.value" type="button" role="option"
                   :aria-selected="form.timezone === zone.value" class="timezone-option"
