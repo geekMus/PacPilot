@@ -3,7 +3,7 @@ from contextlib import closing
 from pathlib import Path
 import sqlite3
 
-from .settings import DEFAULTS
+from .settings import DEFAULTS, resolve_timezone
 
 DATA_DIR = Path("/data")
 DB_PATH = DATA_DIR / "config.sqlite3"
@@ -65,12 +65,10 @@ def save_settings(values):
 def record_update(status, details):
     initialize()
     from datetime import datetime
-    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
-
     settings = get_settings()
     try:
-        now = datetime.now(ZoneInfo(settings.get("timezone", "Asia/Shanghai")))
-    except (ZoneInfoNotFoundError, ValueError):
+        now = datetime.now(resolve_timezone(settings.get("timezone", "Asia/Shanghai")))
+    except ValueError:
         now = datetime.now().astimezone()
     with closing(_connect()) as db:
         with db:
