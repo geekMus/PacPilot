@@ -3,6 +3,7 @@ import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { api } from "../api/client";
 import AppHeader from "../components/AppHeader.vue";
+import AppFooter from "../components/AppFooter.vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -70,6 +71,7 @@ async function onSubmit() {
         <p class="login-footnote"><code>docker exec -it genpac-runner bun run /app/scripts/reset-admin-password.ts</code></p>
       </section>
     </section>
+    <AppFooter />
   </main>
 </template>
 

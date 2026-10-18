@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import ThemeSwitcher from "./ThemeSwitcher.vue";
-import packageJson from "../../../package.json";
 
 defineProps<{ brand?: string; sub?: string }>();
-const appVersion = packageJson.version;
-const projectUrl = "https://github.com/geekMus/genpac-runner";
 </script>
 
 <template>
@@ -18,7 +15,6 @@ const projectUrl = "https://github.com/geekMus/genpac-runner";
       <span class="brand-copy">
         <span class="name">{{ brand || "genpac-runner" }}</span>
         <small v-if="sub">{{ sub }}</small>
-        <a class="version-link" :href="projectUrl" target="_blank" rel="noopener noreferrer" :aria-label="`项目主页，当前版本 ${appVersion}`">v{{ appVersion }}</a>
       </span>
     </RouterLink>
     <div class="header-tools">
@@ -34,8 +30,6 @@ const projectUrl = "https://github.com/geekMus/genpac-runner";
 .brand-mark { display:grid; place-items:center; width:36px; height:36px; border:1px solid var(--line); border-radius:11px; background:var(--surface); color:var(--accent); }
 .brand-copy .name { display:block; font-size:14px; font-weight:750; letter-spacing:-.02em; }
 .brand-copy small { display:block; margin-top:1px; color:var(--muted); font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
-.version-link { display:inline-flex; margin-top:4px; padding:2px 6px; border:1px solid var(--line); border-radius:5px; color:var(--muted); background:var(--surface-2); font-size:10px; font-weight:650; letter-spacing:0; text-decoration:none; font-variant-numeric:tabular-nums; }
-.version-link:hover { color:var(--accent); border-color:var(--accent); }
 .header-tools { display:flex; align-items:center; justify-content:flex-end; gap:12px; min-width:0; }
 .nav { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:7px; }
 .nav :deep(a),.nav :deep(button.linkish) { display:inline-flex; align-items:center; justify-content:center; min-height:35px; padding:0 12px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--text); font-size:12px; font-weight:650; text-decoration:none; white-space:nowrap; cursor:pointer; }

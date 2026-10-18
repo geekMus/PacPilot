@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppHeader from "../components/AppHeader.vue";
+import AppFooter from "../components/AppFooter.vue";
 </script>
 
 <template>
@@ -20,6 +21,7 @@ import AppHeader from "../components/AppHeader.vue";
         <RouterLink class="action-button" to="/admin">配置管理</RouterLink>
       </div>
     </section>
+    <AppFooter />
   </main>
 </template>
 

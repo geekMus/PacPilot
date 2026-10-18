@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { onMounted, ref, computed, watch } from "vue";
-import { api, type Meta, type PacStatus, type UpdateInfo } from "../api/client";
+import { api, type Meta, type PacStatus } from "../api/client";
 import AppHeader from "../components/AppHeader.vue";
+import AppFooter from "../components/AppFooter.vue";
 import RuleVirtualList from "../components/RuleVirtualList.vue";
 
 const status = ref<PacStatus | null>(null);
 const meta = ref<Meta | null>(null);
-const updateInfo = ref<UpdateInfo | null>(null);
 const error = ref("");
 const loading = ref(true);
 
@@ -23,19 +23,7 @@ async function loadStatus() {
     loading.value = false;
   }
 }
-async function checkForUpdates() {
-  try {
-    updateInfo.value = await api.checkForUpdates();
-  } catch {
-    // 外网不可达时静默跳过版本提示，不能影响主页使用。
-    updateInfo.value = null;
-  }
-}
-
-onMounted(() => {
-  void loadStatus();
-  void checkForUpdates();
-});
+onMounted(() => { void loadStatus(); });
 
 const hasRuleSummary = computed(() =>
   status.value?.mode === "custom" || status.value?.mode === "remote"
@@ -223,19 +211,7 @@ const activeRuleCount = computed(() => {
         <span class="status-indicator" :class="status.hasPac ? 'online' : 'idle'"></span>
         <strong>{{ status.modeLabel }}</strong><span class="meta-divider">·</span>
         <span>{{ status.hasPac ? `生成时间：${status.updatedAt}` : "尚无生成文件" }}</span>
-        <span class="meta-divider">·</span>
-        <span>版本 v{{ meta?.version || "…" }}</span>
-        <a v-if="meta?.repositoryUrl" :href="meta.repositoryUrl" target="_blank" rel="noopener noreferrer">项目主页 ↗</a>
       </div>
-    </section>
-
-    <section v-if="updateInfo?.updateAvailable && updateInfo.latestVersion" class="update-banner" role="status" aria-live="polite">
-      <span class="update-symbol" aria-hidden="true">↑</span>
-      <div class="update-copy">
-        <strong>发现新版本 {{ updateInfo.latestVersion }}</strong>
-        <p>当前版本为 {{ updateInfo.currentVersion }}。新版本已在项目仓库发布。</p>
-      </div>
-      <a class="action-button primary update-link" :href="updateInfo.repositoryUrl" target="_blank" rel="noopener noreferrer">查看项目与更新说明 ↗</a>
     </section>
 
     <section v-if="loading" class="state-card" aria-live="polite">
@@ -252,9 +228,8 @@ const activeRuleCount = computed(() => {
       <section v-if="status.mode === 'empty'" class="empty-hero">
         <div class="empty-icon" aria-hidden="true">↗</div>
         <h2>还没有生成 PAC</h2>
-        <p v-if="meta?.adminEnabled">先进入配置管理，设置启动模式和规则，然后点击「保存并生成 PAC」。生成后，这里会显示可识别的规则摘要。</p>
-        <p v-else>后台管理尚未启用。请在服务端设置环境变量 <code>ADMIN_PASSWORD</code>，启用后台后再配置规则并生成 PAC。</p>
-        <RouterLink v-if="meta?.adminEnabled" class="action-button primary" to="/admin">前往配置管理</RouterLink>
+        <p>先进入配置管理，设置启动模式和规则，然后点击「保存并生成 PAC」。生成后，这里会显示可识别的规则摘要。</p>
+        <RouterLink class="action-button primary" to="/admin">前往配置管理</RouterLink>
       </section>
 
       <template v-else-if="hasRuleSummary">
@@ -371,6 +346,7 @@ const activeRuleCount = computed(() => {
         <div class="source-actions"><span>最近文件时间：{{ status.updatedAt }}</span><a href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看原文</a><a href="/proxy.pac?download=1">下载 PAC</a><button type="button" @click="loadStatus">刷新状态</button></div>
       </section>
     </template>
+    <AppFooter />
   </main>
 </template>
 
@@ -538,11 +514,4 @@ const activeRuleCount = computed(() => {
   .domain-check-form { grid-template-columns:minmax(0,1fr); }
   .domain-check-form button { width:100%; }
 }
-.update-banner { display:flex; align-items:center; gap:14px; margin:0 0 22px; padding:15px 17px; border:1px solid color-mix(in srgb,var(--accent) 42%,var(--line)); border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow); }
-.update-symbol { display:grid; place-items:center; flex:0 0 34px; height:34px; border-radius:10px; background:var(--accent); color:#fff; font-size:20px; font-weight:750; }
-.update-copy { flex:1; min-width:0; }
-.update-copy strong { display:block; font-size:13px; }
-.update-copy p { margin:4px 0 0; color:var(--muted); font-size:12px; }
-.update-link { flex:0 0 auto; }
-@media(max-width:620px) { .update-banner { align-items:flex-start; flex-wrap:wrap; } .update-copy { flex-basis:calc(100% - 52px); } .update-link { margin-left:48px; } }
 </style>

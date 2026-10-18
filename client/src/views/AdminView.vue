@@ -9,6 +9,7 @@ import {
   type WebhookConfig,
 } from "../api/client";
 import AppHeader from "../components/AppHeader.vue";
+import AppFooter from "../components/AppFooter.vue";
 import DomainListEditor from "../components/DomainListEditor.vue";
 import WebhookChannelEditor from "../components/WebhookChannelEditor.vue";
 import cronstrue from "cronstrue";
@@ -24,6 +25,8 @@ const error = ref("");
 const logs = ref<GenerationLog[]>([]);
 const genpacProbe = ref<GenpacProbe | null>(null);
 const securityStatus = ref({ isDefaultPassword: false, mustChangePassword: false });
+const timezoneMenuOpen = ref(false);
+const timezoneQuery = ref("");
 const passwordSaving = ref(false);
 const passwordForm = reactive({ currentPassword: "", newPassword: "", confirmPassword: "" });
 const webhookTestState = reactive({
@@ -100,6 +103,20 @@ const commonTimeZones = [
 function isValidTimeZone(value: string): boolean {
   try { new Intl.DateTimeFormat("en-US", { timeZone: value.trim() }).format(new Date()); return true; }
   catch { return false; }
+}
+
+const filteredTimeZones = computed(() => {
+  const query = timezoneQuery.value.trim().toLowerCase();
+  if (!query) return commonTimeZones;
+  return commonTimeZones.filter((zone) => zone.value.toLowerCase().includes(query) || zone.label.toLowerCase().includes(query));
+});
+function selectTimeZone(value: string) {
+  form.timezone = value;
+  timezoneQuery.value = value;
+  timezoneMenuOpen.value = false;
+}
+function closeTimezoneMenu() {
+  window.setTimeout(() => { timezoneMenuOpen.value = false; }, 140);
 }
 
 const modeHint = computed(() =>
@@ -485,12 +502,23 @@ async function logout() {
           </div>
           <div class="field">
             <label for="timezone">时区</label>
-            <input id="timezone" v-model="form.timezone" list="timezone-options" autocomplete="off" spellcheck="false"
-              placeholder="输入国家、地区常用时区，例如 Asia/Tokyo" />
-            <datalist id="timezone-options">
-              <option v-for="zone in commonTimeZones" :key="zone.value" :value="zone.value" :label="zone.label" />
-            </datalist>
-            <p class="field-hint">可以输入关键词搜索建议项，也可以输入有效的 IANA 时区名称。该设置会用于定时任务、状态页时间和 Webhook 通知。</p>
+            <div class="timezone-picker">
+              <input id="timezone" v-model="form.timezone" autocomplete="off" spellcheck="false"
+                placeholder="搜索国家/地区或输入 IANA 时区，例如日本、美国、Asia/Tokyo"
+                @focus="timezoneMenuOpen = true; timezoneQuery = ''"
+                @input="timezoneQuery = form.timezone"
+                @blur="closeTimezoneMenu"
+                @keydown.esc="timezoneMenuOpen = false" />
+              <div v-if="timezoneMenuOpen" class="timezone-options-menu" role="listbox" aria-label="时区建议">
+                <button v-for="zone in filteredTimeZones" :key="zone.value" type="button" role="option"
+                  :aria-selected="form.timezone === zone.value" class="timezone-option"
+                  @pointerdown.prevent="selectTimeZone(zone.value)">
+                  <span>{{ zone.label }}</span><code>{{ zone.value }}</code>
+                </button>
+                <p v-if="filteredTimeZones.length === 0" class="timezone-no-results">没有匹配项；可以直接输入有效的 IANA 时区名称。</p>
+              </div>
+            </div>
+            <p class="field-hint">支持按国家/地区名称或时区代码搜索，也可直接输入其他有效的 IANA 时区名称。该设置用于定时任务、状态页时间和 Webhook 通知。</p>
           </div>
           <div class="chip-row timezone-presets">
             <button v-for="zone in commonTimeZones.slice(0, 6)" :key="zone.value" type="button" class="chip"
@@ -768,6 +796,7 @@ async function logout() {
         </div>
       </section>
     </template>
+    <AppFooter />
   </main>
 </template>
 
@@ -1389,4 +1418,11 @@ textarea.body-area {
 .password-change-form { max-width: 620px; }
 .password-change-form .actions { margin-top: 10px; }
 .timezone-presets { margin: 8px 0 0; }
+.timezone-picker { position:relative; }
+.timezone-options-menu { position:absolute; z-index:30; top:calc(100% + 5px); left:0; right:0; max-height:270px; overflow:auto; padding:5px; border:1px solid var(--line); border-radius:10px; background:var(--surface); box-shadow:var(--shadow); }
+.timezone-option { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:40px; padding:8px 10px; border:0; border-radius:7px; background:transparent; color:var(--text); text-align:left; cursor:pointer; }
+.timezone-option:hover,.timezone-option[aria-selected="true"] { background:var(--accent-soft); color:var(--accent); }
+.timezone-option span { font-size:12px; }
+.timezone-option code { color:var(--muted); font-size:11px; white-space:nowrap; }
+.timezone-no-results { margin:0; padding:12px 10px; color:var(--muted); font-size:12px; }
 </style>
