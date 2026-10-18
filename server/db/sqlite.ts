@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 import fs from "fs";
 import path from "path";
 import type { AppSettings, GenerationMode } from "./settings";
-import { DEFAULT_SETTINGS } from "./settings";
+import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "./settings";
 
 /** Bun 内置 SQLite 连接类型 */
 export type AppDatabase = Database;
@@ -134,6 +134,23 @@ export function recentLogs(
 function normalizeSettings(
   s: AppSettings & { gfwlistUrl?: string; mode?: string }
 ): AppSettings {
+  const webhookSuccessUrl = String(s.webhookSuccessUrl || "").trim();
+  const webhookSuccessBody = String(s.webhookSuccessBody || "");
+  const webhookFailureUrl = String(s.webhookFailureUrl || "").trim();
+  const webhookFailureBody = String(s.webhookFailureBody || "");
+  const webhookSuccessConfig = normalizeWebhookConfig(s.webhookSuccessConfig, webhookSuccessUrl, webhookSuccessBody);
+  const webhookFailureConfig = normalizeWebhookConfig(s.webhookFailureConfig, webhookFailureUrl, webhookFailureBody);
+
+  // Old config rows are merged with defaults before normalization. Migrate a blank new target from legacy URL/Body fields.
+  if (!webhookSuccessConfig.url && !webhookSuccessConfig.body && (webhookSuccessUrl || webhookSuccessBody)) {
+    webhookSuccessConfig.url = webhookSuccessUrl;
+    webhookSuccessConfig.body = webhookSuccessBody;
+  }
+  if (!webhookFailureConfig.url && !webhookFailureConfig.body && (webhookFailureUrl || webhookFailureBody)) {
+    webhookFailureConfig.url = webhookFailureUrl;
+    webhookFailureConfig.body = webhookFailureBody;
+  }
+
   const rawMode = String(s.mode || "");
   const mode: GenerationMode =
     rawMode === "remote" || rawMode === "genpac" ? "remote" : "custom";
@@ -151,10 +168,12 @@ function normalizeSettings(
       ? s.directList.map((x) => String(x).trim()).filter(Boolean)
       : [],
     cronSchedule: String(s.cronSchedule || "").trim(),
-    webhookSuccessUrl: String(s.webhookSuccessUrl || "").trim(),
-    webhookSuccessBody: String(s.webhookSuccessBody || "").trim(),
-    webhookFailureUrl: String(s.webhookFailureUrl || "").trim(),
-    webhookFailureBody: String(s.webhookFailureBody || "").trim(),
+    webhookSuccessUrl,
+    webhookSuccessBody,
+    webhookFailureUrl,
+    webhookFailureBody,
+    webhookSuccessConfig,
+    webhookFailureConfig,
   };
 }
 

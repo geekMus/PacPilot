@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { EnvConfig } from "../config/env";
 import { adminEnabled } from "../config/env";
-import { readPacFile } from "../services/pac-generator";
+import { pacFileMtime, readPacFile } from "../services/pac-generator";
 import { parsePacStatus } from "../services/pac-parser";
 
 function sendPac(
@@ -43,13 +43,13 @@ export function publicRoutes(env: EnvConfig): Router {
   router.get("/api/meta", (_req, res) => {
     res.json({
       adminEnabled: adminEnabled(env),
-      version: "2.1.1",
+      version: "2.2.0",
     });
   });
 
   router.get("/api/status", (_req, res) => {
     const pac = readPacFile(env.dataDir);
-    res.json(parsePacStatus(pac, env.tz));
+    res.json(parsePacStatus(pac, env.tz, pacFileMtime(env.dataDir)));
   });
 
   return router;

@@ -3,88 +3,34 @@ import AppHeader from "../components/AppHeader.vue";
 </script>
 
 <template>
-  <main class="page">
+  <main class="page not-found-page">
     <AppHeader brand="genpac-runner" sub="404">
-      <RouterLink to="/">首页</RouterLink>
+      <RouterLink to="/">运行概览</RouterLink>
       <a href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC</a>
-      <RouterLink class="primary" to="/admin">后台</RouterLink>
+      <RouterLink class="primary" to="/admin">配置管理</RouterLink>
     </AppHeader>
-
-    <section class="panel">
-      <p class="code">404</p>
-      <h1>页面不存在</h1>
-      <p class="desc">可用入口：首页、PAC 原文与后台管理。</p>
-      <div class="links">
-        <RouterLink class="btn primary" to="/">返回首页</RouterLink>
-        <a class="btn" href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC</a>
-        <RouterLink class="btn" to="/admin">后台</RouterLink>
+    <section class="not-found-card">
+      <div class="not-found-code">404</div>
+      <div class="page-kicker">PAGE NOT FOUND</div>
+      <h1 class="page-title">这个页面不存在</h1>
+      <p>地址可能已失效，或页面已经移动。你可以回到运行概览，查看当前 PAC，或者打开配置管理。</p>
+      <div class="not-found-actions">
+        <RouterLink class="action-button primary" to="/">返回运行概览</RouterLink>
+        <a class="action-button" href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC 原文</a>
+        <RouterLink class="action-button" to="/admin">配置管理</RouterLink>
       </div>
     </section>
   </main>
 </template>
 
 <style scoped>
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: clamp(24px, 5vw, 40px);
-  box-shadow: var(--shadow);
-  text-align: center;
-  max-width: 480px;
-  margin: 8vh auto 0;
-}
-
-.code {
-  margin: 0;
-  font-size: 3rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: var(--accent);
-  line-height: 1;
-}
-
-h1 {
-  margin: 12px 0 8px;
-  font-size: 1.35rem;
-}
-
-.desc {
-  margin: 0 auto 22px;
-  color: var(--muted);
-  max-width: 28em;
-  font-size: 0.95rem;
-}
-
-.links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--touch);
-  padding: 0 16px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--line);
-  background: var(--surface-2);
-  color: var(--text);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.btn.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
-.btn:hover {
-  text-decoration: none;
-  filter: brightness(1.03);
-}
+.not-found-page { min-height:calc(100dvh - 60px); display:flex; flex-direction:column; }
+.not-found-card { max-width:620px; width:100%; margin:auto; padding:clamp(26px,6vw,48px); border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow); }
+.not-found-code { margin-bottom:22px; color:var(--accent); font:750 clamp(55px,10vw,82px)/1 var(--font-mono); letter-spacing:-.07em; }
+.not-found-card .page-title { margin:8px 0 10px; }
+.not-found-card>p { max-width:39em; color:var(--muted); font-size:14px; line-height:1.7; }
+.not-found-actions { display:flex; flex-wrap:wrap; gap:9px; margin-top:24px; }
+.action-button { display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:0 14px; border:1px solid var(--line); border-radius:9px; background:var(--surface-2); color:var(--text); text-decoration:none; font-size:12px; font-weight:650; }
+.action-button.primary { background:var(--accent); border-color:var(--accent); color:white; }
+@media(max-width:520px) { .not-found-actions { flex-direction:column; } .not-found-actions>* { width:100%; } }
 </style>

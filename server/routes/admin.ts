@@ -8,6 +8,7 @@ import {
   updateSettings,
 } from "../db/sqlite";
 import type { AppSettings, GenerationMode } from "../db/settings";
+import { normalizeWebhookConfig } from "../db/settings";
 import {
   clearSessionCookie,
   createSessionToken,
@@ -17,7 +18,7 @@ import {
 } from "../middleware/auth";
 import { generatePac, probeGenpac } from "../services/pac-generator";
 import { reschedule } from "../services/scheduler";
-import { sendWebhookTest, validateWebhookSettings } from "../services/webhook";
+import { sendWebhookTest, validateWebhookConfig } from "../services/webhook";
 import cron from "node-cron";
 
 function parseList(raw: unknown): string[] {
@@ -49,6 +50,8 @@ function bodyToSettings(body: Record<string, unknown>): AppSettings {
     webhookSuccessBody: String(body.webhookSuccessBody ?? ""),
     webhookFailureUrl: String(body.webhookFailureUrl ?? ""),
     webhookFailureBody: String(body.webhookFailureBody ?? ""),
+    webhookSuccessConfig: normalizeWebhookConfig(body.webhookSuccessConfig, String(body.webhookSuccessUrl ?? ""), String(body.webhookSuccessBody ?? "")),
+    webhookFailureConfig: normalizeWebhookConfig(body.webhookFailureConfig, String(body.webhookFailureUrl ?? ""), String(body.webhookFailureBody ?? "")),
   };
 }
 
@@ -102,10 +105,15 @@ export function adminRoutes(
       return;
     }
 
-    const webhookErrors = validateWebhookSettings(patch);
-    if (webhookErrors.length) {
-      res.status(400).json({ error: webhookErrors.join("\n") });
-      return;
+    for (const config of [patch.webhookSuccessConfig, patch.webhookFailureConfig]) {
+      const configured = Boolean(config.url.trim());
+      if (configured) {
+        const errors = validateWebhookConfig(config);
+        if (errors.length) {
+          res.status(400).json({ error: errors.join("\n") });
+          return;
+        }
+      }
     }
 
     const next = updateSettings(database, patch);
@@ -114,26 +122,13 @@ export function adminRoutes(
   });
 
   router.post("/api/admin/webhook-test", requireAdmin(env), async (req, res) => {
-    const url = String(req.body?.url ?? "").trim();
-    const body = String(req.body?.body ?? "");
-    if (!url) {
-      res.status(400).json({ error: "请先填写 Webhook URL。" });
-      return;
-    }
-
-    const errors = validateWebhookSettings({
-      webhookSuccessUrl: url,
-      webhookSuccessBody: body,
-      webhookFailureUrl: "",
-      webhookFailureBody: "",
-    });
+    const config = normalizeWebhookConfig(req.body?.config ?? req.body);
+    const errors = validateWebhookConfig(config);
     if (errors.length) {
       res.status(400).json({ error: errors.join("\n") });
       return;
     }
-
-    const result = await sendWebhookTest(url, body);
-    // 测试发送失败作为业务结果返回，让界面展示具体 HTTP 状态/网络错误。
+    const result = await sendWebhookTest(config);
     res.json(result);
   });
 

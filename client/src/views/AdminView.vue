@@ -6,10 +6,11 @@ import {
   type AppSettings,
   type GenerationLog,
   type GenpacProbe,
+  type WebhookConfig,
 } from "../api/client";
 import AppHeader from "../components/AppHeader.vue";
 import DomainListEditor from "../components/DomainListEditor.vue";
-import WebhookBodyEditor from "../components/WebhookBodyEditor.vue";
+import WebhookChannelEditor from "../components/WebhookChannelEditor.vue";
 import cronstrue from "cronstrue";
 import { CronExpressionParser } from "cron-parser";
 import "cronstrue/locales/zh_CN";
@@ -40,10 +41,29 @@ const form = reactive({
   webhookSuccessBody: "",
   webhookFailureUrl: "",
   webhookFailureBody: "",
+  webhookSuccessConfig: defaultWebhookConfig(),
+  webhookFailureConfig: defaultWebhookConfig(),
 });
 
-const successWebhookSample = JSON.stringify({ event: "pac.generated", ok: true }, null, 2);
-const failureWebhookSample = JSON.stringify({ event: "pac.generation_failed", ok: false }, null, 2);
+function defaultWebhookConfig(): WebhookConfig {
+  return {
+    provider: "custom", url: "", method: "POST", headers: "{}", body: "",
+    dingTalkSecret: "", dingTalkMessageType: "text",
+    messageTemplate: "",
+  };
+}
+function normalizedWebhookConfig(
+  value: WebhookConfig | undefined,
+  legacyUrl: string,
+  legacyBody: string
+): WebhookConfig {
+  return {
+    ...defaultWebhookConfig(),
+    ...value,
+    url: value?.url ?? legacyUrl,
+    body: value?.body ?? legacyBody,
+  };
+}
 
 const modeHint = computed(() =>
   form.mode === "custom"
@@ -106,9 +126,34 @@ function jsonBodyError(raw: string): string {
   }
 }
 
-const successBodyError = computed(() => jsonBodyError(form.webhookSuccessBody));
-
-const failureBodyError = computed(() => jsonBodyError(form.webhookFailureBody));
+function validateWebhookDraft(config: WebhookConfig, label: string): string[] {
+  const errors: string[] = [];
+  if (config.provider === "custom") {
+    const active = Boolean(config.url.trim() || config.body.trim() || config.headers.trim() !== "{}");
+    if (!active) return errors;
+    if (!config.url.trim() || !looksLikeUrl(config.url.trim())) errors.push(`${label}需要有效的 HTTP(S) URL。`);
+    if (config.body.trim() && jsonBodyError(config.body)) errors.push(`${label}请求 Body 必须是合法 JSON 对象或数组。`);
+    if (config.headers.trim()) {
+      try {
+        const headers: unknown = JSON.parse(config.headers);
+        if (!headers || typeof headers !== "object" || Array.isArray(headers) ||
+            Object.values(headers as Record<string, unknown>).some((value) => typeof value !== "string")) {
+          errors.push(`${label}请求头必须是名称和值均为字符串的 JSON 对象。`);
+        }
+      } catch {
+        errors.push(`${label}请求头不是合法 JSON。`);
+      }
+    }
+  } else if (config.provider === "dingtalk") {
+    if (config.url.trim()) {
+      if (!looksLikeUrl(config.url.trim())) errors.push(`${label}钉钉 URL 必须是有效的 HTTP(S) 地址。`);
+      else if (!new URL(config.url.trim()).searchParams.has("access_token")) errors.push(`${label}钉钉 URL 缺少 access_token。`);
+    } else if (config.dingTalkSecret.trim()) {
+      errors.push(`${label}填写加签密钥前，请先填写机器人 Webhook URL。`);
+    }
+  }
+  return errors;
+}
 
 function looksLikeUrl(s: string): boolean {
   try {
@@ -137,18 +182,8 @@ const formErrors = computed(() => {
   if (cron && cronParse.value.error) {
     errs.push("Cron 表达式无效，请检查五段格式与字段取值。");
   }
-  if (form.webhookSuccessUrl.trim() && !looksLikeUrl(form.webhookSuccessUrl.trim())) {
-    errs.push("成功 Webhook URL 格式无效。");
-  }
-  if (form.webhookFailureUrl.trim() && !looksLikeUrl(form.webhookFailureUrl.trim())) {
-    errs.push("失败 Webhook URL 格式无效。");
-  }
-  if (form.webhookSuccessUrl.trim() && successBodyError.value) {
-    errs.push("成功 Webhook Body 必须是合法的 JSON 对象或数组。");
-  }
-  if (form.webhookFailureUrl.trim() && failureBodyError.value) {
-    errs.push("失败 Webhook Body 必须是合法的 JSON 对象或数组。");
-  }
+  errs.push(...validateWebhookDraft(form.webhookSuccessConfig, "成功通知"));
+  errs.push(...validateWebhookDraft(form.webhookFailureConfig, "失败通知"));
   return errs;
 });
 
@@ -169,6 +204,8 @@ function applySettings(s: AppSettings) {
   form.webhookSuccessBody = s.webhookSuccessBody;
   form.webhookFailureUrl = s.webhookFailureUrl;
   form.webhookFailureBody = s.webhookFailureBody;
+  form.webhookSuccessConfig = normalizedWebhookConfig(s.webhookSuccessConfig, s.webhookSuccessUrl, s.webhookSuccessBody);
+  form.webhookFailureConfig = normalizedWebhookConfig(s.webhookFailureConfig, s.webhookFailureUrl, s.webhookFailureBody);
 }
 
 function toPayload(): AppSettings {
@@ -186,10 +223,12 @@ function toPayload(): AppSettings {
     directList: split(form.directListText),
     blockList: split(form.blockListText),
     cronSchedule: form.cronSchedule,
-    webhookSuccessUrl: form.webhookSuccessUrl,
-    webhookSuccessBody: form.webhookSuccessBody,
-    webhookFailureUrl: form.webhookFailureUrl,
-    webhookFailureBody: form.webhookFailureBody,
+    webhookSuccessUrl: form.webhookSuccessConfig.url,
+    webhookSuccessBody: form.webhookSuccessConfig.body,
+    webhookFailureUrl: form.webhookFailureConfig.url,
+    webhookFailureBody: form.webhookFailureConfig.body,
+    webhookSuccessConfig: { ...form.webhookSuccessConfig },
+    webhookFailureConfig: { ...form.webhookFailureConfig },
   };
 }
 
@@ -266,34 +305,29 @@ async function saveAndGenerate() {
 
 async function testWebhook(kind: "success" | "failure") {
   const state = webhookTestState[kind];
-  const url = kind === "success" ? form.webhookSuccessUrl.trim() : form.webhookFailureUrl.trim();
-  const body = kind === "success" ? form.webhookSuccessBody : form.webhookFailureBody;
-  const bodyError = kind === "success" ? successBodyError.value : failureBodyError.value;
-
+  const config = kind === "success" ? form.webhookSuccessConfig : form.webhookFailureConfig;
   state.message = "";
   state.ok = null;
-  if (!url) {
+
+  const configured = Boolean(config.url.trim());
+  if (!configured) {
     state.ok = false;
-    state.message = "请先填写 Webhook URL。";
+    state.message = "请先填写通知目标 URL。";
     return;
   }
-  if (!looksLikeUrl(url)) {
+  const validationErrors = validateWebhookDraft(config, kind === "success" ? "成功通知" : "失败通知");
+  if (validationErrors.length) {
     state.ok = false;
-    state.message = "URL 格式无效，请使用 HTTP(S) 地址且不要在 URL 中嵌入账号密码。";
-    return;
-  }
-  if (bodyError) {
-    state.ok = false;
-    state.message = bodyError;
+    state.message = validationErrors.join("\n");
     return;
   }
 
   state.pending = true;
   try {
-    const result = await api.testWebhook({ url, body });
+    const result = await api.testWebhook({ config: { ...config } });
     state.ok = result.success;
     state.message = result.success
-      ? `测试请求已送达（HTTP ${result.status ?? "未知"}）。`
+      ? `测试通知已送达（HTTP ${result.status ?? "未知"}）。`
       : result.status
         ? `测试失败：${result.message}（HTTP ${result.status}）`
         : `测试失败：${result.message}`;
@@ -313,8 +347,8 @@ async function logout() {
 
 <template>
   <main class="page admin-page">
-    <AppHeader brand="genpac-runner" sub="Admin">
-      <RouterLink to="/">首页</RouterLink>
+    <AppHeader brand="genpac-runner" sub="控制台">
+      <RouterLink to="/">运行概览</RouterLink>
       <a href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC</a>
       <button type="button" class="linkish" @click="logout">退出</button>
     </AppHeader>
@@ -522,72 +556,27 @@ async function logout() {
             </div>
           </div>
 
-          <div class="webhook-grid">
-            <div class="webhook-panel ok">
-              <div class="webhook-panel-title">
-                <span class="webhook-panel-label"><span class="dot ok" />成功时通知</span>
-                <button type="button" class="webhook-test-button" :disabled="webhookTestState.success.pending" @click="testWebhook('success')">
-                  {{ webhookTestState.success.pending ? "发送中…" : "发送测试" }}
-                </button>
-              </div>
-              <div class="field">
-                <label>Webhook URL</label>
-                <input
-                  v-model="form.webhookSuccessUrl"
-                  class="mono"
-                  type="url"
-                  inputmode="url"
-                  placeholder="https://example.com/hooks/success"
-                  spellcheck="false"
-                />
-              </div>
-              <div class="field">
-                <label>请求 Body <span class="lab-hint">JSON，可空</span></label>
-                <WebhookBodyEditor
-                  v-model="form.webhookSuccessBody"
-                  :height="220"
-                  :sample="successWebhookSample"
-                  placeholder="输入 JSON 对象或数组…"
-                />
-                <p class="field-hint">留空时发送 {"ok":true}；自定义内容按 application/json 原样 POST。</p>
-              </div>
-              <p v-if="webhookTestState.success.message" class="webhook-test-result" :class="webhookTestState.success.ok ? 'ok' : 'bad'" role="status">
-                {{ webhookTestState.success.message }}
-              </p>
-            </div>
-
-            <div class="webhook-panel bad">
-              <div class="webhook-panel-title">
-                <span class="webhook-panel-label"><span class="dot bad" />失败时通知</span>
-                <button type="button" class="webhook-test-button" :disabled="webhookTestState.failure.pending" @click="testWebhook('failure')">
-                  {{ webhookTestState.failure.pending ? "发送中…" : "发送测试" }}
-                </button>
-              </div>
-              <div class="field">
-                <label>Webhook URL</label>
-                <input
-                  v-model="form.webhookFailureUrl"
-                  class="mono"
-                  type="url"
-                  inputmode="url"
-                  placeholder="https://example.com/hooks/failure"
-                  spellcheck="false"
-                />
-              </div>
-              <div class="field">
-                <label>请求 Body <span class="lab-hint">JSON，可空</span></label>
-                <WebhookBodyEditor
-                  v-model="form.webhookFailureBody"
-                  :height="220"
-                  :sample="failureWebhookSample"
-                  placeholder="输入 JSON 对象或数组…"
-                />
-                <p class="field-hint">留空时发送 {"ok":false}；仅当失败通知 URL 非空时才会请求。</p>
-              </div>
-              <p v-if="webhookTestState.failure.message" class="webhook-test-result" :class="webhookTestState.failure.ok ? 'ok' : 'bad'" role="status">
-                {{ webhookTestState.failure.message }}
-              </p>
-            </div>
+                    <div class="webhook-grid">
+            <WebhookChannelEditor
+              title="成功时通知"
+              kind="success"
+              :model-value="form.webhookSuccessConfig"
+              :pending="webhookTestState.success.pending"
+              :result-message="webhookTestState.success.message"
+              :result-ok="webhookTestState.success.ok"
+              @update:model-value="form.webhookSuccessConfig = $event"
+              @test="testWebhook('success')"
+            />
+            <WebhookChannelEditor
+              title="失败时通知"
+              kind="failure"
+              :model-value="form.webhookFailureConfig"
+              :pending="webhookTestState.failure.pending"
+              :result-message="webhookTestState.failure.message"
+              :result-ok="webhookTestState.failure.ok"
+              @update:model-value="form.webhookFailureConfig = $event"
+              @test="testWebhook('failure')"
+            />
           </div>
         </section>
 

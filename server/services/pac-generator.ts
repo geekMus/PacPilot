@@ -124,7 +124,7 @@ export async function generatePac(
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     appendGenerationLog(database, false, settings.mode, message);
-    await notifyFailure(settings);
+    await notifyFailure(settings, message);
     console.error(`[pac] FAILED: ${message}`);
     return { success: false, mode: settings.mode, message, pacPath };
   }
