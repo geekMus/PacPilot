@@ -2,7 +2,7 @@
 
 一个用于生成 PAC 代理规则文件的轻量工具，带有网页管理界面。你可以配置代理、直连域名、黑名单、远程规则列表、定时生成和 Webhook 通知。
 
-**推荐使用 Docker Compose 部署。** 配置和生成记录保存在 SQLite 中，不需要手动编辑业务配置文件。
+**推荐使用 Docker Compose 部署。** 镜像会自动发布到 GitHub Container Registry（GHCR）；部署设备只需拉取预构建镜像，无需克隆源码或本地构建。配置和生成记录保存在 SQLite 中，不需要手动编辑业务配置文件。
 
 ## Docker Compose 部署（推荐）
 
@@ -22,16 +22,25 @@ docker compose version
 
 新版 Compose 使用空格形式的 `docker compose`。如果你的系统只提供旧式独立命令，也可以使用 `docker-compose`。
 
-### 2. 下载项目
+### 2. 获取 Compose 配置
 
-安装了 Git 的设备执行：
+部署时不需要克隆整个源代码仓库，只需要保存一份 `docker-compose.yml`。可以从 [GitHub 项目中的 docker-compose.yml](https://github.com/geekMus/genpac-runner/blob/refactor/modular-sqlite-admin/docker-compose.yml) 下载后放进部署目录。
+
+Linux / iStoreOS 上也可以执行：
 
 ```bash
-git clone --branch refactor/modular-sqlite-admin --single-branch https://github.com/geekMus/genpac-runner.git
+mkdir -p genpac-runner
 cd genpac-runner
+curl -fL https://raw.githubusercontent.com/geekMus/genpac-runner/refactor/modular-sqlite-admin/docker-compose.yml -o docker-compose.yml
 ```
 
-当前克隆命令指定了项目分支，以确保获取这里记录的版本。也可以在 GitHub 项目页选择 **Code → Download ZIP**，解压后进入包含 `docker-compose.yml` 的项目目录。
+Windows PowerShell 可以使用：
+
+```powershell
+New-Item -ItemType Directory -Force genpac-runner
+Set-Location genpac-runner
+Invoke-WebRequest https://raw.githubusercontent.com/geekMus/genpac-runner/refactor/modular-sqlite-admin/docker-compose.yml -OutFile docker-compose.yml
+```
 
 ### 3. 检查部署配置
 
@@ -43,36 +52,27 @@ cd genpac-runner
 - 默认使用 `bridge` 网络，不发布宿主机端口；需要从宿主机访问时再启用端口映射。数据持久化则按前文所述选择一种挂载方式。
 
 本项目的 Compose 文件不通过 `${...}` 从 shell 或 `.env` 中读取配置。即使部署目录内已有开发用的 `.env`，这些配置也不会被其覆盖。
-### 4. 构建并启动
+### 4. 拉取镜像并启动
 
-构建依赖默认使用国内镜像源：
+本项目的多架构预构建镜像发布在 GitHub Container Registry：
 
-- **Bun 基础镜像：** DaoCloud Docker Hub 代理 `m.daocloud.io/docker.io/oven/bun:1-alpine`，在 Dockerfile 中固定配置（[DaoCloud 说明](https://github.com/DaoCloud/public-image-mirror)）。
-- **Bun / npm 包：** Dockerfile 中的依赖安装命令临时指定 `NPM_CONFIG_REGISTRY=https://registry.npmmirror.com`，只影响镜像构建，不改变本机开发时的包源。Bun 支持通过该环境变量指定 registry（[Bun 文档](https://bun.com/docs/pm/npmrc)）。
-- **系统时区：** 不再安装 `tzdata` 或 `curl`，因此构建不需要访问 Alpine APK 软件源。系统层使用 POSIX `TZ=UTC-8` 表示固定 UTC+8，应用内日期格式化仍使用 `Asia/Shanghai`。
+- **官方镜像地址：** `ghcr.io/geekmus/genpac-runner:latest`
+- **支持架构：** `linux/amd64` 和 `linux/arm64`。
+- **自动更新：** 向 `refactor/modular-sqlite-admin` 分支推送代码时，GitHub Actions 会实际构建并发布更新后的 `latest` 镜像；推送版本标签（例如 `v2.3.0`）时也会发布对应版本标签。
+- **中国大陆网络：** Dockerfile 的 Bun 基础镜像已改用毫秒镜像 `docker.1ms.run/oven/bun:1-alpine`。如果部署设备无法直接访问 GHCR，可把 Compose 的镜像地址改为 `ghcr.1ms.run/geekmus/genpac-runner:latest`，使用毫秒镜像提供的 GHCR 通道。
 
-镜像地址固定写在项目配置中，不依赖部署者额外设置镜像环境变量。构建时仍需能够访问 DaoCloud 基础镜像和 npmmirror 包源；时区设置不再下载 Alpine 系统包，因此不会因 Alpine APK 源的 DNS 错误而失败。
-
-确认当前目录是项目根目录（里面有 `docker-compose.yml`），并按需完成端口映射和数据挂载配置，然后执行：
-
-```bash
-docker compose up -d --build
-```
-
-如果系统使用旧式独立命令，则执行：
+确认当前目录中有 `docker-compose.yml`，按需修改管理员密码、端口映射和数据挂载，然后执行：
 
 ```bash
-docker-compose up -d --build
+docker compose pull
+docker compose up -d
 ```
 
-这条命令会根据项目中的 `Dockerfile` 构建镜像，并在后台启动容器。不需要先执行 `docker pull genpac-runner`，本项目会从源码构建自己的应用镜像。
+使用旧版独立命令时，可将 `docker compose` 替换为 `docker-compose`。此处无需使用 `--build`，因为镜像已由 GitHub Actions 构建并发布，部署设备只负责拉取、创建和启动容器。
 
-查看运行状态和日志：
+首次发布后，需要在 GitHub 的 **Packages** 中把 `genpac-runner` 容器包的可见性设置为 **Public**，其他人才能无需登录直接拉取。GitHub 容器包首次发布时默认是 Private；发布工作流会自动将包关联到此仓库。
 
-```bash
-docker compose ps
-docker compose logs -f genpac
-```
+
 
 ### 5. 打开网页
 
@@ -86,7 +86,7 @@ docker compose logs -f genpac
 
 ### 常用命令
 
-以下命令都要在项目目录中、且环境变量已设置的终端会话里执行：
+以下命令都要在放有 `docker-compose.yml` 的部署目录中执行：
 
 ```bash
 # 查看日志
@@ -98,9 +98,9 @@ docker compose restart
 # 停止并移除容器（配置数据仍会保留）
 docker compose down
 
-# 拉取最新代码并重新构建、启动
-git pull
-docker compose up -d --build
+# 拉取已发布的最新镜像并更新容器
+docker compose pull
+docker compose up -d
 ```
 
 **若启用了命名卷，不要随意执行 `docker compose down -v`**：`-v` 会同时删除 Compose 管理的数据卷，可能导致配置和生成记录丢失。使用 `./data:/data` 目录挂载时，也请勿手动删除该目录。
@@ -130,11 +130,11 @@ Docker 部署时，建议在 `docker-compose.yml` 中启用一种 `/data` 持久
 
 **提示 `docker: 'compose' is not a docker command`**
 
-说明 Docker Compose 插件未安装，或 Docker CLI 无法找到它。请按 [Docker Compose 官方安装文档](https://docs.docker.com/compose/install/) 安装后，再运行 `docker compose version` 检查。若系统已安装旧式独立命令，可尝试 `docker-compose --version` 和 `docker-compose up -d --build`。
+说明 Docker Compose 插件未安装，或 Docker CLI 无法找到它。请按 [Docker Compose 官方安装文档](https://docs.docker.com/compose/install/) 安装后，再运行 `docker compose version` 检查。若系统已安装旧式独立命令，可尝试 `docker-compose --version` 和 `docker-compose up -d`。
 
-**下载容器依赖时提示 EOF、超时或连接重置**
+**拉取镜像时提示超时或连接重置**
 
-项目默认使用 DaoCloud Bun 基础镜像代理和 npmmirror 的 Bun/npm 包源；时区设置不需要安装 Alpine APK 包。如果构建失败，先检查 Dockerfile 中的 `FROM` 镜像地址和依赖安装命令里的 `NPM_CONFIG_REGISTRY`，并确认 Docker/BuildKit 能解析并访问相应地址。
+部署设备无需自行构建镜像。若拉取失败，先检查能否访问 `ghcr.io`，确认 GHCR 中 `genpac-runner` 容器包已设置为 Public，然后执行 `docker compose pull` 重试。中国大陆网络也可以根据实际可用性使用 `ghcr.1ms.run` GHCR 代理地址。
 
 **访问不了网页**
 
