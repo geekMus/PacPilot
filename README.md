@@ -110,13 +110,13 @@ docker compose logs -f genpac
 
 ### 5. 打开网页
 
-假设部署设备的 IP 是 `192.168.1.20`，且 `HOST_PORT=17321`：
+假设你已在 `docker-compose.yml` 中启用 `17321:17321` 端口映射，部署设备的 IP 是 `192.168.1.20`：
 
 - 运行概览：`http://192.168.1.20:17321/`
 - 配置管理：`http://192.168.1.20:17321/admin`
 - PAC 文件：`http://192.168.1.20:17321/proxy.pac`
 
-将示例 IP 换成实际部署设备的地址。如果修改了 `HOST_PORT`，访问时也要使用修改后的端口。
+将示例 IP 换成实际部署设备的地址。如果修改了 Compose 文件中映射的左侧端口，访问时也要使用修改后的宿主机端口。
 
 ### 常用命令
 
@@ -137,7 +137,7 @@ git pull
 docker compose up -d --build
 ```
 
-**不要随意执行 `docker compose down -v`**：`-v` 会同时删除本项目的数据卷，可能导致配置和生成记录丢失。
+**若启用了命名卷，不要随意执行 `docker compose down -v`**：`-v` 会同时删除 Compose 管理的数据卷，可能导致配置和生成记录丢失。使用 `./data:/data` 目录挂载时，也请勿手动删除该目录。
 
 ## 功能简介
 
@@ -151,12 +151,12 @@ docker compose up -d --build
 
 ## 数据与配置
 
-Docker 部署时，命名卷 `genpac-data` 挂载到容器的 `/data` 目录，保存：
+Docker 部署时，建议在 `docker-compose.yml` 中启用一种 `/data` 持久化挂载配置。选择命名卷方案时，`genpac-data` 挂载到容器的 `/data` 目录，用于保存：
 
 - `genpac.db`：后台配置和生成记录。
 - `proxy.pac`：当前生成的 PAC 文件。
 
-执行 `docker compose down` 不会删除该数据卷。迁移或备份时请一并保存卷中的数据。
+启用命名卷后，执行 `docker compose down` 不会删除该数据卷；如果选择 `./data:/data` 目录挂载，数据保存在项目的 `data` 目录。迁移或备份时请一并保存相应数据。
 
 业务配置都在网页的「配置管理」中完成。启动级设置通过环境变量配置：例如 `ADMIN_PASSWORD` 是后台管理密码，`TZ` 是时区，`SESSION_SECRET` 是可选的会话签名密钥。宿主机端口映射和数据挂载则直接在 `docker-compose.yml` 中按需取消注释并修改。
 
