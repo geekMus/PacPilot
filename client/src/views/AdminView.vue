@@ -1066,7 +1066,7 @@ textarea {
 .btn.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--accent-contrast);
 }
 .btn.primary:hover:not(:disabled) {
   filter: brightness(1.05);
