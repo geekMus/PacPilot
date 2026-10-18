@@ -205,7 +205,7 @@ const activeRuleCount = computed(() => {
     <section class="page-hero">
       <div class="page-kicker">运行状态</div>
       <h1 class="page-title">PAC 规则概览</h1>
-      <p class="page-intro">这里展示已经写入 <code>proxy.pac</code> 的实际规则。简单来说，规则决定一个域名是直连、走代理，还是被拦截。</p>
+      <p class="page-intro">这里会读取当前 <code>proxy.pac</code>，展示可识别的规则摘要，并根据主机名规则判断域名会直连、走代理还是被拦截。</p>
       <div v-if="status" class="hero-meta">
         <span class="status-indicator" :class="status.hasPac ? 'online' : 'idle'"></span>
         <strong>{{ status.modeLabel }}</strong><span class="meta-divider">·</span>
@@ -227,7 +227,8 @@ const activeRuleCount = computed(() => {
       <section v-if="status.mode === 'empty'" class="empty-hero">
         <div class="empty-icon" aria-hidden="true">↗</div>
         <h2>还没有生成 PAC</h2>
-        <p>先进入配置管理，设置启动模式和规则，然后点击「保存并生成 PAC」。生成后，这里会显示实际写入文件的规则摘要。</p>
+        <p v-if="meta?.adminEnabled">先进入配置管理，设置启动模式和规则，然后点击「保存并生成 PAC」。生成后，这里会显示可识别的规则摘要。</p>
+        <p v-else>后台管理尚未启用。请在服务端设置环境变量 <code>ADMIN_PASSWORD</code>，启用后台后再配置规则并生成 PAC。</p>
         <RouterLink v-if="meta?.adminEnabled" class="action-button primary" to="/admin">前往配置管理</RouterLink>
       </section>
 
@@ -236,7 +237,7 @@ const activeRuleCount = computed(() => {
           <div class="domain-check-head">
             <div>
               <h2>域名路由判断</h2>
-              <p>输入域名或 URL，查看当前 PAC 规则下的匹配结果。</p>
+              <p>输入域名或 URL，按当前 PAC 可识别的主机名规则判断路由结果。</p>
             </div>
           </div>
           <form class="domain-check-form" @submit.prevent="checkDomain">
@@ -251,7 +252,7 @@ const activeRuleCount = computed(() => {
             />
             <button type="submit" class="action-button primary" :disabled="!domainInput.trim()">判断路由</button>
           </form>
-          <p class="domain-check-note">按当前 PAC 的主机名匹配顺序判断，不会执行 DNS 查询。只有本机名称、无点主机名及私有或回环 IP 地址会命中本地直连规则；其他 IP 不会自动判为直连。</p>
+          <p class="domain-check-note">检查器不会查询 DNS。本机名称、无点主机名及私有或回环 IPv4 会命中本地直连规则；其他地址按当前模式的默认规则处理（自定义模式走默认代理，远程模式默认直连）。</p>
           <div v-if="domainRoute" class="domain-check-result" :class="'result-' + domainRoute.kind" role="status" aria-live="polite">
             <span class="result-mark" aria-hidden="true">
               {{ domainRoute.kind === "direct" ? "✓" : domainRoute.kind === "proxy" ? "↗" : domainRoute.kind === "blocked" ? "×" : "!" }}
