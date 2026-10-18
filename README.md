@@ -50,7 +50,7 @@ Invoke-WebRequest https://raw.githubusercontent.com/geekMus/genpac-runner/main/d
 - 时区默认为 `Asia/Shanghai`，可在「配置管理 → 常规设置」中通过搜索选择常见国家/地区时区，也可输入其他有效的 IANA 时区名称。
 - 容器内部端口、监听地址和数据目录属于运行参数，分别固定为 `17321`、`0.0.0.0` 和 `/data`；端口映射与数据持久化挂载仍在 `docker-compose.yml` 中按需启用。
 
-Compose 不再声明 `ADMIN_PASSWORD`、`SESSION_SECRET` 或 `TZ`。升级时，若仍保留旧版 `ADMIN_PASSWORD` 环境变量，首次初始化管理员凭据时会尝试一次性导入；数据库凭据建立后，环境变量不再控制管理员密码。
+Compose 不再声明 `ADMIN_PASSWORD`、`SESSION_SECRET` 或 `TZ`。管理员密码仅由后台管理与一次性密码重置命令设置；旧版 `ADMIN_PASSWORD` 环境变量不再导入或控制管理员凭据。升级后若无法使用默认密码登录，请按下方的密码重置说明生成一次性临时密码。
 ### 4. 拉取镜像并启动
 
 本项目的多架构预构建镜像发布在 GitHub Container Registry：
@@ -157,7 +157,7 @@ docker exec -it genpac-runner bun run /app/scripts/reset-admin-password.ts
 
 **旧版环境变量密码迁移**
 
-如果旧版部署曾使用自定义 `ADMIN_PASSWORD`，请在首次升级启动时保留旧变量，让程序将它一次性迁移到数据库。初始化后即可从 Compose 删除该变量；之后请只在后台修改密码。若已移除变量且无法登录，可以使用上方的重置命令。
+旧版部署若曾通过 `ADMIN_PASSWORD` 设置自定义密码，升级后该环境变量不再生效。请使用默认密码 `password` 登录并立即修改；如果无法登录，请使用上方的一次性密码重置命令。此后只通过后台管理页面修改密码。
 
 **远程列表生成失败**
 
