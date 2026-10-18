@@ -43,7 +43,6 @@ async function onSubmit() {
   <main class="page auth-page">
     <AppHeader brand="genpac-runner" sub="安全登录">
       <RouterLink to="/">运行概览</RouterLink>
-      <a href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC 文件</a>
     </AppHeader>
     <section class="auth-layout">
       <div class="auth-intro">
