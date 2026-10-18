@@ -1,18 +1,21 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { loadDevelopmentDotEnv } from "./load-dotenv";
 
 /**
  * 仅保留启动级环境变量。
  * 业务配置（模式、代理、列表、Webhook、Cron 等）全部存 SQLite，由后台面板管理。
  *
- * 数据目录解析优先级（从高到低）：
- * 1. 环境变量 DATA_DIR（显式指定，始终优先）
- * 2. Docker / 容器 → /data
- * 3. 生产环境（NODE_ENV=production）→ 各操作系统标准数据目录
- * 4. 开发环境 → 当前工作目录下的 ./data
+ * 配置来源：
+ * - 本机开发：若项目根目录存在 .env，文件中的值覆盖同名进程环境变量。
+ * - 没有 .env 时：使用系统/进程环境变量。
+ * - 生产环境和容器：不加载 .env，只使用进程环境变量。
  *
- * 详见项目根目录 README「数据目录」一节。
+ * 数据目录默认值：
+ * - Docker / 容器 → /data
+ * - 生产环境 → 各操作系统标准数据目录
+ * - 开发环境 → 当前工作目录下的 ./data
  */
 export interface EnvConfig {
   /** 数据目录：存放 SQLite 与 proxy.pac（绝对路径） */
@@ -126,6 +129,9 @@ function resolveDataDir(): {
 }
 
 export function loadEnv(): EnvConfig {
+  // 如果 .env 不存在、或当前为生产/容器环境，此函数不修改现有环境变量。
+  loadDevelopmentDotEnv();
+
   const { dataDir, runtimeProfile } = resolveDataDir();
   const adminPassword = str("ADMIN_PASSWORD") ?? null;
   const sessionSecret =
