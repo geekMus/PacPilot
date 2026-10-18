@@ -6,6 +6,8 @@ const projectUrl = "https://github.com/geekMus/genpac-runner";
 const currentVersion = ref(String(packageJson.version));
 const updateInfo = ref<UpdateInfo | null>(null);
 const dialogOpen = ref(false);
+const isCheckingVersion = ref(false);
+const refreshFailed = ref(false);
 const hasUpdate = computed(() => Boolean(updateInfo.value?.updateAvailable && updateInfo.value.latestVersion));
 const latestVersion = computed(() => updateInfo.value?.latestVersion || "暂时未知");
 async function readLatestVersionDirectly(): Promise<string | null> {
@@ -33,11 +35,17 @@ function isVersionNewer(candidate: string, current: string): boolean {
   if (!next || !installed) return false;
   return next.date > installed.date || (next.date === installed.date && next.revision > installed.revision);
 }
-async function loadVersionInfo() {
+async function loadVersionInfo(forceRefresh = false) {
+  if (isCheckingVersion.value) return;
+  isCheckingVersion.value = true;
+  refreshFailed.value = false;
+  if (forceRefresh) updateInfo.value = null;
   try {
-    updateInfo.value = await api.checkForUpdates();
-    if (updateInfo.value.currentVersion) currentVersion.value = updateInfo.value.currentVersion;
+    const result = await api.checkForUpdates(forceRefresh);
+    if (result.currentVersion) currentVersion.value = result.currentVersion;
+    updateInfo.value = result;
   } catch { /* 服务端版本检查不可用时尝试浏览器直连。 */ }
+
   if (!updateInfo.value?.latestVersion) {
     const latest = await readLatestVersionDirectly();
     if (latest) {
@@ -49,10 +57,13 @@ async function loadVersionInfo() {
         checked: true,
         repositoryUrl: projectUrl,
       };
+    } else {
+      refreshFailed.value = true;
     }
   }
+  isCheckingVersion.value = false;
 }
-onMounted(() => { void loadVersionInfo(); });
+onMounted(() => { void loadVersionInfo(true); });
 </script>
 <template>
   <footer class="app-footer" @keydown.esc.stop.prevent="dialogOpen = false">
@@ -69,8 +80,10 @@ onMounted(() => { void loadVersionInfo(); });
       <div v-if="dialogOpen" class="dialog-backdrop" @click.self="dialogOpen = false" tabindex="-1">
         <section class="version-dialog" role="dialog" aria-modal="true" aria-labelledby="version-dialog-title">
           <header class="dialog-header"><div><p class="dialog-kicker">PROJECT INFORMATION</p><h2 id="version-dialog-title">项目与版本</h2></div><button type="button" class="dialog-close" aria-label="关闭弹窗" @click="dialogOpen = false" autofocus>×</button></header>
-          <div class="version-grid"><div class="version-item"><span>当前版本</span><strong>v{{ currentVersion }}</strong></div><div class="version-item" :class="{ 'version-new': hasUpdate }"><span>最新版本</span><strong>{{ latestVersion === "暂时未知" ? latestVersion : "v" + latestVersion }}</strong></div></div>
+          <div class="version-grid"><div class="version-item"><span>当前版本</span><strong>v{{ currentVersion }}</strong></div><button type="button" class="version-item latest-version-item" :class="{ 'version-new': hasUpdate }" @click="loadVersionInfo(true)" :disabled="isCheckingVersion" :aria-label="isCheckingVersion ? '正在获取最新版本' : '点击获取最新版本'"><span>最新版本 <small>{{ isCheckingVersion ? "获取中…" : "点击刷新" }}</small></span><strong>{{ latestVersion === "暂时未知" ? latestVersion : "v" + latestVersion }}</strong></button></div>
           <div v-if="hasUpdate" class="dialog-update-note" role="status"><span class="dialog-update-dot"></span><div><strong>发现新版本 {{ updateInfo?.latestVersion }}</strong><p>当前运行版本较旧，可前往项目仓库查看最新代码与更新说明。</p></div></div>
+          <p v-else-if="isCheckingVersion" class="dialog-status" role="status">正在获取最新版本…</p>
+          <p v-else-if="refreshFailed" class="dialog-status" role="status">获取最新版本失败，请稍后点击上方“最新版本”重试。这不会影响 PAC 和管理功能。</p>
           <p v-else-if="updateInfo?.checked" class="dialog-status">你当前使用的已经是最新版本。</p>
           <p v-else class="dialog-status">暂时无法获取远程版本信息；这不会影响 PAC 和管理功能。</p>
           <div class="dialog-actions"><a class="dialog-project-button" :href="updateInfo?.repositoryUrl || projectUrl" target="_blank" rel="noopener noreferrer">
@@ -100,6 +113,11 @@ onMounted(() => { void loadVersionInfo(); });
 .version-item { display:flex; flex-direction:column; gap:7px; min-width:0; padding:14px; border:1px solid var(--line); border-radius:12px; background:var(--surface-2); }
 .version-item span { color:var(--muted); font-size:11px; }
 .version-item strong { overflow-wrap:anywhere; font-size:15px; font-variant-numeric:tabular-nums; }
+.latest-version-item { width:100%; border-color:var(--line); color:var(--text); font:inherit; text-align:left; cursor:pointer; transition:border-color .15s,background .15s; }
+.latest-version-item:hover:not(:disabled) { border-color:var(--accent); }
+.latest-version-item:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.latest-version-item:disabled { cursor:wait; }
+.latest-version-item span small { margin-left:4px; color:var(--accent); font-size:10px; font-weight:650; }
 .version-item.version-new { border-color:#fdba74; background:#fff7ed; color:#9a3412; }
 .dialog-update-note { display:flex; align-items:flex-start; gap:10px; margin-top:15px; padding:12px; border:1px solid #fdba74; border-radius:12px; background:#fff7ed; color:#9a3412; }
 .dialog-update-dot { flex:0 0 8px; width:8px; height:8px; margin-top:5px; border-radius:50%; background:#f97316; }
