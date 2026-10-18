@@ -15,7 +15,7 @@ import {
   requireAdmin,
   setSessionCookie,
 } from "../middleware/auth";
-import { generatePac } from "../services/pac-generator";
+import { generatePac, probeGenpac } from "../services/pac-generator";
 import { reschedule } from "../services/scheduler";
 
 function parseList(raw: unknown): string[] {
@@ -30,15 +30,16 @@ function parseList(raw: unknown): string[] {
 }
 
 function bodyToSettings(body: Record<string, unknown>): Partial<AppSettings> {
+  const raw = String(body.mode ?? "");
   const mode: GenerationMode =
-    body.mode === "genpac" ? "genpac" : "custom";
+    raw === "remote" || raw === "genpac" ? "remote" : "custom";
 
   return {
     mode,
     pacProxy: String(body.pacProxy ?? ""),
     pacCompress: Boolean(body.pacCompress),
     pacPrecise: Boolean(body.pacPrecise),
-    gfwlistUrl: String(body.gfwlistUrl ?? ""),
+    listUrl: String(body.listUrl ?? body.gfwlistUrl ?? ""),
     blockList: parseList(body.blockList),
     directList: parseList(body.directList),
     cronSchedule: String(body.cronSchedule ?? ""),
@@ -102,6 +103,11 @@ export function adminRoutes(
 
   router.get("/api/admin/logs", requireAdmin(env), (_req, res) => {
     res.json(recentLogs(database, 50));
+  });
+
+  router.get("/api/admin/genpac-status", requireAdmin(env), async (_req, res) => {
+    const probe = await probeGenpac();
+    res.json(probe);
   });
 
   return router;

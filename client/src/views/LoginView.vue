@@ -43,16 +43,23 @@ async function onSubmit() {
   <main class="wrap">
     <AppHeader brand="genpac-runner" sub="ADMIN">
       <RouterLink to="/status">规则状态</RouterLink>
-      <a href="/proxy.pac">PAC 原文 ↗</a>
+      <a href="/proxy.pac">PAC 原文</a>
     </AppHeader>
 
-    <div class="card login-card">
+    <div class="card">
+      <div class="icon-badge" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="5" y="11" width="14" height="10" rx="2" />
+          <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+        </svg>
+      </div>
       <h1>后台登录</h1>
-      <p class="muted">使用环境变量 <code>ADMIN_PASSWORD</code> 设置的密码登录。</p>
+      <p class="muted">使用环境变量 <code>ADMIN_PASSWORD</code> 设置的密码。</p>
       <div v-if="error" class="alert">{{ error }}</div>
       <form @submit.prevent="onSubmit">
-        <label>密码</label>
+        <label for="pw">密码</label>
         <input
+          id="pw"
           v-model="password"
           type="password"
           required
@@ -69,51 +76,66 @@ async function onSubmit() {
 
 <style scoped>
 .wrap {
-  width: min(960px, calc(100% - 28px));
+  width: min(960px, calc(100% - 32px));
   margin: 28px auto 48px;
 }
 .card {
+  max-width: 400px;
+  margin: 10vh auto 0;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 18px;
+  border-radius: var(--radius);
+  padding: 28px 24px 24px;
   box-shadow: var(--shadow);
 }
-.login-card {
-  max-width: 420px;
-  margin: 8vh auto 0;
+.icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  margin-bottom: 14px;
 }
 h1 {
   margin: 0 0 8px;
-  font-size: 24px;
+  font-size: 22px;
 }
 .muted {
   color: var(--muted);
-  margin: 0 0 16px;
+  margin: 0 0 18px;
+  font-size: 14px;
 }
 label {
   display: block;
   font-size: 13px;
   font-weight: 600;
-  margin: 12px 0 6px;
+  margin: 0 0 6px;
 }
 input {
   width: 100%;
   border: 1px solid var(--line);
   background: var(--bg);
   color: var(--text);
-  border-radius: 10px;
-  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  padding: 11px 12px;
+  margin-bottom: 14px;
+}
+input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 button {
-  margin-top: 16px;
   width: 100%;
   appearance: none;
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--text);
-  border-radius: 10px;
-  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  font-weight: 600;
   cursor: pointer;
 }
 button.primary {
@@ -126,11 +148,11 @@ button:disabled {
   cursor: not-allowed;
 }
 .alert {
-  padding: 12px 14px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--red) 12%, var(--surface));
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--red-soft);
   border: 1px solid color-mix(in srgb, var(--red) 35%, var(--line));
   margin-bottom: 14px;
-  color: var(--text);
+  font-size: 14px;
 }
 </style>

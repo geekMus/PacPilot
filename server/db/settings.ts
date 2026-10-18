@@ -3,30 +3,34 @@
  * 不再通过环境变量传递这些字段。
  */
 
-/** 生成模式：自定义规则 PAC / genpac(GFWList) */
-export type GenerationMode = "custom" | "genpac";
+/**
+ * 生成模式：
+ * - custom：后台填写的直连 / 黑名单
+ * - remote：从用户配置的远程列表 URL 拉取规则并生成 PAC
+ * （历史值 genpac 会在读取时归一化为 remote）
+ */
+export type GenerationMode = "custom" | "remote";
 
 export interface AppSettings {
-  /** 启动模式 */
   mode: GenerationMode;
   /** PAC 中的默认代理字符串，如 SOCKS5 127.0.0.1:1080; DIRECT */
   pacProxy: string;
-  /** genpac 是否压缩（仅 genpac 模式） */
+  /** 是否压缩生成的 PAC（remote 模式） */
   pacCompress: boolean;
-  /** genpac 精确模式（仅 genpac 模式，预留） */
+  /**
+   * 精确匹配预留（当前 remote 使用域名后缀表；true 时保留更多规则细节，后续可扩展）
+   */
   pacPrecise: boolean;
-  /** GFWList 地址（genpac 模式必填） */
-  gfwlistUrl: string;
-  /** 黑名单域名（自定义模式） */
+  /**
+   * 远程规则列表 URL。
+   * 支持：标准 GFWList（Base64）、明文域名列表、AutoProxy/ABP 风格规则。
+   */
+  listUrl: string;
   blockList: string[];
-  /** 直连域名（自定义模式） */
   directList: string[];
-  /** cron 表达式；空则不定时更新 */
   cronSchedule: string;
-  /** 成功 Webhook */
   webhookSuccessUrl: string;
   webhookSuccessBody: string;
-  /** 失败 Webhook */
   webhookFailureUrl: string;
   webhookFailureBody: string;
 }
@@ -36,7 +40,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   pacProxy: "SOCKS5 127.0.0.1:1080; DIRECT",
   pacCompress: true,
   pacPrecise: false,
-  gfwlistUrl: "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt",
+  listUrl:
+    "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt",
   blockList: [],
   directList: [],
   cronSchedule: "",

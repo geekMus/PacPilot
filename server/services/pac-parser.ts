@@ -81,12 +81,12 @@ export function parsePacStatus(
 
   return {
     mode: "genpac_or_other",
-    modeLabel: "非自定义模板（可能为 genpac 模式）",
+    modeLabel: "GFWList / 其他模板",
     blockList: [],
     directList: [],
     pacProxy: null,
     notice:
-      "当前 proxy.pac 不是自定义规则模板。若为 genpac 模式，规则由 GFWList 生成；自定义直连/黑名单不会注入。",
+      "当前 proxy.pac 不是自定义规则模板。若为 GFWList 模式，规则由内置引擎根据列表生成；自定义直连/黑名单不会注入。",
     updatedAt,
     hasPac,
   };

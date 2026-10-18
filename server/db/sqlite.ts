@@ -131,15 +131,19 @@ export function recentLogs(
   }));
 }
 
-function normalizeSettings(s: AppSettings): AppSettings {
-  const mode: GenerationMode = s.mode === "genpac" ? "genpac" : "custom";
+function normalizeSettings(
+  s: AppSettings & { gfwlistUrl?: string; mode?: string }
+): AppSettings {
+  const rawMode = String(s.mode || "");
+  const mode: GenerationMode =
+    rawMode === "remote" || rawMode === "genpac" ? "remote" : "custom";
 
   return {
     mode,
     pacProxy: String(s.pacProxy || DEFAULT_SETTINGS.pacProxy).trim(),
     pacCompress: Boolean(s.pacCompress),
     pacPrecise: Boolean(s.pacPrecise),
-    gfwlistUrl: String(s.gfwlistUrl || "").trim(),
+    listUrl: String(s.listUrl || s.gfwlistUrl || "").trim(),
     blockList: Array.isArray(s.blockList)
       ? s.blockList.map((x) => String(x).trim()).filter(Boolean)
       : [],

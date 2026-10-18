@@ -1,44 +1,47 @@
 :root {
   color-scheme: light dark;
-  --bg: #f4f6fa;
-  --surface: #fff;
-  --text: #182230;
-  --muted: #667085;
-  --line: #e6eaf0;
-  --accent: #315efb;
-  --green: #16865c;
-  --red: #c63d4f;
-  --warn: #d98b24;
-  --shadow: 0 10px 30px rgba(24, 34, 48, 0.055);
-  --radius: 16px;
+  --bg: #f0f3f8;
+  --surface: #ffffff;
+  --surface-2: #f7f9fc;
+  --text: #152033;
+  --muted: #66758a;
+  --line: #e2e8f0;
+  --accent: #3b6cf5;
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --green: #159a66;
+  --green-soft: color-mix(in srgb, var(--green) 12%, transparent);
+  --red: #d1435b;
+  --red-soft: color-mix(in srgb, var(--red) 12%, transparent);
+  --warn: #c98a1a;
+  --warn-soft: color-mix(in srgb, var(--warn) 14%, transparent);
+  --shadow: 0 8px 24px rgba(21, 32, 51, 0.06);
+  --radius: 14px;
+  --radius-sm: 10px;
+  --space-1: 6px;
+  --space-2: 10px;
+  --space-3: 14px;
+  --space-4: 18px;
+  --space-5: 24px;
+  --space-6: 32px;
 }
 
 html.theme-light {
   color-scheme: light;
-  --bg: #f4f6fa;
-  --surface: #fff;
-  --text: #182230;
-  --muted: #667085;
-  --line: #e6eaf0;
-  --accent: #315efb;
-  --green: #16865c;
-  --red: #c63d4f;
-  --warn: #d98b24;
-  --shadow: 0 10px 30px rgba(24, 34, 48, 0.055);
 }
 
 html.theme-dark {
   color-scheme: dark;
-  --bg: #10141b;
-  --surface: #191f29;
-  --text: #e7ecf4;
-  --muted: #9da8b8;
-  --line: #2a3340;
-  --accent: #89a4ff;
-  --green: #61d5a3;
-  --red: #ff8e9b;
-  --warn: #e8b35a;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  --bg: #0d1118;
+  --surface: #161c26;
+  --surface-2: #1c2430;
+  --text: #e8eef7;
+  --muted: #9aa8bc;
+  --line: #2a3444;
+  --accent: #7e9dff;
+  --green: #5fd4a4;
+  --red: #ff8fa0;
+  --warn: #e8b45c;
+  --shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
 }
 
 * {
@@ -49,8 +52,9 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 15px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
 a {

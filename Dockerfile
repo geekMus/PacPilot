@@ -1,4 +1,4 @@
-# ---------- build（用 Bun 装依赖并构建 Vue 前端） ----------
+# ---------- build ----------
 FROM oven/bun:1-alpine AS builder
 
 WORKDIR /app
@@ -15,9 +15,7 @@ RUN bun run build:client
 # ---------- runtime ----------
 FROM oven/bun:1-alpine
 
-RUN apk add --no-cache python3 py3-pip tzdata curl \
- && pip3 install --no-cache-dir --break-system-packages genpac \
- || pip3 install --no-cache-dir genpac \
+RUN apk add --no-cache tzdata curl \
  && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime || true
 
 WORKDIR /app

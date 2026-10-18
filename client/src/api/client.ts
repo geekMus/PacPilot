@@ -15,11 +15,11 @@ export interface PacStatus {
 }
 
 export interface AppSettings {
-  mode: "custom" | "genpac";
+  mode: "custom" | "remote";
   pacProxy: string;
   pacCompress: boolean;
   pacPrecise: boolean;
-  gfwlistUrl: string;
+  listUrl: string;
   blockList: string[];
   directList: string[];
   cronSchedule: string;
@@ -44,10 +44,14 @@ export interface GenerateResult {
   pacPath: string;
 }
 
-async function request<T>(
-  url: string,
-  init?: RequestInit
-): Promise<T> {
+export interface GenpacProbe {
+  available: boolean;
+  command?: string | null;
+  engine?: string;
+  detail: string;
+}
+
+async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     credentials: "same-origin",
     headers: {
@@ -60,8 +64,9 @@ async function request<T>(
   if (!res.ok) {
     let msg = res.statusText;
     try {
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as { error?: string; message?: string };
       if (data.error) msg = data.error;
+      else if (data.message) msg = data.message;
     } catch {
       /* ignore */
     }
@@ -91,4 +96,5 @@ export const api = {
   generate: () =>
     request<GenerateResult>("/api/admin/generate", { method: "POST" }),
   logs: () => request<GenerationLog[]>("/api/admin/logs"),
+  genpacStatus: () => request<GenpacProbe>("/api/admin/genpac-status"),
 };

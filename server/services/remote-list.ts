@@ -1,0 +1,212 @@
+/**
+ * 远程规则列表 → PAC（纯 TypeScript / Bun，无 Python、无 genpac）。
+ *
+ * 支持的列表内容格式（自动识别）：
+ * 1. 标准 GFWList：整份 Base64，解码后为 AutoProxy 规则
+ * 2. AutoProxy / ABP 风格明文（||domain、@@例外、!注释）
+ * 3. 纯域名列表：每行一个域名（# 或 // 开头为注释）
+ */
+
+export interface RemoteListParseResult {
+  proxyHosts: string[];
+  directHosts: string[];
+  format: "gfwlist-base64" | "abp" | "plain-domains";
+  rawLineCount: number;
+}
+
+function isLikelyDomain(s: string): boolean {
+  if (!s || s.length < 2 || s.length > 253) return false;
+  if (s.includes("://") || s.includes("/") || s.includes(" ")) return false;
+  // 允许 *.example.com 在上游已剥掉 *
+  return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(
+    s
+  ) || /^[a-z0-9._-]+$/i.test(s);
+}
+
+function stripHostFromRule(line: string): string | null {
+  let s = line.trim();
+  if (!s || s.startsWith("!") || s.startsWith("[")) return null;
+  if (s.startsWith("||")) s = s.slice(2);
+  else if (s.startsWith("|")) s = s.slice(1);
+  s = s.replace(/^https?:\/\//i, "");
+  s = (s.split("/")[0] ?? s).split("?")[0] ?? s;
+  s = s.replace(/:\d+$/, "");
+  s = s.replace(/^\*\./, "").replace(/^\./, "").trim().toLowerCase();
+  if (!s || s.includes("*") || s.includes("^")) return null;
+  if (!isLikelyDomain(s) && !/^[a-z0-9._-]+$/i.test(s)) return null;
+  return s;
+}
+
+function parseAbpOrAutoproxy(decoded: string): RemoteListParseResult {
+  const proxy = new Set<string>();
+  const direct = new Set<string>();
+  let rawLineCount = 0;
+
+  for (const raw of decoded.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith("!") || line.startsWith("[")) continue;
+    rawLineCount++;
+    const isException = line.startsWith("@@");
+    const body = isException ? line.slice(2) : line;
+    const host = stripHostFromRule(body);
+    if (!host) continue;
+    if (isException) {
+      direct.add(host);
+      proxy.delete(host);
+    } else if (!direct.has(host)) {
+      proxy.add(host);
+    }
+  }
+
+  return {
+    proxyHosts: [...proxy].sort(),
+    directHosts: [...direct].sort(),
+    format: "abp",
+    rawLineCount,
+  };
+}
+
+function parsePlainDomains(text: string): RemoteListParseResult {
+  const proxy = new Set<string>();
+  let rawLineCount = 0;
+  for (const raw of text.split(/\r?\n/)) {
+    let line = raw.trim();
+    if (!line || line.startsWith("#") || line.startsWith("//") || line.startsWith("!"))
+      continue;
+    rawLineCount++;
+    line = line.replace(/^\*\./, "").replace(/^\./, "").toLowerCase();
+    if (isLikelyDomain(line)) proxy.add(line);
+  }
+  return {
+    proxyHosts: [...proxy].sort(),
+    directHosts: [],
+    format: "plain-domains",
+    rawLineCount,
+  };
+}
+
+/**
+ * 解析列表正文（已是字符串，可能是 base64 或明文）。
+ */
+export function parseRemoteListText(body: string): RemoteListParseResult {
+  const trimmed = body.trim();
+  if (!trimmed) {
+    throw new Error("远程列表内容为空");
+  }
+
+  const looksBase64 =
+    !trimmed.includes("||") &&
+    !trimmed.includes("\n!") &&
+    !/^[\s]*[a-z0-9].*\./im.test(trimmed.slice(0, 200)) &&
+    /^[A-Za-z0-9+/=\s]+$/.test(trimmed);
+
+  if (looksBase64) {
+    try {
+      const decoded = Buffer.from(trimmed.replace(/\s+/g, ""), "base64").toString(
+        "utf8"
+      );
+      const parsed = parseAbpOrAutoproxy(decoded);
+      if (parsed.proxyHosts.length === 0) {
+        throw new Error("Base64 解码后没有有效域名");
+      }
+      return { ...parsed, format: "gfwlist-base64" };
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("有效域名")) throw e;
+      throw new Error("列表 Base64 解码失败，请确认 URL 返回的是 GFWList 或明文规则");
+    }
+  }
+
+  // 明文：优先按 ABP；若几乎抽不出域名，再按纯域名列表
+  if (
+    trimmed.includes("||") ||
+    trimmed.includes("@@") ||
+    /^!\s/m.test(trimmed)
+  ) {
+    const parsed = parseAbpOrAutoproxy(trimmed);
+    if (parsed.proxyHosts.length > 0) return parsed;
+  }
+
+  const plain = parsePlainDomains(trimmed);
+  if (plain.proxyHosts.length === 0) {
+    throw new Error(
+      "未能从远程列表解析出有效域名。请使用 GFWList、AutoProxy 规则或每行一个域名的明文列表。"
+    );
+  }
+  return plain;
+}
+
+export async function fetchAndParseRemoteList(
+  url: string
+): Promise<RemoteListParseResult> {
+  const res = await fetch(url, {
+    headers: { "User-Agent": "genpac-runner/2 (bun)" },
+    signal: AbortSignal.timeout(90_000),
+  });
+  if (!res.ok) {
+    throw new Error(`下载远程列表失败：HTTP ${res.status} ${res.statusText}`);
+  }
+  const body = await res.text();
+  return parseRemoteListText(body);
+}
+
+function escapeJsString(s: string): string {
+  return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+export function buildRemoteListPac(
+  pacProxy: string,
+  proxyHosts: string[],
+  directHosts: string[],
+  compress: boolean
+): string {
+  const proxyObj = proxyHosts
+    .map((h) => `"${escapeJsString(h)}":1`)
+    .join(compress ? "," : ",\n  ");
+  const directObj = directHosts
+    .map((h) => `"${escapeJsString(h)}":1`)
+    .join(compress ? "," : ",\n  ");
+  const proxyStr = escapeJsString(pacProxy);
+
+  const body = `// Generated by genpac-runner (Bun builtin remote-list engine)
+// proxy=${proxyHosts.length}, direct=${directHosts.length}
+
+var PROXY = "${proxyStr}";
+var DIRECT = "DIRECT";
+
+var proxyHosts = {${compress ? proxyObj : `\n  ${proxyObj}\n`}};
+var directHosts = {${compress ? directObj : `\n  ${directObj}\n`}};
+
+function hostInMap(host, map) {
+  var h = host.toLowerCase();
+  var parts = h.split(".");
+  for (var i = 0; i < parts.length; i++) {
+    var suffix = parts.slice(i).join(".");
+    if (map[suffix]) return true;
+  }
+  return false;
+}
+
+function FindProxyForURL(url, host) {
+  if (
+    host === "localhost" ||
+    host.indexOf(".") === -1 ||
+    isInNet(host, "127.0.0.0", "255.0.0.0") ||
+    isInNet(host, "10.0.0.0", "255.0.0.0") ||
+    isInNet(host, "172.16.0.0", "255.240.0.0") ||
+    isInNet(host, "192.168.0.0", "255.255.0.0")
+  ) {
+    return DIRECT;
+  }
+  if (directHosts && hostInMap(host, directHosts)) return DIRECT;
+  if (proxyHosts && hostInMap(host, proxyHosts)) return PROXY;
+  return DIRECT;
+}
+`;
+
+  if (!compress) return body;
+  return body
+    .split("\n")
+    .map((l) => l.replace(/^\s+/, ""))
+    .filter((l) => l && !l.startsWith("//"))
+    .join("\n");
+}

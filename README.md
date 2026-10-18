@@ -150,11 +150,17 @@ docker compose up -d --build
 
 ## 启动模式（后台可切换）
 
-1. **custom（自定义规则）**  
-   内网直连 → 黑名单拦截 → 直连列表 → 其余走 `pacProxy`。不依赖 `genpac` 命令。
+1. **自定义规则（custom）**  
+   在后台维护直连列表、黑名单；未命中则走你配置的 `pacProxy`。内网始终直连。
 
-2. **genpac（GFWList）**  
-   调用系统中的 `genpac` CLI。Docker 镜像已包含；本机需自行安装 Python 版 genpac。
+2. **远程规则列表（remote）**  
+   在后台填写**任意**规则列表 URL，由 **Bun 内置引擎**下载并生成 PAC。  
+   支持内容格式：
+   - 标准 **GFWList**（Base64）
+   - **AutoProxy / ABP** 风格规则（`||domain`、`@@` 例外）
+   - **明文域名列表**（每行一个域名，`#` 注释）
+
+   命中列表的域名走代理，其余直连。自定义直连/黑名单在此模式下不写入 PAC。
 
 ---
 
@@ -168,6 +174,15 @@ Failed to start server. Is port 17321 in use?
 
 - Windows：`netstat -ano | findstr :17321`，再 `taskkill /PID <pid> /F`
 - 或在 `.env` 中设置 `PORT=17322`
+
+### 远程列表模式生成失败
+
+内置引擎会请求你在后台配置的列表 URL。请确认：
+
+- 本机/容器能访问该 URL
+- 内容为 GFWList、ABP 规则或每行一个域名的明文列表
+
+自定义规则模式不下载远程列表。
 
 ### 后台打不开
 
