@@ -1,30 +1,80 @@
 # genpac-runner
 
-一个基于 Docker 的 **自动生成 PAC 文件** 工具，支持 GFWList、SOCKS5/DIRECT 代理规则，并可通过 Webhook 通知成功或失败。
+基于 **Bun** 的自动 PAC 生成工具（v2）。
+
+- 运行时与开发均使用 **Bun**
+- SQLite 使用 Bun 内置 **`bun:sqlite`**（无需 native 编译）
+- 前端 **Vue 3 + TypeScript**，后端 **TypeScript + Express**
+- 业务配置经后台写入 SQLite；仅启动级环境变量
 
 ---
 
-## 功能
+## 目录结构
 
-- 自动生成 PAC 文件 (`proxy.pac`)
-- 支持 GFWList URL 配置
-- 支持 SOCKS5 或 HTTP 代理规则
-- 支持 PAC 压缩和精确模式
-- 支持 Webhook 成功/失败通知（钉钉示例）
-- 内置 HTTP 服务，提供 `/proxy.pac` 和 `/status` 两个路由；PAC 原文以 UTF-8 显示，状态页展示当前生成文件中的直连、黑名单和默认代理范围
-- 支持定时任务（Cron）自动更新 PAC 文件
+```
+server/          # Bun 直接运行的 TS 后端
+client/          # Vue 3 + Vite 前端
+scripts/dev.ts   # bun run dev 并发启动
+dist/client/     # 前端构建产物（生产由 Express 托管）
+```
 
 ---
 
-## 文件说明
+## 环境变量（仅启动级）
 
-| 文件 | 功能 |
-|------|------|
-| `Dockerfile` | Docker 构建文件，安装依赖并复制脚本 |
-| `docker-compose.yml` | Docker Compose 配置，设置环境变量和端口 |
-| `entrypoint.sh` | 容器入口脚本，初始化时区、生成 PAC、启动 cron 和 HTTP 服务 |
-| `update.sh` | 自动生成 PAC 的脚本，并触发 webhook |
-| `serve_proxy.py` | 内置 HTTP 服务，提供 `/proxy.pac` 和 `/status` 规则状态页 |
+| 变量 | 默认 | 说明 |
+|------|------|------|
+| `DATA_DIR` | `/data` | SQLite 与 `proxy.pac` |
+| `PORT` | `8080` | HTTP 端口 |
+| `ADMIN_PASSWORD` | _(空)_ | 设置后启用 `/admin` |
+| `SESSION_SECRET` | _(派生)_ | Cookie 签名（可选） |
+| `TZ` | `Asia/Shanghai` | 时区 |
+
+---
+
+## 开发（Bun）
+
+```bash
+# 安装 Bun：https://bun.sh
+bun install
+
+DATA_DIR=./data ADMIN_PASSWORD=dev PORT=8080 bun run dev
+```
+
+- 后端：`bun --hot server/index.ts`（热重载）
+- 前端：Vite `http://127.0.0.1:5173`（`/api` 代理到 8080）
+
+单独启动：
+
+```bash
+bun run dev:server
+bun run dev:client
+```
+
+生产本地：
+
+```bash
+bun run build          # 构建 Vue 到 dist/client
+DATA_DIR=./data ADMIN_PASSWORD=dev bun start
+```
+
+---
+
+## Docker（生产用 Bun）
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+镜像入口：`bun run server/index.ts`。
+
+推荐挂载：
+
+```yaml
+volumes:
+  - genpac-data:/data
+```
 
 ---
 
@@ -32,41 +82,15 @@
 
 | 路径 | 说明 |
 |------|------|
-| `/proxy.pac` | 返回当前生成的 PAC 文件 |
-| `/status` | PAC 规则状态页：在自定义规则模式下列出直连和黑名单规则，并说明未命中时的默认代理；若当前文件为 genpac 等其他格式，则提示自定义列表不一定生效 |
-| `/` | 保持兼容，重定向至 `/proxy.pac` |
+| `/proxy.pac` | PAC 文件 |
+| `/status` | Vue 规则状态页 |
+| `/admin` | Vue 后台 |
+| `/api/*` | JSON API |
 
-状态页读取 `/data/proxy.pac` 当前内容，不会把未注入 PAC 的环境变量列表误报为生效规则。修改规则后刷新页面即可查看最新生成结果。
-
----
-
-## 环境变量
-
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `CRON_SCHEDULE` | - | cron 表达式，控制 PAC 更新频率 |
-| `TZ` | `Asia/Shanghai` | 容器时区 |
-| `PAC_PROXY` | `SOCKS5 127.0.0.1:1080; DIRECT` | PAC 代理规则 |
-| `PAC_COMPRESS` | `true` | 是否压缩 PAC 文件 |
-| `PAC_PRECISE` | `false` | 是否精确模式 |
-| `GFWLIST_URL` | `https://github.com/gfwlist/gfwlist/raw/master/gfwlist.txt` | GFWList 地址 |
-| `WEBHOOK_SUCCESS_URL` | - | 成功 webhook URL，可选 |
-| `WEBHOOK_SUCCESS_OPTIONS` | - | 成功 webhook JSON 配置，可选 |
-| `WEBHOOK_FAILURE_URL` | - | 失败 webhook URL，可选 |
-| `WEBHOOK_FAILURE_OPTIONS` | - | 失败 webhook JSON 配置，可选 |
-| `PAC_BLOCK_LIST` | [] | 黑名单（以,分割） |
-| `PAC_DIRECT_LIST` | [] | 直连列表 |
+主题：右上角可切换 **自动 / 浅色 / 深色**（默认跟随系统）。
 
 ---
 
-## 构建与运行
+## License
 
-### 1. 构建镜像
-
-```bash
-docker-compose build
-```
-
-### 2. 部署并启动
-
-将仓库放到 dpanel 下的 compose 目录，然后直接在面板启动即可
+MIT

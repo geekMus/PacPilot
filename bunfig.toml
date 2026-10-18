@@ -1,0 +1,7 @@
+[install]
+# 使用 Bun 安装依赖
+peer = true
+
+[run]
+# 开发时默认热重载由 --hot 控制
+shell = "system"

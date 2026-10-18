@@ -1,23 +1,42 @@
-# 基于 genpac 官方镜像
-FROM docker.1ms.run/jinnlynn/genpac:latest
+# ---------- build（用 Bun 装依赖并构建 Vue 前端） ----------
+FROM oven/bun:1-alpine AS builder
 
-# 更换基础镜像预设的清华 APK 镜像源，避免源站临时不可达导致 apk 索引下载失败
-RUN sed -i 's#https://mirrors.tuna.tsinghua.edu.cn/alpine/#https://dl-cdn.alpinelinux.org/alpine/#g' /etc/apk/repositories \
-    && apk add --no-cache curl tzdata python3 py3-pip bash dos2unix \
-    && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-    && python3 -m ensurepip
+WORKDIR /app
+COPY package.json bun.lockb* ./
+RUN bun install --frozen-lockfile || bun install
 
-# 复制项目文件
-COPY update.sh /update.sh
-COPY entrypoint.sh /entrypoint.sh
-COPY serve_proxy.py /serve_proxy.py
+COPY server ./server
+COPY client ./client
+COPY scripts ./scripts
+COPY bunfig.toml* ./
 
-# 修复换行符并赋予执行权限
-RUN dos2unix /entrypoint.sh /update.sh /serve_proxy.py \
-    && chmod +x /entrypoint.sh /update.sh /serve_proxy.py
+RUN bun run build:client
 
-# 设置工作目录
-WORKDIR /data
+# ---------- runtime ----------
+FROM oven/bun:1-alpine
 
-# 容器入口
-ENTRYPOINT ["/entrypoint.sh"]
+# genpac 仍依赖 Python CLI
+RUN apk add --no-cache python3 py3-pip tzdata curl \
+ && pip3 install --no-cache-dir --break-system-packages genpac \
+ || pip3 install --no-cache-dir genpac \
+ && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime || true
+
+WORKDIR /app
+
+COPY package.json bun.lockb* ./
+RUN bun install --production --frozen-lockfile || bun install --production
+
+COPY server ./server
+COPY --from=builder /app/dist ./dist
+COPY bunfig.toml* ./
+
+ENV DATA_DIR=/data \
+    PORT=8080 \
+    TZ=Asia/Shanghai \
+    NODE_ENV=production
+
+VOLUME ["/data"]
+EXPOSE 8080
+
+# 生产环境直接用 Bun 跑 TypeScript 入口
+CMD ["bun", "run", "server/index.ts"]
