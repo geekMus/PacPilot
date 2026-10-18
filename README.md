@@ -138,7 +138,7 @@ Docker 部署时，建议在 `docker-compose.yml` 中启用一种 `/data` 持久
 - `genpac.db`：后台配置和生成记录。
 - `proxy.pac`：当前生成的 PAC 文件。
 
-容器数据路径固定为 `/data`，且该目录已通过 Dockerfile 的 `VOLUME` 声明。建议在 Compose 中启用一种显式挂载：使用命名卷时，执行 `docker compose down` 不会删除该数据卷；使用 `./data:/data` 目录挂载时，数据保存在项目的 `data` 目录。若不配置显式挂载，Docker 会创建匿名卷，容器重建时不一定自动复用旧卷。迁移或备份时请一并保存相应数据。
+容器数据路径固定为 `/data`，且该目录已通过 Dockerfile 的 `VOLUME` 声明；容器默认工作目录也设置为 `/data`，例如执行 `docker exec -it genpac-runner sh` 进入 shell 后，当前目录就是 `/data`。建议在 Compose 中启用一种显式挂载：使用命名卷时，执行 `docker compose down` 不会删除该数据卷；使用 `./data:/data` 目录挂载时，数据保存在项目的 `data` 目录。若不配置显式挂载，Docker 会创建匿名卷，容器重建时不一定自动复用旧卷。迁移或备份时请一并保存相应数据。
 
 业务配置都在网页的「配置管理」中完成。启动级设置通过环境变量配置：例如 `ADMIN_PASSWORD` 是后台管理密码，`TZ` 是时区，`SESSION_SECRET` 是可选的会话签名密钥。宿主机端口映射和数据挂载则直接在 `docker-compose.yml` 中按需取消注释并修改。
 
