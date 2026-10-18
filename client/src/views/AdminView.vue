@@ -472,7 +472,7 @@ async function logout() {
           </div>
           <div class="field">
             <label for="new-admin-password">新管理密码</label>
-            <input id="new-admin-password" v-model="passwordForm.newPassword" type="password" autocomplete="new-password" minlength="12" required placeholder="至少 12 个字符" />
+            <input id="new-admin-password" v-model="passwordForm.newPassword" type="password" autocomplete="new-password" required placeholder="输入新密码（不限制长度或复杂度）" />
           </div>
           <div class="field">
             <label for="confirm-admin-password">确认新密码</label>
