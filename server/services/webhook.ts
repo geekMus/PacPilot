@@ -90,7 +90,7 @@ function buildContext(kind: EventKind, message?: string): MessageContext {
     event: kind === "test" ? "webhook.test" : ok ? "pac.generated" : "pac.generation_failed",
     ok: kind === "test" ? true : kind === "success",
     message: kind === "test" ? "测试通知请求已触发。" : message || (ok ? "PAC 已成功生成。" : "PAC 生成失败。"),
-    timestamp: new Date().toLocaleString("zh-CN", { timeZone: process.env.TZ || "Asia/Shanghai" }),
+    timestamp: new Date().toLocaleString("zh-CN", { timeZone: process.env.APP_TIME_ZONE || process.env.TZ || "Asia/Shanghai" }),
   };
 }
 
