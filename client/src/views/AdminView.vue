@@ -40,6 +40,43 @@ const modeHint = computed(() =>
     : "从你配置的远程 URL 拉取规则列表并生成 PAC（可用 GFWList，也可用其他域名列表）。"
 );
 
+
+const cronPresets = [
+  { label: "关闭", value: "", hint: "不定时更新" },
+  { label: "每小时", value: "0 * * * *", hint: "每小时整点" },
+  { label: "每 3 小时", value: "0 */3 * * *", hint: "每 3 小时" },
+  { label: "每天 0 点", value: "0 0 * * *", hint: "每天 00:00" },
+  { label: "每天 6 点", value: "0 6 * * *", hint: "每天 06:00" },
+  { label: "每周一 0 点", value: "0 0 * * 1", hint: "每周一 00:00" },
+] as const;
+
+const cronHint = computed(() => {
+  const v = form.cronSchedule.trim();
+  if (!v) return "未设置：不会按计划自动生成 PAC。";
+  const hit = cronPresets.find((p) => p.value === v);
+  if (hit && hit.value) return `当前：${hit.hint}（标准 5 段 cron：分 时 日 月 周）`;
+  return "自定义 cron（5 段：分 时 日 月 周）。留空表示关闭定时。";
+});
+
+function applyCronPreset(value: string) {
+  form.cronSchedule = value;
+}
+
+function jsonBodyError(raw: string): string {
+  const s = raw.trim();
+  if (!s) return "";
+  try {
+    JSON.parse(s);
+    return "";
+  } catch {
+    return "内容不是合法 JSON；保存后仍会原样发送，请确认。";
+  }
+}
+
+const successBodyError = computed(() => jsonBodyError(form.webhookSuccessBody));
+const failureBodyError = computed(() => jsonBodyError(form.webhookFailureBody));
+
+
 function applySettings(s: AppSettings) {
   form.mode = s.mode;
   form.pacProxy = s.pacProxy;
@@ -350,33 +387,98 @@ async function logout() {
               </span>
               <div>
                 <h2>定时与 Webhook</h2>
-                <p class="card-sub">可选；留空则不定时、不通知</p>
+                <p class="card-sub">均可选。定时控制自动生成；Webhook 在每次生成成功/失败时 POST 通知</p>
               </div>
             </div>
           </div>
 
-          <div class="field">
-            <label for="cron">Cron 表达式</label>
-            <input id="cron" v-model="form.cronSchedule" placeholder="0 0 */3 * *" />
+          <div class="sub-block">
+            <div class="sub-title">定时生成</div>
+            <div class="chip-row" role="group" aria-label="Cron 预设">
+              <button
+                v-for="p in cronPresets"
+                :key="p.label"
+                type="button"
+                class="chip"
+                :class="{ active: form.cronSchedule.trim() === p.value }"
+                @click="applyCronPreset(p.value)"
+              >
+                {{ p.label }}
+              </button>
+            </div>
+            <div class="field">
+              <label for="cron">Cron 表达式 <span class="lab-hint">5 段 · 分 时 日 月 周</span></label>
+              <input
+                id="cron"
+                v-model="form.cronSchedule"
+                class="mono"
+                spellcheck="false"
+                autocomplete="off"
+                placeholder="例如 0 */3 * * *"
+              />
+              <p class="field-hint">{{ cronHint }}</p>
+            </div>
           </div>
-          <div class="split">
-            <div class="field">
-              <label>成功 Webhook URL</label>
-              <input v-model="form.webhookSuccessUrl" />
+
+          <div class="webhook-grid">
+            <div class="webhook-panel ok">
+              <div class="webhook-panel-title">
+                <span class="dot ok" />
+                成功时通知
+              </div>
+              <div class="field">
+                <label>Webhook URL</label>
+                <input
+                  v-model="form.webhookSuccessUrl"
+                  class="mono"
+                  type="url"
+                  inputmode="url"
+                  placeholder="https://example.com/hooks/success"
+                  spellcheck="false"
+                />
+              </div>
+              <div class="field">
+                <label>请求 Body <span class="lab-hint">JSON，可空</span></label>
+                <textarea
+                  v-model="form.webhookSuccessBody"
+                  class="mono body-area"
+                  rows="5"
+                  spellcheck="false"
+                  placeholder='{"event":"pac_success"}'
+                />
+                <p v-if="successBodyError" class="field-warn">{{ successBodyError }}</p>
+                <p v-else class="field-hint">留空则发送 {"ok":true}；需填写合法 JSON 对象或数组。</p>
+              </div>
             </div>
-            <div class="field">
-              <label>失败 Webhook URL</label>
-              <input v-model="form.webhookFailureUrl" />
-            </div>
-          </div>
-          <div class="split">
-            <div class="field">
-              <label>成功 Body（JSON）</label>
-              <textarea v-model="form.webhookSuccessBody" rows="4" />
-            </div>
-            <div class="field">
-              <label>失败 Body（JSON）</label>
-              <textarea v-model="form.webhookFailureBody" rows="4" />
+
+            <div class="webhook-panel bad">
+              <div class="webhook-panel-title">
+                <span class="dot bad" />
+                失败时通知
+              </div>
+              <div class="field">
+                <label>Webhook URL</label>
+                <input
+                  v-model="form.webhookFailureUrl"
+                  class="mono"
+                  type="url"
+                  inputmode="url"
+                  placeholder="https://example.com/hooks/failure"
+                  spellcheck="false"
+                />
+              </div>
+              <div class="field">
+                <label>请求 Body <span class="lab-hint">JSON，可空</span></label>
+                <textarea
+                  v-model="form.webhookFailureBody"
+                  class="mono body-area"
+                  rows="5"
+                  spellcheck="false"
+                  placeholder='{"event":"pac_failure"}'
+                />
+                <p v-if="failureBodyError" class="field-warn">{{ failureBodyError }}</p>
+                <p v-else class="field-hint">留空则发送 {"ok":true}。仅当上方 URL 非空时才会请求。</p>
+              </div>
             </div>
           </div>
         </section>
@@ -838,6 +940,105 @@ tr:last-child td {
 }
 .split.editors .field {
   margin-bottom: 0;
+}
+
+
+.sub-block {
+  margin-bottom: var(--space-4);
+}
+.sub-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.chip {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  border-radius: 999px;
+  min-height: 34px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.chip:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  color: var(--accent);
+}
+.chip.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.field-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.field-warn {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--warn);
+  line-height: 1.45;
+}
+input.mono,
+textarea.mono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+textarea.body-area {
+  resize: vertical;
+  min-height: 110px;
+  line-height: 1.45;
+}
+.webhook-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.webhook-panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  padding: 14px 14px 6px;
+}
+.webhook-panel.ok {
+  border-color: color-mix(in srgb, var(--green) 28%, var(--line));
+}
+.webhook-panel.bad {
+  border-color: color-mix(in srgb, var(--red) 28%, var(--line));
+}
+.webhook-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot.ok { background: var(--green); }
+.dot.bad { background: var(--red); }
+@media (max-width: 720px) {
+  .webhook-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 </style>
