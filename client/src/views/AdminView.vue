@@ -1103,10 +1103,10 @@ textarea {
 .admin-page .actions .btn-save:disabled {
   opacity: 1;
   cursor: not-allowed;
-  background: #8999d9;
-  border-color: #8999d9;
-  color: #fff !important;
-  -webkit-text-fill-color: #fff;
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--muted) !important;
+  -webkit-text-fill-color: var(--muted);
   box-shadow: none;
   transform: none;
 }
