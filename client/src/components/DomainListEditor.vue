@@ -201,21 +201,36 @@ watch(
       <div ref="host" class="cm-host" />
       <div v-if="!modelValue && placeholder" class="ph">{{ placeholder }}</div>
     </div>
-    <div v-if="diagnostics.length" class="rule-diagnostic-list" aria-label="规则检查提示">
-      <button
-        v-for="(item, index) in diagnostics.slice(0, 8)"
-        :key="item.line + '-' + item.severity + '-' + item.message + '-' + index"
-        type="button"
-        class="rule-diagnostic-item"
-        :class="'is-' + item.severity"
-        :title="'点击跳转到第 ' + item.line + ' 行'"
-        @click="jumpToLine(item.line)"
-      >
-        <span class="rule-diagnostic-line">第 {{ item.line }} 行</span>
-        <span>{{ item.message }}</span>
-      </button>
-      <p v-if="diagnostics.length > 8" class="rule-diagnostic-more">还有 {{ diagnostics.length - 8 }} 条提示，已在对应行标记。</p>
-    </div>
+    <section v-if="diagnostics.length" class="rule-diagnostic-panel" aria-label="规则检查结果" aria-live="polite">
+      <div class="rule-diagnostic-heading">
+        <div class="rule-diagnostic-title">
+          <span class="rule-diagnostic-title-icon" aria-hidden="true">!</span>
+          <strong>规则检查</strong>
+          <span class="rule-diagnostic-total">{{ diagnostics.length }} 条提示</span>
+        </div>
+        <div class="rule-diagnostic-summary">
+          <span v-if="diagnostics.some(item => item.severity === 'error')" class="diagnostic-count is-error">{{ diagnostics.filter(item => item.severity === 'error').length }} 个错误</span>
+          <span v-if="diagnostics.some(item => item.severity === 'warning')" class="diagnostic-count is-warning">{{ diagnostics.filter(item => item.severity === 'warning').length }} 个提醒</span>
+          <span v-if="diagnostics.some(item => item.severity === 'info')" class="diagnostic-count is-info">{{ diagnostics.filter(item => item.severity === 'info').length }} 条建议</span>
+        </div>
+      </div>
+      <div class="rule-diagnostic-list">
+        <button
+          v-for="(item, index) in diagnostics"
+          :key="item.line + '-' + item.severity + '-' + item.message + '-' + index"
+          type="button"
+          class="rule-diagnostic-item"
+          :class="'is-' + item.severity"
+          :title="'定位到第 ' + item.line + ' 行'"
+          @click="jumpToLine(item.line)"
+        >
+          <span class="rule-diagnostic-line">第 {{ item.line }} 行</span>
+          <span class="rule-diagnostic-message">{{ item.message }}</span>
+          <span class="rule-diagnostic-jump" aria-hidden="true">定位 ↗</span>
+        </button>
+      </div>
+      <p class="rule-diagnostic-footer">点击任意提示可跳转到编辑器对应行；行号旁的标记也可查看问题。</p>
+    </section>
   </div>
 </template>
 
@@ -275,14 +290,40 @@ watch(
   color: var(--muted);
 }
 
-.rule-diagnostic-list { display: flex; flex-direction: column; gap: 4px; max-height: 144px; overflow: auto; margin-top: 8px; padding: 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); }
-.rule-diagnostic-item { display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 5px 6px; border: 0; border-radius: 5px; background: transparent; color: var(--text); font: inherit; font-size: 11px; line-height: 1.4; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
-.rule-diagnostic-item:hover { background: var(--surface); }
-.rule-diagnostic-item.is-error { color: var(--red); }
-.rule-diagnostic-item.is-warning { color: var(--warn); }
-.rule-diagnostic-item.is-info { color: var(--accent); }
-.rule-diagnostic-line { flex: 0 0 auto; font-weight: 700; white-space: nowrap; }
-.rule-diagnostic-more { margin: 2px 6px 4px; color: var(--muted); font-size: 11px; }
+.rule-diagnostic-panel { margin-top: 10px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-md, 10px); background: var(--surface); }
+.rule-diagnostic-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.rule-diagnostic-title, .rule-diagnostic-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; min-width: 0; }
+.rule-diagnostic-title { color: var(--text); font-size: 12px; }
+.rule-diagnostic-title-icon { display: inline-grid; width: 18px; height: 18px; place-items: center; border-radius: 6px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 800; }
+.rule-diagnostic-total { color: var(--muted); font-size: 11px; font-weight: 500; }
+.diagnostic-count { padding: 3px 7px; border-radius: 999px; font-size: 10px; line-height: 1.2; white-space: nowrap; }
+.diagnostic-count.is-error { color: var(--red); background: var(--red-soft); }
+.diagnostic-count.is-warning { color: var(--warn); background: var(--warn-soft); }
+.diagnostic-count.is-info { color: var(--accent); background: var(--accent-soft); }
+.rule-diagnostic-list { display: flex; flex-direction: column; gap: 3px; max-height: 260px; overflow: auto; padding: 6px; overscroll-behavior: contain; }
+.rule-diagnostic-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 9px; width: 100%; padding: 9px 8px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--text); font: inherit; font-size: 12px; line-height: 1.5; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
+.rule-diagnostic-item:hover, .rule-diagnostic-item:focus-visible { border-color: var(--line); background: var(--surface-2); }
+.rule-diagnostic-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.rule-diagnostic-line { display: inline-flex; align-items: center; justify-content: center; min-height: 22px; padding: 2px 7px; border-radius: 5px; background: var(--surface-2); color: var(--muted); font-size: 10px; font-weight: 750; white-space: nowrap; }
+.rule-diagnostic-item.is-error .rule-diagnostic-line { color: var(--red); background: var(--red-soft); }
+.rule-diagnostic-item.is-warning .rule-diagnostic-line { color: var(--warn); background: var(--warn-soft); }
+.rule-diagnostic-item.is-info .rule-diagnostic-line { color: var(--accent); background: var(--accent-soft); }
+.rule-diagnostic-message { min-width: 0; }
+.rule-diagnostic-item.is-error .rule-diagnostic-message { color: var(--red); }
+.rule-diagnostic-item.is-warning .rule-diagnostic-message { color: var(--warn); }
+.rule-diagnostic-item.is-info .rule-diagnostic-message { color: var(--text); }
+.rule-diagnostic-jump { align-self: center; color: var(--muted); font-size: 10px; white-space: nowrap; }
+.rule-diagnostic-footer { margin: 0; padding: 8px 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; line-height: 1.45; }
+@media (max-width: 600px) {
+  .rule-diagnostic-heading { align-items: flex-start; flex-direction: column; padding: 9px 10px; }
+  .rule-diagnostic-summary { gap: 5px; }
+  .rule-diagnostic-list { max-height: 300px; padding: 5px; }
+  .rule-diagnostic-item { grid-template-columns: auto minmax(0, 1fr); gap: 7px; padding: 9px 7px; font-size: 12px; }
+  .rule-diagnostic-line { grid-row: 1; grid-column: 1; }
+  .rule-diagnostic-message { grid-row: 1; grid-column: 2; }
+  .rule-diagnostic-jump { grid-row: 2; grid-column: 2; justify-self: start; padding-top: 2px; }
+  .rule-diagnostic-footer { padding: 8px 10px; }
+}
 .ph {
   position: absolute;
   top: 12px;
