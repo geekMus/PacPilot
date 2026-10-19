@@ -8,7 +8,7 @@ import {
   type GenpacProbe,
   type WebhookConfig,
 } from "../api/client";
-import AppHeader from "../components/AppHeader.vue";
+import AdminLayout from "../components/AdminLayout.vue";
 import AppFooter from "../components/AppFooter.vue";
 import DomainListEditor from "../components/DomainListEditor.vue";
 import WebhookChannelEditor from "../components/WebhookChannelEditor.vue";
@@ -430,20 +430,11 @@ async function logout() {
 </script>
 
 <template>
-  <main class="page admin-page">
-    <AppHeader brand="genpac-runner" sub="控制台">
-      <RouterLink to="/">运行概览</RouterLink>
-      <RouterLink to="/admin/monitor">网络监控</RouterLink>
-      <button type="button" class="linkish" @click="logout">退出</button>
-    </AppHeader>
-
-    <section class="page-hero">
-      <div class="page-kicker">控制台</div>
-      <h1 class="page-title">配置管理</h1>
-      <p class="page-intro">
-        参数保存在本地数据库，保存后可立即重新生成 PAC。
-      </p>
-    </section>
+  <AdminLayout active="settings" title="配置管理" subtitle="管理 PAC 生成方式、代理规则、定时任务与通知渠道。">
+    <template #actions>
+      <button type="button" class="admin-logout-button" @click="logout">退出登录</button>
+    </template>
+    <div class="admin-page">
 
     <p v-if="loading" class="state-msg">加载中…</p>
     <div v-if="flash" class="banner" :class="flashOk ? 'ok' : 'bad'">
@@ -456,7 +447,7 @@ async function logout() {
     </div>
 
     <template v-if="!loading && !error">
-      <section class="card security-card">
+      <section id="security" class="card security-card">
         <div class="card-head">
           <div>
             <h2>管理密码</h2>
@@ -495,7 +486,7 @@ async function logout() {
 
       <form v-if="!securityStatus.mustChangePassword" class="stack" @submit.prevent="saveAndGenerate">
         <!-- 常规设置 -->
-        <section class="card">
+        <section id="general" class="card">
           <div class="card-head">
             <div class="card-title">
               <span class="icon-badge" aria-hidden="true">◷</span>
@@ -561,7 +552,7 @@ async function logout() {
         </section>
 
         <!-- 模式 -->
-        <section class="card">
+        <section id="mode" class="card">
           <div class="card-head">
             <div class="card-title">
               <span class="icon-badge" aria-hidden="true">
@@ -613,7 +604,7 @@ async function logout() {
         </section>
 
         <!-- 代理 -->
-        <section class="card">
+        <section id="proxy" class="card">
           <div class="card-head">
             <div class="card-title">
               <span class="icon-badge" aria-hidden="true">
@@ -650,7 +641,7 @@ async function logout() {
         </section>
 
         <!-- 规则列表 -->
-        <section class="card">
+        <section id="rules" class="card">
           <div class="card-head">
             <div class="card-title">
               <span class="icon-badge" aria-hidden="true">
@@ -701,7 +692,7 @@ async function logout() {
         </section>
 
         <!-- 定时与 webhook -->
-        <section class="card">
+        <section id="schedule" class="card">
           <div class="card-head">
             <div class="card-title">
               <span class="icon-badge" aria-hidden="true">
@@ -790,7 +781,7 @@ async function logout() {
         </div>
       </form>
 
-      <section class="card">
+      <section id="logs" class="card">
         <div class="card-head">
           <div class="card-title">
             <span class="icon-badge" aria-hidden="true">
@@ -832,13 +823,32 @@ async function logout() {
       </section>
     </template>
     <AppFooter />
-  </main>
+    </div>
+  </AdminLayout>
 </template>
 
 <style scoped>
 .admin-page {
+  min-width: 0;
   padding-bottom: var(--space-6);
 }
+.admin-logout-button {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:34px;
+  padding:0 11px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--surface);
+  color:var(--text);
+  font:inherit;
+  font-size:11px;
+  font-weight:700;
+  cursor:pointer;
+}
+.admin-logout-button:hover { border-color:var(--accent); color:var(--accent); }
+#security,#general,#mode,#proxy,#rules,#schedule,#logs { scroll-margin-top: 110px; }
 .state-msg {
   color: var(--muted);
 }
