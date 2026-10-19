@@ -285,9 +285,9 @@ onUnmounted(stopPolling);
 
       <section class="workflow-history panel">
         <div class="panel-heading">
-          <div><p class="eyebrow">HISTORY</p><h2>执行历史</h2><p class="panel-subtitle">最近 {{ runs.length }} 条任务记录；历史记录与生成日志分开保存。</p><p v-if="activeRuns.length" class="panel-subtitle">有工作流正在等待或执行，暂不能清空历史。</p></div>
+          <div><p class="eyebrow">HISTORY</p><h2>执行历史</h2><p v-if="activeRuns.length" class="panel-subtitle">有工作流正在等待或执行，暂不能清空历史。</p></div>
           <div class="history-heading-actions">
-            <span class="count-pill">{{ filteredRuns.length }} 条匹配</span>
+            <span class="count-pill">{{ filteredRuns.length }} 条记录</span>
             <ConfirmPopover :open="confirmingHistoryClear" title="清空工作流执行历史？" description="将删除全部工作流执行记录及其阶段详情，且无法撤销；生成日志、应用配置和 PAC 文件会保留。若有任务正在等待或执行，服务器会拒绝清理。" confirm-text="清空历史" busy-text="正在清理…" align="end" :disabled="loading||clearingHistory||activeRuns.length>0||runs.length===0||deletingId!==null||cancellingId!==null" :busy="clearingHistory" @update:open="confirmingHistoryClear=$event" @confirm="clearWorkflowHistory">
               <template #trigger="{toggle,open}"><button class="workflow-button history-clear-button" type="button" :aria-expanded="open" :disabled="loading||clearingHistory||activeRuns.length>0||runs.length===0||deletingId!==null||cancellingId!==null" @click="toggleHistoryClear(toggle, open)"><AppIcon :name="clearingHistory?'loader-circle':'trash-2'" :size="15" :class="{spinning:clearingHistory}"/> {{clearingHistory?"正在清理…":"清空执行历史"}}</button></template>
             </ConfirmPopover>
