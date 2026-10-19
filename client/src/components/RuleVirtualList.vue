@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import TextDetail from "./TextDetail.vue";
 
 interface RuleEntry {
   domain: string;
@@ -63,7 +64,7 @@ watch(() => props.items, () => {
           :style="{ height: rowHeight + 'px' }"
           role="listitem"
         >
-          <code :title="item.domain">{{ item.domain }}</code>
+          <TextDetail :text="item.domain" label="域名规则" class="domain-detail" />
           <span v-if="item.source" class="row-source">{{ item.source }}</span>
         </div>
       </div>
@@ -97,14 +98,8 @@ watch(() => props.items, () => {
   padding: 0 10px;
   border-bottom: 1px solid var(--line);
 }
-.virtual-row code {
-  display: block;
+.virtual-row > .domain-detail {
   flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text);
-  text-overflow: ellipsis;
-  white-space: nowrap;
   font-size: 11px;
 }
 .row-source {
