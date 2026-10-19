@@ -10,10 +10,10 @@ import AppFooter from "../components/AppFooter.vue";
       <div class="not-found-code">404</div>
       <div class="page-kicker">PAGE NOT FOUND</div>
       <h1 class="page-title">这个页面不存在</h1>
-      <p>地址可能已失效，或页面已经移动。你可以返回公共状态页，或者打开配置管理。</p>
+      <p>地址可能已失效，或页面已经移动。你可以返回公共状态页，或者进入后台管理。</p>
       <div class="not-found-actions">
         <RouterLink class="action-button primary" to="/">返回公共状态页</RouterLink>
-        <RouterLink class="action-button" to="/admin">配置管理</RouterLink>
+        <RouterLink class="action-button" to="/admin/dashboard">后台管理</RouterLink>
       </div>
     </section>
     <AppFooter />
