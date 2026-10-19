@@ -12,6 +12,7 @@ import AdminLayout from "../components/AdminLayout.vue";
 import AppFooter from "../components/AppFooter.vue";
 import DomainListEditor from "../components/DomainListEditor.vue";
 import WebhookChannelEditor from "../components/WebhookChannelEditor.vue";
+import TextDetail from "../components/TextDetail.vue";
 import cronstrue from "cronstrue";
 import { CronExpressionParser } from "cron-parser";
 import "cronstrue/locales/zh_CN";
@@ -826,7 +827,7 @@ async function logout() {
                   </span>
                 </td>
                 <td>{{ l.mode }}</td>
-                <td class="msg">{{ l.message }}</td>
+                <td class="msg"><TextDetail :text="l.message || ''" label="生成记录信息" /></td>
               </tr>
               <tr v-if="!logs.length">
                 <td colspan="4" class="empty">暂无记录</td>
@@ -1216,8 +1217,7 @@ tr:last-child td {
   white-space: nowrap;
 }
 .msg {
-  word-break: break-word;
-  white-space: pre-wrap;
+  max-width: 360px;
 }
 .empty {
   color: var(--muted);
