@@ -176,7 +176,7 @@ jobs:
             printf '# genpac-runner 镜像构建摘要\n\n'
             printf -- '- 项目版本：%s\n' "$VERSION"
             printf -- '- 本次提交：[%s](https://github.com/%s/commit/%s)\n' "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$GITHUB_SHA"
-            printf -- '- 构建平台：linux/amd64、linux/arm64\n'
+            printf -- '- 构建平台：linux/arm64\n'
             printf -- '- 发布判断：%s\n' "$REASON"
             if [[ "$PUBLISH" == "true" ]]; then
               printf -- '- 版本镜像：ghcr.io/geekmus/genpac-runner:%s\n' "$VERSION"
