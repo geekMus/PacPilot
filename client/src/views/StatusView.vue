@@ -283,8 +283,6 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
           </div>
         </section>
 
-
-
         <section class="rules-section section-card">
           <div class="section-head rules-section-head">
             <div>
