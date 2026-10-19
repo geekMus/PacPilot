@@ -60,8 +60,7 @@ const channelStatusText = computed(() => {
     <div class="channel-head">
       <div class="channel-heading">
         <span class="channel-mark" aria-hidden="true">
-          <svg v-if="kind === 'success'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>
-          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v5m0 4h.01"/><path d="M10.3 3.9 1.8 18.2A2 2 0 0 0 3.5 21h17a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+          <AppIcon :name="kind === 'success' ? 'circle-check' : 'alert-triangle'" :size="18" :stroke-width="1.8" />
         </span>
         <div>
           <h3>{{ title }}</h3>
@@ -69,6 +68,7 @@ const channelStatusText = computed(() => {
         </div>
       </div>
       <button type="button" class="test-button" :disabled="pending" @click="emit('test')">
+        <AppIcon :name="pending ? 'loader-circle' : 'activity'" :class="{ 'icon-spinning': pending }" :size="14" />
         {{ pending ? "发送中…" : "发送测试" }}
       </button>
     </div>
@@ -178,7 +178,7 @@ const channelStatusText = computed(() => {
       <span class="timeout-note">请求超时：10 秒</span>
     </div>
     <p v-if="resultMessage" class="test-result" :class="resultOk ? 'success' : 'failure'" role="status" aria-live="polite">
-      <span aria-hidden="true">{{ resultOk ? "✓" : "!" }}</span>{{ resultMessage }}
+      <AppIcon :name="resultOk ? 'circle-check' : 'circle-alert'" :size="15" />{{ resultMessage }}
     </p>
   </section>
 </template>
@@ -200,7 +200,7 @@ const channelStatusText = computed(() => {
   display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 auto;
   border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--muted);
 }
-.channel-mark svg { width: 17px; height: 17px; }
+.channel-mark :deep(.app-icon) { width: 18px; height: 18px; }
 .channel-heading h3 { margin: 0; font-size: 13px; font-weight: 750; }
 .channel-heading p { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
 .test-button {
@@ -261,7 +261,7 @@ const channelStatusText = computed(() => {
   padding: 0 12px; font-size: 11px; cursor: pointer;
 }
 .segmented button.active { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
-.channel-footer {
+.icon-spinning { animation: webhook-icon-spin .9s linear infinite; }\n@keyframes webhook-icon-spin { to { transform: rotate(360deg); } }\n.channel-footer {
   display: flex; align-items: center; gap: 7px; margin-top: auto; padding-top: 12px;
   border-top: 1px solid var(--line); color: var(--muted); font-size: 10px;
 }
