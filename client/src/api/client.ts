@@ -176,6 +176,14 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
       if (data.error) msg = data.error;
       else if (data.message) msg = data.message;
     } catch { /* ignore non-JSON errors */ }
+
+    // This endpoint was added with the server-side save-and-generate workflow.
+    // A 404 means the browser is talking to an older backend process/build,
+    // not that the submitted settings are invalid.
+    if (res.status === 404 && url === "/api/admin/settings/save-and-generate") {
+      msg = "当前后端未提供“保存并生成”接口，前后端代码版本可能不一致。请先停止所有旧的 genpac-runner 开发进程，更新到最新 main，再从项目根目录重新运行 bun run dev。检查终端中的后端监听端口，并确认 client/vite.config.ts 的代理目标 PORT 与后端 PORT 一致。此次请求未能完成保存与生成，请检查配置是否已保存后再重试。";
+    }
+
     throw new Error(msg);
   }
   return (await res.json()) as T;
