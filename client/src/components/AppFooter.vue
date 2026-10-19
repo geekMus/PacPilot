@@ -89,7 +89,9 @@ onMounted(() => { void loadVersionInfo(true); });
 .dialog-actions { display:flex; flex-wrap:wrap; gap:9px; margin-top:20px; }
 .dialog-project-button,.dialog-secondary-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:39px; padding:0 14px; border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--text); font:inherit; font-size:12px; font-weight:650; text-decoration:none; cursor:pointer; }
 .dialog-project-button { flex:1; background:var(--accent); border-color:var(--accent); color:var(--accent-contrast); }
-.dialog-project-button:hover { filter:brightness(1.05); }
+.dialog-project-button:hover { background:var(--accent-hover); border-color:var(--accent-hover); color:var(--accent-contrast); filter:none; }
+.dialog-project-button:active { background:var(--accent-active); border-color:var(--accent-active); color:var(--accent-contrast); }
+.dialog-secondary-button:active { background:var(--accent-soft); color:var(--accent); }
 .dialog-secondary-button:hover { border-color:var(--accent); color:var(--accent); }
 .version-dialog-enter-active,.version-dialog-leave-active { transition:opacity .16s ease,transform .16s ease; }
 .version-dialog-enter-active .version-dialog,.version-dialog-leave-active .version-dialog { transition:transform .16s ease; }
