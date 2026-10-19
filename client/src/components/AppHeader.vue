@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ThemeSwitcher from "./ThemeSwitcher.vue";
+import AppIcon from "./AppIcon.vue";
 
 defineProps<{ brand?: string; sub?: string; homeTo?: string }>();
 </script>
@@ -7,11 +8,7 @@ defineProps<{ brand?: string; sub?: string; homeTo?: string }>();
 <template>
   <header class="topbar">
     <RouterLink class="brand" :to="homeTo || '/'" aria-label="genpac-runner 首页">
-      <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="8.5"/><path d="M3.8 9h16.4M3.8 15h16.4M12 3.5a13 13 0 0 1 0 17M12 3.5a13 13 0 0 0 0 17"/>
-        </svg>
-      </span>
+      <span class="brand-mark" aria-hidden="true"><AppIcon name="network" :size="18" :stroke-width="1.8" /></span>
       <span class="brand-copy">
         <span class="name">{{ brand || "genpac-runner" }}</span>
         <small v-if="sub">{{ sub }}</small>
@@ -27,7 +24,7 @@ defineProps<{ brand?: string; sub?: string; homeTo?: string }>();
 <style scoped>
 .topbar { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:var(--space-5); }
 .brand { display:flex; align-items:center; gap:10px; color:var(--text); text-decoration:none; flex:0 0 auto; }
-.brand-mark { display:grid; place-items:center; width:36px; height:36px; border:1px solid var(--line); border-radius:11px; background:var(--surface); color:var(--accent); }
+.brand-mark { display:grid; place-items:center; width:36px; height:36px; border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line)); border-radius:11px; background:var(--accent-soft); color:var(--accent); box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 3px 9px color-mix(in srgb,var(--accent) 8%,transparent); }
 .brand-copy .name { display:block; font-size:14px; font-weight:750; letter-spacing:-.02em; }
 .brand-copy small { display:block; margin-top:1px; color:var(--muted); font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
 .header-tools { display:flex; align-items:center; justify-content:flex-end; gap:10px; min-width:0; }
