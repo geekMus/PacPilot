@@ -67,7 +67,7 @@ onMounted(() => { void loadVersionInfo(true); });
 .version-badge:hover { transform:translateY(-1px); box-shadow:0 3px 10px rgba(30,64,175,.12); }
 .version-badge:active { transform:translateY(0); box-shadow:inset 0 1px 2px rgba(30,40,60,.12); }
 .version-badge.is-update { border-color:color-mix(in srgb,var(--warn) 55%,var(--line)); background:var(--warn-soft); color:var(--text); }
-.new-badge { position:absolute; top:-8px; right:-10px; padding:2px 5px; border:2px solid var(--surface); border-radius:999px; background:#f97316; color:white; font-size:9px; font-weight:800; line-height:1.15; letter-spacing:.02em; }
+.new-badge { position:absolute; top:-8px; right:-10px; padding:2px 5px; border:2px solid var(--surface); border-radius:999px; background:var(--warn); color:var(--accent-contrast); font-size:9px; font-weight:800; line-height:1.15; letter-spacing:.02em; }
 .dialog-backdrop { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; overflow-y:auto; padding:20px; background:rgba(15,23,42,.48); backdrop-filter:blur(3px); }
 .version-dialog { width:min(100%,440px); padding:22px; border:1px solid var(--line); border-radius:18px; background:var(--surface); color:var(--text); box-shadow:0 24px 80px rgba(0,0,0,.24); }
 .dialog-header { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:19px; }
