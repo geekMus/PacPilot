@@ -438,6 +438,7 @@ function toPayload(): AppSettings {
     cronSchedule: form.cronSchedule,
     timezone: form.timezone.trim(),
     proxyTestUrl: form.proxyTestUrl.trim(),
+    logRetentionDays: form.logRetentionDays,
     webhookSuccessUrl: form.webhookSuccessConfig.url,
     webhookSuccessBody: form.webhookSuccessConfig.body,
     webhookFailureUrl: form.webhookFailureConfig.url,
