@@ -33,24 +33,6 @@ const modeLabel = computed(() => settings.value?.mode === "remote" ? "远程规�
 const customRuleCount = computed(() => (settings.value?.directList.length ?? 0) + (settings.value?.blockList.length ?? 0));
 const latestLog = computed(() => logs.value[0] ?? null);
 
-function formatDate(value: string | null | undefined): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  try {
-    return new Intl.DateTimeFormat("zh-CN", {
-      timeZone: settings.value?.timezone || "Asia/Shanghai",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    }).format(date);
-  } catch {
-    return value;
-  }
-}
 function modeForLog(value: string): string {
   return value === "remote" ? "远程规则列表" : value === "custom" ? "自定义规则" : value;
 }
@@ -187,7 +169,7 @@ onMounted(() => { void loadOverview(); });
             <div class="config-detail"><span>定时生成</span><strong>{{ settings?.cronSchedule ? settings.cronSchedule : "已关闭" }}</strong></div>
             <div class="config-detail"><span>远程规则地址</span><code>{{ settings?.mode === "remote" ? settings.listUrl : "当前未启用" }}</code></div>
             <div class="config-detail"><span>生成引擎</span><strong :class="engine?.available ? 'value-good' : 'value-warning'">{{ engine ? engine.available ? "可用" : "需检查" : "未检测" }}</strong></div>
-            <div class="config-detail"><span>最近生成时间</span><strong>{{ latestLog ? formatDate(latestLog.created_at) : status?.updatedAt || "暂无记录" }}</strong></div>
+            <div class="config-detail"><span>最近生成时间</span><strong>{{ latestLog ? latestLog.created_at : status?.updatedAt || "暂无记录" }}</strong></div>
             <div class="config-detail"><span>生成结果</span><strong :class="latestLog?.success ? 'value-good' : latestLog ? 'value-warning' : ''">{{ latestLog ? latestLog.success ? "成功" : "失败" : "暂无记录" }}</strong></div>
           </div>
           <div class="panel-footer-links">
@@ -206,7 +188,7 @@ onMounted(() => { void loadOverview(); });
               <thead><tr><th>时间</th><th>结果</th><th>模式</th><th>信息</th></tr></thead>
               <tbody>
                 <tr v-for="entry in logs" :key="entry.id">
-                  <td class="nowrap">{{ formatDate(entry.created_at) }}</td>
+                  <td class="nowrap">{{ entry.created_at }}</td>
                   <td><span class="result-pill" :class="entry.success ? 'good' : 'bad'">{{ entry.success ? "成功" : "失败" }}</span></td>
                   <td>{{ modeForLog(entry.mode) }}</td>
                   <td class="log-message"><TextDetail :text="entry.message || ''" label="生成记录信息" /></td>
