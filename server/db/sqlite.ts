@@ -68,6 +68,22 @@ function migrate(database: AppDatabase): void {
     );
     CREATE INDEX IF NOT EXISTS idx_proxy_probe_tested_at ON proxy_probe_runs(tested_at DESC);
     CREATE INDEX IF NOT EXISTS idx_proxy_probe_label_tested ON proxy_probe_runs(proxy_label, tested_at DESC);
+
+    CREATE TABLE IF NOT EXISTS workflow_runs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source TEXT NOT NULL,
+      status TEXT NOT NULL,
+      stage TEXT NOT NULL DEFAULT '',
+      mode TEXT NOT NULL DEFAULT '',
+      message TEXT NOT NULL DEFAULT '',
+      error TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      started_at TEXT,
+      finished_at TEXT,
+      duration_ms INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_workflow_runs_created ON workflow_runs(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_workflow_runs_status ON workflow_runs(status, created_at DESC);
   `);
 
   const row = database
@@ -207,6 +223,7 @@ function normalizeSettings(
     cronSchedule: String(s.cronSchedule || "").trim(),
     timezone: normalizeTimeZone(String(s.timezone || DEFAULT_SETTINGS.timezone)),
     proxyTestUrl: String(s.proxyTestUrl || DEFAULT_SETTINGS.proxyTestUrl).trim(),
+    logRetentionDays: Math.max(0, Math.min(3650, Math.floor(Number(s.logRetentionDays ?? DEFAULT_SETTINGS.logRetentionDays) || 0))),
     webhookSuccessUrl,
     webhookSuccessBody,
     webhookFailureUrl,
@@ -214,6 +231,70 @@ function normalizeSettings(
     webhookSuccessConfig,
     webhookFailureConfig,
   };
+}
+
+
+export type WorkflowStatus = "pending" | "running" | "succeeded" | "failed";
+export interface WorkflowRun {
+  id: number;
+  source: string;
+  status: WorkflowStatus;
+  stage: string;
+  mode: string;
+  message: string;
+  error: string;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  duration_ms: number | null;
+}
+export function createWorkflowRun(database: AppDatabase, source: string, mode: string): number {
+  const now = new Date().toISOString();
+  const result = database.query(
+    "INSERT INTO workflow_runs (source,status,stage,mode,message,error,created_at) VALUES (?,'pending','等待执行',?,'任务已创建','',?)"
+  ).run(source, mode, now);
+  return Number(result.lastInsertRowid);
+}
+export function updateWorkflowRun(
+  database: AppDatabase,
+  id: number,
+  patch: Partial<Pick<WorkflowRun, "status" | "stage" | "message" | "error" | "started_at" | "finished_at" | "duration_ms">>
+): void {
+  const allowed = ["status", "stage", "message", "error", "started_at", "finished_at", "duration_ms"] as const;
+  const fields = allowed.filter((key) => patch[key] !== undefined);
+  if (!fields.length) return;
+  database.query("UPDATE workflow_runs SET " + fields.map((key) => key + " = ?").join(", ") + " WHERE id = ?")
+    .run(...fields.map((key) => patch[key]), id);
+}
+export function listWorkflowRuns(database: AppDatabase, limit = 50): WorkflowRun[] {
+  return database.query("SELECT * FROM workflow_runs ORDER BY id DESC LIMIT ?")
+    .all(Math.max(1, Math.min(200, Math.floor(limit)))) as WorkflowRun[];
+}
+export function getCurrentWorkflow(database: AppDatabase): WorkflowRun | null {
+  return (database.query("SELECT * FROM workflow_runs WHERE status IN ('pending','running') ORDER BY id DESC LIMIT 1").get() as WorkflowRun | null) ?? null;
+}
+export function markInterruptedWorkflows(database: AppDatabase): void {
+  const now = new Date().toISOString();
+  database.query("UPDATE workflow_runs SET status='failed', stage='进程中断', error='服务进程重启，任务未能正常完成', message='任务已中断', finished_at=?, duration_ms=CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0, CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER)) END WHERE status IN ('pending','running')")
+    .run(now, now);
+}
+export function cleanupOperationalLogs(database: AppDatabase, retentionDays = getSettings(database).logRetentionDays): { generationLogs: number; accessEvents: number; proxyProbeRuns: number } {
+  if (retentionDays <= 0) return { generationLogs: 0, accessEvents: 0, proxyProbeRuns: 0 };
+  const cutoff = new Date(Date.now() - retentionDays * 86400000).toISOString();
+  const generationLogs = Number(database.query("DELETE FROM generation_log WHERE created_at < datetime(?, 'utc')").run(cutoff).changes);
+  const accessEvents = Number(database.query("DELETE FROM access_events WHERE created_at < ?").run(cutoff).changes);
+  const proxyProbeRuns = Number(database.query("DELETE FROM proxy_probe_runs WHERE tested_at < ?").run(cutoff).changes);
+  return { generationLogs, accessEvents, proxyProbeRuns };
+}
+export function operationalLogStorageBytes(database: AppDatabase): number {
+  const row = database.query(`
+    SELECT
+      COALESCE((SELECT SUM(length(COALESCE(message,'')) + length(mode) + 48) FROM generation_log),0) +
+      COALESCE((SELECT SUM(length(path) + length(category) + length(source_ip) + length(user_agent) + 96) FROM access_events),0) +
+      COALESCE((SELECT SUM(length(proxy_label) + length(proxy_host) + length(target_host) + length(error) + 96) FROM proxy_probe_runs),0)
+      AS bytes
+  `).get() as { bytes: number };
+  return Number(row.bytes || 0);
 }
 
 export function closeDb(): void {
