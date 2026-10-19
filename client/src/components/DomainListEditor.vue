@@ -5,25 +5,71 @@ import {
   keymap,
   lineNumbers,
   highlightActiveLine,
+  gutter,
+  GutterMarker,
+  Decoration,
 } from "@codemirror/view";
-import { EditorState } from "@codemirror/state";
+import { EditorState, StateEffect, StateField, RangeSetBuilder } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { oneDark } from "@codemirror/theme-one-dark";
+import type { RuleDiagnostic } from "../utils/domain-rules";
 
 const props = withDefaults(
   defineProps<{
     modelValue: string;
     placeholder?: string;
     invalid?: boolean;
+    diagnostics?: RuleDiagnostic[];
     /** 固定高度（px），内容超出时在编辑器内滚动 */
     height?: number;
   }>(),
-  { placeholder: "", height: 320, invalid: false }
+  { placeholder: "", height: 320, invalid: false, diagnostics: () => [] }
 );
 
 const emit = defineEmits<{
   "update:modelValue": [value: string];
 }>();
+
+const setRuleDiagnostics = StateEffect.define<RuleDiagnostic[]>();
+const ruleDiagnosticsField = StateField.define<RuleDiagnostic[]>({
+  create: () => [],
+  update(value, transaction) {
+    for (const effect of transaction.effects) if (effect.is(setRuleDiagnostics)) value = effect.value;
+    return value;
+  },
+});
+class RuleDiagnosticMarker extends GutterMarker {
+  constructor(readonly diagnostic: RuleDiagnostic) { super(); }
+  toDOM() {
+    const marker = document.createElement("span");
+    marker.className = "cm-rule-diagnostic-marker " + (this.diagnostic.severity === "error" ? "is-error" : this.diagnostic.severity === "warning" ? "is-warning" : "is-info");
+    marker.textContent = this.diagnostic.severity === "error" ? "×" : this.diagnostic.severity === "warning" ? "!" : "i";
+    marker.title = this.diagnostic.message;
+    marker.setAttribute("aria-label", this.diagnostic.message);
+    return marker;
+  }
+  eq(other: RuleDiagnosticMarker) {
+    return this.diagnostic.line === other.diagnostic.line && this.diagnostic.message === other.diagnostic.message && this.diagnostic.severity === other.diagnostic.severity;
+  }
+}
+const ruleDecorationField = StateField.define({
+  create: () => Decoration.none,
+  update(decorations, transaction) {
+    if (!transaction.docChanged && !transaction.effects.some((effect) => effect.is(setRuleDiagnostics))) return decorations.map(transaction.changes);
+    const diagnostics = transaction.state.field(ruleDiagnosticsField);
+    const byLine = new Map<number, RuleDiagnostic[]>();
+    for (const diagnostic of diagnostics) byLine.set(diagnostic.line, [...(byLine.get(diagnostic.line) ?? []), diagnostic]);
+    const ranges = [];
+    for (const [lineNumber, items] of byLine) {
+      if (lineNumber > transaction.state.doc.lines) continue;
+      const line = transaction.state.doc.line(lineNumber);
+      const severity = items.some((item) => item.severity === "error") ? "error" : items.some((item) => item.severity === "warning") ? "warning" : "info";
+      ranges.push(Decoration.line({ attributes: { class: "cm-rule-line-" + severity, title: items.map((item) => item.message).join("\n") } }).range(line.from));
+    }
+    return Decoration.set(ranges, true);
+  },
+  provide: (field) => EditorView.decorations.from(field),
+});
 
 const host = ref<HTMLDivElement | null>(null);
 let view: EditorView | null = null;
@@ -38,6 +84,20 @@ function buildExtensions(dark: boolean) {
   const base = [
     lineNumbers(),
     highlightActiveLine(),
+    ruleDiagnosticsField,
+    ruleDecorationField,
+    gutter({ class: "cm-rule-diagnostic-gutter", markers(view) {
+      const grouped = new Map<number, RuleDiagnostic>();
+      for (const item of view.state.field(ruleDiagnosticsField)) {
+        const old = grouped.get(item.line);
+        if (!old || (old.severity !== "error" && item.severity === "error") || (old.severity === "info" && item.severity === "warning")) grouped.set(item.line, item);
+      }
+      const builder = new RangeSetBuilder<GutterMarker>();
+      for (const [lineNumber, item] of [...grouped.entries()].sort((a, b) => a[0] - b[0])) {
+        if (lineNumber <= view.state.doc.lines) { const pos = view.state.doc.line(lineNumber).from; builder.add(pos, pos, new RuleDiagnosticMarker(item)); }
+      }
+      return builder.finish();
+    } }),
     history(),
     keymap.of([...defaultKeymap, ...historyKeymap]),
     EditorView.lineWrapping,
@@ -62,6 +122,14 @@ function buildExtensions(dark: boolean) {
         padding: "10px 0",
       },
       "&.cm-focused": { outline: "none" },
+      ".cm-rule-diagnostic-gutter": { width: "16px", background: "var(--surface-2)" },
+      ".cm-rule-diagnostic-marker": { display: "inline-flex", width: "14px", height: "14px", marginLeft: "1px", alignItems: "center", justifyContent: "center", borderRadius: "50%", fontSize: "10px", fontWeight: "800", cursor: "help" },
+      ".cm-rule-diagnostic-marker.is-error": { color: "var(--red)", background: "var(--red-soft)" },
+      ".cm-rule-diagnostic-marker.is-warning": { color: "var(--warn)", background: "var(--warn-soft)" },
+      ".cm-rule-diagnostic-marker.is-info": { color: "var(--accent)", background: "var(--accent-soft)" },
+      ".cm-line.cm-rule-line-error": { background: "color-mix(in srgb, var(--red) 10%, transparent)" },
+      ".cm-line.cm-rule-line-warning": { background: "color-mix(in srgb, var(--warn) 10%, transparent)" },
+      ".cm-line.cm-rule-line-info": { background: "color-mix(in srgb, var(--accent) 7%, transparent)" },
     }),
   ];
   if (dark) base.push(oneDark);
@@ -82,6 +150,7 @@ function mountEditor() {
   });
   view.dispatch({
     selection: { anchor: Math.min(sel, view.state.doc.length) },
+    effects: setRuleDiagnostics.of(props.diagnostics),
   });
 }
 
@@ -99,6 +168,10 @@ onBeforeUnmount(() => {
   view?.destroy();
   view = null;
 });
+
+watch(() => props.diagnostics, (diagnostics) => {
+  if (view) view.dispatch({ effects: setRuleDiagnostics.of(diagnostics) });
+}, { deep: true });
 
 watch(
   () => props.modelValue,
@@ -164,6 +237,7 @@ watch(
   background-clip: padding-box;
 }
 
+.cm-host :deep(.cm-rule-diagnostic-gutter) { min-width: 16px; }
 .cm-host :deep(.cm-scroller::-webkit-scrollbar-thumb:hover) {
   background: var(--scrollbar-thumb-hover);
 }

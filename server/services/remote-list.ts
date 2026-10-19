@@ -189,13 +189,17 @@ var proxyHosts = {${compress ? proxyObj : `\n  ${proxyObj}\n`}};
 var remoteDirect = {${compress ? remoteDirectObj : `\n  ${remoteDirectObj}\n`}};
 
 function isMatch(host, list) {
-  host = String(host).toLowerCase();
+  host = String(host).toLowerCase().replace(/\.$/, "");
   for (var i = 0; i < list.length; i++) {
-    var rule = String(list[i]).toLowerCase();
-    if (rule.indexOf("*") !== -1) {
-      if (shExpMatch(host, rule)) return true;
-    } else {
-      if (host === rule || shExpMatch(host, "*." + rule)) return true;
+    var rule = String(list[i]).toLowerCase().replace(/\.$/, "");
+    if (rule.indexOf("**.") === 0) {
+      var root = rule.substring(3);
+      if (host === root || host.slice(-(root.length + 1)) === "." + root) return true;
+    } else if (rule.indexOf("*.") === 0) {
+      var suffix = rule.substring(2);
+      if (host.length > suffix.length + 1 && host.slice(-(suffix.length + 1)) === "." + suffix) return true;
+    } else if (host === rule) {
+      return true;
     }
   }
   return false;

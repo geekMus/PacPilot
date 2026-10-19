@@ -12,6 +12,7 @@ import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
 import DomainListEditor from "../components/DomainListEditor.vue";
+import { analyzeDomainRules } from "../utils/domain-rules";
 import WebhookChannelEditor from "../components/WebhookChannelEditor.vue";
 import TextDetail from "../components/TextDetail.vue";
 import cronstrue from "cronstrue";
@@ -293,18 +294,9 @@ function validatePacProxyString(rawValue: string): string | null {
 }
 
 function validateDomainRules(rawValue: string, label: string): string | null {
-  const entries = rawValue.split(/[\n,]+/).map((entry) => entry.trim()).filter(Boolean);
-  for (const [index, entry] of entries.entries()) {
-    const wildcard = entry.startsWith("*.");
-    const host = wildcard ? entry.slice(2) : entry;
-    if (entry.includes("*") && !wildcard) {
-      return label + "第 " + (index + 1) + " 条规则格式无效：" + entry + "。仅支持完整域名或 *.example.com 形式的通配符。";
-    }
-    if (host.includes("*") || !validDomainOrIPv4(host)) {
-      return label + "第 " + (index + 1) + " 条规则格式无效：" + entry + "。请填写完整域名（example.com）或通配符域名（*.example.com）。";
-    }
-  }
-  return null;
+  const analysis = analyzeDomainRules(label === "直连列表" ? rawValue : "", label === "黑名单" ? rawValue : "");
+  const firstError = [...analysis.direct.diagnostics, ...analysis.block.diagnostics].find((item) => item.severity === "error");
+  return firstError ? label + "第 " + firstError.line + " 行：" + firstError.message : null;
 }
 
 function validateProxyTestUrl(rawValue: string): string | null {
@@ -339,6 +331,9 @@ const listUrlError = computed(() => {
   if (!looksLikeUrl(form.listUrl.trim())) return "规则列表 URL 格式无效，请使用完整的 HTTP(S) 地址，且不要嵌入用户名或密码。";
   return "";
 });
+const ruleAnalysis = computed(() => analyzeDomainRules(form.directListText, form.blockListText));
+const directRuleDiagnostics = computed(() => ruleAnalysis.value.direct.diagnostics);
+const blockRuleDiagnostics = computed(() => ruleAnalysis.value.block.diagnostics);
 const directListError = computed(() => validateDomainRules(form.directListText, "直连列表"));
 const blockListError = computed(() => validateDomainRules(form.blockListText, "黑名单"));
 const timezoneError = computed(() => isValidTimeZone(form.timezone) ? "" : "时区无效，请使用有效的 IANA 时区名称，例如 Asia/Tokyo。");
@@ -819,7 +814,7 @@ async function changeAdminPassword() {
           <details class="help">
             <summary>如何配置？生效顺序说明</summary>
             <div class="help-body">
-              <p><strong>写法：</strong>每行填写一条域名规则。支持完整域名 <code>example.com</code> 和通配符 <code>*.example.com</code>。自定义直连与黑名单列表不支持注释行，请只填写规则，不要添加说明文字。</p>
+              <p><strong>写法：</strong>每行填写一条域名规则。<code>example.com</code> 仅匹配该域名本身；<code>*.example.com</code> 仅匹配其子域名；<code>**.example.com</code> 同时匹配主域名和所有子域名。自定义直连与黑名单列表不支持注释行，请只填写规则，不要添加说明文字。</p>
               <p><strong>直连列表：</strong>命中后返回 <code>DIRECT</code>（不走代理）。</p>
               <p><strong>黑名单：</strong>命中后返回 <code>PROXY 0.0.0.0:0</code>，让客户端连接不可用的代理地址以阻止访问；具体提示取决于客户端。</p>
               <p><strong>匹配优先级（两种模式相同）：</strong></p>
@@ -840,7 +835,8 @@ async function changeAdminPassword() {
                 v-model="form.directListText"
                 :height="320"
                 :invalid="Boolean(directListError)"
-                placeholder="baidu.com&#10;*.cn"
+                :diagnostics="directRuleDiagnostics"
+                placeholder="example.com&#10;*.example.org&#10;**.example.net"
               />
               <p v-if="directListError" class="field-error" role="alert">{{ directListError }}</p>
             </div>
@@ -850,10 +846,16 @@ async function changeAdminPassword() {
                 v-model="form.blockListText"
                 :height="320"
                 :invalid="Boolean(blockListError)"
+                :diagnostics="blockRuleDiagnostics"
                 placeholder="ads.example.com"
               />
               <p v-if="blockListError" class="field-error" role="alert">{{ blockListError }}</p>
             </div>
+          </div>
+          <div v-if="ruleAnalysis.totalErrors || ruleAnalysis.totalWarnings" class="rule-analysis-summary" aria-live="polite">
+            <div class="rule-analysis-title">规则检查：{{ ruleAnalysis.totalErrors }} 个错误，{{ ruleAnalysis.totalWarnings }} 条提示</div>
+            <p v-if="ruleAnalysis.totalErrors" class="field-error">请先修正规则格式错误；格式错误会阻止保存。</p>
+            <p v-if="ruleAnalysis.totalWarnings" class="field-hint">提示包含重复、可能冗余及直连/黑名单匹配范围重叠。重叠不会自动修改；黑名单优先于直连列表。</p>
           </div>
         </section>
 
@@ -1609,6 +1611,9 @@ tr:last-child td {
 .split.editors .field {
   margin-bottom: 0;
 }
+.rule-analysis-summary { margin-top: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); }
+.rule-analysis-title { font-size: 13px; font-weight: 700; }
+.rule-analysis-summary .field-hint, .rule-analysis-summary .field-error { margin-top: 4px; }
 
 
 .sub-block {
