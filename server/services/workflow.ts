@@ -31,16 +31,17 @@ export async function runPacWorkflow(
     throw new Error("已有 PAC 工作流正在执行，请等待当前任务完成后再试。");
   }
   active = true;
-  const mode = getSettings(database).mode;
-  const workflowId = createWorkflowRun(database, source, mode);
+  let workflowId: number | null = null;
   const startedAt = new Date();
-  updateWorkflowRun(database, workflowId, {
-    status: "running",
-    stage: "生成 PAC",
-    message: "正在读取配置并生成 PAC 文件",
-    started_at: startedAt.toISOString(),
-  });
   try {
+    const mode = getSettings(database).mode;
+    workflowId = createWorkflowRun(database, source, mode);
+    updateWorkflowRun(database, workflowId, {
+      status: "running",
+      stage: "生成 PAC",
+      message: "正在读取配置并生成 PAC 文件",
+      started_at: startedAt.toISOString(),
+    });
     const generation = await generatePac(database, dataDir);
     const finishedAt = new Date();
     updateWorkflowRun(database, workflowId, {
@@ -55,14 +56,20 @@ export async function runPacWorkflow(
   } catch (error) {
     const finishedAt = new Date();
     const message = error instanceof Error ? error.message : String(error);
-    updateWorkflowRun(database, workflowId, {
-      status: "failed",
-      stage: "执行异常",
-      message: "工作流执行异常",
-      error: message,
-      finished_at: finishedAt.toISOString(),
-      duration_ms: Math.max(0, finishedAt.getTime() - startedAt.getTime()),
-    });
+    if (workflowId !== null) {
+      try {
+        updateWorkflowRun(database, workflowId, {
+          status: "failed",
+          stage: "执行异常",
+          message: "工作流执行异常",
+          error: message,
+          finished_at: finishedAt.toISOString(),
+          duration_ms: Math.max(0, finishedAt.getTime() - startedAt.getTime()),
+        });
+      } catch (recordError) {
+        console.error("[workflow] failed to persist task failure:", recordError);
+      }
+    }
     throw error;
   } finally {
     active = false;
