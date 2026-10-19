@@ -41,6 +41,7 @@ const isOpen = ref(false);
   width: 100%;
   min-width: 0;
   max-width: 100%;
+  min-height: 38px;
   flex: 1 1 auto;
   appearance: none;
   -webkit-appearance: none;
