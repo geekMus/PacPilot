@@ -41,7 +41,7 @@ const hasRuleSummary = computed(() =>
 
 const domainInput = ref("");
 const checkedDomain = ref("");
-const activeRuleType = ref<"direct" | "proxy" | "block">("direct");
+const activeRuleType = ref<"direct" | "block">("direct");
 
 interface RuleEntry {
   domain: string;
@@ -68,9 +68,7 @@ const directEntries = computed<RuleEntry[]>(() => {
   }
   return [...entries.values()];
 });
-const proxyEntries = computed<RuleEntry[]>(() =>
-  (status.value?.remoteProxyList ?? []).map((domain) => ({ domain, source: "远程代理" }))
-);
+
 const blockEntries = computed<RuleEntry[]>(() =>
   (status.value?.blockList ?? []).map((domain) => ({ domain, source: "自定义黑名单" }))
 );
@@ -323,7 +321,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
           <div class="section-head rules-section-head">
             <div>
               <h2>域名路由明细</h2>
-              <p class="section-description">每条规则都标明来源；长域名可点击查看完整内容，列表较长时可在固定区域内滚动。</p>
+              <p class="section-description">展示自定义直连与黑名单规则；默认代理信息已在上方单独展示。长域名可点击查看完整内容，列表较长时可在固定区域内滚动。</p>
             </div>
             <RouterLink v-if="meta?.adminEnabled" to="/admin/settings" class="text-link">编辑规则 <AppIcon name="arrow-right" :size="14" /></RouterLink>
           </div>
@@ -333,10 +331,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               :class="{ active: activeRuleType === 'direct' }" @click="activeRuleType = 'direct'">
               <span class="rule-dot direct-dot"></span><span>直连</span><strong>{{ directEntries.length }}</strong>
             </button>
-            <button type="button" role="tab" :aria-selected="activeRuleType === 'proxy'"
-              :class="{ active: activeRuleType === 'proxy' }" @click="activeRuleType = 'proxy'">
-              <span class="rule-dot proxy-dot"></span><span>代理</span><strong>{{ status.mode === 'remote' ? proxyEntries.length : '默认' }}</strong>
-            </button>
+
             <button type="button" role="tab" :aria-selected="activeRuleType === 'block'"
               :class="{ active: activeRuleType === 'block' }" @click="activeRuleType = 'block'">
               <span class="rule-dot block-dot"></span><span>黑名单</span><strong>{{ blockEntries.length }}</strong>
@@ -348,11 +343,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               <p class="rule-description">自定义直连优先于远程列表；蓝色来源标签代表远程规则中的例外直连。</p>
               <RuleVirtualList :items="directEntries" empty-text="没有额外的直连规则。" :height="300" />
             </template>
-            <template v-else-if="activeRuleType === 'proxy'">
-              <template v-if="status.mode === 'remote'">
-                <p class="rule-description">蓝色来源标签代表远程代理列表；自定义黑名单与直连规则优先于此列表。</p>
-                <RuleVirtualList :items="proxyEntries" empty-text="远程列表中没有代理域名。" :height="300" />
-              </template>
+            
               <div v-else class="default-proxy">
                 <span>默认代理地址</span>
                 <code>{{ status.pacProxy || "未识别" }}</code>

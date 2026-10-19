@@ -789,12 +789,12 @@ async function changeAdminPassword() {
             <p v-if="listUrlError" class="field-error" role="alert">{{ listUrlError }}</p>
           </div>
           <div class="checks">
-            <label class="check" :class="{ 'is-disabled': form.mode !== 'remote' }" :aria-disabled="form.mode !== 'remote'">
-              <input v-model="form.pacCompress" type="checkbox" :disabled="form.mode !== 'remote'" :aria-disabled="form.mode !== 'remote'" />
-              <span>压缩远程 PAC</span>
+            <label class="check">
+              <input v-model="form.pacCompress" type="checkbox" />
+              <span>压缩 PAC</span>
             </label>
           </div>
-          <p class="field-hint">压缩选项仅在远程规则列表模式下生效。</p>
+          <p class="field-hint">开启后，无论启动模式和规则来源，生成完成的 PAC 都会去除注释与多余缩进；关闭后保留完整的可读格式。</p>
         </section>
 
         <!-- 规则列表 -->

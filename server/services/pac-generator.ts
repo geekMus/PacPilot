@@ -78,19 +78,27 @@ export function validatePacProxyString(value: string): string | null {
 }
 
 
+function compressPac(content: string): string {
+  return content
+    .split("\n")
+    .map((line) => line.replace(/^\s+/, ""))
+    .filter((line) => line && !line.startsWith("//"))
+    .join("\n");
+}
+
 function withPacVersionHeader(content: string): string {
   // 兼容旧版英文头部，读写时统一为中文版本标记。
   const body = content.replace(/^\/\/ genpac-runner (?:version:|版本[:：]).*(?:\r?\n|$)/i, "");
   return "// genpac-runner 版本：" + APP_VERSION + "\n" + body.replace(/^\n+/, "");
 }
 
-function toJsArray(list: string[]): string {
-  return list.map((item) => JSON.stringify(item)).join(",");
+function toJsArray(list: string[], compress: boolean): string {
+  return list.map((item) => JSON.stringify(item)).join(compress ? "," : ",\n    ");
 }
 
 function buildCustomPac(settings: AppSettings): string {
-  const blockJs = toJsArray(settings.blockList);
-  const directJs = toJsArray(settings.directList);
+  const blockJs = toJsArray(settings.blockList, settings.pacCompress);
+  const directJs = toJsArray(settings.directList, settings.pacCompress);
 
   return `// genpac-runner 生成的 PAC（自定义规则模式）
 // 本机和内网地址优先直连；黑名单优先于自定义直连，其余请求使用默认代理
@@ -112,8 +120,8 @@ function isMatch(host, list) {
 }
 
 // 自定义黑名单与直连规则
-var BLOCK_LIST  = [${blockJs}];
-var DIRECT_LIST = [${directJs}];
+var BLOCK_LIST  = [${settings.pacCompress ? blockJs : `\n    ${blockJs}\n`}];
+var DIRECT_LIST = [${settings.pacCompress ? directJs : `\n    ${directJs}\n`}];
 // 默认代理策略（多个代理选项使用分号分隔）
 var PAC_PROXY   = ${JSON.stringify(settings.pacProxy)};
 
@@ -190,8 +198,10 @@ export async function generatePac(
     if (settings.mode === "remote") {
       message = await runRemoteMode(settings, pacPath);
     } else {
-      fs.writeFileSync(pacPath, withPacVersionHeader(buildCustomPac(settings)), "utf8");
-      message = "生成成功（自定义规则模式）";
+      const customPac = buildCustomPac(settings);
+      const output = settings.pacCompress ? compressPac(customPac) : customPac;
+      fs.writeFileSync(pacPath, withPacVersionHeader(output), "utf8");
+      message = "生成成功（自定义规则模式" + (settings.pacCompress ? "，已压缩" : "，未压缩") + "）";
     }
 
     appendGenerationLog(database, true, settings.mode, message);

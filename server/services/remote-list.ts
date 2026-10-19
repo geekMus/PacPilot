@@ -151,8 +151,8 @@ function escapeJsString(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-function toJsArray(list: string[]): string {
-  return list.map((item) => JSON.stringify(item)).join(",");
+function toJsArray(list: string[], compress: boolean): string {
+  return list.map((item) => JSON.stringify(item)).join(compress ? "," : ",\n    ");
 }
 
 /**
@@ -172,8 +172,8 @@ export function buildRemoteListPac(
   const remoteDirectObj = remoteDirectHosts
     .map((h) => `"${escapeJsString(h)}":1`)
     .join(compress ? "," : ",\n  ");
-  const blockJs = toJsArray(userBlockList);
-  const directJs = toJsArray(userDirectList);
+  const blockJs = toJsArray(userBlockList, compress);
+  const directJs = toJsArray(userDirectList, compress);
 
   const body = `// genpac-runner 生成的 PAC（远程规则列表与自定义规则）
 // 远程代理域名：${proxyHosts.length} 条；远程例外直连：${remoteDirectHosts.length} 条
@@ -183,8 +183,8 @@ var PROXY = ${JSON.stringify(pacProxy)};
 var DIRECT = "DIRECT";
 var BLOCK = "PROXY 0.0.0.0:0";
 
-var USER_BLOCK = [${blockJs}];
-var USER_DIRECT = [${directJs}];
+var USER_BLOCK = [${compress ? blockJs : `\n    ${blockJs}\n`}];
+var USER_DIRECT = [${compress ? directJs : `\n    ${directJs}\n`}];
 var proxyHosts = {${compress ? proxyObj : `\n  ${proxyObj}\n`}};
 var remoteDirect = {${compress ? remoteDirectObj : `\n  ${remoteDirectObj}\n`}};
 
