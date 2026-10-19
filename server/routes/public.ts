@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { EnvConfig } from "../config/env";
-import { pacFileMtime, readPacFile } from "../services/pac-generator";
+import { pacFileMtime, readPacFile, readPacSourceFile } from "../services/pac-generator";
 import { parsePacStatus } from "../services/pac-parser";
 import { getSettings, type AppDatabase } from "../db/sqlite";
 import { APP_VERSION, PROJECT_URL } from "../version";
@@ -50,8 +50,8 @@ export function publicRoutes(env: EnvConfig, database: AppDatabase): Router {
   });
 
   router.get("/api/status", (_req, res) => {
-    const pac = readPacFile(env.dataDir);
-    res.json(parsePacStatus(pac, getSettings(database).timezone, pacFileMtime(env.dataDir)));
+    const pacSource = readPacSourceFile(env.dataDir);
+    res.json(parsePacStatus(pacSource, getSettings(database).timezone, pacFileMtime(env.dataDir)));
   });
 
   return router;
