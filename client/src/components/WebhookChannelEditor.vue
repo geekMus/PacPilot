@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, useId } from "vue";
 import type { WebhookConfig, WebhookProvider } from "../api/client";
+import AppIcon from "./AppIcon.vue";
 import WebhookBodyEditor from "./WebhookBodyEditor.vue";
 import CodeMirrorField from "./CodeMirrorField.vue";
 
