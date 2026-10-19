@@ -66,7 +66,8 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
   res.json({dataBytes,dbBytes,logBytes:operationalLogStorageBytes(database),retentionDays:getSettings(database).logRetentionDays,counts});
  });
  router.post("/api/admin/logs/cleanup",requireAdmin(database),(_req,res)=>{const deleted=cleanupOperationalLogs(database);if(deleted.generationLogs+deleted.accessEvents+deleted.proxyProbeRuns>0){database.exec("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");}res.json({deleted,retentionDays:getSettings(database).logRetentionDays});});
- router.post("/api/admin/factory-reset",requireAdmin(database),(_req,res)=>{
+ router.post("/api/admin/factory-reset",requireAdmin(database),(req,res)=>{
+  if(req.body?.confirm!=="RESET"){res.status(400).json({error:"恢复出厂设置确认信息无效，请刷新页面后重试。"});return;}
   if(hasActivePacWorkflow(database)){res.status(409).json({error:"工作流正在执行，请等待完成后再恢复出厂设置。"});return;}
   try{
    database.exec("BEGIN IMMEDIATE");
