@@ -81,7 +81,7 @@ jobs:
             if [[ "$VERSION" == "$PREVIOUS_VERSION" ]]; then
               REASON="package.json.version 没有变化，跳过镜像发布。"
             elif is_calendar_version "$PREVIOUS_VERSION"; then
-              CURRENT_DATE="${VERSION%%-r*}"
+              CURRENT_DATE="${VERSION%%-[rR]*}"
               PREVIOUS_DATE="${PREVIOUS_VERSION%%-[rR]*}"
               CURRENT_REVISION="0"
               PREVIOUS_REVISION="0"
