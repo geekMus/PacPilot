@@ -7,13 +7,13 @@ defineProps<{ brand?: string; sub?: string }>();
 
 <template>
   <header class="topbar">
-    <RouterLink class="brand" to="/" aria-label="genpac-runner 首页">
+    <div class="brand" aria-label="genpac-runner 项目名称">
       <span class="brand-mark" aria-hidden="true"><AppIcon name="network" :size="18" :stroke-width="1.8" /></span>
       <span class="brand-copy">
         <span class="name">{{ brand || "genpac-runner" }}</span>
         <small v-if="sub">{{ sub }}</small>
       </span>
-    </RouterLink>
+    </div>
     <div class="header-tools">
       <nav class="nav" aria-label="主导航"><slot /></nav>
       <ThemeSwitcher />
