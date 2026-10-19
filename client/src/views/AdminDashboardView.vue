@@ -209,7 +209,7 @@ onMounted(() => { void loadOverview(); });
           </div>
           <div class="panel-footer-links">
             <a href="/proxy.pac" target="_blank" rel="noopener noreferrer">直接查看 proxy.pac <span aria-hidden="true">↗</span></a>
-            <RouterLink to="/status">打开公共状态页 <span aria-hidden="true">↗</span></RouterLink>
+            <RouterLink to="/">打开公共状态页 <span aria-hidden="true">↗</span></RouterLink>
           </div>
         </article>
 
