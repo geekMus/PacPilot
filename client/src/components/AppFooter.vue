@@ -80,7 +80,15 @@ onMounted(() => { void loadVersionInfo(true); });
 .latest-version-item { width:100%; border-color:var(--line); color:var(--text); font:inherit; text-align:left; cursor:pointer; transition:border-color .15s,background .15s; }
 .latest-version-item:hover:not(:disabled) { border-color:var(--accent); }
 .latest-version-item:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-.latest-version-item:disabled { cursor:wait; }
+.latest-version-item:disabled {
+  background:var(--surface-2);
+  border-color:var(--line);
+  color:var(--muted);
+  cursor:wait;
+}
+.latest-version-item:disabled span,
+.latest-version-item:disabled strong,
+.latest-version-item:disabled small { color:var(--muted); }
 .latest-version-item span small { margin-left:4px; color:var(--accent); font-size:10px; font-weight:650; }
 .version-item.version-new { border-color:#fdba74; background:#fff7ed; color:#9a3412; }
 .dialog-update-note { display:flex; align-items:flex-start; gap:10px; margin-top:15px; padding:12px; border:1px solid #fdba74; border-radius:12px; background:#fff7ed; color:#9a3412; }
@@ -91,7 +99,13 @@ onMounted(() => { void loadVersionInfo(true); });
 .dialog-actions { display:flex; flex-wrap:wrap; gap:9px; margin-top:20px; }
 .dialog-project-button,.dialog-secondary-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:39px; padding:0 14px; border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--text); font:inherit; font-size:12px; font-weight:650; text-decoration:none; cursor:pointer; }
 .dialog-project-button { flex:1; background:var(--accent); border-color:var(--accent); color:var(--accent-contrast); }
-.dialog-project-button:hover { filter:brightness(1.05); }
+.dialog-project-button:hover,
+.dialog-project-button:active {
+  background:color-mix(in srgb,var(--accent) 90%,var(--text));
+  border-color:color-mix(in srgb,var(--accent) 90%,var(--text));
+  color:var(--accent-contrast);
+  filter:none;
+}
 .dialog-secondary-button:hover { border-color:var(--accent); color:var(--accent); }
 .version-dialog-enter-active,.version-dialog-leave-active { transition:opacity .16s ease,transform .16s ease; }
 .version-dialog-enter-active .version-dialog,.version-dialog-leave-active .version-dialog { transition:transform .16s ease; }

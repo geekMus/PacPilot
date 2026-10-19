@@ -490,7 +490,13 @@ const activeRuleCount = computed(() => {
 .source-actions a,.source-actions button { display:inline-flex; align-items:center; justify-content:center; min-height:30px; padding:0 9px; border:1px solid transparent; border-radius:7px; background:transparent; color:var(--accent); font:inherit; text-decoration:none; white-space:nowrap; cursor:pointer; transition:background .15s,border-color .15s,color .15s; }
 .source-actions a:hover,.source-actions button:hover:not(:disabled) { background:var(--surface-2); border-color:var(--line); color:var(--text); text-decoration:none; }
 .source-actions a:focus-visible,.source-actions button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-.source-actions button:disabled { opacity:.55; cursor:wait; }
+.source-actions button:disabled {
+  background:var(--surface-2);
+  border-color:var(--line);
+  color:var(--muted);
+  opacity:1;
+  cursor:wait;
+}
 .state-card { display:flex; align-items:flex-start; gap:14px; padding:18px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
 .state-card strong { font-size:14px; }
 .state-card p { margin:5px 0 12px; color:var(--muted); font-size:13px; }
