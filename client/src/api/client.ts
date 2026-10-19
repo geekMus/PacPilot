@@ -113,12 +113,14 @@ export interface WorkflowStage {
 }
 export interface WorkflowDetail { run: WorkflowRun; stages: WorkflowStage[]; }
 export interface WorkflowList { current: WorkflowRun | null; active: WorkflowRun[]; runs: WorkflowRun[]; }
+export interface PacFileStatus { exists: boolean; sizeBytes: number; modifiedAt: string | null; }
 export interface StorageSummary {
   dataBytes: number;
   dbBytes: number;
   logBytes: number;
   retentionDays: number;
   counts: { generationLogs: number; accessEvents: number; proxyProbeRuns: number; workflows: number };
+  pacFiles: { proxyPac: PacFileStatus; proxySourcePac: PacFileStatus };
 }
 export interface GenpacProbe {
   available: boolean;
@@ -251,10 +253,12 @@ export const api = {
   generate: () => request<GenerateStartResult>("/api/admin/generate", { method: "POST" }),
   logs: () => request<GenerationLog[]>("/api/admin/logs"),
   workflows: (limit = 50) => request<WorkflowList>(`/api/admin/workflows?limit=${limit}`),
+  clearWorkflowHistory: () => request<{ ok: boolean; deletedRuns: number }>("/api/admin/workflows", { method: "DELETE" }),
   workflowDetail: (id: number) => request<WorkflowDetail>(`/api/admin/workflows/${id}`),
   deleteWorkflow: (id: number) => request<{ ok: boolean; id: number }>(`/api/admin/workflows/${id}`, { method: "DELETE" }),
   cancelWorkflow: (id: number) => request<{ ok: boolean; id: number; status: "cancelled" }>(`/api/admin/workflows/${id}/cancel`, { method: "POST" }),
   storage: () => request<StorageSummary>("/api/admin/storage"),
+  deletePacFiles: () => request<{ ok: boolean; deleted: string[]; pacFiles: StorageSummary["pacFiles"] }>("/api/admin/pac-files", { method: "DELETE" }),
   cleanupLogs: () => request<{ deleted: { generationLogs: number; accessEvents: number; proxyProbeRuns: number }; retentionDays: number }>("/api/admin/logs/cleanup", { method: "POST" }),
   clearLogs: () => request<{ deleted: { generationLogs: number; accessEvents: number; proxyProbeRuns: number }; retentionDays: number }>("/api/admin/logs/clear", { method: "POST" }),
   factoryReset: () => request<{ ok: boolean; message: string }>("/api/admin/factory-reset", { method: "POST", body: JSON.stringify({ confirm: "RESET" }) }),
