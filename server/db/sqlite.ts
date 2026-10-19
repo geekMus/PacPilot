@@ -279,6 +279,21 @@ export function updateWorkflowRun(
   if (!fields.length) return;
   database.query("UPDATE workflow_runs SET " + fields.map((key) => key + " = ?").join(", ") + " WHERE id = ?")
     .run(...fields.map((key) => patch[key] as string | number | null), id);
+
+  // A terminal workflow must never leave active/pending stages behind.
+  if (patch.status === "succeeded" || patch.status === "failed" || patch.status === "cancelled") {
+    const finishedAt = patch.finished_at ?? new Date().toISOString();
+    const fallbackError = patch.error || "工作流已结束，但该阶段未正常收尾";
+    database.query(`
+      UPDATE workflow_stages
+      SET status = CASE WHEN status = 'running' THEN 'failed' ELSE 'skipped' END,
+          message = CASE WHEN status = 'running' THEN '工作流已结束，阶段未正常收尾' ELSE '工作流已结束，未执行的阶段已跳过' END,
+          error = CASE WHEN status = 'running' THEN ? ELSE '' END,
+          finished_at = COALESCE(finished_at, ?),
+          duration_ms = CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0, CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER)) END
+      WHERE run_id = ? AND status IN ('running', 'pending')
+    `).run(fallbackError, finishedAt, finishedAt, id);
+  }
 }
 export function listWorkflowRuns(database: AppDatabase, limit = 50): WorkflowRun[] {
   return database.query("SELECT * FROM workflow_runs ORDER BY id DESC LIMIT ?")
@@ -294,6 +309,24 @@ export function markInterruptedWorkflows(database: AppDatabase): void {
   const now = new Date().toISOString();
   database.query("UPDATE workflow_runs SET status='failed', stage='进程中断', error='服务进程重启，任务未能正常完成', message='任务已中断', finished_at=?, duration_ms=CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0, CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER)) END WHERE status IN ('pending','running')")
     .run(now, now);
+
+  // Repair both newly interrupted runs and older terminal runs with stale stages.
+  database.query(`
+    UPDATE workflow_stages
+    SET status = CASE WHEN status = 'running' THEN 'failed' ELSE 'skipped' END,
+        message = CASE WHEN status = 'running' THEN '工作流未正常结束，该阶段已标记为失败' ELSE '工作流已结束，未执行的阶段已跳过' END,
+        error = CASE
+          WHEN status = 'running' THEN COALESCE(
+            (SELECT NULLIF(error, '') FROM workflow_runs WHERE workflow_runs.id = workflow_stages.run_id),
+            '工作流未正常结束，该阶段已标记为失败'
+          )
+          ELSE ''
+        END,
+        finished_at = COALESCE(finished_at, ?),
+        duration_ms = CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0, CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER)) END
+    WHERE status IN ('running', 'pending')
+      AND run_id IN (SELECT id FROM workflow_runs WHERE status IN ('succeeded', 'failed', 'cancelled'))
+  `).run(now, now);
 }
 export function cleanupOperationalLogs(database: AppDatabase, retentionDays = getSettings(database).logRetentionDays): { generationLogs: number; accessEvents: number; proxyProbeRuns: number } {
   if (retentionDays <= 0) return { generationLogs: 0, accessEvents: 0, proxyProbeRuns: 0 };
