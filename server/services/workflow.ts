@@ -35,8 +35,9 @@ export async function runPacWorkflow(
   const startedAt = new Date();
   try {
     const mode = getSettings(database).mode;
-    workflowId = createWorkflowRun(database, source, mode);
-    updateWorkflowRun(database, workflowId, {
+    const id = createWorkflowRun(database, source, mode);
+    workflowId = id;
+    updateWorkflowRun(database, id, {
       status: "running",
       stage: "生成 PAC",
       message: "正在读取配置并生成 PAC 文件",
@@ -44,7 +45,7 @@ export async function runPacWorkflow(
     });
     const generation = await generatePac(database, dataDir);
     const finishedAt = new Date();
-    updateWorkflowRun(database, workflowId, {
+    updateWorkflowRun(database, id, {
       status: generation.success ? "succeeded" : "failed",
       stage: generation.success ? "已完成" : "生成失败",
       message: generation.message,
@@ -52,7 +53,7 @@ export async function runPacWorkflow(
       finished_at: finishedAt.toISOString(),
       duration_ms: Math.max(0, finishedAt.getTime() - startedAt.getTime()),
     });
-    return { workflowId, generation };
+    return { workflowId: id, generation };
   } catch (error) {
     const finishedAt = new Date();
     const message = error instanceof Error ? error.message : String(error);
