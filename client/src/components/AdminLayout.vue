@@ -1,0 +1,173 @@
+<script setup lang="ts">
+import { ref, watch } from "vue";
+import { useRoute } from "vue-router";
+import ThemeSwitcher from "./ThemeSwitcher.vue";
+
+type AdminSection = "dashboard" | "settings" | "monitor";
+
+defineProps<{
+  active: AdminSection;
+  title: string;
+  subtitle: string;
+}>();
+
+const route = useRoute();
+const menuOpen = ref(false);
+
+watch(() => route.fullPath, () => {
+  menuOpen.value = false;
+});
+</script>
+
+<template>
+  <div class="admin-layout">
+    <button
+      v-if="menuOpen"
+      class="sidebar-backdrop"
+      type="button"
+      aria-label="关闭导航菜单"
+      @click="menuOpen = false"
+    ></button>
+
+    <aside class="admin-sidebar" :class="{ 'is-open': menuOpen }">
+      <RouterLink to="/" class="sidebar-brand" aria-label="进入管理总览">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9">
+            <circle cx="12" cy="12" r="8.5" />
+            <path d="M3.8 9h16.4M3.8 15h16.4M12 3.5a13 13 0 0 1 0 17M12 3.5a13 13 0 0 0 0 17" />
+          </svg>
+        </span>
+        <span class="brand-copy">
+          <strong>genpac-runner</strong>
+          <small>管理控制台</small>
+        </span>
+      </RouterLink>
+
+      <nav class="sidebar-nav" aria-label="管理导航">
+        <p class="nav-caption">工作台</p>
+        <RouterLink to="/" class="sidebar-link" :class="{ active: active === 'dashboard' }">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="4" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/></svg>
+          <span>系统总览</span>
+        </RouterLink>
+        <RouterLink to="/admin/monitor" class="sidebar-link" :class="{ active: active === 'monitor' }">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h3l2.2-6 4.1 12 2.4-7 1.5 3H21"/><path d="M4 4h16v16H4z"/></svg>
+          <span>网络监控</span>
+        </RouterLink>
+
+        <p class="nav-caption nav-caption-spaced">配置管理</p>
+        <RouterLink to="/admin" class="sidebar-link" :class="{ active: active === 'settings' }">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1 1.4 1.1-1.5 2.6-1.7-.6a8 8 0 0 1-1.6.9l-.3 1.8h-3l-.3-1.8a8 8 0 0 1-1.6-.9l-1.7.6-1.5-2.6 1.4-1.1a7 7 0 0 1 0-1.9l-1.4-1.1 1.5-2.6 1.7.6a8 8 0 0 1 1.6-.9l.3-1.8h3l.3 1.8a8 8 0 0 1 1.6.9l1.7-.6 1.5 2.6-1.4 1.1a7 7 0 0 1-.1 1.8Z" transform="translate(-1 -1) scale(1.04)"/></svg>
+          <span>全部配置</span>
+        </RouterLink>
+        <RouterLink to="/admin#general" class="sidebar-link sub-link"><span class="nav-bullet"></span><span>常规设置</span></RouterLink>
+        <RouterLink to="/admin#mode" class="sidebar-link sub-link"><span class="nav-bullet"></span><span>启动模式</span></RouterLink>
+        <RouterLink to="/admin#proxy" class="sidebar-link sub-link"><span class="nav-bullet"></span><span>代理与远程列表</span></RouterLink>
+        <RouterLink to="/admin#rules" class="sidebar-link sub-link"><span class="nav-bullet"></span><span>自定义规则</span></RouterLink>
+        <RouterLink to="/admin#schedule" class="sidebar-link sub-link"><span class="nav-bullet"></span><span>定时任务与通知</span></RouterLink>
+        <RouterLink to="/admin#security" class="sidebar-link sub-link"><span class="nav-bullet"></span><span>管理密码</span></RouterLink>
+        <RouterLink to="/admin#logs" class="sidebar-link sub-link"><span class="nav-bullet"></span><span>生成记录</span></RouterLink>
+
+        <p class="nav-caption nav-caption-spaced">快捷入口</p>
+        <a class="sidebar-link" href="/proxy.pac" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7M21 3 11 13"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>查看 PAC 文件</span><span class="external-mark" aria-hidden="true">↗</span>
+        </a>
+        <RouterLink to="/status" class="sidebar-link">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h18M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z"/><path d="m8 12 2.5 2.5L16 9"/></svg>
+          <span>公共状态页</span>
+        </RouterLink>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="sidebar-status"><span class="status-dot"></span><span>管理服务已连接</span></div>
+        <span class="sidebar-note">设置保存于本地 SQLite 数据库</span>
+      </div>
+    </aside>
+
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <button class="mobile-menu-toggle" type="button" :aria-expanded="menuOpen" aria-label="切换导航菜单" @click="menuOpen = !menuOpen">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <div class="topbar-title">
+          <span class="topbar-kicker">管理控制台</span>
+          <h1>{{ title }}</h1>
+          <p>{{ subtitle }}</p>
+        </div>
+        <div class="topbar-actions">
+          <slot name="actions"></slot>
+          <ThemeSwitcher />
+        </div>
+      </header>
+      <main class="admin-content">
+        <slot></slot>
+      </main>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.admin-layout {
+  --sidebar-width: 258px;
+  min-height: 100vh;
+  color: var(--text);
+  background: var(--bg);
+}
+.admin-sidebar {
+  position: fixed;
+  z-index: 50;
+  inset: 0 auto 0 0;
+  display: flex;
+  flex-direction: column;
+  width: var(--sidebar-width);
+  padding: 22px 14px 16px;
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+}
+.sidebar-brand { display:flex; align-items:center; gap:11px; margin:0 8px 26px; color:var(--text); text-decoration:none; }
+.brand-mark { display:grid; place-items:center; flex:0 0 40px; width:40px; height:40px; border:1px solid color-mix(in srgb,var(--accent) 23%,var(--line)); border-radius:13px; color:var(--accent); background:var(--accent-soft); }
+.brand-copy { min-width:0; }
+.brand-copy strong { display:block; font-size:14px; font-weight:800; letter-spacing:-.035em; }
+.brand-copy small { display:block; margin-top:3px; color:var(--muted); font-size:10px; font-weight:700; letter-spacing:.12em; }
+.sidebar-nav { flex:1; min-height:0; overflow-y:auto; padding:0 2px 10px; }
+.nav-caption { margin:0 10px 8px; color:var(--muted); font-size:10px; font-weight:800; letter-spacing:.13em; }
+.nav-caption-spaced { margin-top:25px; }
+.sidebar-link { display:flex; align-items:center; gap:12px; min-height:40px; margin:2px 0; padding:0 11px; border:1px solid transparent; border-radius:9px; color:var(--muted); text-decoration:none; font-size:12px; font-weight:650; transition:background .15s,border-color .15s,color .15s; }
+.sidebar-link svg { flex:0 0 17px; width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.sidebar-link:hover { color:var(--text); background:var(--surface-2); }
+.sidebar-link.active { color:var(--accent); background:var(--accent-soft); border-color:color-mix(in srgb,var(--accent) 18%,transparent); }
+.sidebar-link.sub-link { min-height:34px; padding-left:19px; font-size:11px; font-weight:550; }
+.nav-bullet { width:5px; height:5px; flex:0 0 5px; border-radius:50%; background:var(--line); }
+.sub-link:hover .nav-bullet { background:var(--accent); }
+.external-mark { margin-left:auto; opacity:.65; font-size:13px; }
+.sidebar-bottom { padding:14px 10px 0; border-top:1px solid var(--line); }
+.sidebar-status { display:flex; align-items:center; gap:8px; color:var(--text); font-size:11px; font-weight:700; }
+.status-dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px var(--green-soft); }
+.sidebar-note { display:block; margin-top:7px; color:var(--muted); font-size:10px; line-height:1.5; }
+.admin-main { min-height:100vh; margin-left:var(--sidebar-width); min-width:0; }
+.admin-topbar { position:sticky; z-index:30; top:0; display:flex; align-items:center; justify-content:space-between; gap:24px; min-height:94px; padding:16px clamp(20px,3vw,42px); border-bottom:1px solid var(--line); background:color-mix(in srgb,var(--bg) 91%,transparent); backdrop-filter:blur(16px); }
+.topbar-title { min-width:0; }
+.topbar-kicker { display:block; margin-bottom:4px; color:var(--accent); font-size:9px; font-weight:800; letter-spacing:.15em; }
+.topbar-title h1 { margin:0; color:var(--text); font-size:21px; line-height:1.2; letter-spacing:-.035em; font-weight:800; }
+.topbar-title p { margin:5px 0 0; color:var(--muted); font-size:11px; line-height:1.45; }
+.topbar-actions { display:flex; align-items:center; justify-content:flex-end; gap:10px; flex:0 0 auto; }
+.admin-content { width:100%; max-width:1680px; margin:0 auto; padding:27px clamp(20px,3vw,42px) 44px; }
+.mobile-menu-toggle { display:none; }
+.sidebar-backdrop { display:none; }
+@media (max-width:1050px) { .admin-layout { --sidebar-width:238px; } .admin-topbar { gap:16px; } }
+@media (max-width:820px) {
+  .admin-sidebar { box-shadow:none; transform:translateX(-102%); transition:transform .2s ease,box-shadow .2s ease; }
+  .admin-sidebar.is-open { transform:translateX(0); box-shadow:18px 0 48px rgba(10,20,35,.18); }
+  .sidebar-backdrop { display:block; position:fixed; z-index:45; inset:0; border:0; background:rgba(12,18,30,.45); }
+  .admin-main { margin-left:0; }
+  .admin-topbar { min-height:78px; padding:13px 18px; gap:12px; }
+  .mobile-menu-toggle { display:grid; place-items:center; flex:0 0 36px; width:36px; height:36px; padding:0; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--text); cursor:pointer; }
+  .mobile-menu-toggle svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; }
+  .topbar-title { flex:1; }
+  .topbar-title h1 { font-size:18px; }
+  .topbar-title p { max-width:460px; font-size:10px; }
+  .admin-content { padding:21px 18px 36px; }
+}
+@media (max-width:620px) { .admin-topbar { align-items:flex-start; } .topbar-title p { max-width:220px; } .topbar-actions { flex-wrap:wrap; gap:6px; } }
+@media (max-width:450px) { .topbar-title p { display:none; } .topbar-actions { flex-direction:column; align-items:flex-end; } }
+</style>
