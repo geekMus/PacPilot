@@ -79,7 +79,6 @@ export interface AppSettings {
   mode: GenerationMode;
   pacProxy: string;
   pacCompress: boolean;
-  pacPrecise: boolean;
   listUrl: string;
   blockList: string[];
   directList: string[];
@@ -101,7 +100,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   mode: "custom",
   pacProxy: "SOCKS5 127.0.0.1:1080; DIRECT",
   pacCompress: true,
-  pacPrecise: false,
   listUrl: "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt",
   blockList: [],
   directList: [],
