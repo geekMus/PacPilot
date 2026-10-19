@@ -93,18 +93,22 @@ function isPrivateOrLoopbackIpv4(host: string): boolean {
 }
 
 function matchesCustomRule(host: string, rule: string): boolean {
-  const pattern = rule.trim().toLowerCase();
+  const normalizedHost = host.toLowerCase().replace(/\\.$/, "");
+  const pattern = rule.trim().toLowerCase().replace(/\\.$/, "");
   if (!pattern) return false;
-  if (pattern.includes("*")) {
-    let source = "^";
-    for (const char of pattern) {
-      if (char === "*") source += ".*";
-      else if (".+?^$(){}|[]\\".includes(char)) source += "\\" + char;
-      else source += char;
-    }
-    return new RegExp(source + "$").test(host);
+
+  // 必须与 server/services/pac-generator.ts 中的 isMatch 保持一致：
+  // *.example.com 只匹配子域名；**.example.com 同时匹配根域名和子域名。
+  if (pattern.startsWith("**.")) {
+    const root = pattern.slice(3);
+    return normalizedHost === root || normalizedHost.endsWith("." + root);
   }
-  return host === pattern || host.endsWith("." + pattern);
+  if (pattern.startsWith("*.")) {
+    const suffix = pattern.slice(2);
+    return normalizedHost.length > suffix.length + 1 && normalizedHost.endsWith("." + suffix);
+  }
+  if (pattern.includes("*")) return false;
+  return normalizedHost === pattern;
 }
 
 function matchesRemoteDomain(host: string, rule: string): boolean {
