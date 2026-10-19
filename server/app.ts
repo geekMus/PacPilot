@@ -35,9 +35,6 @@ export function createApp(
     app.use(express.static(clientDir, { index: false, maxAge: "1h" }));
   }
 
-  // 保留旧公共状态页地址的真实 HTTP 重定向，避免 SPA 兜底返回 404 状态码。
-  app.get("/status", (_req, res) => res.redirect(308, "/"));
-
   const sendSpa = (_req: express.Request, res: express.Response) => {
     if (!fs.existsSync(indexHtml)) {
       res.status(503).type("text/plain").send(
