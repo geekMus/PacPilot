@@ -262,8 +262,13 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
           <article class="stat-card">
             <span class="stat-label">自定义黑名单</span><strong class="stat-number">{{ status.blockList.length }}</strong><span class="stat-caption">命中时拦截请求</span>
           </article>
-          <article v-if="status.mode === 'custom'" class="stat-card stat-card-wide">
-            <span class="stat-label">默认代理</span><strong class="stat-proxy">{{ status.pacProxy || "未识别" }}</strong><span class="stat-caption">未命中自定义规则时使用</span>
+          <article v-if="status.mode === 'custom'" class="stat-card stat-card-wide stat-proxy-card">
+            <div class="proxy-card-heading">
+              <span class="stat-label">默认代理</span>
+              <span class="proxy-card-badge"><AppIcon name="route" :size="13" />默认出口</span>
+            </div>
+            <strong class="stat-proxy">{{ status.pacProxy || "未识别" }}</strong>
+            <span class="stat-caption">未命中自定义规则时，流量将通过此代理转发</span>
           </article>
         </section>
 
@@ -438,7 +443,14 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
 .stat-label { display:block; color:var(--muted); font-size:11px; font-weight:700; letter-spacing:.02em; margin-bottom:11px; }
 .stat-number { display:block; font-size:clamp(25px,3vw,32px); line-height:1.1; letter-spacing:-.04em; font-variant-numeric:tabular-nums; }
 .stat-caption { display:block; color:var(--muted); font-size:11px; line-height:1.55; margin-top:9px; }
-.stat-proxy { display:block; overflow-wrap:anywhere; font:600 13px/1.5 var(--font-mono); }
+.stat-proxy { display:block; overflow-wrap:anywhere; color:var(--accent); font:700 clamp(13px,1.7vw,16px)/1.55 var(--font-mono); }
+.stat-proxy-card {
+  border-color:color-mix(in srgb,var(--accent) 30%,var(--line));
+  background:linear-gradient(112deg,color-mix(in srgb,var(--accent) 9%,var(--surface)),var(--surface) 78%);
+}
+.proxy-card-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.proxy-card-heading .stat-label { margin-bottom:13px; }
+.proxy-card-badge { display:inline-flex; align-items:center; gap:5px; flex:0 0 auto; padding:5px 8px; border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line)); border-radius:999px; background:var(--accent-soft); color:var(--accent); font-size:10px; font-weight:750; }
 .section-card,.empty-hero { border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow); }
 .section-card { padding:clamp(17px,2.8vw,26px); margin-bottom:20px; }
 .section-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; }
@@ -549,11 +561,12 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
 .rule-content { min-width:0; }
 .rule-description { margin:0 0 10px; color:var(--muted); font-size:12px; line-height:1.55; }
 .default-proxy {
-  display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding:14px;
-  border:1px solid var(--line); border-radius:8px; background:var(--surface-2);
+  display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding:16px;
+  border:1px solid color-mix(in srgb,var(--accent) 26%,var(--line)); border-radius:10px;
+  background:linear-gradient(112deg,color-mix(in srgb,var(--accent) 7%,var(--surface)),var(--surface) 82%);
 }
 .default-proxy span { color:var(--muted); font-size:11px; font-weight:650; }
-.default-proxy code { max-width:100%; overflow-wrap:anywhere; color:var(--accent); font-size:13px; }
+.default-proxy code { max-width:100%; overflow-wrap:anywhere; padding:7px 9px; border:1px solid color-mix(in srgb,var(--accent) 18%,var(--line)); border-radius:7px; background:var(--accent-soft); color:var(--accent); font:700 13px/1.5 var(--font-mono); }
 .default-proxy p { margin:0; color:var(--muted); font-size:12px; line-height:1.5; }
 .pac-access-card {
   display:flex; align-items:center; justify-content:space-between; gap:24px;
