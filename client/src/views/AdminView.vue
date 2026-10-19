@@ -639,14 +639,14 @@ async function logout() {
             />
             <p class="field-hint">每个代理项用分号分隔。支持 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 和 DIRECT；代理地址必须填写端口，例如 SOCKS5 127.0.0.1:1080; DIRECT。</p>
           </div>
-          <div class="field">
+          <div class="field" :class="{ 'is-disabled': form.mode !== 'remote' }">
             <label for="listUrl">规则列表 URL <span class="lab-hint">GFWList / 域名型 AutoProxy、ABP / 明文域名</span></label>
-            <input id="listUrl" v-model="form.listUrl" :disabled="form.mode !== 'remote'" placeholder="https://example.com/list.txt" />
-            <p class="field-hint">按提取出的域名进行匹配；URL 路径、资源类型等复杂过滤条件不会保留。</p>
+            <input id="listUrl" v-model="form.listUrl" :disabled="form.mode !== 'remote'" :aria-disabled="form.mode !== 'remote'" placeholder="https://example.com/list.txt" />
+            <p class="field-hint">按提取出的域名进行匹配；URL 路径、资源类型等复杂过滤条件不会保留。<span v-if="form.mode !== 'remote'" class="disabled-hint">切换到远程规则列表模式后可编辑。</span></p>
           </div>
           <div class="checks">
-            <label class="check">
-              <input v-model="form.pacCompress" type="checkbox" :disabled="form.mode !== 'remote'" />
+            <label class="check" :class="{ 'is-disabled': form.mode !== 'remote' }" :aria-disabled="form.mode !== 'remote'">
+              <input v-model="form.pacCompress" type="checkbox" :disabled="form.mode !== 'remote'" :aria-disabled="form.mode !== 'remote'" />
               <span>压缩远程 PAC</span>
             </label>
           </div>
@@ -972,6 +972,7 @@ h2 {
   box-shadow: 0 0 0 2px var(--accent-soft);
   background: var(--surface);
 }
+.mode-card:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
 .mode-top {
   display: flex;
   flex-wrap: wrap;
@@ -1127,7 +1128,22 @@ textarea {
   color: var(--accent-contrast);
 }
 .btn.primary:hover:not(:disabled) {
-  filter: brightness(1.05);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--accent-contrast);
+  filter: none;
+}
+.btn.primary:active:not(:disabled) {
+  background: var(--accent-active);
+  border-color: var(--accent-active);
+  color: var(--accent-contrast);
+}
+.admin-logout-button:active:not(:disabled),
+.chip:active:not(:disabled),
+.webhook-test-button:active:not(:disabled),
+.timezone-option:active:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 .admin-page .actions .btn-save {
   display: inline-flex;
@@ -1137,25 +1153,27 @@ textarea {
   min-width: 190px;
   min-height: 46px;
   padding: 11px 20px;
-  background: #405fe8;
-  border: 1px solid #405fe8;
-  color: #fff !important;
-  -webkit-text-fill-color: #fff;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: var(--accent-contrast) !important;
+  -webkit-text-fill-color: var(--accent-contrast);
   font-weight: 750;
   letter-spacing: .01em;
-  box-shadow: 0 5px 14px rgba(64, 95, 232, .22);
+  box-shadow: 0 5px 14px color-mix(in srgb,var(--accent) 22%,transparent);
   transition: background .15s, box-shadow .15s, transform .15s;
 }
 .admin-page .actions .btn-save svg { flex: 0 0 auto; }
-.admin-page .actions .btn-save:hover:not(:disabled) {
-  background: #304fd4;
-  border-color: #304fd4;
-  box-shadow: 0 7px 18px rgba(64, 95, 232, .28);
+.admin-page .actions .btn-save:hover:not(:disabled),.admin-page .actions .btn-save:active:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--accent-contrast) !important;
+  -webkit-text-fill-color: var(--accent-contrast);
+  box-shadow: 0 7px 18px color-mix(in srgb,var(--accent) 28%,transparent);
   filter: none;
   transform: translateY(-1px);
 }
 .admin-page .actions .btn-save:focus-visible {
-  outline: 3px solid color-mix(in srgb, #405fe8 28%, transparent);
+  outline: 3px solid color-mix(in srgb, var(--accent) 34%, transparent);
   outline-offset: 3px;
 }
 .admin-page .actions .btn-save:disabled {
@@ -1174,9 +1192,24 @@ textarea {
   background: transparent;
 }
 .btn:disabled {
-  opacity: 0.55;
+  opacity: 1;
+  color: var(--control-disabled-text);
+  background: var(--control-disabled-bg);
+  border-color: var(--control-disabled-border);
+  -webkit-text-fill-color: var(--control-disabled-text);
+  box-shadow: none;
   cursor: not-allowed;
 }
+.field.is-disabled label { color: var(--control-disabled-text); }
+.field.is-disabled .field-hint,.disabled-hint { color: var(--control-disabled-text); }
+.check.is-disabled {
+  color: var(--control-disabled-text);
+  border-color: var(--control-disabled-border);
+  background: var(--control-disabled-bg);
+  cursor: not-allowed;
+}
+.check.is-disabled span { color: var(--control-disabled-text); }
+.check.is-disabled input { cursor: not-allowed; }
 .linkish {
   background: transparent;
   border: 0;
