@@ -166,12 +166,14 @@ export async function probeGenpac(): Promise<EngineProbe> {
 
 async function runRemoteMode(
   settings: AppSettings,
-  outFile: string
+  outFile: string,
+  signal?: AbortSignal
 ): Promise<string> {
   if (!settings.listUrl) {
     throw new Error("远程列表模式需要配置列表 URL（listUrl）");
   }
-  const parsed = await fetchAndParseRemoteList(settings.listUrl);
+  const parsed = await fetchAndParseRemoteList(settings.listUrl, signal);
+  if (signal?.aborted) throw new Error("PAC 生成任务已取消");
   // 内部源文件始终保留未压缩版本，状态页只解析该文件。
   const pac = buildRemoteListPac(
     settings.pacProxy,
@@ -183,6 +185,7 @@ async function runRemoteMode(
   );
   const source = withPacVersionHeader(pac);
   const output = settings.pacCompress ? withPacVersionHeader(await compressPac(pac)) : source;
+  if (signal?.aborted) throw new Error("PAC 生成任务已取消");
   fs.writeFileSync(path.join(path.dirname(outFile), "proxy.source.pac"), source, "utf8");
   fs.writeFileSync(outFile, output, "utf8");
   const formatLabel = parsed.format === "gfwlist-base64"
@@ -195,23 +198,26 @@ async function runRemoteMode(
 
 export async function generatePac(
   database: AppDatabase,
-  dataDir: string
+  dataDir: string,
+  signal?: AbortSignal
 ): Promise<GenerateResult> {
   const settings = getSettings(database);
   const pacPath = path.join(dataDir, "proxy.pac");
   fs.mkdirSync(dataDir, { recursive: true });
 
   try {
+    if (signal?.aborted) throw new Error("PAC 生成任务已取消");
     const proxyError = validatePacProxyString(settings.pacProxy);
     if (proxyError) throw new Error(proxyError);
 
     let message: string;
     if (settings.mode === "remote") {
-      message = await runRemoteMode(settings, pacPath);
+      message = await runRemoteMode(settings, pacPath, signal);
     } else {
       const customPac = buildCustomPac(settings);
       const source = withPacVersionHeader(customPac);
       const output = settings.pacCompress ? withPacVersionHeader(await compressPac(customPac)) : source;
+      if (signal?.aborted) throw new Error("PAC 生成任务已取消");
       fs.writeFileSync(path.join(dataDir, "proxy.source.pac"), source, "utf8");
       fs.writeFileSync(pacPath, output, "utf8");
       message = "生成成功（自定义规则模式" + (settings.pacCompress ? "，已压缩" : "，未压缩") + "）";
@@ -222,6 +228,9 @@ export async function generatePac(
     console.log(`[PAC] ${message}，文件：${pacPath}`);
     return { success: true, mode: settings.mode, message, pacPath };
   } catch (err: unknown) {
+    if (signal?.aborted) {
+      return { success: false, mode: settings.mode, message: "任务已被更新的工作流取消", pacPath };
+    }
     const message = err instanceof Error ? err.message : String(err);
     appendGenerationLog(database, false, settings.mode, message);
     await notifyFailure(settings, message);
