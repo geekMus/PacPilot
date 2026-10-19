@@ -20,8 +20,10 @@ const selectedSource = ref("all");
 const page = ref(1);
 const pageSize = 20;
 const deletingId = ref<number | null>(null);
-const confirmingDeleteId = ref<number | null>(null);
-const confirmingCancelId = ref<number | null>(null);
+const confirmingHistoryDeleteId = ref<number | null>(null);
+const confirmingCurrentCancel = ref(false);
+const confirmingQueueCancelId = ref<number | null>(null);
+const confirmingHistoryCancelId = ref<number | null>(null);
 const cancellingId = ref<number | null>(null);
 let previousStatuses = new Map<number, string>();
 let statusSnapshotReady = false;
@@ -108,8 +110,34 @@ async function load(silent = false) {
     syncPolling(current.value);
   }
 }
+function resetConfirmations() {
+  confirmingCurrentCancel.value = false;
+  confirmingQueueCancelId.value = null;
+  confirmingHistoryCancelId.value = null;
+  confirmingHistoryDeleteId.value = null;
+}
+function toggleCurrentCancel() {
+  const opening = !confirmingCurrentCancel.value;
+  resetConfirmations();
+  confirmingCurrentCancel.value = opening;
+}
+function toggleQueueCancel(run: WorkflowRun) {
+  const opening = confirmingQueueCancelId.value !== run.id;
+  resetConfirmations();
+  confirmingQueueCancelId.value = opening ? run.id : null;
+}
+function toggleHistoryCancel(run: WorkflowRun) {
+  const opening = confirmingHistoryCancelId.value !== run.id;
+  resetConfirmations();
+  confirmingHistoryCancelId.value = opening ? run.id : null;
+}
+function toggleHistoryDelete(run: WorkflowRun) {
+  const opening = confirmingHistoryDeleteId.value !== run.id;
+  resetConfirmations();
+  confirmingHistoryDeleteId.value = opening ? run.id : null;
+}
 async function deleteRun(run: WorkflowRun) {
-  if (deletingId.value !== null || confirmingDeleteId.value !== run.id) return;
+  if (deletingId.value !== null || confirmingHistoryDeleteId.value !== run.id) return;
   if (run.status === "running" || run.status === "pending") {
     notify("等待中或执行中的工作流不能删除。", "warning");
     return;
@@ -119,7 +147,7 @@ async function deleteRun(run: WorkflowRun) {
     await api.deleteWorkflow(run.id);
     runs.value = runs.value.filter((item) => item.id !== run.id);
     previousStatuses.delete(run.id);
-    confirmingDeleteId.value = null;
+    confirmingHistoryDeleteId.value = null;
     notify(`工作流执行记录 #${run.id} 已删除`, "success");
     page.value = Math.min(page.value, pageCount.value);
     if (current.value?.id === run.id) current.value = null;
@@ -129,12 +157,17 @@ async function deleteRun(run: WorkflowRun) {
     deletingId.value = null;
   }
 }
-async function cancelRun(run: WorkflowRun) {
-  if (run.status !== "pending" || cancellingId.value !== null || confirmingCancelId.value !== run.id) return;
+async function cancelRun(run: WorkflowRun, source: "current" | "queue" | "history") {
+  const confirmationOpen = source === "current"
+    ? confirmingCurrentCancel.value && current.value?.id === run.id
+    : source === "queue"
+      ? confirmingQueueCancelId.value === run.id
+      : confirmingHistoryCancelId.value === run.id;
+  if (run.status !== "pending" || cancellingId.value !== null || !confirmationOpen) return;
   cancellingId.value = run.id;
   try {
     await api.cancelWorkflow(run.id);
-    confirmingCancelId.value = null;
+    resetConfirmations();
     await load(true);
   } catch (caught) {
     notify(caught instanceof Error ? caught.message : String(caught), "error");
@@ -193,7 +226,7 @@ onUnmounted(stopPolling);
           </div>
           <div class="current-actions">
             <RouterLink class="workflow-button secondary" :to="`/admin/workflows/${current.id}`"><AppIcon name="external-link" :size="14"/> 查看详情</RouterLink>
-            <div v-if="current.status === 'pending'" class="confirm-anchor"><button class="workflow-button cancel-button" type="button" :disabled="cancellingId === current.id" @click="confirmingCancelId = confirmingCancelId === current.id ? null : current.id"><AppIcon name="x" :size="14"/> 取消排队</button><div v-if="confirmingCancelId === current.id" class="confirm-popover cancel-popover" role="group"><strong>取消这条等待任务？</strong><span>取消后将不再执行，但保留执行记录。</span><div><button type="button" class="confirm-cancel" @click.stop="confirmingCancelId = null">返回</button><button type="button" class="confirm-cancel-action" :disabled="cancellingId === current.id" @click="cancelRun(current)">{{cancellingId === current.id ? "取消中…" : "确认取消"}}</button></div></div></div>
+            <div v-if="current.status === 'pending'" class="confirm-anchor"><button class="workflow-button cancel-button" type="button" :disabled="cancellingId === current.id" @click="toggleCurrentCancel()"><AppIcon name="x" :size="14"/> 取消排队</button><div v-if="confirmingCurrentCancel" class="confirm-popover cancel-popover" role="group"><strong>取消这条等待任务？</strong><span>取消后将不再执行，但保留执行记录。</span><div><button type="button" class="confirm-cancel" @click.stop="resetConfirmations()">返回</button><button type="button" class="confirm-cancel-action" :disabled="cancellingId === current.id" @click="cancelRun(current, 'current')">{{cancellingId === current.id ? "取消中…" : "确认取消"}}</button></div></div></div>
           </div>
           <div v-if="current.error" class="workflow-error-detail"><strong>错误详情</strong><pre>{{ current.error }}</pre></div>
         </template>
@@ -213,7 +246,7 @@ onUnmounted(stopPolling);
             <span class="queue-icon"><AppIcon :name="run.status === 'running' ? 'loader-circle' : 'clock'" :size="17" :class="{spinning:run.status === 'running'}"/></span>
             <div class="queue-copy"><div><strong>#{{run.id}} · {{sourceLabel(run.source)}}</strong><span class="status-pill" :class="run.status">{{statusLabel(run.status)}}</span></div><p>{{run.stage || run.message || "等待执行"}}</p></div>
             <RouterLink class="workflow-button secondary" :to="`/admin/workflows/${run.id}`">查看详情</RouterLink>
-            <div v-if="run.status === 'pending'" class="confirm-anchor"><button class="workflow-button cancel-button" type="button" :disabled="cancellingId === run.id" @click.stop="confirmingCancelId = confirmingCancelId === run.id ? null : run.id; confirmingDeleteId = null"><AppIcon name="x" :size="14"/> 取消排队</button><div v-if="confirmingCancelId === run.id" class="confirm-popover cancel-popover" role="group"><strong>取消这条等待任务？</strong><span>取消后将不再执行，但保留执行记录。</span><div><button type="button" class="confirm-cancel" @click.stop="confirmingCancelId = null">返回</button><button type="button" class="confirm-cancel-action" :disabled="cancellingId === run.id" @click.stop="cancelRun(run)">{{cancellingId === run.id ? "取消中…" : "确认取消"}}</button></div></div></div>
+            <div v-if="run.status === 'pending'" class="confirm-anchor"><button class="workflow-button cancel-button" type="button" :disabled="cancellingId === run.id" @click.stop="toggleQueueCancel(run)"><AppIcon name="x" :size="14"/> 取消排队</button><div v-if="confirmingQueueCancelId === run.id" class="confirm-popover cancel-popover" role="group"><strong>取消这条等待任务？</strong><span>取消后将不再执行，但保留执行记录。</span><div><button type="button" class="confirm-cancel" @click.stop="resetConfirmations()">返回</button><button type="button" class="confirm-cancel-action" :disabled="cancellingId === run.id" @click.stop="cancelRun(run, 'queue')">{{cancellingId === run.id ? "取消中…" : "确认取消"}}</button></div></div></div>
           </div>
         </div>
       </section>
@@ -256,12 +289,12 @@ onUnmounted(stopPolling);
                 <td class="duration-cell"><span class="duration-trigger ellipsis">{{durationLabel(run)}}</span></td>
                 <td class="actions-cell">
                   <div v-if="run.status === 'pending'" class="confirm-anchor" @click.stop>
-                    <button class="row-action-button cancel-button" type="button" :disabled="cancellingId !== null" aria-label="取消排队" title="取消排队" @click.stop="confirmingCancelId = confirmingCancelId === run.id ? null : run.id; confirmingDeleteId = null"><AppIcon name="x" :size="15"/></button>
-                    <div v-if="confirmingCancelId === run.id" class="confirm-popover cancel-popover" role="group"><strong>取消这条等待任务？</strong><span>取消后将不再执行，但保留执行记录。</span><div><button type="button" class="confirm-cancel" @click.stop="confirmingCancelId = null">返回</button><button type="button" class="confirm-cancel-action" :disabled="cancellingId === run.id" @click.stop="cancelRun(run)">{{cancellingId === run.id ? "取消中…" : "确认取消"}}</button></div></div>
+                    <button class="row-action-button cancel-button" type="button" :disabled="cancellingId !== null" aria-label="取消排队" title="取消排队" @click.stop="toggleHistoryCancel(run)"><AppIcon name="x" :size="15"/></button>
+                    <div v-if="confirmingHistoryCancelId === run.id" class="confirm-popover cancel-popover" role="group"><strong>取消这条等待任务？</strong><span>取消后将不再执行，但保留执行记录。</span><div><button type="button" class="confirm-cancel" @click.stop="resetConfirmations()">返回</button><button type="button" class="confirm-cancel-action" :disabled="cancellingId === run.id" @click.stop="cancelRun(run, 'history')">{{cancellingId === run.id ? "取消中…" : "确认取消"}}</button></div></div>
                   </div>
                   <div v-else-if="run.status !== 'running'" class="confirm-anchor" @click.stop>
-                    <button class="row-action-button delete-run-button" type="button" :disabled="deletingId !== null" aria-label="删除执行记录" title="删除执行记录" @click.stop="confirmingDeleteId = confirmingDeleteId === run.id ? null : run.id; confirmingCancelId = null"><AppIcon name="trash-2" :size="15"/></button>
-                    <div v-if="confirmingDeleteId === run.id" class="confirm-popover" role="group"><strong>删除这条记录？</strong><span>阶段详情也会一并删除。</span><div><button type="button" class="confirm-cancel" @click.stop="confirmingDeleteId = null">取消</button><button type="button" class="confirm-delete" :disabled="deletingId === run.id" @click.stop="deleteRun(run)">{{deletingId === run.id ? "删除中…" : "确认删除"}}</button></div></div>
+                    <button class="row-action-button delete-run-button" type="button" :disabled="deletingId !== null" aria-label="删除执行记录" title="删除执行记录" @click.stop="toggleHistoryDelete(run)"><AppIcon name="trash-2" :size="15"/></button>
+                    <div v-if="confirmingHistoryDeleteId === run.id" class="confirm-popover" role="group"><strong>删除这条记录？</strong><span>阶段详情也会一并删除。</span><div><button type="button" class="confirm-cancel" @click.stop="resetConfirmations()">取消</button><button type="button" class="confirm-delete" :disabled="deletingId === run.id" @click.stop="deleteRun(run)">{{deletingId === run.id ? "删除中…" : "确认删除"}}</button></div></div>
                   </div>
                 </td>
               </tr></template>
