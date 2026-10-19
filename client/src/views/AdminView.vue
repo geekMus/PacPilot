@@ -41,7 +41,6 @@ const form = reactive({
   mode: "custom" as "custom" | "remote",
   pacProxy: "",
   pacCompress: true,
-  pacPrecise: false,
   listUrl: "",
   directListText: "",
   blockListText: "",
@@ -271,7 +270,6 @@ function applySettings(s: AppSettings) {
   form.mode = s.mode;
   form.pacProxy = s.pacProxy;
   form.pacCompress = s.pacCompress;
-  form.pacPrecise = s.pacPrecise;
   form.listUrl = s.listUrl;
   form.directListText = s.directList.join("\n");
   form.blockListText = s.blockList.join("\n");
@@ -295,7 +293,6 @@ function toPayload(): AppSettings {
     mode: form.mode,
     pacProxy: form.pacProxy,
     pacCompress: form.pacCompress,
-    pacPrecise: form.pacPrecise,
     listUrl: form.listUrl,
     directList: split(form.directListText),
     blockList: split(form.blockListText),
