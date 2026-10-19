@@ -364,13 +364,10 @@ onUnmounted(() => {
         <div v-else class="pac-no-latest">暂无足够的 PAC 请求数据，后续会逐步形成响应耗时趋势。</div>
       </section>
 
-      <section class="monitor-panel">
-        <div class="panel-heading">
-          <div>
-            <h2>服务整体统计</h2>
-            <p>以下数据包含网页、PAC 文件和 API 请求，用于辅助排查整个管理服务的运行状态。</p>
-          </div>
-        </div>
+      <div class="overall-stats-heading">
+        <h2>服务整体统计</h2>
+        <p>以下数据包含网页、PAC 文件和 API 请求，用于辅助排查整个管理服务的运行状态。</p>
+      </div>
       <section class="metric-grid" aria-label="服务整体统计">
         <article class="metric-card">
           <span class="metric-label"><AppIcon name="activity" :size="15" />活动 HTTP 请求</span>
@@ -668,7 +665,10 @@ onUnmounted(() => {
 .monitor-meta { display:flex; align-items:center; gap:8px; margin-top:14px; color:var(--muted); font-size:12px; }
 .live-dot,.probe-state-dot { width:8px; height:8px; display:inline-block; border-radius:999px; background:var(--green); flex:0 0 auto; }
 .live-dot.busy { background:var(--warn); }
-.metric-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:20px 0 var(--space-5); }
+.metric-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:12px 0 var(--space-5); }
+.overall-stats-heading { margin:24px 0 8px; }
+.overall-stats-heading h2 { margin:0; font-size:16px; letter-spacing:-.02em; }
+.overall-stats-heading p { margin:5px 0 0; color:var(--muted); font-size:12px; line-height:1.6; }
 .pac-overview-panel { border-color:color-mix(in srgb,var(--accent) 28%,var(--line)); }
 .pac-metric-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
 .pac-metric-primary { border-color:color-mix(in srgb,var(--accent) 38%,var(--line)); background:color-mix(in srgb,var(--accent-soft) 40%,var(--surface)); }
