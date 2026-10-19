@@ -84,8 +84,8 @@ async function generateNow(): Promise<void> {
   error.value = "";
   try {
     const result = await api.generate();
-    noticeOkay.value = result.success;
-    notice.value = result.success ? "PAC 已重新生成。" : "PAC 生成失败：" + result.message;
+    noticeOkay.value = true;
+    notice.value = `已启动工作流 #${result.workflowId}，可在“工作流”页面查看实时进度。`;
     await loadOverview();
   } catch (caught) {
     noticeOkay.value = false;
