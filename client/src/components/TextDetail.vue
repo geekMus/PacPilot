@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from "./AppIcon.vue";
 import { computed, nextTick, ref } from "vue";
 
 const props = withDefaults(defineProps<{
@@ -79,7 +80,7 @@ async function copyContent(): Promise<void> {
         type="button"
         aria-label="关闭详情"
         @click="closeDetails"
-      >×</button>
+      ><AppIcon name="x" :size="16" /></button>
     </header>
 
     <pre class="text-detail-content">{{ fullText || "—" }}</pre>
@@ -87,7 +88,7 @@ async function copyContent(): Promise<void> {
     <footer class="text-detail-footer">
       <span class="text-detail-copy-state" role="status" aria-live="polite">{{ copyState }}</span>
       <div class="text-detail-actions">
-        <button class="text-detail-button secondary" type="button" @click="copyContent">复制内容</button>
+        <button class="text-detail-button secondary" type="button" @click="copyContent"><AppIcon name="copy" :size="14" />复制内容</button>
         <button class="text-detail-button primary" type="button" @click="closeDetails">关闭</button>
       </div>
     </footer>
