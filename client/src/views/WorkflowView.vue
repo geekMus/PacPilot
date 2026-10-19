@@ -5,6 +5,7 @@ import { api, type WorkflowRun } from "../api/client";
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
+import ConfirmPopover from "../components/ConfirmPopover.vue";
 import { useToast } from "../composables/useToast";
 
 const router = useRouter();
@@ -24,6 +25,8 @@ const confirmingHistoryDeleteId = ref<number | null>(null);
 const confirmingCurrentCancel = ref(false);
 const confirmingQueueCancelId = ref<number | null>(null);
 const confirmingHistoryCancelId = ref<number | null>(null);
+const confirmingHistoryClear = ref(false);
+const clearingHistory = ref(false);
 const cancellingId = ref<number | null>(null);
 let previousStatuses = new Map<number, string>();
 let statusSnapshotReady = false;
@@ -115,6 +118,7 @@ function resetConfirmations() {
   confirmingQueueCancelId.value = null;
   confirmingHistoryCancelId.value = null;
   confirmingHistoryDeleteId.value = null;
+  confirmingHistoryClear.value = false;
 }
 function toggleCurrentCancel() {
   const opening = !confirmingCurrentCancel.value;
@@ -135,6 +139,31 @@ function toggleHistoryDelete(run: WorkflowRun) {
   const opening = confirmingHistoryDeleteId.value !== run.id;
   resetConfirmations();
   confirmingHistoryDeleteId.value = opening ? run.id : null;
+}
+function toggleHistoryClear() {
+  const opening = !confirmingHistoryClear.value;
+  resetConfirmations();
+  confirmingHistoryClear.value = opening;
+}
+async function clearWorkflowHistory() {
+  if (clearingHistory.value || activeRuns.value.length > 0 || runs.value.length === 0 ||
+      deletingId.value !== null || cancellingId.value !== null) return;
+  clearingHistory.value = true;
+  try {
+    const result = await api.clearWorkflowHistory();
+    resetConfirmations();
+    runs.value = [];
+    current.value = null;
+    activeRuns.value = [];
+    previousStatuses = new Map<number, string>();
+    statusSnapshotReady = true;
+    page.value = 1;
+    notify(`已清空 ${result.deletedRuns} 条工作流执行历史及其阶段详情。`, "success");
+  } catch (caught) {
+    notify(caught instanceof Error ? caught.message : String(caught), "error");
+  } finally {
+    clearingHistory.value = false;
+  }
 }
 async function deleteRun(run: WorkflowRun) {
   if (deletingId.value !== null || confirmingHistoryDeleteId.value !== run.id) return;
@@ -253,8 +282,13 @@ onUnmounted(stopPolling);
 
       <section class="workflow-history panel">
         <div class="panel-heading">
-          <div><p class="eyebrow">HISTORY</p><h2>执行历史</h2><p class="panel-subtitle">最近 {{ runs.length }} 条任务记录；历史记录与生成日志分开保存。</p></div>
-          <span class="count-pill">{{ filteredRuns.length }} 条匹配</span>
+          <div><p class="eyebrow">HISTORY</p><h2>执行历史</h2><p class="panel-subtitle">最近 {{ runs.length }} 条任务记录；历史记录与生成日志分开保存。</p><p v-if="activeRuns.length" class="panel-subtitle">有工作流正在等待或执行，暂不能清空历史。</p></div>
+          <div class="history-heading-actions">
+            <span class="count-pill">{{ filteredRuns.length }} 条匹配</span>
+            <ConfirmPopover :open="confirmingHistoryClear" title="清空工作流执行历史？" description="将删除全部工作流执行记录及其阶段详情，且无法撤销；生成日志、应用配置和 PAC 文件会保留。若有任务正在等待或执行，服务器会拒绝清理。" confirm-text="清空历史" busy-text="正在清理…" align="end" :disabled="loading||clearingHistory||activeRuns.length>0||runs.length===0||deletingId!==null||cancellingId!==null" :busy="clearingHistory" @update:open="confirmingHistoryClear=$event" @confirm="clearWorkflowHistory">
+              <template #trigger="{toggle,open}"><button class="workflow-button history-clear-button" type="button" :aria-expanded="open" :disabled="loading||clearingHistory||activeRuns.length>0||runs.length===0||deletingId!==null||cancellingId!==null" @click="toggle"><AppIcon :name="clearingHistory?'loader-circle':'trash-2'" :size="15" :class="{spinning:clearingHistory}"/> {{clearingHistory?"正在清理…":"清空执行历史"}}</button></template>
+            </ConfirmPopover>
+          </div>
         </div>
         <div class="history-filters" aria-label="筛选工作流历史">
           <label>执行状态
@@ -352,6 +386,10 @@ onUnmounted(stopPolling);
 .confirm-popover button:disabled { opacity:.5; cursor:not-allowed; }
  .current-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
 .workflow-queue .panel-heading { margin-bottom:12px; }
+.history-heading-actions { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:8px; }
+.workflow-button.history-clear-button { color:var(--red); background:var(--red-soft,var(--surface)); border-color:color-mix(in srgb,var(--red) 30%,var(--line)); }
+.workflow-button.history-clear-button:hover:not(:disabled) { background:var(--red-soft,var(--surface-2)); }
+.workflow-button.history-clear-button:disabled { opacity:.45; }
 .queue-list { display:grid; gap:8px; }
 .queue-item { display:flex; align-items:center; gap:11px; min-width:0; padding:11px; border:1px solid var(--line); border-radius:9px; background:var(--surface-2); }
 .queue-icon { display:grid; place-items:center; flex:0 0 34px; width:34px; height:34px; border-radius:9px; color:var(--accent); background:var(--accent-soft); }
