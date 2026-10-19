@@ -1176,6 +1176,14 @@ textarea {
   outline: 3px solid color-mix(in srgb, var(--accent) 34%, transparent);
   outline-offset: 3px;
 }
+.admin-page .actions .btn-save:active:not(:disabled) {
+  background:var(--accent-active);
+  border-color:var(--accent-active);
+  color:var(--accent-contrast) !important;
+  -webkit-text-fill-color:var(--accent-contrast);
+  box-shadow:0 2px 6px color-mix(in srgb,var(--accent) 20%,transparent);
+  transform:translateY(0);
+}
 .admin-page .actions .btn-save:disabled {
   opacity: 1;
   cursor: not-allowed;
