@@ -521,6 +521,11 @@ onUnmounted(() => {
   border-color:var(--accent-active);
   color:var(--accent-contrast);
 }
+.monitor-button.secondary:active:not(:disabled) {
+  background:var(--accent-soft);
+  border-color:var(--accent);
+  color:var(--accent);
+}
 .icon-spinning { animation: icon-spin .9s linear infinite; }
 @keyframes icon-spin { to { transform:rotate(360deg); } }
 .monitor-notice,.probe-target { padding:12px 14px; border-radius:10px; background:var(--surface-2); border:1px solid var(--line); font-size:12px; color:var(--muted); line-height:1.65; margin-bottom:14px; }
