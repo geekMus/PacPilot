@@ -76,13 +76,16 @@ const ruleDecorationField = StateField.define({
   update(decorations, transaction) {
     const diagnosticsChanged = transaction.effects.some((effect) => effect.is(setRuleDiagnostics));
     const highlightChanged = transaction.effects.some((effect) => effect.is(setJumpHighlight));
-    if (!transaction.docChanged && !diagnosticsChanged && !highlightChanged) return decorations.map(transaction.changes);
+    if (!transaction.docChanged && !diagnosticsChanged && !highlightChanged && !transaction.selectionSet) return decorations.map(transaction.changes);
     const diagnostics = transaction.state.field(ruleDiagnosticsField);
     const byLine = new Map<number, RuleDiagnostic[]>();
     for (const diagnostic of diagnostics) byLine.set(diagnostic.line, [...(byLine.get(diagnostic.line) ?? []), diagnostic]);
-    const highlightLine = transaction.state.field(jumpHighlightField);
+    const highlight = transaction.state.field(jumpHighlightField);
+    const highlightLine = highlight?.line ?? null;
+    const activeLine = transaction.state.doc.lineAt(transaction.state.selection.main.head).number;
     const lineNumbersToDecorate = new Set([...byLine.keys()]);
     if (highlightLine !== null) lineNumbersToDecorate.add(highlightLine);
+    if (byLine.has(activeLine)) lineNumbersToDecorate.add(activeLine);
     const ranges = [];
     for (const lineNumber of lineNumbersToDecorate) {
       if (lineNumber < 1 || lineNumber > transaction.state.doc.lines) continue;
@@ -92,9 +95,10 @@ const ruleDecorationField = StateField.define({
         const severity = items.some((item) => item.severity === "error") ? "error" : items.some((item) => item.severity === "warning") ? "warning" : "info";
         classes.push("cm-rule-line-" + severity);
       }
-      if (highlightLine === lineNumber) classes.push("cm-jump-highlight");
-      const title = items.map((item) => item.message).join("\n");
-      ranges.push(Decoration.line({ attributes: { class: classes.join(" "), ...(title ? { title } : {}) } }).range(transaction.state.doc.line(lineNumber).from));
+      const targetColor = items.some((item) => item.severity === "error") ? "var(--red)" : items.some((item) => item.severity === "warning") ? "var(--warn)" : items.length ? "var(--accent)" : "transparent";
+      if (highlightLine === lineNumber) classes.push(highlight.token % 2 === 0 ? "cm-jump-highlight-a" : "cm-jump-highlight-b");
+      ranges.push(Decoration.line({ attributes: { class: classes.join(" "), style: "--cm-jump-target: " + targetColor + ";" } }).range(transaction.state.doc.line(lineNumber).from));
+      if (lineNumber === activeLine && items.length) ranges.push(Decoration.widget({ widget: new InlineDiagnosticWidget(items), side: 1, block: false }).range(transaction.state.doc.line(lineNumber).to));
     }
     ranges.sort((a, b) => a.from - b.from);
     return Decoration.set(ranges, true);
@@ -148,7 +152,7 @@ function jumpToLine(lineNumber: number) {
   // 只更新选区与高亮，不使用 scrollIntoView，也不主动 focus，避免浏览器滚动外层页面。
   editor.dispatch({
     selection: { anchor: line.to },
-    effects: setJumpHighlight.of(lineNumber),
+    effects: setJumpHighlight.of({ line: lineNumber, token: (editor.state.field(jumpHighlightField)?.token ?? 0) + 1 }),
   });
   // 保留行末光标，便于立即编辑；preventScroll 禁止浏览器为聚焦而滚动页面。
   editor.contentDOM.focus({ preventScroll: true });
