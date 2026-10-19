@@ -348,10 +348,15 @@ watch(
 .diagnostic-count.is-error { color: var(--red); background: var(--red-soft); }
 .diagnostic-count.is-warning { color: var(--warn); background: var(--warn-soft); }
 .diagnostic-count.is-info { color: var(--accent); background: var(--accent-soft); }
-.rule-diagnostic-list { display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow: auto; padding: 6px; overscroll-behavior: contain; }
-.rule-diagnostic-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 8px; width: 100%; padding: 7px 7px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--text); font: inherit; font-size: 12px; line-height: 1.5; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
+.rule-diagnostic-list { display: flex; flex-direction: column; gap: 1px; max-height: 220px; overflow: auto; padding: 4px; overscroll-behavior: contain; }
+.rule-diagnostic-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 6px; width: 100%; padding: 5px 6px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text); font: inherit; font-size: 12px; line-height: 1.45; text-align: left; overflow-wrap: anywhere; cursor: pointer; transition: background-color 100ms ease, border-color 100ms ease; }
 .rule-diagnostic-item:hover, .rule-diagnostic-item:focus-visible { border-color: var(--line); background: var(--surface-2); }
+.rule-diagnostic-item:active { border-color: var(--line); background: var(--accent-soft); }
 .rule-diagnostic-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (hover: none) {
+  .rule-diagnostic-item:focus:not(:focus-visible) { border-color: transparent; background: transparent; }
+  .rule-diagnostic-item:active { border-color: var(--line); background: var(--accent-soft); }
+}
 .rule-diagnostic-line { display: inline-flex; align-items: center; justify-content: center; min-height: 22px; padding: 2px 7px; border-radius: 5px; background: var(--surface-2); color: var(--muted); font-size: 10px; font-weight: 750; white-space: nowrap; }
 .rule-diagnostic-item.is-error .rule-diagnostic-line { color: var(--red); background: var(--red-soft); }
 .rule-diagnostic-item.is-warning .rule-diagnostic-line { color: var(--warn); background: var(--warn-soft); }
@@ -372,6 +377,7 @@ watch(
   .diagnostic-count { padding: 2px 5px; font-size: 9px; }
   .rule-diagnostic-list { max-height: 150px; gap: 1px; padding: 3px; }
   .rule-diagnostic-item { grid-template-columns: auto minmax(0, 1fr) auto; gap: 5px; padding: 4px 5px; border-radius: 5px; font-size: 11px; line-height: 1.35; }
+  .rule-diagnostic-item:active { border-color: var(--line); background: var(--accent-soft); }
   .rule-diagnostic-line { min-height: 18px; padding: 1px 5px; border-radius: 4px; font-size: 9px; }
   .rule-diagnostic-message { grid-row: auto; grid-column: auto; }
   .rule-diagnostic-jump { grid-row: auto; grid-column: auto; align-self: center; padding-top: 0; font-size: 9px; }
