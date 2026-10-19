@@ -28,7 +28,7 @@ function readInitializer(source: string, name: string): string | null {
   const match = re.exec(source);
   if (!match) return null;
   let index = match.index + match[0].length;
-  while (/\\s/.test(source[index] ?? "")) index++;
+  while (/\s/.test(source[index] ?? "")) index++;
   const start = index;
   const first = source[index];
 
