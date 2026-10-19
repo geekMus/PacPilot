@@ -178,6 +178,8 @@ async function copyContent(): Promise<void> {
   line-height: 1.4;
 }
 
+.text-detail-close:hover { border-color:var(--accent); background:var(--accent-soft); color:var(--accent); }
+.text-detail-close:active { background:var(--accent-active); border-color:var(--accent-active); color:var(--accent-contrast); }
 .text-detail-close {
   flex: 0 0 auto;
   display: grid;
@@ -229,6 +231,10 @@ async function copyContent(): Promise<void> {
 }
 
 .text-detail-button {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
   min-height: 38px;
   padding: 0 13px;
   border: 1px solid var(--line);
@@ -244,11 +250,15 @@ async function copyContent(): Promise<void> {
   color: var(--text);
 }
 
+.text-detail-button.secondary:hover { border-color:var(--accent); color:var(--accent); background:var(--surface); }
+.text-detail-button.secondary:active { border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
 .text-detail-button.primary {
   border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-contrast, #fff);
 }
+.text-detail-button.primary:hover { border-color:var(--accent-hover); background:var(--accent-hover); color:var(--accent-contrast); }
+.text-detail-button.primary:active { border-color:var(--accent-active); background:var(--accent-active); color:var(--accent-contrast); }
 
 @media (max-width: 560px) {
   .text-detail-dialog {
