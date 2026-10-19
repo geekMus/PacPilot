@@ -24,7 +24,7 @@ export interface PacStatusPayload {
  * 不依赖分号、换行或声明顺序；支持 Terser 将多个 var 声明合并的输出。
  */
 function readInitializer(source: string, name: string): string | null {
-  const re = new RegExp("\\bvar\\s+" + name + "\\s*=");
+  const re = new RegExp("(?:\\bvar\\s+|,\\s*)" + name + "\\s*=");
   const match = re.exec(source);
   if (!match) return null;
   let index = match.index + match[0].length;
@@ -90,6 +90,10 @@ function parseJsString(source: string, name: string): string | null {
   const raw = readInitializer(source, name);
   if (raw === null) return null;
   try {
+    if (raw.startsWith("'") && raw.endsWith("'")) {
+      // 生成器写入的 PAC 字符串来自已校验配置；兼容 Terser 选择单引号。
+      return raw.slice(1, -1).replace(/\\'/g, "'").replace(/\\\\/g, "\\");
+    }
     const parsed: unknown = JSON.parse(raw);
     return typeof parsed === "string" ? parsed : null;
   } catch {
