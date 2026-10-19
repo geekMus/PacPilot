@@ -10,6 +10,7 @@ import {
   type ProxyProbeRecord,
 } from "../api/client";
 import AdminLayout from "../components/AdminLayout.vue";
+import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
 import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
 import TextDetail from "../components/TextDetail.vue";
@@ -202,9 +203,10 @@ onUnmounted(() => {
         更新于 {{ formatDate(lastUpdated) }}
       </span>
       <button class="monitor-button secondary" type="button" :disabled="refreshing" @click="refreshDashboard()">
+        <AppIcon :name="refreshing ? 'loader-circle' : 'refresh-cw'" :class="{ 'icon-spinning': refreshing }" :size="15" />
         {{ refreshing ? "刷新中…" : "刷新数据" }}
       </button>
-      <button class="monitor-button secondary" type="button" @click="logout">退出登录</button>
+      <button class="monitor-button secondary" type="button" @click="logout"><AppIcon name="log-out" :size="15" />退出登录</button>
     </template>
 
     <div class="monitor-page">
@@ -226,44 +228,44 @@ onUnmounted(() => {
 
       <section class="metric-grid" aria-label="访问统计">
         <article class="metric-card">
-          <span class="metric-label">活动 HTTP 请求</span>
+          <span class="metric-label"><AppIcon name="activity" :size="15" />活动 HTTP 请求</span>
           <strong class="metric-value">{{ summary?.activeRequests ?? 0 }}</strong>
           <span class="metric-note">当前正在处理的请求</span>
         </article>
         <article class="metric-card">
-          <span class="metric-label">应用端 TCP 连接</span>
+          <span class="metric-label"><AppIcon name="network" :size="15" />应用端 TCP 连接</span>
           <strong class="metric-value">{{ summary?.tcpConnections ?? 0 }}</strong>
           <span class="metric-note">包含 Keep-Alive 或反代连接</span>
         </article>
         <article class="metric-card">
-          <span class="metric-label">近 1 小时请求</span>
+          <span class="metric-label"><AppIcon name="clock" :size="15" />近 1 小时请求</span>
           <strong class="metric-value">{{ summary?.requestsLastHour ?? 0 }}</strong>
           <span class="metric-note">网页、PAC 与 API 请求</span>
         </article>
         <article class="metric-card">
-          <span class="metric-label">近 24 小时来源地址</span>
+          <span class="metric-label"><AppIcon name="globe" :size="15" />近 24 小时来源地址</span>
           <strong class="metric-value">{{ summary?.uniqueSourcesLast24h ?? 0 }}</strong>
           <span class="metric-note">按连接对端地址去重</span>
         </article>
         <article class="metric-card">
-          <span class="metric-label">近 24 小时请求量</span>
+          <span class="metric-label"><AppIcon name="chart" :size="15" />近 24 小时请求量</span>
           <strong class="metric-value">{{ summary?.requestsLast24h ?? 0 }}</strong>
           <span class="metric-note">不含监控轮询和静态资源</span>
         </article>
         <article class="metric-card">
-          <span class="metric-label">近 24 小时错误率</span>
+          <span class="metric-label"><AppIcon name="circle-alert" :size="15" />近 24 小时错误率</span>
           <strong class="metric-value" :class="(summary?.errorRate ?? 0) >= 5 ? 'value-warn' : ''">
             {{ summary ? summary.errorRate.toFixed(1) + "%" : "0.0%" }}
           </strong>
           <span class="metric-note">HTTP 4xx/5xx · 5xx {{ summary?.serverErrorsLast24h ?? 0 }}</span>
         </article>
         <article class="metric-card">
-          <span class="metric-label">平均响应时间</span>
+          <span class="metric-label"><AppIcon name="timer" :size="15" />平均响应时间</span>
           <strong class="metric-value">{{ formatDuration(summary?.averageResponseMs) }}</strong>
           <span class="metric-note">近 24 小时已记录请求</span>
         </article>
         <article class="metric-card">
-          <span class="metric-label">P95 响应时间</span>
+          <span class="metric-label"><AppIcon name="gauge" :size="15" />P95 响应时间</span>
           <strong class="metric-value">{{ formatDuration(summary?.p95ResponseMs) }}</strong>
           <span class="metric-note">近 24 小时样本的第 95 百分位</span>
         </article>
@@ -335,7 +337,7 @@ onUnmounted(() => {
                   <span class="method-label">{{ event.method }}</span>
                   <TextDetail :text="event.path" label="请求路径"><code>{{ event.path }}</code></TextDetail>
                 </td>
-                <td><span class="status-pill" :class="statusTone(event.status_code)">{{ event.status_code }} {{ statusLabel(event.status_code) }}</span></td>
+                <td><span class="status-pill" :class="statusTone(event.status_code)"><AppIcon :name="statusTone(event.status_code) === 'good' ? 'circle-check' : statusTone(event.status_code) === 'bad' ? 'circle-x' : 'circle-alert'" :size="12" />{{ event.status_code }} {{ statusLabel(event.status_code) }}</span></td>
                 <td class="nowrap">{{ formatDuration(event.duration_ms) }}</td>
                 <td class="nowrap">{{ formatBytes(event.response_bytes) }}</td>
                 <td class="ua-cell">
@@ -356,12 +358,12 @@ onUnmounted(() => {
             <p>测试当前保存的 PAC 代理指令；每个代理有 12 秒总超时。不会把 PAC 中的 DIRECT 项当作代理节点。</p>
           </div>
           <button class="monitor-button primary" type="button" :disabled="probing" @click="runProxyTest">
-            {{ probing ? "正在检测…" : "立即测试代理" }}
+            <AppIcon :name="probing ? 'loader-circle' : 'zap'" :class="{ 'icon-spinning': probing }" :size="15" />{{ probing ? "正在检测…" : "立即测试代理" }}
           </button>
         </div>
 
         <div class="probe-target">
-          <span class="target-icon" aria-hidden="true">↗</span>
+          <span class="target-icon" aria-hidden="true"><AppIcon name="network" :size="18" /></span>
           <div>
             <strong>测试目标：example.com:443</strong>
             <p>通过代理建立目标连接、完成 TLS 握手并请求 HTTP 响应。测试从 genpac-runner 所在容器/主机网络发起。</p>
@@ -381,7 +383,7 @@ onUnmounted(() => {
                 <span class="probe-state-dot" :class="result.success ? 'is-good' : 'is-bad'"></span>
                 <strong>{{ result.proxyLabel }}</strong>
               </div>
-              <span class="status-pill" :class="result.success ? 'good' : 'bad'">{{ result.success ? "可用" : "不可用" }}</span>
+              <span class="status-pill" :class="result.success ? 'good' : 'bad'"><AppIcon :name="result.success ? 'circle-check' : 'circle-x'" :size="12" />{{ result.success ? "可用" : "不可用" }}</span>
             </div>
             <div class="probe-metrics">
               <div><span>TCP 建连</span><strong>{{ formatDuration(result.tcpMs) }}</strong></div>
@@ -473,7 +475,7 @@ onUnmounted(() => {
 .live-dot.busy { background:var(--warn); }
 .metric-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:20px 0 var(--space-5); }
 .metric-card { min-width:0; padding:17px 16px 15px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); display:flex; flex-direction:column; gap:5px; }
-.metric-label { color:var(--muted); font-size:12px; font-weight:650; }
+.metric-label { display:flex; align-items:center; gap:7px; color:var(--muted); font-size:12px; font-weight:650; line-height:1.4; }\n.metric-label :deep(.app-icon) { color:var(--accent); }
 .metric-value { font-size:clamp(1.45rem,2.5vw,1.9rem); line-height:1.2; letter-spacing:-.04em; overflow-wrap:anywhere; }
 .metric-value.value-warn { color:var(--warn); }
 .metric-note { color:var(--muted); font-size:11px; line-height:1.45; }
@@ -490,11 +492,11 @@ onUnmounted(() => {
 .panel-heading p { margin:5px 0 0; color:var(--muted); font-size:12px; line-height:1.6; }
 .panel-actions { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
 .panel-count { flex:0 0 auto; padding:4px 9px; border:1px solid var(--line); border-radius:999px; font-size:11px; color:var(--muted); background:var(--surface-2); }
-.monitor-button { display:inline-flex; align-items:center; justify-content:center; min-height:38px; padding:0 14px; border:1px solid var(--line); border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; transition:filter .15s, opacity .15s; }
+.monitor-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:38px; padding:0 14px; border:1px solid var(--line); border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; transition:filter .15s, opacity .15s; }
 .monitor-button:disabled { opacity:.55; cursor:wait; }
 .monitor-button.primary { background:var(--accent); border-color:var(--accent); color:var(--accent-contrast); }
 .monitor-button.secondary { color:var(--text); background:var(--surface); }
-.monitor-button:hover:not(:disabled) { filter:brightness(1.05); }
+.monitor-button:hover:not(:disabled) { filter:brightness(1.05); }\n.icon-spinning { animation: icon-spin .9s linear infinite; }\n@keyframes icon-spin { to { transform:rotate(360deg); } }
 .monitor-notice,.probe-target { padding:12px 14px; border-radius:10px; background:var(--surface-2); border:1px solid var(--line); font-size:12px; color:var(--muted); line-height:1.65; margin-bottom:14px; }
 .monitor-notice strong { color:var(--text); }
 .table-scroll { width:100%; overflow:auto; border:1px solid var(--line); border-radius:10px; }
@@ -509,14 +511,14 @@ onUnmounted(() => {
 .ua-cell { max-width:220px; min-width:160px; color:var(--muted); }
 .path-cell code { word-break:break-all; }
 .method-label { display:inline-block; color:var(--muted); font-size:10px; font-weight:750; margin-right:6px; }
-.category-pill,.status-pill { display:inline-flex; align-items:center; border-radius:999px; padding:3px 7px; font-size:10px; font-weight:700; white-space:nowrap; border:1px solid var(--line); background:var(--surface-2); color:var(--muted); }
+.category-pill,.status-pill { display:inline-flex; align-items:center; gap:4px; border-radius:999px; padding:3px 7px; font-size:10px; font-weight:700; white-space:nowrap; border:1px solid var(--line); background:var(--surface-2); color:var(--muted); }
 .status-pill.good { color:var(--green); background:var(--green-soft); border-color:color-mix(in srgb,var(--green) 25%,var(--line)); }
 .status-pill.bad { color:var(--red); background:var(--red-soft); border-color:color-mix(in srgb,var(--red) 25%,var(--line)); }
 .status-pill.warn { color:var(--warn); background:var(--warn-soft); border-color:color-mix(in srgb,var(--warn) 25%,var(--line)); }
 .panel-footnote { color:var(--muted); font-size:11px; margin:12px 0 0; line-height:1.6; }
 .monitor-empty { padding:26px 12px; color:var(--muted); font-size:13px; text-align:center; border:1px dashed var(--line); border-radius:10px; }
 .probe-target { display:flex; gap:12px; align-items:flex-start; margin:0 0 16px; }
-.target-icon { width:30px; height:30px; display:grid; place-items:center; border-radius:8px; background:var(--accent-soft); color:var(--accent); font-size:18px; flex:0 0 auto; }
+.target-icon { width:34px; height:34px; display:grid; place-items:center; border-radius:10px; background:var(--accent-soft); color:var(--accent); flex:0 0 auto; border:1px solid color-mix(in srgb,var(--accent) 18%,var(--line)); }
 .probe-target strong { color:var(--text); font-size:13px; }
 .probe-target p { margin:3px 0 0; }
 .probe-results { display:flex; flex-direction:column; gap:12px; }
