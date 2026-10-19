@@ -112,7 +112,21 @@ export interface WorkflowStage {
   message: string; error: string; started_at: string | null; finished_at: string | null; duration_ms: number | null;
 }
 export interface WorkflowDetail { run: WorkflowRun; stages: WorkflowStage[]; }
-export interface WorkflowList { current: WorkflowRun | null; active: WorkflowRun[]; runs: WorkflowRun[]; }
+export interface PagedResult<T> {
+  items: T[];
+  nextCursor: number | null;
+  total: number;
+  hasMore: boolean;
+}
+export interface WorkflowList {
+  current: WorkflowRun | null;
+  active: WorkflowRun[];
+  runs: WorkflowRun[];
+  beforeId?: number;
+  nextCursor?: number | null;
+  total?: number;
+  hasMore?: boolean;
+}
 export interface PacFileStatus { exists: boolean; sizeBytes: number; modifiedAt: string | null; }
 export interface StorageSummary {
   dataBytes: number;
@@ -264,7 +278,8 @@ export const api = {
     }),
   generate: () => request<GenerateStartResult>("/api/admin/generate", { method: "POST" }),
   logs: () => request<GenerationLog[]>("/api/admin/logs"),
-  workflows: (limit = 50) => request<WorkflowList>(`/api/admin/workflows?limit=${limit}`),
+  logsPage: (limit = 50, beforeId = 0) => request<PagedResult<GenerationLog>>(`/api/admin/logs/page?limit=${limit}&beforeId=${beforeId}`),
+  workflows: (limit = 50, beforeId = 0) => request<WorkflowList>(`/api/admin/workflows?limit=${limit}&beforeId=${beforeId}`),
   clearWorkflowHistory: () => request<{ ok: boolean; deletedRuns: number }>("/api/admin/workflows", { method: "DELETE" }),
   workflowDetail: (id: number) => request<WorkflowDetail>(`/api/admin/workflows/${id}`),
   deleteWorkflow: (id: number) => request<{ ok: boolean; id: number }>(`/api/admin/workflows/${id}`, { method: "DELETE" }),
@@ -277,6 +292,7 @@ export const api = {
   genpacStatus: () => request<GenpacProbe>("/api/admin/genpac-status"),
   monitorSummary: () => request<MonitorSummary>("/api/admin/monitor/summary"),
   monitorAccess: (limit = 50) => request<AccessEvent[]>(`/api/admin/monitor/access?limit=${limit}`),
+  monitorAccessPage: (limit = 50, beforeId = 0) => request<PagedResult<AccessEvent>>(`/api/admin/monitor/access?paged=1&limit=${limit}&beforeId=${beforeId}`),
   proxyProbeTarget: () => request<{ url: string }>("/api/admin/monitor/probe-target"),
   saveProxyProbeTarget: (url: string) => request<{ url: string }>("/api/admin/monitor/probe-target", {
     method: "PUT", body: JSON.stringify({ url }),
@@ -285,4 +301,5 @@ export const api = {
     method: "POST", body: JSON.stringify({}),
   }),
   proxyProbeHistory: (limit = 30) => request<ProxyProbeRecord[]>(`/api/admin/monitor/probes?limit=${limit}`),
+  proxyProbeHistoryPage: (limit = 50, beforeId = 0) => request<PagedResult<ProxyProbeRecord>>(`/api/admin/monitor/probes?paged=1&limit=${limit}&beforeId=${beforeId}`),
 };

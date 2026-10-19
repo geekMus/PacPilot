@@ -6,6 +6,8 @@ import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
 import ConfirmPopover from "../components/ConfirmPopover.vue";
+import VirtualTable from "../components/VirtualTable.vue";
+import SelectField from "../components/SelectField.vue";
 import { useToast } from "../composables/useToast";
 
 const router = useRouter();
@@ -16,10 +18,13 @@ const error = ref("");
 const current = ref<WorkflowRun | null>(null);
 const activeRuns = ref<WorkflowRun[]>([]);
 const runs = ref<WorkflowRun[]>([]);
+const historyPageSize = 50;
+const historyHasMore = ref(false);
+const historyLoadingMore = ref(false);
+const historyLoadError = ref("");
+const historyTotal = ref(0);
 const selectedStatus = ref("all");
 const selectedSource = ref("all");
-const page = ref(1);
-const pageSize = 20;
 const deletingId = ref<number | null>(null);
 const confirmingHistoryDeleteId = ref<number | null>(null);
 const confirmingCurrentCancel = ref(false);
@@ -49,8 +54,6 @@ const filteredRuns = computed(() => runs.value.filter((run) =>
   (selectedStatus.value === "all" || run.status === selectedStatus.value) &&
   (selectedSource.value === "all" || run.source === selectedSource.value)
 ));
-const pageCount = computed(() => Math.max(1, Math.ceil(filteredRuns.value.length / pageSize)));
-const visibleRuns = computed(() => filteredRuns.value.slice((page.value - 1) * pageSize, page.value * pageSize));
 const statusNames: Record<string, string> = {
   pending: "等待执行",
   running: "执行中",
@@ -76,7 +79,7 @@ const durationLabel = (run: WorkflowRun) => {
 };
 const dateLabel = (value: string | null) => value ? new Date(value).toLocaleString() : "—";
 
-async function load(silent = false) {
+async function load(silent = false, resetHistory = false) {
   if (requestInFlight) return;
   requestInFlight = true;
   if (!silent) refreshing.value = true;
@@ -87,7 +90,7 @@ async function load(silent = false) {
       await router.replace("/admin/login");
       return;
     }
-    const result = await api.workflows(200);
+    const result = await api.workflows(historyPageSize, 0);
     if (statusSnapshotReady) {
       for (const run of result.runs) {
         const previous = previousStatuses.get(run.id);
@@ -97,12 +100,21 @@ async function load(silent = false) {
         }
       }
     }
-    previousStatuses = new Map(result.runs.map((run) => [run.id, run.status]));
+    previousStatuses = new Map([...previousStatuses, ...result.runs.map((run) => [run.id, run.status] as [number, string])]);
     statusSnapshotReady = true;
     current.value = result.current;
     activeRuns.value = result.active ?? (result.current ? [result.current] : []);
-    runs.value = result.runs;
-    page.value = Math.min(page.value, pageCount.value);
+    if (resetHistory || runs.value.length === 0) {
+      runs.value = result.runs;
+      historyHasMore.value = result.hasMore ?? false;
+    } else {
+      const merged = new Map<number, WorkflowRun>();
+      for (const run of [...result.runs, ...runs.value]) merged.set(run.id, run);
+      runs.value = [...merged.values()].sort((a, b) => b.id - a.id);
+      historyHasMore.value = runs.value.length < (result.total ?? runs.value.length);
+    }
+    historyTotal.value = result.total ?? runs.value.length;
+    historyLoadError.value = "";
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : String(caught);
     if (!silent) notify(error.value, "error");
@@ -113,6 +125,26 @@ async function load(silent = false) {
     syncPolling(current.value);
   }
 }
+
+async function loadMoreHistory(): Promise<void> {
+  if (historyLoadingMore.value || !historyHasMore.value || !runs.value.length) return;
+  historyLoadingMore.value = true;
+  historyLoadError.value = "";
+  try {
+    const cursor = runs.value[runs.value.length - 1]?.id ?? 0;
+    const result = await api.workflows(historyPageSize, cursor);
+    const seen = new Set(runs.value.map((run) => run.id));
+    runs.value.push(...result.runs.filter((run) => !seen.has(run.id)));
+    runs.value.sort((a, b) => b.id - a.id);
+    historyTotal.value = result.total ?? historyTotal.value;
+    historyHasMore.value = runs.value.length < historyTotal.value;
+  } catch (caught) {
+    historyLoadError.value = caught instanceof Error ? caught.message : String(caught);
+  } finally {
+    historyLoadingMore.value = false;
+  }
+}
+
 function resetConfirmations() {
   confirmingCurrentCancel.value = false;
   confirmingQueueCancelId.value = null;
@@ -146,6 +178,16 @@ function toggleHistoryClear(toggle: () => void, isOpen: boolean) {
   if (!isOpen) resetConfirmations();
   toggle();
 }
+const historyClearDisabledReason = computed(() => {
+  if (loading.value) return "正在加载执行历史，请稍候";
+  if (clearingHistory.value) return "正在清空执行历史";
+  if (activeRuns.value.length > 0) return "仍有工作流正在等待或执行，结束后才能清空历史";
+  if (runs.value.length === 0) return "当前没有可清空的执行记录";
+  if (deletingId.value !== null) return "正在删除执行记录，请稍候";
+  if (cancellingId.value !== null) return "正在取消工作流，请稍候";
+  return "清空全部工作流执行历史";
+});
+
 async function clearWorkflowHistory() {
   if (clearingHistory.value || activeRuns.value.length > 0 || runs.value.length === 0 ||
       deletingId.value !== null || cancellingId.value !== null) return;
@@ -158,7 +200,9 @@ async function clearWorkflowHistory() {
     activeRuns.value = [];
     previousStatuses = new Map<number, string>();
     statusSnapshotReady = true;
-    page.value = 1;
+    historyHasMore.value = false;
+    historyLoadError.value = "";
+    historyTotal.value = 0;
     selectedStatus.value = "all";
     selectedSource.value = "all";
     notify(`已清空 ${result.deletedRuns} 条工作流执行历史及其阶段详情。`, "success");
@@ -181,7 +225,8 @@ async function deleteRun(run: WorkflowRun) {
     previousStatuses.delete(run.id);
     confirmingHistoryDeleteId.value = null;
     notify(`工作流执行记录 #${run.id} 已删除`, "success");
-    page.value = Math.min(page.value, pageCount.value);
+    historyTotal.value = Math.max(0, historyTotal.value - 1);
+    historyHasMore.value = runs.value.length < historyTotal.value;
     if (current.value?.id === run.id) current.value = null;
   } catch (caught) {
     notify(caught instanceof Error ? caught.message : String(caught), "error");
@@ -214,7 +259,7 @@ onUnmounted(stopPolling);
 <template>
   <AdminLayout active="workflow" title="工作流" subtitle="查看 PAC 生成任务的实时状态、执行阶段与历史记录。">
     <template #actions>
-      <button class="workflow-button secondary" type="button" :disabled="refreshing" @click="load()">
+      <button class="workflow-button secondary" type="button" :disabled="refreshing" :title="refreshing ? '正在刷新工作流状态，请稍候' : '刷新工作流状态'" @click="load()">
         <AppIcon :name="refreshing ? 'loader-circle' : 'refresh-cw'" :size="15" :class="{ spinning: refreshing }" />
         {{ refreshing ? "刷新中…" : "刷新" }}
       </button>
@@ -258,7 +303,7 @@ onUnmounted(stopPolling);
           </div>
           <div class="current-actions">
             <RouterLink class="workflow-button secondary" :to="`/admin/workflows/${current.id}`"><AppIcon name="external-link" :size="14"/> 查看详情</RouterLink>
-            <div v-if="current.status === 'pending'" class="confirm-anchor"><button class="workflow-button cancel-button" type="button" :disabled="cancellingId === current.id" @click="toggleCurrentCancel()"><AppIcon name="x" :size="14"/> 取消排队</button><div v-if="confirmingCurrentCancel" class="confirm-popover cancel-popover" role="group"><strong>取消这条等待任务？</strong><span>取消后将不再执行，但保留执行记录。</span><div><button type="button" class="confirm-cancel" @click.stop="resetConfirmations()">返回</button><button type="button" class="confirm-cancel-action" :disabled="cancellingId === current.id" @click="cancelRun(current, 'current')">{{cancellingId === current.id ? "取消中…" : "确认取消"}}</button></div></div></div>
+            <div v-if="current.status === 'pending'" class="confirm-anchor"><button class="workflow-button cancel-button" type="button" :disabled="cancellingId === current.id" :title="cancellingId === current.id ? '正在取消当前工作流，请稍候' : '取消当前排队中的工作流'" @click="toggleCurrentCancel()"><AppIcon name="x" :size="14"/> 取消排队</button><div v-if="confirmingCurrentCancel" class="confirm-popover cancel-popover" role="group"><strong>取消这条等待任务？</strong><span>取消后将不再执行，但保留执行记录。</span><div><button type="button" class="confirm-cancel" @click.stop="resetConfirmations()">返回</button><button type="button" class="confirm-cancel-action" :disabled="cancellingId === current.id" :title="cancellingId === current.id ? '正在取消当前工作流，请稍候' : '确认取消当前等待任务'" @click="cancelRun(current, 'current')">{{cancellingId === current.id ? "取消中…" : "确认取消"}}</button></div></div></div>
           </div>
           <div v-if="current.error" class="workflow-error-detail"><strong>错误详情</strong><pre>{{ current.error }}</pre></div>
         </template>
@@ -278,7 +323,7 @@ onUnmounted(stopPolling);
             <span class="queue-icon"><AppIcon :name="run.status === 'running' ? 'loader-circle' : 'clock'" :size="17" :class="{spinning:run.status === 'running'}"/></span>
             <div class="queue-copy"><div><strong>#{{run.id}} · {{sourceLabel(run.source)}}</strong><span class="status-pill" :class="run.status">{{statusLabel(run.status)}}</span></div><p>{{run.stage || run.message || "等待执行"}}</p></div>
             <RouterLink class="workflow-button secondary" :to="`/admin/workflows/${run.id}`">查看详情</RouterLink>
-            <div v-if="run.status === 'pending'" class="confirm-anchor"><button class="workflow-button cancel-button" type="button" :disabled="cancellingId === run.id" @click.stop="toggleQueueCancel(run)"><AppIcon name="x" :size="14"/> 取消排队</button><div v-if="confirmingQueueCancelId === run.id" class="confirm-popover cancel-popover" role="group"><strong>取消这条等待任务？</strong><span>取消后将不再执行，但保留执行记录。</span><div><button type="button" class="confirm-cancel" @click.stop="resetConfirmations()">返回</button><button type="button" class="confirm-cancel-action" :disabled="cancellingId === run.id" @click.stop="cancelRun(run, 'queue')">{{cancellingId === run.id ? "取消中…" : "确认取消"}}</button></div></div></div>
+            <div v-if="run.status === 'pending'" class="confirm-anchor"><button class="workflow-button cancel-button" type="button" :disabled="cancellingId === run.id" :title="cancellingId === run.id ? '正在取消此工作流，请稍候' : '取消此条排队任务'" @click.stop="toggleQueueCancel(run)"><AppIcon name="x" :size="14"/> 取消排队</button><div v-if="confirmingQueueCancelId === run.id" class="confirm-popover cancel-popover" role="group"><strong>取消这条等待任务？</strong><span>取消后将不再执行，但保留执行记录。</span><div><button type="button" class="confirm-cancel" @click.stop="resetConfirmations()">返回</button><button type="button" class="confirm-cancel-action" :disabled="cancellingId === run.id" :title="cancellingId === run.id ? '正在取消此工作流，请稍候' : '确认取消此等待任务'" @click.stop="cancelRun(run, 'queue')">{{cancellingId === run.id ? "取消中…" : "确认取消"}}</button></div></div></div>
           </div>
         </div>
       </section>
@@ -287,66 +332,74 @@ onUnmounted(stopPolling);
         <div class="panel-heading">
           <div><p class="eyebrow">HISTORY</p><h2>执行历史</h2><p v-if="activeRuns.length" class="panel-subtitle">有工作流正在等待或执行，暂不能清空历史。</p></div>
           <div class="history-heading-actions">
-            <span class="count-pill">{{ filteredRuns.length }} 条记录</span>
-            <ConfirmPopover :open="confirmingHistoryClear" title="清空工作流执行历史？" description="将删除全部工作流执行记录及其阶段详情，且无法撤销；生成日志、应用配置和 PAC 文件会保留。若有任务正在等待或执行，服务器会拒绝清理。" confirm-text="清空历史" busy-text="正在清理…" align="end" :disabled="loading||clearingHistory||activeRuns.length>0||runs.length===0||deletingId!==null||cancellingId!==null" :busy="clearingHistory" @update:open="confirmingHistoryClear=$event" @confirm="clearWorkflowHistory">
-              <template #trigger="{toggle,open}"><button class="workflow-button history-clear-button" type="button" :aria-expanded="open" :disabled="loading||clearingHistory||activeRuns.length>0||runs.length===0||deletingId!==null||cancellingId!==null" @click="toggleHistoryClear(toggle, open)"><AppIcon :name="clearingHistory?'loader-circle':'trash-2'" :size="15" :class="{spinning:clearingHistory}"/> {{clearingHistory?"正在清理…":"清空执行历史"}}</button></template>
+            <span class="count-pill">匹配 {{ filteredRuns.length }} / 已加载 {{ runs.length }} 条</span>
+            <ConfirmPopover :open="confirmingHistoryClear" title="清空工作流执行历史？" description="将删除全部工作流执行记录及其阶段详情，且无法撤销；生成日志、应用配置和 PAC 文件会保留。若有任务正在等待或执行，服务器会拒绝清理。" confirm-text="清空历史" busy-text="正在清理…" align="end" :disabled="loading||clearingHistory||activeRuns.length>0||runs.length===0||deletingId!==null||cancellingId!==null" :disabled-reason="historyClearDisabledReason" :busy="clearingHistory" @update:open="confirmingHistoryClear=$event" @confirm="clearWorkflowHistory">
+              <template #trigger="{toggle,open}"><button class="workflow-button history-clear-button" type="button" :aria-expanded="open" :disabled="loading||clearingHistory||activeRuns.length>0||runs.length===0||deletingId!==null||cancellingId!==null" :title="historyClearDisabledReason" @click="toggleHistoryClear(toggle, open)"><AppIcon :name="clearingHistory?'loader-circle':'trash-2'" :size="15" :class="{spinning:clearingHistory}"/> {{clearingHistory?"正在清理…":"清空执行历史"}}</button></template>
             </ConfirmPopover>
           </div>
         </div>
+        <p
+          v-if="historyClearDisabledReason !== '清空全部工作流执行历史' && activeRuns.length === 0"
+          class="history-disabled-hint"
+          aria-live="polite"
+        >{{ historyClearDisabledReason }}</p>
         <div class="history-filters" aria-label="筛选工作流历史">
           <label>执行状态
-            <select v-model="selectedStatus" @change="page = 1">
+            <SelectField><select v-model="selectedStatus">
               <option value="all">全部状态</option>
               <option value="pending">等待执行</option>
               <option value="running">执行中</option>
               <option value="succeeded">成功</option>
               <option value="failed">失败</option>
               <option value="cancelled">已取消</option>
-            </select>
+            </select></SelectField>
           </label>
           <label>任务来源
-            <select v-model="selectedSource" @change="page = 1">
+            <SelectField><select v-model="selectedSource">
               <option value="all">全部来源</option>
               <option value="startup">服务启动</option>
               <option value="scheduled">定时任务</option>
               <option value="manual">手动生成</option>
               <option value="save-and-generate">保存并生成</option>
-            </select>
+            </select></SelectField>
           </label>
         </div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>序号</th><th>工作流名称</th><th>触发时间</th><th>结果</th><th>耗时</th><th>操作</th></tr></thead>
-            <tbody>
-              <template v-for="run in visibleRuns" :key="run.id"><tr class="workflow-run-row" tabindex="0" role="link" :aria-label="`查看工作流 #${run.id} 详情`" @click="router.push(`/admin/workflows/${run.id}`)" @keydown.enter.prevent="router.push(`/admin/workflows/${run.id}`)" @keydown.space.prevent="router.push(`/admin/workflows/${run.id}`)">
-                <td class="task-id"><span class="id-trigger">#{{run.id}}</span></td>
-                <td><span class="name-trigger ellipsis">PAC 生成工作流</span></td>
-                <td class="date-cell"><span class="date-trigger ellipsis">{{dateLabel(run.started_at || run.created_at)}}</span></td>
-                <td><span class="result-trigger"><span class="status-pill" :class="run.status"><AppIcon v-if="run.status === 'running' || run.status === 'pending'" :name="run.status === 'pending' ? 'clock' : 'loader-circle'" :size="13" :class="{spinning:run.status === 'running'}"/>{{statusLabel(run.status)}}</span></span></td>
-                <td class="duration-cell"><span class="duration-trigger ellipsis">{{durationLabel(run)}}</span></td>
-                <td class="actions-cell">
-                  <div v-if="run.status === 'pending'" class="confirm-anchor" @click.stop>
-                    <button class="row-action-button cancel-button" type="button" :disabled="cancellingId !== null" aria-label="取消排队" title="取消排队" @click.stop="toggleHistoryCancel(run)"><AppIcon name="x" :size="15"/></button>
-                    <div v-if="confirmingHistoryCancelId === run.id" class="confirm-popover cancel-popover" role="group"><strong>取消这条等待任务？</strong><span>取消后将不再执行，但保留执行记录。</span><div><button type="button" class="confirm-cancel" @click.stop="resetConfirmations()">返回</button><button type="button" class="confirm-cancel-action" :disabled="cancellingId === run.id" @click.stop="cancelRun(run, 'history')">{{cancellingId === run.id ? "取消中…" : "确认取消"}}</button></div></div>
-                  </div>
-                  <div v-else-if="run.status !== 'running'" class="confirm-anchor" @click.stop>
-                    <button class="row-action-button delete-run-button" type="button" :disabled="deletingId !== null" aria-label="删除执行记录" title="删除执行记录" @click.stop="toggleHistoryDelete(run)"><AppIcon name="trash-2" :size="15"/></button>
-                    <div v-if="confirmingHistoryDeleteId === run.id" class="confirm-popover" role="group"><strong>删除这条记录？</strong><span>阶段详情也会一并删除。</span><div><button type="button" class="confirm-cancel" @click.stop="resetConfirmations()">取消</button><button type="button" class="confirm-delete" :disabled="deletingId === run.id" @click.stop="deleteRun(run)">{{deletingId === run.id ? "删除中…" : "确认删除"}}</button></div></div>
-                  </div>
-                </td>
-              </tr></template>
-              <tr v-if="!loading && !filteredRuns.length"><td colspan="6" class="empty-row">没有符合当前筛选条件的工作流记录。</td></tr>
-              <tr v-if="loading && !runs.length"><td colspan="6" class="empty-row">正在加载历史记录…</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div v-if="filteredRuns.length > pageSize" class="history-pagination">
-          <span>第 {{ page }} / {{ pageCount }} 页</span>
-          <div>
-            <button type="button" :disabled="page <= 1" @click="page--">上一页</button>
-            <button type="button" :disabled="page >= pageCount" @click="page++">下一页</button>
-          </div>
-        </div>
+        <VirtualTable
+          :items="filteredRuns"
+          item-key="id"
+          :col-span="6"
+          :row-height="58"
+          height="520px"
+          min-width="780px"
+          :has-more="historyHasMore"
+          :loading="historyLoadingMore"
+          :error="historyLoadError"
+          empty-text="没有符合当前筛选条件的工作流记录"
+          :load-more="loadMoreHistory"
+        >
+          <template #columns><col style="width:8%" /><col style="width:21%" /><col style="width:23%" /><col style="width:17%" /><col style="width:13%" /><col style="width:18%" /></template>
+          <template #header><tr><th>序号</th><th>工作流名称</th><th>触发时间</th><th>结果</th><th>耗时</th><th>操作</th></tr></template>
+          <template #row="{ item: run }">
+            <tr class="workflow-run-row" tabindex="0" role="link" :aria-label="`查看工作流 #${run.id} 详情`" @click="router.push(`/admin/workflows/${run.id}`)" @keydown.enter.prevent="router.push(`/admin/workflows/${run.id}`)" @keydown.space.prevent="router.push(`/admin/workflows/${run.id}`)">
+              <td class="task-id"><span class="id-trigger">#{{run.id}}</span></td>
+              <td><span class="name-trigger ellipsis">PAC 生成工作流</span></td>
+              <td class="date-cell"><span class="date-trigger ellipsis">{{dateLabel(run.started_at || run.created_at)}}</span></td>
+              <td><span class="result-trigger"><span class="status-pill" :class="run.status"><AppIcon v-if="run.status === 'running' || run.status === 'pending'" :name="run.status === 'pending' ? 'clock' : 'loader-circle'" :size="13" :class="{spinning:run.status === 'running'}"/>{{statusLabel(run.status)}}</span></span></td>
+              <td class="duration-cell"><span class="duration-trigger ellipsis">{{durationLabel(run)}}</span></td>
+              <td class="actions-cell">
+                <div v-if="run.status === 'pending'" class="confirm-anchor" @click.stop>
+                  <button class="row-action-button cancel-button" type="button" :disabled="cancellingId !== null" aria-label="取消排队" :title="cancellingId === run.id ? '正在取消此工作流，请稍候' : cancellingId !== null ? '另一条工作流正在取消，请稍候' : '取消此条等待中的工作流'" @click.stop="toggleHistoryCancel(run)"><AppIcon name="x" :size="15"/></button>
+                  <div v-if="confirmingHistoryCancelId === run.id" class="confirm-popover cancel-popover" role="group"><strong>取消这条等待任务？</strong><span>取消后将不再执行，但保留执行记录。</span><div><button type="button" class="confirm-cancel" @click.stop="resetConfirmations()">返回</button><button type="button" class="confirm-cancel-action" :disabled="cancellingId === run.id" :title="cancellingId === run.id ? '正在取消此工作流，请稍候' : '确认取消此等待任务'" @click.stop="cancelRun(run, 'history')">{{cancellingId === run.id ? "取消中…" : "确认取消"}}</button></div></div>
+                </div>
+                <div v-else-if="run.status !== 'running'" class="confirm-anchor" @click.stop>
+                  <button type="button" class="row-action-button delete-run-button" :disabled="deletingId !== null" aria-label="删除执行记录" :title="deletingId === run.id ? '正在删除此记录，请稍候' : deletingId !== null ? '另一条记录正在删除，请稍候' : '删除此工作流执行记录'" @click.stop="toggleHistoryDelete(run)"><AppIcon name="trash-2" :size="15"/></button>
+                  <div v-if="confirmingHistoryDeleteId === run.id" class="confirm-popover" role="group"><strong>删除这条记录？</strong><span>阶段详情也会一并删除。</span><div><button type="button" class="confirm-cancel" @click.stop="resetConfirmations()">取消</button><button type="button" class="confirm-delete" :disabled="deletingId === run.id" :title="deletingId === run.id ? '正在删除此记录，请稍候' : '确认删除此工作流执行记录'" @click.stop="deleteRun(run)">{{deletingId === run.id ? "删除中…" : "确认删除"}}</button></div></div>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </VirtualTable>
+        <p class="panel-footnote">已加载 {{ runs.length }} / {{ historyTotal }} 条执行记录；筛选仅作用于已加载记录。</p>
       </section>
       <AppFooter />
     </div>
@@ -389,7 +442,9 @@ onUnmounted(stopPolling);
 .confirm-popover button:disabled { opacity:.5; cursor:not-allowed; }
  .current-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
 .workflow-queue .panel-heading { margin-bottom:12px; }
-.history-heading-actions { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:8px; }
+.history-heading-actions { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:8px; min-width:0; }
+.history-disabled-hint { margin:8px 0 0; color:var(--muted); font-size:11px; line-height:1.45; overflow-wrap:anywhere; }
+
 .workflow-button.history-clear-button { color:var(--red); background:var(--red-soft,var(--surface)); border-color:color-mix(in srgb,var(--red) 30%,var(--line)); }
 .workflow-button.history-clear-button:hover:not(:disabled) { background:var(--red-soft,var(--surface-2)); }
 .workflow-button.history-clear-button:disabled { opacity:.45; }
@@ -406,7 +461,8 @@ onUnmounted(stopPolling);
 @media (prefers-reduced-motion: reduce) { .spinning { animation-duration:.01ms; animation-iteration-count:1; } }
 .history-filters { display:flex; flex-wrap:wrap; gap:12px; margin:-3px 0 16px; }
 .history-filters label { display:grid; gap:6px; color:var(--muted); font-size:11px; }
-.history-filters select { min-width:150px; min-height:36px; padding:0 10px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:var(--text); font:inherit; }
+.history-filters .select-field { min-width:150px; }
+.history-filters .select-field :deep(select) { min-width:150px; min-height:36px; padding:0 34px 0 10px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:var(--text); font:inherit; }
 .history-pagination { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:16px; color:var(--muted); font-size:12px; }
 .history-pagination div { display:flex; gap:8px; }
 .history-pagination button { min-height:34px; padding:0 11px; border:1px solid var(--line); border-radius:7px; background:var(--surface-2); color:var(--text); font:inherit; cursor:pointer; }

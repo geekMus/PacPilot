@@ -55,7 +55,7 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
  router.post("/api/admin/settings/save-and-generate",requireAdmin(database),(req,res)=>{const saved=persistSettings((req.body||{}) as Record<string,unknown>,env,database);if("error" in saved){res.status(400).json({error:saved.error});return;}try{const workflowId=startPacWorkflow(database,env.dataDir,"save-and-generate");res.status(202).json({settings:saved.settings,workflowId,status:getWorkflowRun(database,workflowId)?.status??"pending"});}catch(e){res.status(409).json({error:e instanceof Error?e.message:String(e)});}});
  router.post("/api/admin/webhook-test",requireAdmin(database),async(req,res)=>{const c=normalizeWebhookConfig(req.body?.config??req.body),errors=validateWebhookConfig(c);if(errors.length){res.status(400).json({error:errors.join("\n")});return;}res.json(await sendWebhookTest(c,getSettings(database).timezone));});
  router.post("/api/admin/generate",requireAdmin(database),(_req,res)=>{try{const workflowId=startPacWorkflow(database,env.dataDir,"manual");res.status(202).json({workflowId,status:getWorkflowRun(database,workflowId)?.status??"pending"});}catch(e){res.status(409).json({error:e instanceof Error?e.message:String(e)});}});
- router.get("/api/admin/workflows",requireAdmin(database),(req,res)=>{res.setHeader("Cache-Control","no-store");const limit=Math.min(200,Math.max(1,Number.parseInt(String(req.query.limit??"50"),10)||50));res.json({current:getCurrentWorkflow(database),active:listActiveWorkflowRuns(database),runs:listWorkflowRuns(database,limit)});});
+ router.get("/api/admin/workflows",requireAdmin(database),(req,res)=>{res.setHeader("Cache-Control","no-store");const limit=Math.min(100,Math.max(1,Number.parseInt(String(req.query.limit??"50"),10)||50));const beforeId=Math.max(0,Number.parseInt(String(req.query.beforeId??"0"),10)||0);const page=listWorkflowRuns(database,limit+1,beforeId);const total=Number((database.query("SELECT COUNT(*) AS total FROM workflow_runs").get() as {total:number}).total);const hasMore=page.length>limit;res.json({current:getCurrentWorkflow(database),active:listActiveWorkflowRuns(database),runs:page.slice(0,limit),beforeId,nextCursor:page.length>limit? page[limit-1]?.id ?? null : page[page.length-1]?.id ?? null,total,hasMore});});
  router.delete("/api/admin/workflows",requireAdmin(database),(_req,res)=>{
   try{
    const result=clearWorkflowHistory(database);
@@ -115,6 +115,15 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
   }catch(e){try{database.exec("ROLLBACK");}catch{/* transaction already closed */}res.status(500).json({error:e instanceof Error?e.message:String(e)});}
  });
  router.get("/api/admin/logs",requireAdmin(database),(_req,res)=>res.json(recentLogs(database,50,getSettings(database).timezone)));
+ router.get("/api/admin/logs/page",requireAdmin(database),(req,res)=>{
+  res.setHeader("Cache-Control","no-store");
+  const limit=Math.min(100,Math.max(1,Number.parseInt(String(req.query.limit??"50"),10)||50));
+  const beforeId=Math.max(0,Number.parseInt(String(req.query.beforeId??"0"),10)||0);
+  const rows=recentLogs(database,limit+1,getSettings(database).timezone,0,beforeId);
+  const total=Number((database.query("SELECT COUNT(*) AS total FROM generation_log").get() as {total:number}).total);
+  const hasMore=rows.length>limit;
+  res.json({items:rows.slice(0,limit),nextCursor:rows.length>limit? rows[limit-1]?.id ?? null : rows[rows.length-1]?.id ?? null,total,hasMore});
+ });
  router.get("/api/admin/genpac-status",requireAdmin(database),async(_req,res)=>res.json(await probeGenpac()));
  router.get("/api/admin/monitor/summary",requireAdmin(database),(_req,res)=>{
   res.setHeader("Cache-Control","no-store");
@@ -122,13 +131,25 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
  });
  router.get("/api/admin/monitor/access",requireAdmin(database),(req,res)=>{
   res.setHeader("Cache-Control","no-store");
-  const limit=Math.min(200,Math.max(1,Number.parseInt(String(req.query.limit??"50"),10)||50));
-  res.json(listAccessEvents(database,limit));
+  const paged=String(req.query.paged??"") === "1";
+  const limit=Math.min(paged?100:200,Math.max(1,Number.parseInt(String(req.query.limit??"50"),10)||50));
+  const beforeId=Math.max(0,Number.parseInt(String(req.query.beforeId??"0"),10)||0);
+  const rows=listAccessEvents(database,paged?limit+1:limit,beforeId);
+  if(!paged){res.json(rows);return;}
+  const hasMore=rows.length>limit;
+  const total=Number((database.query("SELECT COUNT(*) AS total FROM access_events").get() as {total:number}).total);
+  res.json({items:rows.slice(0,limit),nextCursor:rows.length>limit? rows[limit-1]?.id ?? null : rows[rows.length-1]?.id ?? null,total,hasMore});
  });
  router.get("/api/admin/monitor/probes",requireAdmin(database),(req,res)=>{
   res.setHeader("Cache-Control","no-store");
-  const limit=Math.min(200,Math.max(1,Number.parseInt(String(req.query.limit??"30"),10)||30));
-  res.json(listProxyProbeRuns(database,limit));
+  const paged=String(req.query.paged??"") === "1";
+  const limit=Math.min(paged?100:200,Math.max(1,Number.parseInt(String(req.query.limit??"30"),10)||30));
+  const beforeId=Math.max(0,Number.parseInt(String(req.query.beforeId??"0"),10)||0);
+  const rows=listProxyProbeRuns(database,paged?limit+1:limit,beforeId);
+  if(!paged){res.json(rows);return;}
+  const hasMore=rows.length>limit;
+  const total=Number((database.query("SELECT COUNT(*) AS total FROM proxy_probe_runs").get() as {total:number}).total);
+  res.json({items:rows.slice(0,limit),nextCursor:rows.length>limit? rows[limit-1]?.id ?? null : rows[rows.length-1]?.id ?? null,total,hasMore});
  });
  router.get("/api/admin/monitor/probe-target",requireAdmin(database),(_req,res)=>{res.setHeader("Cache-Control","no-store");res.json({url:getSettings(database).proxyTestUrl||DEFAULT_PROXY_TEST_URL});});
  router.put("/api/admin/monitor/probe-target",requireAdmin(database),(req,res)=>{let target:URL;try{target=parseProxyTestUrl(String(req.body?.url??""));}catch(e){res.status(400).json({error:e instanceof Error?e.message:"代理测试地址无效。"});return;}const next=updateSettings(database,{proxyTestUrl:target.toString()});res.json({url:next.proxyTestUrl});});

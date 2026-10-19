@@ -59,14 +59,14 @@ async function loadOverview(): Promise<void> {
     const [nextSettings, nextStatus, nextLogs, nextMonitor, nextEngine, nextWorkflows] = await Promise.all([
       api.settings(),
       api.status(),
-      api.logs(),
+      api.logsPage(6, 0),
       api.monitorSummary().catch(() => null),
       api.genpacStatus().catch(() => null),
       api.workflows(6).catch(() => null),
     ]);
     settings.value = nextSettings;
     status.value = nextStatus;
-    logs.value = nextLogs.slice(0, 6);
+    logs.value = nextLogs.items;
     monitor.value = nextMonitor;
     engine.value = nextEngine;
     currentWorkflow.value = nextWorkflows?.current ?? null;
@@ -101,7 +101,7 @@ onMounted(() => { void loadOverview(); });
 <template>
   <AdminLayout active="dashboard" title="系统总览" subtitle="查看 PAC 配置、生成状态、访问情况与常用管理入口。">
     <template #actions>
-      <button class="dash-button secondary" :class="{ 'is-loading': refreshing }" type="button" :disabled="refreshing" @click="loadOverview">
+      <button class="dash-button secondary" :class="{ 'is-loading': refreshing }" type="button" :disabled="refreshing" :title="refreshing ? '正在刷新系统总览，请稍候' : '刷新系统总览'" @click="loadOverview">
         <AppIcon :name="refreshing ? 'loader-circle' : 'refresh-cw'" :class="{ 'icon-spinning': refreshing }" :size="15" />
         {{ refreshing ? "刷新中…" : "刷新数据" }}
       </button>
@@ -116,7 +116,7 @@ onMounted(() => { void loadOverview(); });
           <RouterLink to="/admin/settings" class="dash-button secondary"><AppIcon name="settings" :size="16" />打开配置</RouterLink>
           <RouterLink to="/admin/monitor" class="dash-button secondary"><AppIcon name="activity" :size="16" />查看网络监控</RouterLink>
           <RouterLink to="/admin/workflows" class="dash-button secondary"><AppIcon name="workflow" :size="16" />查看工作流</RouterLink>
-          <button type="button" class="dash-button primary" :class="{ 'is-loading': generating || loading }" :disabled="generating || loading" @click="generateNow">
+          <button type="button" class="dash-button primary" :class="{ 'is-loading': generating || loading }" :disabled="generating || loading" :title="loading ? '正在读取系统状态，请稍候' : generating ? 'PAC 生成任务正在启动' : '立即启动 PAC 生成'" @click="generateNow">
             <AppIcon :name="generating || loading ? 'loader-circle' : 'zap'" :class="{ 'icon-spinning': generating || loading }" :size="16" />
             {{ generating ? "正在生成…" : loading ? "正在读取…" : "立即生成 PAC" }}
           </button>

@@ -163,7 +163,9 @@ export function appendGenerationLog(
 export function recentLogs(
   database: AppDatabase,
   limit = 20,
-  timeZone = "Asia/Shanghai"
+  timeZone = "Asia/Shanghai",
+  offset = 0,
+  beforeId = 0
 ): Array<{
   id: number;
   success: boolean;
@@ -171,14 +173,11 @@ export function recentLogs(
   message: string | null;
   created_at: string;
 }> {
-  const rows = database
-    .query(
-      `SELECT id, success, mode, message, created_at
-       FROM generation_log
-       ORDER BY id DESC
-       LIMIT ?`
-    )
-    .all(limit) as Array<{
+  const safeLimit = Math.max(1, Math.min(101, Math.trunc(limit) || 20));
+  const cursor = Math.max(0, Math.trunc(beforeId) || 0);
+  const rows = (cursor > 0
+    ? database.query("SELECT id, success, mode, message, created_at FROM generation_log WHERE id < ? ORDER BY id DESC LIMIT ?").all(cursor, safeLimit)
+    : database.query("SELECT id, success, mode, message, created_at FROM generation_log ORDER BY id DESC LIMIT ? OFFSET ?").all(safeLimit, Math.max(0, Math.trunc(offset) || 0))) as Array<{
     id: number;
     success: number;
     mode: string;
@@ -295,9 +294,13 @@ export function updateWorkflowRun(
     `).run(fallbackError, finishedAt, finishedAt, id);
   }
 }
-export function listWorkflowRuns(database: AppDatabase, limit = 50): WorkflowRun[] {
-  return database.query("SELECT * FROM workflow_runs ORDER BY id DESC LIMIT ?")
-    .all(Math.max(1, Math.min(200, Math.floor(limit)))) as WorkflowRun[];
+export function listWorkflowRuns(database: AppDatabase, limit = 50, beforeId = 0): WorkflowRun[] {
+  const safeLimit = Math.max(1, Math.min(101, Math.floor(limit) || 50));
+  const cursor = Math.max(0, Math.floor(beforeId) || 0);
+  if (cursor > 0) {
+    return database.query("SELECT * FROM workflow_runs WHERE id < ? ORDER BY id DESC LIMIT ?").all(cursor, safeLimit) as WorkflowRun[];
+  }
+  return database.query("SELECT * FROM workflow_runs ORDER BY id DESC LIMIT ?").all(safeLimit) as WorkflowRun[];
 }
 export function listActiveWorkflowRuns(database: AppDatabase): WorkflowRun[] {
   return database.query("SELECT * FROM workflow_runs WHERE status IN ('pending','running') ORDER BY CASE status WHEN 'running' THEN 0 ELSE 1 END, id ASC").all() as WorkflowRun[];

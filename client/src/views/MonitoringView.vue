@@ -14,13 +14,24 @@ import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
 import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
 import TextDetail from "../components/TextDetail.vue";
+import VirtualTable from "../components/VirtualTable.vue";
+import SelectField from "../components/SelectField.vue";
 import { useToast } from "../composables/useToast";
 const { notify } = useToast();
 
 const router = useRouter();
 const summary = ref<MonitorSummary | null>(null);
 const accesses = ref<AccessEvent[]>([]);
+const accessHasMore = ref(false);
+const accessLoadingMore = ref(false);
+const accessLoadError = ref("");
+const accessTotal = ref(0);
 const probeHistory = ref<ProxyProbeRecord[]>([]);
+const probeHistoryPageSize = 50;
+const probeHistoryHasMore = ref(false);
+const probeHistoryLoading = ref(false);
+const probeHistoryLoadError = ref("");
+const probeHistoryTotal = ref(0);
 const latestProbe = ref<ProxyProbeBatch | null>(null);
 const loading = ref(true);
 const authChecking = ref(true);
@@ -63,7 +74,7 @@ const maxPacLatency = computed(() => Math.max(1, ...(summary.value?.pacRequestTr
 const latestPacRequest = computed(() => summary.value?.latestPacRequest ?? null);
 
 // 访问表格筛选仅作用于当前加载的最近 N 条记录，不改变服务端日志。
-const accessLimit = ref(50);
+const accessPageSize = 50;
 const accessKeyword = ref("");
 const accessCategory = ref("all");
 const accessStatus = ref("all");
@@ -94,17 +105,27 @@ function resetAccessFilters(): void {
   accessStatus.value = "all";
 }
 
-async function refreshDashboard(silent = false): Promise<void> {
+async function refreshDashboard(silent = false, resetAccess = false): Promise<void> {
   if (refreshing.value) return;
   refreshing.value = true;
   if (!silent) error.value = "";
   try {
-    const [nextSummary, nextAccesses] = await Promise.all([
+    const [nextSummary, page] = await Promise.all([
       api.monitorSummary(),
-      api.monitorAccess(50),
+      api.monitorAccessPage(accessPageSize, 0),
     ]);
     summary.value = nextSummary;
-    accesses.value = nextAccesses;
+    if (resetAccess || accesses.value.length === 0) {
+      accesses.value = page.items;
+      accessHasMore.value = page.hasMore;
+    } else {
+      const merged = new Map<number, AccessEvent>();
+      for (const item of [...page.items, ...accesses.value]) merged.set(item.id, item);
+      accesses.value = [...merged.values()].sort((a, b) => b.id - a.id);
+      accessHasMore.value = accesses.value.length < page.total;
+    }
+    accessTotal.value = page.total;
+    accessLoadError.value = "";
     lastUpdated.value = new Date().toISOString();
     refreshError.value = "";
   } catch (caught) {
@@ -117,11 +138,45 @@ async function refreshDashboard(silent = false): Promise<void> {
   }
 }
 
-async function loadProbeHistory(): Promise<void> {
+async function loadMoreAccesses(): Promise<void> {
+  if (accessLoadingMore.value || !accessHasMore.value || !accesses.value.length) return;
+  accessLoadingMore.value = true;
+  accessLoadError.value = "";
   try {
-    probeHistory.value = await api.proxyProbeHistory(30);
+    const cursor = accesses.value[accesses.value.length - 1]?.id ?? 0;
+    const page = await api.monitorAccessPage(accessPageSize, cursor);
+    const seen = new Set(accesses.value.map((item) => item.id));
+    accesses.value.push(...page.items.filter((item) => !seen.has(item.id)));
+    accesses.value.sort((a, b) => b.id - a.id);
+    accessHasMore.value = page.hasMore;
+    accessTotal.value = page.total;
   } catch (caught) {
-    probeError.value = caught instanceof Error ? caught.message : String(caught);
+    accessLoadError.value = caught instanceof Error ? caught.message : String(caught);
+  } finally {
+    accessLoadingMore.value = false;
+  }
+}
+
+async function loadProbeHistory(reset = true): Promise<void> {
+  if (probeHistoryLoading.value) return;
+  probeHistoryLoading.value = true;
+  probeHistoryLoadError.value = "";
+  try {
+    const cursor = reset ? 0 : (probeHistory.value[probeHistory.value.length - 1]?.id ?? 0);
+    const page = await api.proxyProbeHistoryPage(probeHistoryPageSize, cursor);
+    if (reset) probeHistory.value = page.items;
+    else {
+      const seen = new Set(probeHistory.value.map((item) => item.id));
+      probeHistory.value.push(...page.items.filter((item) => !seen.has(item.id)));
+    }
+    probeHistoryHasMore.value = page.hasMore;
+    probeHistoryTotal.value = page.total;
+    probeError.value = "";
+  } catch (caught) {
+    probeHistoryLoadError.value = caught instanceof Error ? caught.message : String(caught);
+    probeError.value = probeHistoryLoadError.value;
+  } finally {
+    probeHistoryLoading.value = false;
   }
 }
 
@@ -288,7 +343,7 @@ onUnmounted(() => {
         <span class="live-dot" :class="{ busy: refreshing }"></span>
         更新于 {{ formatDate(lastUpdated) }}
       </span>
-      <button class="monitor-button secondary" :class="{ 'is-loading': refreshing }" type="button" :disabled="refreshing" @click="refreshDashboard()">
+      <button class="monitor-button secondary" :class="{ 'is-loading': refreshing }" type="button" :disabled="refreshing" :title="refreshing ? '正在刷新监控数据，请稍候' : '刷新监控数据'" @click="refreshDashboard()">
         <AppIcon :name="refreshing ? 'loader-circle' : 'refresh-cw'" :class="{ 'icon-spinning': refreshing }" :size="15" />
         {{ refreshing ? "刷新中…" : "刷新数据" }}
       </button>
@@ -471,7 +526,7 @@ onUnmounted(() => {
         <div class="panel-heading">
           <div>
             <h2>最近访问记录</h2>
-            <p>显示最近加载的 {{ accessLimit }} 条请求；查询参数、Cookie 和请求正文不会被保存。</p>
+            <p>每批加载 50 条请求；查询参数、Cookie 和请求正文不会被保存。</p>
           </div>
           <div class="panel-actions">
             <span class="panel-count">匹配 {{ filteredAccesses.length }} / {{ accesses.length }} 条</span>
@@ -489,78 +544,75 @@ onUnmounted(() => {
           </label>
           <label class="access-filter">
             <span>请求类型</span>
-            <select v-model="accessCategory">
+            <SelectField><select v-model="accessCategory">
               <option value="all">全部类型</option>
               <option value="pac">PAC 文件</option>
               <option value="page">网页</option>
               <option value="public-api">公开 API</option>
               <option value="admin-api">管理 API</option>
-            </select>
+            </select></SelectField>
           </label>
           <label class="access-filter">
             <span>HTTP 状态</span>
-            <select v-model="accessStatus">
+            <SelectField><select v-model="accessStatus">
               <option value="all">全部状态</option>
               <option value="success">成功（2xx）</option>
               <option value="redirect">3xx（重定向 / 缓存）</option>
               <option value="client-error">客户端错误（4xx）</option>
               <option value="server-error">服务端错误（5xx）</option>
-            </select>
+            </select></SelectField>
           </label>
-          <label class="access-filter">
-            <span>加载条数</span>
-            <select v-model.number="accessLimit" @change="refreshDashboard()">
-              <option :value="50">最近 50 条</option>
-              <option :value="100">最近 100 条</option>
-              <option :value="200">最近 200 条</option>
-            </select>
-          </label>
-          <button class="monitor-button secondary access-filter-reset" type="button" :disabled="!hasAccessFilters" @click="resetAccessFilters">
-            <AppIcon name="x" :size="14" />清除筛选
-          </button>
+          <div class="access-reset-wrap" :title="hasAccessFilters ? '清除当前搜索关键词、请求类型和 HTTP 状态筛选' : '当前没有启用任何筛选条件，无需清除'">
+            <button
+              class="monitor-button secondary access-filter-reset"
+              type="button"
+              :disabled="!hasAccessFilters"
+              @click="resetAccessFilters"
+            >
+              <AppIcon name="x" :size="14" />清除筛选
+            </button>
+          </div>
         </div>
 
         <div v-if="accesses.length === 0" class="monitor-empty">
           暂无访问记录。页面访问、PAC 文件请求和相关 API 请求会在本版本启用后开始记录。
         </div>
-        <div v-else-if="filteredAccesses.length === 0" class="monitor-empty">
-          没有符合当前筛选条件的记录，请调整筛选条件或清除筛选。
-        </div>
-        <div v-else class="table-scroll">
-          <table class="monitor-table">
-            <thead>
-              <tr>
-                <th>时间</th>
-                <th>来源地址</th>
-                <th>类型</th>
-                <th>请求路径</th>
-                <th>状态</th>
-                <th>耗时</th>
-                <th>响应大小</th>
-                <th>客户端</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="event in filteredAccesses" :key="event.id">
-                <td class="nowrap">{{ formatDate(event.created_at) }}</td>
-                <td><code>{{ event.source_ip || "unknown" }}</code></td>
-                <td><span class="category-pill">{{ categoryLabel(event.category) }}</span></td>
-                <td class="path-cell">
-                  <span class="method-label">{{ event.method }}</span>
-                  <TextDetail :text="event.path" label="请求路径"><code>{{ event.path }}</code></TextDetail>
-                </td>
-                <td><span class="status-pill" :class="statusTone(event.status_code)"><AppIcon :name="statusTone(event.status_code) === 'good' ? 'circle-check' : statusTone(event.status_code) === 'bad' ? 'circle-x' : 'circle-alert'" :size="12" />{{ event.status_code }} {{ statusLabel(event.status_code) }}</span></td>
-                <td class="nowrap">{{ formatDuration(event.duration_ms) }}</td>
-                <td class="nowrap">{{ formatBytes(event.response_bytes) }}</td>
-                <td class="ua-cell">
-                  <TextDetail v-if="event.user_agent" :text="event.user_agent" label="客户端信息" />
-                  <span v-else>—</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p class="panel-footnote">访问日志最多保留 7 天且上限为 5,000 条；响应大小取 HTTP Content-Length，未知时显示为 —。</p>
+        <VirtualTable
+          v-else
+          :items="filteredAccesses"
+          item-key="id"
+          :col-span="8"
+          :row-height="58"
+          height="520px"
+          min-width="1225px"
+          table-class="monitor-table"
+          :has-more="accessHasMore"
+          :loading="accessLoadingMore"
+          :error="accessLoadError"
+          :empty-text="hasAccessFilters ? '当前已加载记录没有匹配项' : '暂无访问记录'"
+          :load-more="loadMoreAccesses"
+        >
+          <template #columns>
+            <col style="width: 145px" /><col style="width: 310px" /><col style="width: 90px" /><col style="width: 210px" />
+            <col style="width: 120px" /><col style="width: 85px" /><col style="width: 95px" /><col style="width: 170px" />
+          </template>
+          <template #header>
+            <tr><th>时间</th><th>来源地址</th><th>类型</th><th>请求路径</th><th>状态</th><th>耗时</th><th>响应大小</th><th>客户端</th></tr>
+          </template>
+          <template #row="{ item: event }">
+            <tr>
+              <td class="nowrap">{{ formatDate(event.created_at) }}</td>
+              <td><code>{{ event.source_ip || "unknown" }}</code></td>
+              <td><span class="category-pill">{{ categoryLabel(event.category) }}</span></td>
+              <td class="path-cell"><span class="method-label">{{ event.method }}</span><TextDetail :text="event.path" label="请求路径"><code>{{ event.path }}</code></TextDetail></td>
+              <td><span class="status-pill" :class="statusTone(event.status_code)"><AppIcon :name="statusTone(event.status_code) === 'good' ? 'circle-check' : statusTone(event.status_code) === 'bad' ? 'circle-x' : 'circle-alert'" :size="12" />{{ event.status_code }} {{ statusLabel(event.status_code) }}</span></td>
+              <td class="nowrap">{{ formatDuration(event.duration_ms) }}</td>
+              <td class="nowrap">{{ formatBytes(event.response_bytes) }}</td>
+              <td class="ua-cell"><TextDetail v-if="event.user_agent" :text="event.user_agent" label="客户端信息" /><span v-else>—</span></td>
+            </tr>
+          </template>
+        </VirtualTable>
+        <p class="panel-footnote">已加载 {{ accesses.length }} / {{ accessTotal }} 条；筛选只作用于已加载记录。访问日志最多保留 7 天且上限为 5,000 条。</p>
       </section>
 
       <section class="monitor-panel">
@@ -569,7 +621,7 @@ onUnmounted(() => {
             <h2>代理连通性测试</h2>
             <p>测试当前保存的 PAC 代理指令；每个代理有 12 秒总超时。不会把 PAC 中的 DIRECT 项当作代理节点。</p>
           </div>
-          <button class="monitor-button primary" :class="{ 'is-loading': probing }" type="button" :disabled="probing || savingProxyTestTarget || !proxyTestTargetLoaded || proxyTestTargetChanged" @click="runProxyTest">
+          <button class="monitor-button primary" :class="{ 'is-loading': probing }" type="button" :disabled="probing || savingProxyTestTarget || !proxyTestTargetLoaded || proxyTestTargetChanged" :title="probing ? '代理连通性测试正在执行，请稍候' : savingProxyTestTarget ? '正在保存测试地址，请稍候' : !proxyTestTargetLoaded ? '请先读取代理测试地址' : proxyTestTargetChanged ? '请先保存或撤销已修改的测试地址' : '立即测试当前保存的代理配置'" @click="runProxyTest">
             <AppIcon :name="probing ? 'loader-circle' : 'zap'" :class="{ 'icon-spinning': probing }" :size="15" />{{ probing ? "正在检测…" : "立即测试代理" }}
           </button>
         </div>
@@ -595,6 +647,7 @@ onUnmounted(() => {
                 class="monitor-button secondary is-loading"
                 type="button"
                 disabled
+                title="正在读取测试地址，请稍候"
                 aria-live="polite"
               >
                 <AppIcon name="loader-circle" class="icon-spinning" :size="14" />
@@ -605,6 +658,7 @@ onUnmounted(() => {
                 class="monitor-button secondary"
                 type="button"
                 :disabled="savingProxyTestTarget || probing"
+                :title="savingProxyTestTarget ? '正在保存测试地址，请稍候' : probing ? '代理检测正在执行，请稍候' : '读取代理测试地址'"
                 @click="loadProxyTestTarget"
               >
                 <AppIcon name="refresh-cw" :size="14" />
@@ -616,6 +670,7 @@ onUnmounted(() => {
                 :class="{ 'is-loading': savingProxyTestTarget }"
                 type="button"
                 :disabled="savingProxyTestTarget || probing || !proxyTestTargetValid"
+                :title="savingProxyTestTarget ? '正在保存测试地址，请稍候' : probing ? '代理检测正在执行，请稍候' : !proxyTestTargetValid ? '测试地址无效，请填写完整的 HTTPS URL' : '保存修改后的测试地址'"
                 @click="saveProxyTestTarget"
               >
                 <AppIcon :name="savingProxyTestTarget ? 'loader-circle' : 'save'" :class="{ 'icon-spinning': savingProxyTestTarget }" :size="14" />
@@ -684,42 +739,38 @@ onUnmounted(() => {
             <h2>代理检测历史</h2>
             <p>保存最近检测结果，便于比较可用性与延迟变化。</p>
           </div>
-          <span class="panel-count">{{ probeHistory.length }} 条</span>
+          <div class="panel-actions">
+            <span class="panel-count">已加载 {{ probeHistory.length }} / {{ probeHistoryTotal }} 条</span>
+          </div>
         </div>
-        <div v-if="probeHistory.length === 0" class="monitor-empty">暂无代理检测历史。</div>
-        <div v-else class="table-scroll">
-          <table class="monitor-table">
-            <thead>
-              <tr>
-                <th>检测时间</th>
-                <th>代理节点</th>
-                <th>结果</th>
-                <th>TCP</th>
-                <th>协议握手</th>
-                <th>目标访问</th>
-                <th>失败阶段/原因</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in probeHistory" :key="item.id">
-                <td class="nowrap">{{ formatDate(item.tested_at) }}</td>
-                <td><code>{{ item.proxy_label }}</code></td>
-                <td><span class="status-pill" :class="item.success ? 'good' : 'bad'">{{ item.success ? "可用" : "失败" }}</span></td>
-                <td class="nowrap">{{ formatDuration(item.tcp_ms) }}</td>
-                <td class="nowrap">{{ formatDuration(item.handshake_ms) }}</td>
-                <td class="nowrap">{{ formatDuration(item.target_ms) }}</td>
-                <td class="probe-history-error">
-                  <TextDetail
-                    v-if="!item.success"
-                    :text="probePhaseLabel(item.phase) + '：' + (item.error || '未提供错误详情')"
-                    label="检测失败原因"
-                  />
-                  <span v-else>—</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <VirtualTable
+          :items="probeHistory"
+          item-key="id"
+          :col-span="7"
+          :row-height="58"
+          height="420px"
+          min-width="900px"
+          table-class="monitor-table"
+          :has-more="probeHistoryHasMore"
+          :loading="probeHistoryLoading"
+          :error="probeHistoryLoadError"
+          empty-text="暂无代理检测历史"
+          :load-more="() => loadProbeHistory(false)"
+        >
+          <template #columns><col style="width:145px" /><col style="width:150px" /><col style="width:80px" /><col style="width:80px" /><col style="width:100px" /><col style="width:90px" /><col style="width:260px" /></template>
+          <template #header><tr><th>检测时间</th><th>代理节点</th><th>结果</th><th>TCP</th><th>协议握手</th><th>目标访问</th><th>失败阶段/原因</th></tr></template>
+          <template #row="{ item }">
+            <tr>
+              <td class="nowrap">{{ formatDate(item.tested_at) }}</td>
+              <td><code>{{ item.proxy_label }}</code></td>
+              <td><span class="status-pill" :class="item.success ? 'good' : 'bad'">{{ item.success ? "可用" : "失败" }}</span></td>
+              <td class="nowrap">{{ formatDuration(item.tcp_ms) }}</td>
+              <td class="nowrap">{{ formatDuration(item.handshake_ms) }}</td>
+              <td class="nowrap">{{ formatDuration(item.target_ms) }}</td>
+              <td class="probe-history-error"><TextDetail v-if="!item.success" :text="probePhaseLabel(item.phase) + '：' + (item.error || '未提供错误详情')" label="检测失败原因" /><span v-else>—</span></td>
+            </tr>
+          </template>
+        </VirtualTable>
         <p class="panel-footnote">检测历史最多保留 7 天且上限为 1,000 条。当前版本只做手动检测，不会自动探测或自动切换 PAC 配置。</p>
       </section>
     </template>
@@ -825,11 +876,16 @@ onUnmounted(() => {
 @keyframes icon-spin { to { transform:rotate(360deg); } }
 .monitor-notice,.probe-target { padding:12px 14px; border-radius:10px; background:var(--surface-2); border:1px solid var(--line); font-size:12px; color:var(--muted); line-height:1.65; margin-bottom:14px; }
 .monitor-notice strong { color:var(--text); }
-.access-filters { display:grid; grid-template-columns:minmax(220px,2fr) repeat(3,minmax(140px,1fr)) auto; gap:10px; align-items:end; margin:0 0 14px; }
+.access-filters { display:grid; grid-template-columns:minmax(220px,2fr) repeat(2,minmax(140px,1fr)) auto; gap:10px; align-items:end; margin:0 0 14px; }
 .access-filter { display:flex; flex-direction:column; gap:6px; min-width:0; color:var(--muted); font-size:11px; font-weight:700; }
 .access-filter input,.access-filter select { box-sizing:border-box; width:100%; min-width:0; min-height:38px; padding:8px 10px; border:1px solid var(--line); border-radius:9px; background:var(--bg); color:var(--text); font:inherit; font-size:12px; font-weight:400; }
 .access-filter input:focus,.access-filter select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+.access-reset-wrap { display:flex; align-items:flex-end; min-width:0; }
+.access-filter .select-field { display:flex; width:100%; }
+.access-filter .select-field :deep(select) { width:100%; }
 .access-filter-reset { min-height:38px; }
+.access-filter-reset:not(:disabled) { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); box-shadow:0 1px 2px color-mix(in srgb,var(--accent) 12%,transparent); }
+.access-filter-reset:disabled { background:var(--surface-2); border:1px dashed var(--line); color:var(--muted); opacity:.72; cursor:not-allowed; filter:none; box-shadow:none; }
 .table-scroll { width:100%; overflow:auto; border:1px solid var(--line); border-radius:10px; }
 .monitor-table { width:100%; border-collapse:collapse; font-size:12px; min-width:850px; }
 .monitor-table th { padding:11px 12px; color:var(--muted); background:var(--surface-2); text-align:left; font-weight:700; white-space:nowrap; border-bottom:1px solid var(--line); }

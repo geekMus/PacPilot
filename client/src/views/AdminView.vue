@@ -15,6 +15,7 @@ import DomainListEditor from "../components/DomainListEditor.vue";
 import { analyzeDomainRules } from "../utils/domain-rules";
 import WebhookChannelEditor from "../components/WebhookChannelEditor.vue";
 import TextDetail from "../components/TextDetail.vue";
+import VirtualTable from "../components/VirtualTable.vue";
 import { useToast } from "../composables/useToast";
 const { notify } = useToast();
 import cronstrue from "cronstrue";
@@ -34,6 +35,37 @@ function showFlash(message: string, success = true) {
 }
 const error = ref("");
 const logs = ref<GenerationLog[]>([]);
+const logPageSize = 50;
+const logHasMore = ref(false);
+const logLoadingMore = ref(false);
+const logLoadError = ref("");
+const logTotal = ref(0);
+
+async function loadMoreLogs(): Promise<void> {
+  if (logLoadingMore.value || !logHasMore.value || !logs.value.length) return;
+  logLoadingMore.value = true;
+  logLoadError.value = "";
+  try {
+    const cursor = logs.value[logs.value.length - 1]?.id ?? 0;
+    const page = await api.logsPage(logPageSize, cursor);
+    const seen = new Set(logs.value.map((item) => item.id));
+    logs.value.push(...page.items.filter((item) => !seen.has(item.id)));
+    logHasMore.value = page.hasMore;
+    logTotal.value = page.total;
+  } catch (caught) {
+    logLoadError.value = caught instanceof Error ? caught.message : String(caught);
+  } finally {
+    logLoadingMore.value = false;
+  }
+}
+
+async function refreshLogs(): Promise<void> {
+  const page = await api.logsPage(logPageSize, 0);
+  logs.value = page.items;
+  logHasMore.value = page.hasMore;
+  logTotal.value = page.total;
+  logLoadError.value = "";
+}
 const genpacProbe = ref<GenpacProbe | null>(null);
 const securityStatus = ref({ isDefaultPassword: false, mustChangePassword: false });
 const timezoneMenuOpen = ref(false);
@@ -474,7 +506,7 @@ async function load() {
     if (session.mustChangePassword) return;
     const [settings, logList, probe] = await Promise.all([
       api.settings(),
-      api.logs(),
+      api.logsPage(logPageSize, 0),
       api.genpacStatus().catch(
         (): GenpacProbe => ({
           available: false,
@@ -485,7 +517,9 @@ async function load() {
     ]);
     applySettings(settings);
     savedSettingsSnapshot.value = settingsSnapshot();
-    logs.value = logList;
+    logs.value = logList.items;
+    logHasMore.value = logList.hasMore;
+    logTotal.value = logList.total;
     genpacProbe.value = probe;
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
@@ -519,11 +553,8 @@ async function saveAndGenerate() {
     showFlash("配置保存成功");
     notify(workflow.status === "pending" ? `工作流已加入等待队列（执行编号 #${workflow.workflowId}）` : `工作流已启动（执行编号 #${workflow.workflowId}）`, "success");
     // 日志/状态刷新只是辅助操作，不能反过来影响已经成功启动的任务。
-    const [latestLogs, latestProbe] = await Promise.all([
-      api.logs().catch(() => null),
-      api.genpacStatus().catch(() => null),
-    ]);
-    if (latestLogs) logs.value = latestLogs;
+    await refreshLogs().catch(() => null);
+    const latestProbe = await api.genpacStatus().catch(() => null);
     if (latestProbe) genpacProbe.value = latestProbe;
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
@@ -638,7 +669,7 @@ async function changeAdminPassword() {
             <input id="confirm-admin-password" v-model="passwordForm.confirmPassword" type="password" autocomplete="new-password" required />
           </div>
           <div class="actions">
-            <button type="submit" class="btn primary" :class="{ 'is-loading': passwordSaving }" :disabled="passwordSaving">
+            <button type="submit" class="btn primary" :class="{ 'is-loading': passwordSaving }" :disabled="passwordSaving" :title="passwordSaving ? '正在修改管理密码，请稍候' : '修改管理密码'">
               {{ passwordSaving ? "正在修改…" : "修改管理密码" }}
             </button>
           </div>
@@ -960,37 +991,34 @@ async function changeAdminPassword() {
             </span>
             <div>
               <h2>最近生成记录</h2>
-              <p class="card-sub">最新 50 条</p>
+              <p class="card-sub">已加载 {{ logs.length }} / {{ logTotal }} 条</p>
             </div>
           </div>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>时间</th>
-                <th>结果</th>
-                <th>模式</th>
-                <th>信息</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="l in logs" :key="l.id">
-                <td class="nowrap">{{ l.created_at }}</td>
-                <td>
-                  <span class="pill" :class="l.success ? 'ok' : 'bad'">
-                    {{ l.success ? "成功" : "失败" }}
-                  </span>
-                </td>
-                <td>{{ l.mode }}</td>
-                <td class="msg"><TextDetail :text="l.message || ''" label="生成记录信息" /></td>
-              </tr>
-              <tr v-if="!logs.length">
-                <td colspan="4" class="empty">暂无记录</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <VirtualTable
+          :items="logs"
+          item-key="id"
+          :col-span="4"
+          :row-height="58"
+          height="420px"
+          min-width="700px"
+          :has-more="logHasMore"
+          :loading="logLoadingMore"
+          :error="logLoadError"
+          empty-text="暂无生成记录"
+          :load-more="loadMoreLogs"
+        >
+          <template #columns><col style="width:145px" /><col style="width:78px" /><col style="width:120px" /><col style="width:357px" /></template>
+          <template #header><tr><th>时间</th><th>结果</th><th>模式</th><th>信息</th></tr></template>
+          <template #row="{ item: l }">
+            <tr>
+              <td class="nowrap">{{ l.created_at }}</td>
+              <td><span class="pill" :class="l.success ? 'ok' : 'bad'">{{ l.success ? "成功" : "失败" }}</span></td>
+              <td>{{ l.mode }}</td>
+              <td class="msg"><TextDetail :text="l.message || ''" label="生成记录信息" /></td>
+            </tr>
+          </template>
+        </VirtualTable>
       </section>
 
       <button
@@ -1019,6 +1047,7 @@ async function changeAdminPassword() {
   min-width: 0;
   padding-bottom: 90px;
 }
+
 
 .floating-save-button {
   position: fixed;

@@ -39,12 +39,12 @@ onMounted(()=>{void load();});onUnmounted(stopPolling);
   <RouterLink class="back-link" to="/admin/workflows"><AppIcon name="arrow-left" :size="16"/> 返回工作流记录</RouterLink>
   <div class="detail-action-group">
     <div v-if="detail.run.status === 'pending'" class="detail-confirm-anchor">
-      <button class="cancel-button" type="button" :disabled="cancelling" @click="confirmingCancel=!confirmingCancel;confirmingDelete=false"><AppIcon name="x" :size="15"/> 取消排队</button>
-      <div v-if="confirmingCancel" class="detail-confirm-popover cancel-confirm-popover" role="group"><strong>取消这条等待任务？</strong><span>取消后任务不会继续执行，但记录仍会保留。</span><div><button type="button" class="confirm-cancel" @click="confirmingCancel=false">返回</button><button type="button" class="confirm-cancel-action" :disabled="cancelling" @click="cancelRun">{{cancelling?"取消中…":"确认取消"}}</button></div></div>
+      <button class="cancel-button" type="button" :disabled="cancelling" :title="cancelling ? '正在取消工作流，请稍候' : '取消当前等待中的工作流'" @click="confirmingCancel=!confirmingCancel;confirmingDelete=false"><AppIcon name="x" :size="15"/> 取消排队</button>
+      <div v-if="confirmingCancel" class="detail-confirm-popover cancel-confirm-popover" role="group"><strong>取消这条等待任务？</strong><span>取消后任务不会继续执行，但记录仍会保留。</span><div><button type="button" class="confirm-cancel" @click="confirmingCancel=false">返回</button><button type="button" class="confirm-cancel-action" :disabled="cancelling" :title="cancelling ? '正在取消工作流，请稍候' : '确认取消工作流'" @click="cancelRun">{{cancelling?"取消中…":"确认取消"}}</button></div></div>
     </div>
     <div v-if="detail.run.status !== 'running' && detail.run.status !== 'pending'" class="detail-confirm-anchor">
-      <button class="delete-button" type="button" :disabled="deleting" @click="confirmingDelete=!confirmingDelete;confirmingCancel=false"><AppIcon name="trash-2" :size="15"/> 删除记录</button>
-      <div v-if="confirmingDelete" class="detail-confirm-popover" role="group"><strong>删除这条记录？</strong><span>阶段详情也会一并删除，此操作不可撤销。</span><div><button type="button" class="confirm-cancel" @click="confirmingDelete=false">取消</button><button type="button" class="confirm-delete" :disabled="deleting" @click="deleteRun">{{deleting?"删除中…":"确认删除"}}</button></div></div>
+      <button class="delete-button" type="button" :disabled="deleting" :title="deleting ? '正在删除工作流记录，请稍候' : '删除这条工作流执行记录'" @click="confirmingDelete=!confirmingDelete;confirmingCancel=false"><AppIcon name="trash-2" :size="15"/> 删除记录</button>
+      <div v-if="confirmingDelete" class="detail-confirm-popover" role="group"><strong>删除这条记录？</strong><span>阶段详情也会一并删除，此操作不可撤销。</span><div><button type="button" class="confirm-cancel" @click="confirmingDelete=false">取消</button><button type="button" class="confirm-delete" :disabled="deleting" :title="deleting ? '正在删除工作流记录，请稍候' : '确认删除工作流记录'" @click="deleteRun">{{deleting?"删除中…":"确认删除"}}</button></div></div>
     </div>
   </div>
 </div><AppFooter/></div>

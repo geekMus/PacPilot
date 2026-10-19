@@ -70,7 +70,7 @@ const channelStatusText = computed(() => {
           <p>{{ kind === "success" ? "PAC 生成成功后发送" : "PAC 生成失败时发送" }}</p>
         </div>
       </div>
-      <button type="button" class="test-button" :class="{ 'is-loading': pending }" :disabled="pending" @click="emit('test')">
+      <button type="button" class="test-button" :class="{ 'is-loading': pending }" :disabled="pending" :title="pending ? '正在发送测试通知，请稍候' : !channelReady ? channelStatusText : '发送测试通知'" @click="emit('test')">
         <AppIcon :name="pending ? 'loader-circle' : 'activity'" :class="{ 'icon-spinning': pending }" :size="14" />
         {{ pending ? "发送中…" : "发送测试" }}
       </button>

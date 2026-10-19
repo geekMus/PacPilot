@@ -124,7 +124,7 @@ watch(() => route.fullPath, () => {
             <span class="sidebar-control-label">外观主题</span>
             <ThemeSwitcher />
           </div>
-          <button type="button" class="sidebar-logout-button" :disabled="logoutBusy" @click="logout">
+          <button type="button" class="sidebar-logout-button" :disabled="logoutBusy" :title="logoutBusy ? '正在退出管理员账号，请稍候' : '退出管理员账号'" @click="logout">
             <AppIcon :name="logoutBusy ? 'loader-circle' : 'log-out'" :size="16" :class="{ 'icon-spinning': logoutBusy }" />
             {{ logoutBusy ? "正在退出…" : "退出登录" }}
           </button>
@@ -144,7 +144,7 @@ watch(() => route.fullPath, () => {
         </div>
         <div class="topbar-actions">
           <slot name="actions"></slot>
-          <button type="button" class="admin-logout-button" :disabled="logoutBusy" @click="logout">
+          <button type="button" class="admin-logout-button" :disabled="logoutBusy" :title="logoutBusy ? '正在退出管理员账号，请稍候' : '退出管理员账号'" @click="logout">
             <AppIcon :name="logoutBusy ? 'loader-circle' : 'log-out'" :size="15" :class="{ 'icon-spinning': logoutBusy }" />
             {{ logoutBusy ? "正在退出…" : "退出登录" }}
           </button>

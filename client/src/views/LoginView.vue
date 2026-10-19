@@ -67,7 +67,7 @@ async function onSubmit() {
           <label for="pw">管理密码</label>
           <input id="pw" v-model="password" type="password" required autocomplete="current-password"
             placeholder="输入管理密码" :disabled="adminEnabled === false" autofocus />
-          <button type="submit" class="login-submit" :class="{ 'is-loading': loading }" :disabled="loading || !password || adminEnabled === false">
+          <button type="submit" class="login-submit" :class="{ 'is-loading': loading }" :disabled="loading || !password || adminEnabled === false" :title="loading ? '正在验证登录信息，请稍候' : adminEnabled === false ? '后台管理功能未启用' : !password ? '请输入管理员密码后登录' : '登录管理后台'">
             {{ loading ? "正在验证…" : "登录控制台" }}<AppIcon :name="loading ? 'loader-circle' : 'arrow-right'" :class="{ 'icon-spinning': loading }" :size="16" />
           </button>
         </form>

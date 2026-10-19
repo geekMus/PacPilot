@@ -234,7 +234,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
         <a class="pac-access-link secondary" href="/proxy.pac?download=1">
           <AppIcon name="download" :size="17" />下载 PAC
         </a>
-        <button class="pac-access-refresh" type="button" :class="{ 'is-loading': loading }" @click="loadStatus" :disabled="loading">
+        <button class="pac-access-refresh" type="button" :class="{ 'is-loading': loading }" @click="loadStatus" :disabled="loading" :title="loading ? '正在读取 PAC 状态，请稍候' : '刷新 PAC 状态'">
           <AppIcon :name="loading ? 'loader-circle' : 'refresh-cw'" :class="{ 'icon-spinning': loading }" :size="15" />
           {{ loading ? "刷新中…" : "刷新状态" }}
         </button>
@@ -301,7 +301,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               aria-label="需要判断的域名"
               placeholder="例如 example.com 或 https://example.com/path"
             />
-            <button type="submit" class="action-button primary" :disabled="!domainInput.trim()">判断路由</button>
+            <button type="submit" class="action-button primary" :disabled="!domainInput.trim()" :title="!domainInput.trim() ? '请输入域名或 URL 后再检查' : '检查域名的 PAC 规则'">判断路由</button>
           </form>
           <p class="domain-check-note">此工具仅根据 PAC 中可识别的规则摘要进行估算，不查询 DNS，也不会执行 PAC 脚本。部分复杂规则或代理客户端行为可能无法完整反映；localhost、无点号主机名及 IPv4 回环 / RFC 1918 私网地址按本项目的直连规则处理。</p>
           <div v-if="domainRoute" class="domain-check-result" :class="'result-' + domainRoute.kind" role="status" aria-live="polite">

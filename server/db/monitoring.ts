@@ -85,13 +85,14 @@ export function recordAccessEvent(database: AppDatabase, event: AccessEventInput
   maybePruneMonitoringData(database);
 }
 
-export function listAccessEvents(database: AppDatabase, requestedLimit = 50): AccessEvent[] {
+export function listAccessEvents(database: AppDatabase, requestedLimit = 50, beforeId = 0): AccessEvent[] {
   maybePruneMonitoringData(database);
-  const limit = Math.max(1, Math.min(200, Math.trunc(requestedLimit) || 50));
-  return database.query(
-    "SELECT id, created_at, method, path, category, source_ip, user_agent, status_code, duration_ms, response_bytes " +
-    "FROM access_events ORDER BY id DESC LIMIT ?"
-  ).all(limit) as AccessEvent[];
+  const limit = Math.max(1, Math.min(201, Math.trunc(requestedLimit) || 50));
+  const cursor = Math.max(0, Math.trunc(beforeId) || 0);
+  const where = cursor > 0 ? " WHERE id < ?" : "";
+  const query = "SELECT id, created_at, method, path, category, source_ip, user_agent, status_code, duration_ms, response_bytes " +
+    "FROM access_events" + where + " ORDER BY id DESC LIMIT ?";
+  return (cursor > 0 ? database.query(query).all(cursor, limit) : database.query(query).all(limit)) as AccessEvent[];
 }
 
 export function getMonitorSummary(
@@ -238,13 +239,14 @@ export function recordProxyProbe(database: AppDatabase, item: ProxyProbeInput): 
   maybePruneMonitoringData(database);
 }
 
-export function listProxyProbeRuns(database: AppDatabase, requestedLimit = 30): ProxyProbeRecord[] {
+export function listProxyProbeRuns(database: AppDatabase, requestedLimit = 30, beforeId = 0): ProxyProbeRecord[] {
   maybePruneMonitoringData(database);
-  const limit = Math.max(1, Math.min(200, Math.trunc(requestedLimit) || 30));
-  const rows = database.query(
-    "SELECT id, tested_at, proxy_label, proxy_host, proxy_port, target_host, success, tcp_ms, handshake_ms, target_ms, http_status, phase, error " +
-    "FROM proxy_probe_runs ORDER BY id DESC LIMIT ?"
-  ).all(limit) as Array<Omit<ProxyProbeRecord, "success"> & { success: number }>;
+  const limit = Math.max(1, Math.min(201, Math.trunc(requestedLimit) || 30));
+  const cursor = Math.max(0, Math.trunc(beforeId) || 0);
+  const where = cursor > 0 ? " WHERE id < ?" : "";
+  const query = "SELECT id, tested_at, proxy_label, proxy_host, proxy_port, target_host, success, tcp_ms, handshake_ms, target_ms, http_status, phase, error " +
+    "FROM proxy_probe_runs" + where + " ORDER BY id DESC LIMIT ?";
+  const rows = (cursor > 0 ? database.query(query).all(cursor, limit) : database.query(query).all(limit)) as Array<Omit<ProxyProbeRecord, "success"> & { success: number }>;
   return rows.map((row) => ({ ...row, success: Boolean(row.success) }));
 }
 

@@ -108,7 +108,7 @@ watch(() => props.modelValue, (value) => {
     <div class="json-editor-toolbar">
       <div class="json-editor-language"><span class="language-dot" aria-hidden="true"></span><span>JSON</span></div>
       <div class="json-editor-actions">
-        <button type="button" class="editor-action" :disabled="!canFormat" @click="formatJson">格式化</button>
+        <button type="button" class="editor-action" :disabled="!canFormat" :title="canFormat ? '格式化 JSON' : jsonStatus.text" @click="formatJson">格式化</button>
         <button v-if="sample" type="button" class="editor-action" @click="insertSample">填入示例</button>
       </div>
     </div>

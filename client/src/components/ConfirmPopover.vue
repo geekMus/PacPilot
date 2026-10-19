@@ -11,6 +11,7 @@ const props = withDefaults(defineProps<{
   tone?: "danger" | "warning";
   align?: "start" | "end";
   disabled?: boolean;
+  disabledReason?: string;
   busy?: boolean;
 }>(), {
   confirmText: "确认",
@@ -19,6 +20,7 @@ const props = withDefaults(defineProps<{
   tone: "danger",
   align: "end",
   disabled: false,
+  disabledReason: "",
   busy: false,
 });
 
@@ -73,8 +75,8 @@ onBeforeUnmount(detachListeners);
       <strong>{{ props.title }}</strong>
       <span>{{ props.description }}</span>
       <div class="confirm-actions">
-        <button type="button" class="confirm-cancel" :disabled="props.busy" @click="close">{{ props.cancelText }}</button>
-        <button type="button" :class="props.tone === 'warning' ? 'confirm-warning' : 'confirm-danger'" :disabled="props.disabled || props.busy" @click="emit('confirm')">
+        <button type="button" class="confirm-cancel" :disabled="props.busy" :title="props.busy ? props.busyText : props.cancelText" @click="close">{{ props.cancelText }}</button>
+        <button type="button" :class="props.tone === 'warning' ? 'confirm-warning' : 'confirm-danger'" :disabled="props.disabled || props.busy" :title="props.busy ? props.busyText : props.disabled ? (props.disabledReason || props.description || '当前条件不满足，暂时无法执行') : props.confirmText" @click="emit('confirm')">
           {{ props.busy ? props.busyText : props.confirmText }}
         </button>
       </div>
