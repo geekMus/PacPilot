@@ -292,7 +292,7 @@ onMounted(() => { void loadOverview(); });
 .value-good { color:var(--green); }
 .value-warning { color:var(--warn); }
 .metric-note { min-height:29px; color:var(--muted); font-size:10px; line-height:1.5; }
-.overview-grid { display:grid; grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr); align-items:start; gap:16px; margin-bottom:16px; }
+.overview-grid { display:grid; grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr); align-items:stretch; gap:16px; margin-bottom:16px; }
 .dashboard-panel { min-width:0; padding:19px; border:1px solid var(--line); border-radius:12px; background:var(--surface); box-shadow:var(--shadow); }
 .panel-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:15px; }
 .panel-header h3 { margin:0; font-size:14px; font-weight:800; letter-spacing:-.02em; }
