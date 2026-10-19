@@ -18,8 +18,8 @@ const options: { value: ThemeMode; label: string; title: string }[] = [
 
 <style scoped>
 .theme-switch { display:inline-flex; flex:0 0 auto; align-items:center; gap:2px; padding:3px; border:1px solid var(--line); border-radius:10px; background:var(--surface); }
-.theme-btn { appearance:none; border:0; background:transparent; color:var(--muted); min-height:29px; padding:0 9px; border-radius:7px; font-size:11px; font-weight:650; line-height:1; cursor:pointer; white-space:nowrap; }
+.theme-btn { appearance:none; border:0; background:transparent; color:var(--muted); min-height:30px; padding:0 9px; border-radius:7px; font-size:11px; font-weight:650; line-height:1; cursor:pointer; white-space:nowrap; }
 .theme-btn.active { background:var(--accent-soft); color:var(--accent); }
 .theme-btn:hover { color:var(--text); }
-@media(max-width:620px) { .theme-switch { gap:0; padding:2px; border-radius:8px; } .theme-btn { min-height:26px; padding:0 6px; font-size:9px; } }
+@media(max-width:620px) { .theme-switch { gap:0; padding:2px; border-radius:8px; } .theme-btn { min-height:30px; padding:0 6px; font-size:10px; } }
 </style>
