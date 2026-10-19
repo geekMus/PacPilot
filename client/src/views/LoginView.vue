@@ -41,7 +41,7 @@ async function onSubmit() {
 
 <template>
   <main class="page auth-page">
-    <AppHeader brand="genpac-runner" sub="安全登录">
+    <AppHeader brand="genpac-runner" sub="安全登录" home-to="/status">
       <RouterLink to="/status">公共状态页</RouterLink>
     </AppHeader>
     <section class="auth-layout">
