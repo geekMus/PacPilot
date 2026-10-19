@@ -172,16 +172,19 @@ async function runRemoteMode(
     throw new Error("远程列表模式需要配置列表 URL（listUrl）");
   }
   const parsed = await fetchAndParseRemoteList(settings.listUrl);
+  // 内部源文件始终保留未压缩版本，状态页只解析该文件。
   const pac = buildRemoteListPac(
     settings.pacProxy,
     parsed.proxyHosts,
     parsed.directHosts,
     settings.blockList,
     settings.directList,
-    settings.pacCompress
+    false
   );
-  const output = settings.pacCompress ? await compressPac(pac) : pac;
-  fs.writeFileSync(outFile, withPacVersionHeader(output), "utf8");
+  const source = withPacVersionHeader(pac);
+  const output = settings.pacCompress ? withPacVersionHeader(await compressPac(pac)) : source;
+  fs.writeFileSync(path.join(path.dirname(outFile), "proxy.source.pac"), source, "utf8");
+  fs.writeFileSync(outFile, output, "utf8");
   const formatLabel = parsed.format === "gfwlist-base64"
     ? "GFWList（Base64）"
     : parsed.format === "abp"
@@ -207,8 +210,10 @@ export async function generatePac(
       message = await runRemoteMode(settings, pacPath);
     } else {
       const customPac = buildCustomPac(settings);
-      const output = settings.pacCompress ? await compressPac(customPac) : customPac;
-      fs.writeFileSync(pacPath, withPacVersionHeader(output), "utf8");
+      const source = withPacVersionHeader(customPac);
+      const output = settings.pacCompress ? withPacVersionHeader(await compressPac(customPac)) : source;
+      fs.writeFileSync(path.join(dataDir, "proxy.source.pac"), source, "utf8");
+      fs.writeFileSync(pacPath, output, "utf8");
       message = "生成成功（自定义规则模式" + (settings.pacCompress ? "，已压缩" : "，未压缩") + "）";
     }
 
@@ -244,10 +249,24 @@ export function readPacFile(dataDir: string): string {
   }
 }
 
+/**
+ * 读取始终未压缩的内部 PAC 源文件供状态页解析。
+ * 兼容升级前的数据目录：源文件尚不存在时回退到现有 proxy.pac。
+ */
+export function readPacSourceFile(dataDir: string): string {
+  const sourcePath = path.join(dataDir, "proxy.source.pac");
+  try {
+    return fs.readFileSync(sourcePath, "utf8");
+  } catch {
+    return readPacFile(dataDir);
+  }
+}
+
 export function pacFileMtime(dataDir: string): Date | null {
+  const sourcePath = path.join(dataDir, "proxy.source.pac");
   const pacPath = path.join(dataDir, "proxy.pac");
   try {
-    return fs.statSync(pacPath).mtime;
+    return fs.statSync(fs.existsSync(sourcePath) ? sourcePath : pacPath).mtime;
   } catch {
     return null;
   }
