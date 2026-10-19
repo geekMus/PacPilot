@@ -2,6 +2,7 @@
 import { computed, ref, useId } from "vue";
 import type { WebhookConfig, WebhookProvider } from "../api/client";
 import AppIcon from "./AppIcon.vue";
+import SelectField from "./SelectField.vue";
 import WebhookBodyEditor from "./WebhookBodyEditor.vue";
 import CodeMirrorField from "./CodeMirrorField.vue";
 
@@ -78,9 +79,9 @@ const channelStatusText = computed(() => {
 
     <div class="provider-picker">
       <label :for="providerId">通知平台</label>
-      <select :id="providerId" :value="config.provider" @change="update('provider', inputValue($event) as WebhookProvider)">
+      <SelectField block><select :id="providerId" :value="config.provider" @change="update('provider', inputValue($event) as WebhookProvider)">
         <option v-for="item in providers" :key="item.value" :value="item.value">{{ item.label }}</option>
-      </select>
+      </select></SelectField>
       <p class="field-hint">{{ providers.find((item) => item.value === config.provider)?.description }}</p>
     </div>
 
@@ -96,9 +97,9 @@ const channelStatusText = computed(() => {
       <div class="two-fields">
         <div class="field">
           <label>HTTP 方法</label>
-          <select :value="config.method" @change="update('method', inputValue($event) as WebhookConfig['method'])">
+          <SelectField block><select :value="config.method" @change="update('method', inputValue($event) as WebhookConfig['method'])">
             <option value="POST">POST</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option>
-          </select>
+          </select></SelectField>
         </div>
         <div class="field">
           <label>Content-Type（固定）</label>
