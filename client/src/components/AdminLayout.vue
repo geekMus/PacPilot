@@ -54,20 +54,11 @@ watch(() => route.fullPath, () => {
           <span>网络监控</span>
         </RouterLink>
 
-        <p class="nav-caption nav-caption-spaced">配置管理</p>
+        <p class="nav-caption nav-caption-spaced">快捷入口</p>
         <RouterLink to="/admin" class="sidebar-link" :class="{ active: active === 'settings' }">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1 1.4 1.1-1.5 2.6-1.7-.6a8 8 0 0 1-1.6.9l-.3 1.8h-3l-.3-1.8a8 8 0 0 1-1.6-.9l-1.7.6-1.5-2.6 1.4-1.1a7 7 0 0 1 0-1.9l-1.4-1.1 1.5-2.6 1.7.6a8 8 0 0 1 1.6-.9l.3-1.8h3l.3 1.8a8 8 0 0 1 1.6.9l1.7-.6 1.5 2.6-1.4 1.1a7 7 0 0 1-.1 1.8Z" transform="translate(-1 -1) scale(1.04)"/></svg>
-          <span>全部配置</span>
+          <span>配置管理</span>
         </RouterLink>
-        <RouterLink to="/admin#general" class="sidebar-link sub-link"><span class="nav-bullet"></span><span>常规设置</span></RouterLink>
-        <RouterLink to="/admin#mode" class="sidebar-link sub-link"><span class="nav-bullet"></span><span>启动模式</span></RouterLink>
-        <RouterLink to="/admin#proxy" class="sidebar-link sub-link"><span class="nav-bullet"></span><span>代理与远程列表</span></RouterLink>
-        <RouterLink to="/admin#rules" class="sidebar-link sub-link"><span class="nav-bullet"></span><span>自定义规则</span></RouterLink>
-        <RouterLink to="/admin#schedule" class="sidebar-link sub-link"><span class="nav-bullet"></span><span>定时任务与通知</span></RouterLink>
-        <RouterLink to="/admin#security" class="sidebar-link sub-link"><span class="nav-bullet"></span><span>管理密码</span></RouterLink>
-        <RouterLink to="/admin#logs" class="sidebar-link sub-link"><span class="nav-bullet"></span><span>生成记录</span></RouterLink>
-
-        <p class="nav-caption nav-caption-spaced">快捷入口</p>
         <a class="sidebar-link" href="/proxy.pac" target="_blank" rel="noopener noreferrer">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7M21 3 11 13"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
           <span>查看 PAC 文件</span><span class="external-mark" aria-hidden="true">↗</span>
@@ -136,38 +127,50 @@ watch(() => route.fullPath, () => {
 .sidebar-link svg { flex:0 0 17px; width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
 .sidebar-link:hover { color:var(--text); background:var(--surface-2); }
 .sidebar-link.active { color:var(--accent); background:var(--accent-soft); border-color:color-mix(in srgb,var(--accent) 18%,transparent); }
-.sidebar-link.sub-link { min-height:34px; padding-left:19px; font-size:11px; font-weight:550; }
-.nav-bullet { width:5px; height:5px; flex:0 0 5px; border-radius:50%; background:var(--line); }
-.sub-link:hover .nav-bullet { background:var(--accent); }
 .external-mark { margin-left:auto; opacity:.65; font-size:13px; }
 .sidebar-bottom { padding:14px 10px 0; border-top:1px solid var(--line); }
 .sidebar-status { display:flex; align-items:center; gap:8px; color:var(--text); font-size:11px; font-weight:700; }
 .status-dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px var(--green-soft); }
 .sidebar-note { display:block; margin-top:7px; color:var(--muted); font-size:10px; line-height:1.5; }
 .admin-main { min-height:100vh; margin-left:var(--sidebar-width); min-width:0; }
-.admin-topbar { position:sticky; z-index:30; top:0; display:flex; align-items:center; justify-content:space-between; gap:24px; min-height:94px; padding:16px clamp(20px,3vw,42px); border-bottom:1px solid var(--line); background:color-mix(in srgb,var(--bg) 91%,transparent); backdrop-filter:blur(16px); }
+.admin-topbar { position:sticky; z-index:30; top:0; display:flex; align-items:center; justify-content:space-between; gap:24px; min-height:88px; padding:15px clamp(20px,3vw,42px); border-bottom:1px solid var(--line); background:color-mix(in srgb,var(--bg) 91%,transparent); backdrop-filter:blur(16px); }
 .topbar-title { min-width:0; }
 .topbar-kicker { display:block; margin-bottom:4px; color:var(--accent); font-size:9px; font-weight:800; letter-spacing:.15em; }
 .topbar-title h1 { margin:0; color:var(--text); font-size:21px; line-height:1.2; letter-spacing:-.035em; font-weight:800; }
 .topbar-title p { margin:5px 0 0; color:var(--muted); font-size:11px; line-height:1.45; }
-.topbar-actions { display:flex; align-items:center; justify-content:flex-end; gap:10px; flex:0 0 auto; }
-.admin-content { width:100%; max-width:1680px; margin:0 auto; padding:27px clamp(20px,3vw,42px) 44px; }
+.topbar-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; flex:0 0 auto; min-width:0; }
+.admin-content { width:100%; max-width:1680px; margin:0 auto; padding:25px clamp(20px,3vw,42px) 40px; }
 .mobile-menu-toggle { display:none; }
 .sidebar-backdrop { display:none; }
-@media (max-width:1050px) { .admin-layout { --sidebar-width:238px; } .admin-topbar { gap:16px; } }
+@media (max-width:1050px) { .admin-layout { --sidebar-width:238px; } .admin-topbar { gap:16px; } .admin-content { padding-right:24px; padding-left:24px; } }
 @media (max-width:820px) {
   .admin-sidebar { box-shadow:none; transform:translateX(-102%); transition:transform .2s ease,box-shadow .2s ease; }
   .admin-sidebar.is-open { transform:translateX(0); box-shadow:18px 0 48px rgba(10,20,35,.18); }
   .sidebar-backdrop { display:block; position:fixed; z-index:45; inset:0; border:0; background:rgba(12,18,30,.45); }
   .admin-main { margin-left:0; }
-  .admin-topbar { min-height:78px; padding:13px 18px; gap:12px; }
+  .admin-topbar { min-height:72px; padding:12px 18px; gap:10px; }
   .mobile-menu-toggle { display:grid; place-items:center; flex:0 0 36px; width:36px; height:36px; padding:0; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--text); cursor:pointer; }
   .mobile-menu-toggle svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; }
   .topbar-title { flex:1; }
   .topbar-title h1 { font-size:18px; }
-  .topbar-title p { max-width:460px; font-size:10px; }
-  .admin-content { padding:21px 18px 36px; }
+  .admin-content { padding:20px 18px 32px; }
 }
-@media (max-width:620px) { .admin-topbar { align-items:flex-start; } .topbar-title p { max-width:220px; } .topbar-actions { flex-wrap:wrap; gap:6px; } }
-@media (max-width:450px) { .topbar-title p { display:none; } .topbar-actions { flex-direction:column; align-items:flex-end; } }
+@media (max-width:620px) {
+  .admin-topbar { display:grid; grid-template-columns:32px minmax(0,1fr); gap:5px 10px; align-items:center; min-height:0; padding:9px 13px; }
+  .mobile-menu-toggle { grid-column:1; grid-row:1; width:32px; height:32px; }
+  .topbar-title { grid-column:2; grid-row:1; }
+  .topbar-kicker,.topbar-title p { display:none; }
+  .topbar-title h1 { font-size:16px; line-height:1.25; }
+  .topbar-actions { grid-column:1 / -1; grid-row:2; width:100%; gap:5px; flex-wrap:nowrap; justify-content:flex-end; }
+  .topbar-actions :deep(.monitor-top-updated) { display:none; }
+  .topbar-actions :deep(.dash-button),.topbar-actions :deep(.monitor-button) { min-height:30px; padding:0 9px; border-radius:8px; font-size:10px; }
+  .topbar-actions :deep(.theme-switch) { gap:0; padding:2px; border-radius:8px; }
+  .topbar-actions :deep(.theme-btn) { min-height:26px; padding:0 6px; font-size:9px; }
+  .admin-content { padding:16px 13px 28px; }
+}
+@media (max-width:360px) {
+  .admin-topbar { padding-right:10px; padding-left:10px; }
+  .topbar-actions :deep(.dash-button),.topbar-actions :deep(.monitor-button) { padding:0 7px; font-size:9px; }
+  .topbar-actions :deep(.theme-btn) { padding:0 5px; }
+}
 </style>
