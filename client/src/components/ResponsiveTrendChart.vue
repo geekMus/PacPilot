@@ -84,10 +84,21 @@ const maxRequests = computed(() =>
   Math.max(1, ...visiblePoints.value.map((point) => point.requests)),
 );
 
-const tickInterval = computed(() => Math.max(1, Math.ceil(visiblePoints.value.length / 5)));
+const tickIndexes = computed(() => {
+  const pointCount = visiblePoints.value.length;
+  if (!pointCount) return [];
+  const width = chartWidth.value || 960;
+  const tickCount = Math.min(pointCount, 6, Math.max(2, Math.floor(width / 110)));
+  if (tickCount === 1) return [0];
+  return Array.from(
+    new Set(Array.from({ length: tickCount }, (_, index) =>
+      Math.round(index * (pointCount - 1) / (tickCount - 1)),
+    )),
+  );
+});
 
 function shouldShowTick(index: number): boolean {
-  return index % tickInterval.value === 0 || index === visiblePoints.value.length - 1;
+  return tickIndexes.value.includes(index);
 }
 
 function formatTick(value: string): string {
