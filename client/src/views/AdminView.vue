@@ -7,6 +7,7 @@ import {
   type GenerationLog,
   type GenpacProbe,
   type WebhookConfig,
+  type StorageSummary,
 } from "../api/client";
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
@@ -28,6 +29,9 @@ const flash = ref("");
 const flashOk = ref(true);
 const error = ref("");
 const logs = ref<GenerationLog[]>([]);
+const storage = ref<StorageSummary | null>(null);
+const cleaningLogs = ref(false);
+const resetting = ref(false);
 const genpacProbe = ref<GenpacProbe | null>(null);
 const securityStatus = ref({ isDefaultPassword: false, mustChangePassword: false });
 const timezoneMenuOpen = ref(false);
@@ -50,6 +54,7 @@ const form = reactive({
   cronSchedule: "",
   timezone: "Asia/Shanghai",
   proxyTestUrl: "https://www.google.com/generate_204",
+  logRetentionDays: 30,
   webhookSuccessUrl: "",
   webhookSuccessBody: "",
   webhookFailureUrl: "",
@@ -408,6 +413,7 @@ function applySettings(s: AppSettings) {
   form.cronSchedule = s.cronSchedule;
   form.timezone = s.timezone || "Asia/Shanghai";
   form.proxyTestUrl = s.proxyTestUrl || "https://www.google.com/generate_204";
+  form.logRetentionDays = Number.isFinite(s.logRetentionDays) ? s.logRetentionDays : 30;
   form.webhookSuccessUrl = s.webhookSuccessUrl;
   form.webhookSuccessBody = s.webhookSuccessBody;
   form.webhookFailureUrl = s.webhookFailureUrl;
@@ -463,7 +469,7 @@ async function load() {
       return;
     }
     if (session.mustChangePassword) return;
-    const [settings, logList, probe] = await Promise.all([
+    const [settings, logList, probe, storageInfo] = await Promise.all([
       api.settings(),
       api.logs(),
       api.genpacStatus().catch(
@@ -473,7 +479,9 @@ async function load() {
           detail: "无法检测引擎状态",
         })
       ),
+      api.storage().catch(() => null),
     ]);
+    storage.value = storageInfo;
     applySettings(settings);
     savedSettingsSnapshot.value = settingsSnapshot();
     logs.value = logList;
@@ -491,6 +499,53 @@ async function load() {
 }
 
 onMounted(load);
+
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  return (bytes / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1) + " " + units[index];
+}
+
+async function refreshStorage(): Promise<void> {
+  try { storage.value = await api.storage(); } catch { /* storage stats are supplementary */ }
+}
+
+async function cleanupLogs(): Promise<void> {
+  if (cleaningLogs.value) return;
+  cleaningLogs.value = true;
+  error.value = "";
+  try {
+    const result = await api.cleanupLogs();
+    const deleted = result.deleted;
+    showFlash(`日志清理完成：生成日志 ${deleted.generationLogs} 条、访问记录 ${deleted.accessEvents} 条、代理测试记录 ${deleted.proxyProbeRuns} 条。`);
+    const [latestLogs] = await Promise.all([api.logs().catch(() => null), refreshStorage()]);
+    if (latestLogs) logs.value = latestLogs;
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    cleaningLogs.value = false;
+  }
+}
+
+async function restoreFactoryDefaults(): Promise<void> {
+  if (resetting.value) return;
+  const confirmed = window.confirm("确定恢复出厂设置吗？这将重置应用配置、删除 PAC 文件和所有日志/工作流历史，且无法撤销。当前管理员密码会保留。");
+  if (!confirmed) return;
+  resetting.value = true;
+  error.value = "";
+  flash.value = "";
+  try {
+    const result = await api.factoryReset();
+    showFlash(result.message);
+    await load();
+    await refreshStorage();
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    resetting.value = false;
+  }
+}
 
 function showFlash(msg: string, ok = true) {
   flash.value = msg;
@@ -932,6 +987,51 @@ async function changeAdminPassword() {
               @test="testWebhook('failure')"
             />
           </div>
+        </section>
+
+        <section id="data-management" class="card">
+          <div class="card-head">
+            <div class="card-title">
+              <span class="icon-badge" aria-hidden="true"><AppIcon name="database" :size="18" /></span>
+              <div><h2>数据与日志</h2><p class="card-sub">查看本地存储占用、自动清理旧日志，或重置应用配置。</p></div>
+            </div>
+          </div>
+          <div class="storage-metrics">
+            <div class="storage-metric"><span>数据目录占用</span><strong>{{ storage ? formatBytes(storage.dataBytes) : "读取中…" }}</strong><small>包含数据库、PAC 文件及其他数据</small></div>
+            <div class="storage-metric"><span>数据库文件</span><strong>{{ storage ? formatBytes(storage.dbBytes) : "读取中…" }}</strong><small>包含 SQLite 主文件及 WAL 文件</small></div>
+            <div class="storage-metric"><span>日志估算占用</span><strong>{{ storage ? formatBytes(storage.logBytes) : "读取中…" }}</strong><small>生成日志、访问记录与代理测试记录</small></div>
+          </div>
+          <div class="retention-setting">
+            <div class="retention-copy"><strong>日志保留时间</strong><p>服务启动时自动清理超过保留时间的运行日志；工作流历史单独保存，不受此项影响。</p></div>
+            <label class="retention-control" for="log-retention-days">
+              <span class="sr-only">日志保留时间</span>
+              <select id="log-retention-days" v-model.number="form.logRetentionDays">
+                <option :value="0">不自动清理</option>
+                <option :value="7">7 天</option>
+                <option :value="30">30 天</option>
+                <option :value="90">90 天</option>
+                <option :value="180">180 天</option>
+                <option :value="365">365 天</option>
+              </select>
+            </label>
+          </div>
+          <div class="storage-counts" v-if="storage">
+            <span>生成日志 {{ storage.counts.generationLogs }} 条</span>
+            <span>访问记录 {{ storage.counts.accessEvents }} 条</span>
+            <span>代理测试 {{ storage.counts.proxyProbeRuns }} 条</span>
+            <span>工作流历史 {{ storage.counts.workflows }} 条</span>
+          </div>
+          <div class="storage-actions">
+            <button type="button" class="secondary-action" :disabled="cleaningLogs || resetting" @click="cleanupLogs">
+              <AppIcon :name="cleaningLogs ? 'loader-circle' : 'trash-2'" :size="15" :class="{ 'save-spinner': cleaningLogs }" />
+              {{ cleaningLogs ? "正在清理…" : "立即清理过期日志" }}
+            </button>
+            <button type="button" class="danger-action" :disabled="cleaningLogs || resetting" @click="restoreFactoryDefaults">
+              <AppIcon :name="resetting ? 'loader-circle' : 'rotate-ccw'" :size="15" :class="{ 'save-spinner': resetting }" />
+              {{ resetting ? "正在恢复…" : "恢复出厂设置" }}
+            </button>
+          </div>
+          <p class="storage-note">恢复出厂设置会重置 PAC 配置、删除已生成的 PAC 文件及日志/工作流历史；管理员密码会保留。此操作不可撤销。</p>
         </section>
 
         <div class="actions-block">
