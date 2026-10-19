@@ -556,7 +556,9 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
 .action-button.primary { color:var(--accent-contrast); background:var(--accent); border-color:var(--accent); }
 .action-button:disabled { opacity:.5; cursor:not-allowed; }
 .spinner { width:18px; height:18px; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; flex:0 0 auto; }
-.state-copy { min-width:0; }\n.icon-spinning { animation: status-icon-spin .9s linear infinite; }\n@keyframes status-icon-spin { to { transform:rotate(360deg); } }
+.state-copy { min-width:0; }
+.icon-spinning { animation: status-icon-spin .9s linear infinite; }
+@keyframes status-icon-spin { to { transform:rotate(360deg); } }
 @keyframes spin { to { transform:rotate(360deg); } }
 @media(max-width:960px) { .remote-stats,.custom-stats { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:480px) {
