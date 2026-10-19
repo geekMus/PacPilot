@@ -49,18 +49,18 @@ let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
 const timeZone = computed(() => summary.value?.timezone || "Asia/Shanghai");
 
-const revealSourceAddresses = ref(false);
-
-function formatSourceAddress(address: string): string {
-  if (revealSourceAddresses.value || address === "unknown") return address;
-  const ipv4 = address.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
-  if (ipv4) return ipv4[1] + "." + ipv4[2] + "." + ipv4[3] + ".*";
-  if (address.includes(":")) {
-    const groups = address.split(":").filter(Boolean);
-    return groups.slice(0, 4).join(":") + (groups.length > 4 ? ":…" : "");
+function formatTrendHour(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--:--";
+  try {
+    return new Intl.DateTimeFormat("zh-CN", { timeZone: timeZone.value, hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
+  } catch {
+    return date.toISOString().slice(11, 16);
   }
-  return address;
 }
+
+const maxPacLatency = computed(() => Math.max(1, ...(summary.value?.pacRequestTrend ?? []).map((point) => point.averageResponseMs)));
+const latestPacRequest = computed(() => summary.value?.latestPacRequest ?? null);
 
 async function refreshDashboard(silent = false): Promise<void> {
   if (refreshing.value) return;
@@ -197,6 +197,7 @@ function categoryLabel(category: string): string {
 }
 
 function statusLabel(code: number): string {
+  if (code === 304) return "缓存未修改";
   if (code >= 500) return "服务端错误";
   if (code >= 400) return "客户端错误";
   if (code >= 300) return "重定向";
@@ -278,7 +279,99 @@ onUnmounted(() => {
       <div v-if="error" class="monitor-alert is-error" role="alert">{{ error }}</div>
       <div v-if="refreshError" class="monitor-alert is-warning" role="status">后台自动刷新失败：{{ refreshError }}</div>
 
-      <section class="metric-grid" aria-label="访问统计">
+      <section class="monitor-panel pac-overview-panel" aria-labelledby="pac-overview-title">
+        <div class="panel-heading">
+          <div>
+            <h2 id="pac-overview-title">PAC 文件服务</h2>
+            <p>仅统计对 <code>/proxy.pac</code> 的请求；成功率将 HTTP 2xx 和 3xx（包括 304 缓存未修改）视为成功。</p>
+          </div>
+          <span class="panel-count">近 24 小时</span>
+        </div>
+
+        <div class="pac-metric-grid">
+          <article class="metric-card pac-metric-primary">
+            <span class="metric-label"><AppIcon name="file-text" :size="15" />PAC 请求次数</span>
+            <strong class="metric-value">{{ summary?.pacRequestsLast24h ?? 0 }}</strong>
+            <span class="metric-note">近 1 小时 {{ summary?.pacRequestsLastHour ?? 0 }} 次</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label"><AppIcon name="circle-check" :size="15" />PAC 请求成功率</span>
+            <strong class="metric-value" :class="(summary?.pacSuccessRate ?? 100) < 99 ? 'value-warn' : ''">
+              {{ (summary?.pacRequestsLast24h ?? 0) > 0 ? summary!.pacSuccessRate.toFixed(1) + "%" : "—" }}
+            </strong>
+            <span class="metric-note">HTTP 2xx / 3xx 视为成功</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label"><AppIcon name="circle-alert" :size="15" />PAC 请求失败</span>
+            <strong class="metric-value" :class="(summary?.pacFailureRequestsLast24h ?? 0) > 0 ? 'value-warn' : ''">{{ summary?.pacFailureRequestsLast24h ?? 0 }}</strong>
+            <span class="metric-note">近 24 小时 HTTP 4xx / 5xx</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label"><AppIcon name="timer" :size="15" />PAC 平均响应时间</span>
+            <strong class="metric-value">{{ (summary?.pacRequestsLast24h ?? 0) > 0 ? formatDuration(summary?.pacAverageResponseMs) : "—" }}</strong>
+            <span class="metric-note">近 24 小时已记录请求</span>
+          </article>
+        </div>
+
+        <div class="pac-latest">
+          <div class="pac-latest-heading">
+            <strong><AppIcon name="history" :size="15" />最近一次 PAC 请求</strong>
+            <span v-if="latestPacRequest" class="status-pill" :class="statusTone(latestPacRequest.status_code)">
+              <AppIcon :name="statusTone(latestPacRequest.status_code) === 'good' ? 'circle-check' : statusTone(latestPacRequest.status_code) === 'bad' ? 'circle-x' : 'circle-alert'" :size="12" />
+              {{ latestPacRequest.status_code }} {{ statusLabel(latestPacRequest.status_code) }}
+            </span>
+          </div>
+          <div v-if="latestPacRequest" class="pac-latest-grid">
+            <div><span>请求时间</span><strong>{{ formatDate(latestPacRequest.created_at) }}</strong></div>
+            <div><span>来源 IP</span><strong><code>{{ latestPacRequest.source_ip || "unknown" }}</code></strong></div>
+            <div><span>响应耗时</span><strong>{{ formatDuration(latestPacRequest.duration_ms) }}</strong></div>
+          </div>
+          <div v-else class="pac-no-latest">尚无 PAC 文件请求记录。首次访问 <code>/proxy.pac</code> 后，这里会显示最新请求。</div>
+        </div>
+      </section>
+
+      <section class="monitor-panel pac-trend-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>PAC 请求趋势</h2>
+            <p>按小时统计近 24 小时的 PAC 文件请求；红色部分表示失败请求。下方展示每小时平均响应耗时。</p>
+          </div>
+          <span class="panel-count">峰值 {{ Math.max(0, ...(summary?.pacRequestTrend ?? []).map((item) => item.requests)) }} 次/小时</span>
+        </div>
+        <ResponsiveTrendChart
+          v-if="(summary?.pacRequestsLast24h ?? 0) > 0"
+          :points="summary!.pacRequestTrend"
+          :time-zone="timeZone"
+          aria-label="最近 24 小时 PAC 文件请求量和失败请求量"
+        />
+        <div v-else class="monitor-empty">近 24 小时暂无 PAC 请求记录。</div>
+        <div class="trend-legend">
+          <span><i class="legend-swatch request-swatch"></i>PAC 请求</span>
+          <span><i class="legend-swatch error-swatch"></i>失败请求（包含在请求总量中）</span>
+        </div>
+        <div class="pac-latency-heading">
+          <strong>每小时平均响应耗时</strong>
+          <span>单位：毫秒 · 近 24 小时</span>
+        </div>
+        <div v-if="(summary?.pacRequestsLast24h ?? 0) > 0" class="pac-latency-chart" role="img" aria-label="最近 24 小时 PAC 文件每小时平均响应耗时">
+          <div v-for="point in summary!.pacRequestTrend" :key="point.hour" class="pac-latency-column" :title="formatTrendHour(point.hour) + ' · 平均 ' + formatDuration(point.averageResponseMs) + ' · ' + point.requests + ' 次请求'">
+            <div class="pac-latency-track">
+              <div class="pac-latency-bar" :style="{ height: (point.averageResponseMs / maxPacLatency * 100) + '%' }"></div>
+            </div>
+            <span>{{ formatTrendHour(point.hour) }}</span>
+          </div>
+        </div>
+        <div v-else class="pac-no-latest">暂无足够的 PAC 请求数据，后续会逐步形成响应耗时趋势。</div>
+      </section>
+
+      <section class="monitor-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>服务整体统计</h2>
+            <p>以下数据包含网页、PAC 文件和 API 请求，用于辅助排查整个管理服务的运行状态。</p>
+          </div>
+        </div>
+      <section class="metric-grid" aria-label="服务整体统计">
         <article class="metric-card">
           <span class="metric-label"><AppIcon name="activity" :size="15" />活动 HTTP 请求</span>
           <strong class="metric-value">{{ summary?.activeRequests ?? 0 }}</strong>
@@ -352,9 +445,6 @@ onUnmounted(() => {
             <p>最近 50 条有效请求。查询参数、Cookie 和请求正文不会被保存。</p>
           </div>
           <div class="panel-actions">
-            <button class="monitor-button secondary" type="button" @click="revealSourceAddresses = !revealSourceAddresses">
-              {{ revealSourceAddresses ? "隐藏完整 IP" : "显示完整 IP" }}
-            </button>
             <span class="panel-count">{{ accesses.length }} 条</span>
           </div>
         </div>
@@ -383,7 +473,7 @@ onUnmounted(() => {
             <tbody>
               <tr v-for="event in accesses" :key="event.id">
                 <td class="nowrap">{{ formatDate(event.created_at) }}</td>
-                <td><code>{{ formatSourceAddress(event.source_ip) }}</code></td>
+                <td><code>{{ event.source_ip || "unknown" }}</code></td>
                 <td><span class="category-pill">{{ categoryLabel(event.category) }}</span></td>
                 <td class="path-cell">
                   <span class="method-label">{{ event.method }}</span>
@@ -579,6 +669,26 @@ onUnmounted(() => {
 .live-dot,.probe-state-dot { width:8px; height:8px; display:inline-block; border-radius:999px; background:var(--green); flex:0 0 auto; }
 .live-dot.busy { background:var(--warn); }
 .metric-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:20px 0 var(--space-5); }
+.pac-overview-panel { border-color:color-mix(in srgb,var(--accent) 28%,var(--line)); }
+.pac-metric-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.pac-metric-primary { border-color:color-mix(in srgb,var(--accent) 38%,var(--line)); background:color-mix(in srgb,var(--accent-soft) 40%,var(--surface)); }
+.pac-latest { margin-top:14px; padding:13px 14px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); }
+.pac-latest-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; font-size:12px; }
+.pac-latest-heading > strong { display:inline-flex; align-items:center; gap:7px; }
+.pac-latest-grid { display:grid; grid-template-columns:2fr 1fr 1fr; gap:12px; }
+.pac-latest-grid > div { display:flex; flex-direction:column; gap:5px; min-width:0; }
+.pac-latest-grid span,.pac-latency-heading span { color:var(--muted); font-size:11px; }
+.pac-latest-grid strong { font-size:12px; font-weight:650; overflow-wrap:anywhere; }
+.pac-no-latest { color:var(--muted); font-size:12px; line-height:1.6; }
+.pac-latency-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:18px; font-size:12px; }
+.pac-latency-chart { display:grid; grid-template-columns:repeat(24,minmax(0,1fr)); align-items:end; gap:4px; padding:10px 2px 0; border-bottom:1px solid var(--line); }
+.pac-latency-column { display:flex; flex-direction:column; align-items:stretch; gap:7px; min-width:0; }
+.pac-latency-track { height:74px; position:relative; overflow:hidden; border-radius:5px 5px 0 0; background:color-mix(in srgb,var(--muted) 6%,transparent); }
+.pac-latency-bar { position:absolute; bottom:0; left:18%; right:18%; min-height:2px; border-radius:4px 4px 0 0; background:var(--accent); }
+.pac-latency-column > span { min-height:14px; color:var(--muted); font-size:9px; line-height:14px; text-align:center; white-space:nowrap; }
+.pac-latency-column:nth-child(odd) > span { visibility:hidden; }
+.pac-latency-column:hover > span { visibility:visible; }
+
 .metric-card { min-width:0; padding:17px 16px 15px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); display:flex; flex-direction:column; gap:5px; }
 .metric-label { display:flex; align-items:center; gap:7px; color:var(--muted); font-size:12px; font-weight:650; line-height:1.4; }
 .metric-label :deep(.app-icon) { color:var(--accent); }
@@ -702,6 +812,6 @@ onUnmounted(() => {
 .monitor-spinner { width:20px; height:20px; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:monitor-spin .8s linear infinite; flex:0 0 auto; }
 @keyframes monitor-spin { to { transform:rotate(360deg); } }
 .probe-history-error { min-width:220px; max-width:340px; overflow-wrap:anywhere; color:var(--red); }
-@media(max-width:1100px) { .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .monitor-panel { padding:16px; } .probe-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-@media(max-width:560px) { .probe-target-controls { flex-direction:column; } .probe-target-controls .monitor-button { align-self:flex-start; } .monitor-title-row { flex-direction:column; } .monitor-title-row .monitor-button { align-self:flex-start; } .panel-heading { flex-direction:column; align-items:stretch; gap:8px; margin-bottom:12px; } .panel-actions { align-self:flex-start; } .panel-heading > .monitor-button { align-self:flex-start; } .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:14px 0 20px; } .metric-card { padding:12px 11px; border-radius:11px; } .metric-label { font-size:10px; } .metric-value { font-size:1.32rem; } .monitor-panel { padding:13px; margin-bottom:16px; } .trend-sample-note { margin-left:0; flex-basis:100%; } .probe-run-head { flex-direction:column; align-items:flex-start; } .probe-metrics { gap:7px; } }
+@media(max-width:1100px) { .metric-grid,.pac-metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .monitor-panel { padding:16px; } .probe-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .pac-latest-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .pac-latency-chart { gap:2px; } }
+@media(max-width:560px) { .pac-metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; } .pac-latest-grid { grid-template-columns:1fr; gap:10px; } .pac-latest-heading,.pac-latency-heading { align-items:flex-start; flex-direction:column; } .pac-latency-chart { grid-template-columns:repeat(12,minmax(0,1fr)); } .pac-latency-column:nth-child(odd) > span { visibility:visible; } .pac-latency-column:nth-child(even) > span { visibility:hidden; } .probe-target-controls { flex-direction:column; } .probe-target-controls .monitor-button { align-self:flex-start; } .monitor-title-row { flex-direction:column; } .monitor-title-row .monitor-button { align-self:flex-start; } .panel-heading { flex-direction:column; align-items:stretch; gap:8px; margin-bottom:12px; } .panel-actions { align-self:flex-start; } .panel-heading > .monitor-button { align-self:flex-start; } .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:14px 0 20px; } .metric-card { padding:12px 11px; border-radius:11px; } .metric-label { font-size:10px; } .metric-value { font-size:1.32rem; } .monitor-panel { padding:13px; margin-bottom:16px; } .trend-sample-note { margin-left:0; flex-basis:100%; } .probe-run-head { flex-direction:column; align-items:flex-start; } .probe-metrics { gap:7px; } }
 </style>
