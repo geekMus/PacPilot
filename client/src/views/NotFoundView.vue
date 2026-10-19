@@ -21,7 +21,7 @@ import AppFooter from "../components/AppFooter.vue";
 </template>
 
 <style scoped>
-.not-found-page { min-height:calc(100dvh - 60px); display:flex; flex-direction:column; }
+.not-found-page { min-height:100dvh; display:flex; flex-direction:column; }
 .not-found-card { max-width:620px; width:100%; margin:auto; padding:clamp(26px,6vw,48px); border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow); }
 .not-found-code { margin-bottom:22px; color:var(--accent); font:750 clamp(55px,10vw,82px)/1 var(--font-mono); letter-spacing:-.07em; }
 .not-found-card .page-title { margin:8px 0 10px; }
