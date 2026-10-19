@@ -510,8 +510,9 @@ async function saveAndGenerate() {
   saving.value = true;
   try {
     await api.saveSettings(payload);
+    // 配置保存成功即更新快照；后续 PAC 生成失败不应让按钮继续显示“未保存”状态。
+    savedSettingsSnapshot.value = submittedSnapshot;
     const result = await api.generate();
-    if (result.success) savedSettingsSnapshot.value = submittedSnapshot;
     showFlash(
       result.success
         ? "配置已保存，PAC 生成成功"
@@ -1206,7 +1207,10 @@ h2 {
 .mode-card.active {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-soft);
-  background: var(--surface);
+  background: var(--accent-soft);
+}
+.mode-card.active .mode-name {
+  color: var(--accent);
 }
 .mode-card:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
 .mode-card:active { transform:translateY(1px); }
