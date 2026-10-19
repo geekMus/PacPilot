@@ -126,7 +126,14 @@ async function onSubmit() {
 .alert { padding:10px 12px; border:1px solid color-mix(in srgb,var(--red) 35%,var(--line)); border-radius:9px; background:var(--red-soft); margin-bottom:14px; font-size:12px; line-height:1.5; }
 .alert.warning { border-color:color-mix(in srgb,var(--warn) 35%,var(--line)); background:var(--warn-soft); }
 @media(max-width:680px) {
-  .auth-page { padding:0 18px; background:linear-gradient(180deg,var(--accent-soft) 0, var(--bg) 230px); }
+  .auth-page {
+    width:100%;
+    max-width:none;
+    margin:0;
+    padding:0 18px;
+    box-sizing:border-box;
+    background:linear-gradient(180deg,var(--accent-soft) 0, var(--bg) 230px);
+  }
   .auth-page :deep(.topbar) { gap:10px; margin:0; padding:18px 0 14px; }
   .auth-page :deep(.brand-mark) { width:40px; height:40px; border-radius:13px; }
   .auth-page :deep(.brand-copy .name) { font-size:15px; }
