@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { AppDatabase } from "../db/sqlite";
 import type { EnvConfig } from "../config/env";
-import { cleanupOperationalLogs, clearOperationalLogs, getCurrentWorkflow, getSettings, listWorkflowRuns, listActiveWorkflowRuns, operationalLogStorageBytes, recentLogs, setSettings, updateSettings, getWorkflowRun, listWorkflowStages, deleteWorkflowRun, cancelPendingWorkflow } from "../db/sqlite";
+import { cleanupOperationalLogs, clearOperationalLogs, clearWorkflowHistory, getCurrentWorkflow, getSettings, listWorkflowRuns, listActiveWorkflowRuns, operationalLogStorageBytes, recentLogs, setSettings, updateSettings, getWorkflowRun, listWorkflowStages, deleteWorkflowRun, cancelPendingWorkflow } from "../db/sqlite";
 import type { AppSettings, GenerationMode } from "../db/settings";
 import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../db/settings";
 import { clearSessionCookie, createSessionToken, isLoggedIn, requireAdmin, setSessionCookie } from "../middleware/auth";
@@ -56,6 +56,13 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
  router.post("/api/admin/webhook-test",requireAdmin(database),async(req,res)=>{const c=normalizeWebhookConfig(req.body?.config??req.body),errors=validateWebhookConfig(c);if(errors.length){res.status(400).json({error:errors.join("\n")});return;}res.json(await sendWebhookTest(c,getSettings(database).timezone));});
  router.post("/api/admin/generate",requireAdmin(database),(_req,res)=>{try{const workflowId=startPacWorkflow(database,env.dataDir,"manual");res.status(202).json({workflowId,status:getWorkflowRun(database,workflowId)?.status??"pending"});}catch(e){res.status(409).json({error:e instanceof Error?e.message:String(e)});}});
  router.get("/api/admin/workflows",requireAdmin(database),(req,res)=>{res.setHeader("Cache-Control","no-store");const limit=Math.min(200,Math.max(1,Number.parseInt(String(req.query.limit??"50"),10)||50));res.json({current:getCurrentWorkflow(database),active:listActiveWorkflowRuns(database),runs:listWorkflowRuns(database,limit)});});
+ router.delete("/api/admin/workflows",requireAdmin(database),(_req,res)=>{
+  try{
+   const result=clearWorkflowHistory(database);
+   if(result.activeRuns>0){res.status(409).json({error:"仍有工作流在等待或执行中，不能清空执行历史。请等所有任务结束后重试。",activeRuns:result.activeRuns});return;}
+   res.json({ok:true,deletedRuns:result.deletedRuns});
+  }catch(error){res.status(500).json({error:error instanceof Error?error.message:String(error)});}
+ });
  router.get("/api/admin/workflows/:id",requireAdmin(database),(req,res)=>{res.setHeader("Cache-Control","no-store");const id=Number.parseInt(req.params.id,10);if(!Number.isSafeInteger(id)||id<1){res.status(400).json({error:"工作流编号无效。"});return;}const run=getWorkflowRun(database,id);if(!run){res.status(404).json({error:"找不到该工作流执行记录。"});return;}res.json({run,stages:listWorkflowStages(database,id)});});
  router.post("/api/admin/workflows/:id/cancel",requireAdmin(database),(req,res)=>{res.setHeader("Cache-Control","no-store");const id=Number.parseInt(req.params.id,10);if(!Number.isSafeInteger(id)||id<1){res.status(400).json({error:"工作流编号无效。"});return;}const result=cancelPendingWorkflow(database,id);if(result==="not-found"){res.status(404).json({error:"找不到该工作流执行记录。"});return;}if(result==="not-pending"){res.status(409).json({error:"该工作流已开始执行或已经结束，无法取消排队。"});return;}res.json({ok:true,id,status:"cancelled"});});
   router.delete("/api/admin/workflows/:id",requireAdmin(database),(req,res)=>{res.setHeader("Cache-Control","no-store");const id=Number.parseInt(req.params.id,10);if(!Number.isSafeInteger(id)||id<1){res.status(400).json({error:"工作流编号无效。"});return;}const result=deleteWorkflowRun(database,id);if(result==="not-found"){res.status(404).json({error:"找不到该工作流执行记录。"});return;}if(result==="active"){res.status(409).json({error:"工作流仍在等待或执行中，不能删除。"});return;}res.json({ok:true,id});});
@@ -66,7 +73,24 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
   walk(env.dataDir);
   const dbBytes=["genpac.db","genpac.db-wal","genpac.db-shm"].reduce((sum,name)=>{try{return sum+fs.statSync(path.join(env.dataDir,name)).size;}catch{return sum;}},0);
   const counts=database.query("SELECT (SELECT COUNT(*) FROM generation_log) AS generationLogs,(SELECT COUNT(*) FROM access_events) AS accessEvents,(SELECT COUNT(*) FROM proxy_probe_runs) AS proxyProbeRuns,(SELECT COUNT(*) FROM workflow_runs) AS workflows").get();
-  res.json({dataBytes,dbBytes,logBytes:operationalLogStorageBytes(database),retentionDays:getSettings(database).logRetentionDays,counts});
+  const pacFileInfo=(name:string)=>{
+   try{const stat=fs.statSync(path.join(env.dataDir,name));if(!stat.isFile())return{exists:false,sizeBytes:0,modifiedAt:null};return{exists:true,sizeBytes:stat.size,modifiedAt:stat.mtime.toISOString()};}
+   catch{return{exists:false,sizeBytes:0,modifiedAt:null};}
+  };
+  res.json({dataBytes,dbBytes,logBytes:operationalLogStorageBytes(database),retentionDays:getSettings(database).logRetentionDays,counts,pacFiles:{proxyPac:pacFileInfo("proxy.pac"),proxySourcePac:pacFileInfo("proxy.source.pac")}});
+ });
+ });
+ router.delete("/api/admin/pac-files",requireAdmin(database),(_req,res)=>{
+  if(hasActivePacWorkflow(database)){res.status(409).json({error:"仍有工作流在等待或执行中，不能删除 PAC 文件。请等任务结束后重试。"});return;}
+  const deleted:string[]=[];
+  try{
+   for(const name of ["proxy.pac","proxy.source.pac"]){
+    try{fs.unlinkSync(path.join(env.dataDir,name));deleted.push(name);}
+    catch(error){if((error as NodeJS.ErrnoException).code!=="ENOENT")throw error;}
+   }
+   const fileInfo=(name:string)=>{try{const stat=fs.statSync(path.join(env.dataDir,name));return{exists:stat.isFile(),sizeBytes:stat.isFile()?stat.size:0,modifiedAt:stat.isFile()?stat.mtime.toISOString():null};}catch{return{exists:false,sizeBytes:0,modifiedAt:null};}};
+   res.json({ok:true,deleted,pacFiles:{proxyPac:fileInfo("proxy.pac"),proxySourcePac:fileInfo("proxy.source.pac")}});
+  }catch(error){res.status(500).json({error:error instanceof Error?error.message:String(error)});}
  });
  router.post("/api/admin/logs/cleanup",requireAdmin(database),(_req,res)=>{const deleted=cleanupOperationalLogs(database);if(deleted.generationLogs+deleted.accessEvents+deleted.proxyProbeRuns>0){database.exec("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");}res.json({deleted,retentionDays:getSettings(database).logRetentionDays});});
  router.post("/api/admin/logs/clear",requireAdmin(database),(_req,res)=>{
