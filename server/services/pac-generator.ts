@@ -255,19 +255,22 @@ export function readPacFile(dataDir: string): string {
  */
 export function readPacSourceFile(dataDir: string): string {
   const pacPath = path.join(dataDir, "proxy.pac");
-  // proxy.source.pac is an auxiliary parser input; it must never make the status
-  // page claim a PAC is available when the actual client-facing proxy.pac is absent.
+  // proxy.source.pac is only an auxiliary parser input; never report a PAC as
+  // available when the client-facing file is absent or empty.
+  let clientPac: string;
   try {
-    if (!fs.statSync(pacPath).isFile()) return "";
+    clientPac = fs.readFileSync(pacPath, "utf8");
   } catch {
     return "";
   }
+  if (!clientPac.trim()) return "";
 
   const sourcePath = path.join(dataDir, "proxy.source.pac");
   try {
-    return fs.readFileSync(sourcePath, "utf8");
+    const sourcePac = fs.readFileSync(sourcePath, "utf8");
+    return sourcePac.trim() ? sourcePac : clientPac;
   } catch {
-    return readPacFile(dataDir);
+    return clientPac;
   }
 }
 
