@@ -509,10 +509,10 @@ async function saveAndGenerate() {
   const submittedSnapshot = JSON.stringify(payload);
   saving.value = true;
   try {
-    await api.saveSettings(payload);
-    // 配置保存成功即更新快照；后续 PAC 生成失败不应让按钮继续显示“未保存”状态。
+    // 保存与生成由服务端在同一个请求中串行完成，页面切换不会跳过 PAC 生成。
+    const workflow = await api.saveAndGenerate(payload);
     savedSettingsSnapshot.value = submittedSnapshot;
-    const result = await api.generate();
+    const result = workflow.generation;
     showFlash(
       result.success
         ? "配置已保存，PAC 生成成功"
