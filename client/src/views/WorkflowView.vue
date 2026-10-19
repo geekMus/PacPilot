@@ -158,6 +158,8 @@ async function clearWorkflowHistory() {
     previousStatuses = new Map<number, string>();
     statusSnapshotReady = true;
     page.value = 1;
+    selectedStatus.value = "all";
+    selectedSource.value = "all";
     notify(`已清空 ${result.deletedRuns} 条工作流执行历史及其阶段详情。`, "success");
   } catch (caught) {
     notify(caught instanceof Error ? caught.message : String(caught), "error");
@@ -452,5 +454,5 @@ td { padding:13px 12px; border-bottom:1px solid var(--line); color:var(--text); 
 .workflow-alert button { justify-self:start; color:inherit; }
  .spinning { animation:spin .9s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
-@media(max-width:700px) { .panel { padding:15px; } .current-meta { grid-template-columns:repeat(2,minmax(0,1fr)); } .panel-heading h2 { font-size:17px; } .table-scroll { margin-inline:-4px; } table { min-width:680px; } .name-trigger { max-width:105px; } .date-trigger { max-width:135px; } .duration-trigger { max-width:72px; } .result-trigger { max-width:105px; } .actions-cell { width:100px; min-width:100px; } }
+@media(max-width:700px) { .workflow-history .panel-heading { flex-wrap:wrap; } .workflow-history .panel-heading > div:first-child { min-width:0; } .history-heading-actions { width:100%; justify-content:space-between; } .panel { padding:15px; } .current-meta { grid-template-columns:repeat(2,minmax(0,1fr)); } .panel-heading h2 { font-size:17px; } .table-scroll { margin-inline:-4px; } table { min-width:680px; } .name-trigger { max-width:105px; } .date-trigger { max-width:135px; } .duration-trigger { max-width:72px; } .result-trigger { max-width:105px; } .actions-cell { width:100px; min-width:100px; } }
 </style>
