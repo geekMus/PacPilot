@@ -123,20 +123,17 @@ function jumpToLine(lineNumber: number) {
   const editor = view;
   const line = editor.state.doc.line(lineNumber);
   const scroller = editor.scrollDOM;
-  const lineCoords = editor.coordsAtPos(line.from);
-  const scrollRect = scroller.getBoundingClientRect();
-  const lineVisible = lineCoords !== null &&
-    lineCoords.top >= scrollRect.top &&
-    lineCoords.bottom <= scrollRect.bottom;
+  const block = editor.lineBlockAt(line.from);
+  const lineVisible = block.top >= scroller.scrollTop &&
+    block.bottom <= scroller.scrollTop + scroller.clientHeight;
 
   if (jumpHighlightTimer !== null) window.clearTimeout(jumpHighlightTimer);
 
   // 仅当目标行不可见时修改 CodeMirror 自身的 scrollTop，绝不触发页面/祖先容器滚动。
-  if (!lineVisible && lineCoords !== null) {
-    const lineHeight = Math.max(1, lineCoords.bottom - lineCoords.top);
-    const lineOffset = lineCoords.top - scrollRect.top;
+  if (!lineVisible) {
+    const lineHeight = Math.max(1, block.height);
     const targetOffset = Math.max(0, (scroller.clientHeight - lineHeight) / 2);
-    scroller.scrollTop += lineOffset - targetOffset;
+    scroller.scrollTop = Math.max(0, block.top - targetOffset);
   }
 
   // 只更新选区与高亮，不使用 scrollIntoView，也不主动 focus，避免浏览器滚动外层页面。
