@@ -39,6 +39,7 @@ import {
   Timer,
   Workflow,
   X,
+  X,
   Zap,
 } from "@lucide/vue";
 
