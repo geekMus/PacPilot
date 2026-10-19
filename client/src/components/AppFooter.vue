@@ -42,7 +42,7 @@ onMounted(() => { void loadVersionInfo(true); });
     <Transition name="version-dialog">
       <div v-if="dialogOpen" class="dialog-backdrop" @click.self="dialogOpen = false" tabindex="-1">
         <section class="version-dialog" role="dialog" aria-modal="true" aria-labelledby="version-dialog-title">
-          <header class="dialog-header"><div><p class="dialog-kicker">PROJECT INFORMATION</p><h2 id="version-dialog-title">项目与版本</h2></div><button type="button" class="dialog-close" aria-label="关闭弹窗" @click="dialogOpen = false" autofocus>×</button></header>
+          <header class="dialog-header"><h2 id="version-dialog-title">项目与版本</h2><button type="button" class="dialog-close" aria-label="关闭弹窗" @click="dialogOpen = false" autofocus>×</button></header>
           <div class="version-grid"><div class="version-item"><span>当前版本</span><strong>v{{ currentVersion }}</strong></div><button type="button" class="version-item latest-version-item" :class="{ 'version-new': hasUpdate }" @click="loadVersionInfo(true)" :disabled="isCheckingVersion" :aria-label="isCheckingVersion ? '正在获取最新版本' : '点击获取最新版本'"><span>最新版本 <small>{{ isCheckingVersion ? "获取中…" : "点击刷新" }}</small></span><strong>{{ latestVersion === "暂时未知" ? latestVersion : "v" + latestVersion }}</strong></button></div>
           <div v-if="hasUpdate" class="dialog-update-note" role="status"><span class="dialog-update-dot"></span><div><strong>发现新版本 {{ updateInfo?.latestVersion }}</strong><p>当前运行版本较旧，可前往项目仓库查看最新代码与更新说明。</p></div></div>
           <p v-else-if="isCheckingVersion" class="dialog-status" role="status">正在获取最新版本…</p>
@@ -68,7 +68,6 @@ onMounted(() => { void loadVersionInfo(true); });
 .dialog-backdrop { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; overflow-y:auto; padding:20px; background:rgba(15,23,42,.48); backdrop-filter:blur(3px); }
 .version-dialog { width:min(100%,440px); padding:22px; border:1px solid var(--line); border-radius:18px; background:var(--surface); color:var(--text); box-shadow:0 24px 80px rgba(0,0,0,.24); }
 .dialog-header { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:19px; }
-.dialog-kicker { margin:0 0 5px; color:var(--muted); font-size:10px; font-weight:750; letter-spacing:.14em; }
 .dialog-header h2 { margin:0; font-size:20px; letter-spacing:-.02em; }
 .dialog-close { display:grid; place-items:center; width:32px; height:32px; border:1px solid var(--line); border-radius:9px; background:var(--surface-2); color:var(--muted); font-size:22px; cursor:pointer; }
 .version-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
