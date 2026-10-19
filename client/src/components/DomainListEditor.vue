@@ -29,8 +29,6 @@ const emit = defineEmits<{
 }>();
 
 const setRuleDiagnostics = StateEffect.define<RuleDiagnostic[]>();
-const activeLine = ref(1);
-const selectedDiagnosticKey = ref<string | null>(null);
 const setJumpHighlight = StateEffect.define<{ line: number; token: number } | null>();
 const jumpHighlightField = StateField.define<{ line: number; token: number } | null>({
   create: () => null,
@@ -88,12 +86,10 @@ let view: EditorView | null = null;
 let themeObs: MutationObserver | null = null;
 
 let jumpHighlightTimer: number | null = null;
-function jumpToLine(lineNumber: number, diagnosticKey: string) {
+function jumpToLine(lineNumber: number) {
   if (!view || lineNumber < 1 || lineNumber > view.state.doc.lines) return;
   const editor = view;
   const line = editor.state.doc.line(lineNumber);
-  selectedDiagnosticKey.value = diagnosticKey;
-  activeLine.value = lineNumber;
   const scroller = editor.scrollDOM;
   if (jumpHighlightTimer !== null) window.clearTimeout(jumpHighlightTimer);
 
@@ -156,16 +152,6 @@ function buildExtensions(dark: boolean) {
     }),
     EditorView.updateListener.of((u) => {
       if (u.docChanged) emit("update:modelValue", u.state.doc.toString());
-      if (u.docChanged || u.selectionSet) {
-        const line = u.state.doc.lineAt(u.state.selection.main.head).number;
-        activeLine.value = line;
-        if (selectedDiagnosticKey.value) {
-          const selected = props.diagnostics.find((item, index) =>
-            String(item.line) + "-" + item.severity + "-" + item.message + "-" + index === selectedDiagnosticKey.value
-          );
-          if (!selected || selected.line !== line) selectedDiagnosticKey.value = null;
-        }
-      }
     }),
     EditorView.theme({
       "&": {
@@ -283,16 +269,16 @@ watch(
           :key="item.line + '-' + item.severity + '-' + item.message + '-' + index"
           type="button"
           class="rule-diagnostic-item"
-          :class="['is-' + item.severity, { 'is-active': selectedDiagnosticKey === String(item.line) + '-' + item.severity + '-' + item.message + '-' + index && activeLine === item.line }]"
+          :class="'is-' + item.severity"
           :title="'定位到第 ' + item.line + ' 行'"
-          @click="jumpToLine(item.line, String(item.line) + '-' + item.severity + '-' + item.message + '-' + index)"
+          @click="jumpToLine(item.line)"
         >
           <span class="rule-diagnostic-line">第 {{ item.line }} 行</span>
           <span class="rule-diagnostic-message">{{ item.message }}</span>
           <span class="rule-diagnostic-jump" aria-hidden="true">定位 ↗</span>
         </button>
       </div>
-      <p class="rule-diagnostic-footer">点击提示可跳转到对应行；选中项会随编辑器光标位置同步，切换到其他行后自动取消选中。</p>
+      <p class="rule-diagnostic-footer">点击任意规则检查项可跳转到对应行。</p>
     </section>
   </div>
 </template>
@@ -365,8 +351,6 @@ watch(
 .rule-diagnostic-list { display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow: auto; padding: 6px; overscroll-behavior: contain; }
 .rule-diagnostic-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 8px; width: 100%; padding: 7px 7px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--text); font: inherit; font-size: 12px; line-height: 1.5; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
 .rule-diagnostic-item:hover, .rule-diagnostic-item:focus-visible { border-color: var(--line); background: var(--surface-2); }
-.rule-diagnostic-item.is-active { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
-.rule-diagnostic-item.is-active .rule-diagnostic-line { color: var(--accent); background: var(--surface); }
 .rule-diagnostic-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .rule-diagnostic-line { display: inline-flex; align-items: center; justify-content: center; min-height: 22px; padding: 2px 7px; border-radius: 5px; background: var(--surface-2); color: var(--muted); font-size: 10px; font-weight: 750; white-space: nowrap; }
 .rule-diagnostic-item.is-error .rule-diagnostic-line { color: var(--red); background: var(--red-soft); }
