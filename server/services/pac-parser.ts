@@ -40,7 +40,7 @@ function readInitializer(source: string, name: string): string | null {
       const char = source[index];
       if (quote) {
         if (escaped) escaped = false;
-        else if (char === "\\\\") escaped = true;
+        else if (char === "\\") escaped = true;
         else if (char === quote) quote = "";
         continue;
       }
@@ -61,7 +61,7 @@ function readInitializer(source: string, name: string): string | null {
     for (index++; index < source.length; index++) {
       const char = source[index];
       if (escaped) escaped = false;
-      else if (char === "\\\\") escaped = true;
+      else if (char === "\\") escaped = true;
       else if (char === quote) return source.slice(start, index + 1);
     }
     return null;
