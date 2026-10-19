@@ -10,14 +10,23 @@ const status = ref<PacStatus | null>(null);
 const meta = ref<Meta | null>(null);
 const error = ref("");
 const loading = ref(true);
+const adminEntry = ref<"/admin/dashboard" | "/admin/settings" | "/admin/login">("/admin/login");
 
 async function loadStatus() {
   loading.value = true;
   error.value = "";
   try {
-    const [currentStatus, currentMeta] = await Promise.all([api.status(), api.meta()]);
+    const [currentStatus, currentMeta, currentSession] = await Promise.all([
+      api.status(),
+      api.meta(),
+      api.session().catch(() => null),
+    ]);
     status.value = currentStatus;
     meta.value = currentMeta;
+    // 只有成功确认会话状态后才决定入口；未登录时直接进入登录页。
+    if (currentSession && !currentSession.loggedIn) adminEntry.value = "/admin/login";
+    else if (currentSession?.mustChangePassword) adminEntry.value = "/admin/settings";
+    else if (currentSession?.loggedIn) adminEntry.value = "/admin/dashboard";
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -195,7 +204,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
 <template>
   <main class="page status-page">
     <AppHeader brand="genpac-runner" sub="公共状态页">
-      <RouterLink v-if="meta?.adminEnabled" class="primary" to="/admin/dashboard">后台管理</RouterLink>
+      <RouterLink v-if="meta?.adminEnabled" class="primary"  :to="adminEntry">后台管理</RouterLink>
     </AppHeader>
 
     <section class="page-hero">
@@ -245,7 +254,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
         <div class="empty-icon" aria-hidden="true"><AppIcon name="file-cog" :size="26" :stroke-width="1.7" /></div>
         <h2>还没有生成 PAC</h2>
         <p>先进入后台管理，在配置页面设置启动模式和规则，然后点击「保存并生成 PAC」。生成后，这里会显示可识别的规则摘要。</p>
-        <RouterLink class="action-button primary" to="/admin/dashboard">进入后台管理</RouterLink>
+        <RouterLink class="action-button primary"  :to="adminEntry">进入后台管理</RouterLink>
       </section>
 
       <template v-else-if="hasRuleSummary">
