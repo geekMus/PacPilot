@@ -9,6 +9,7 @@ import {
   type WebhookConfig,
 } from "../api/client";
 import AdminLayout from "../components/AdminLayout.vue";
+import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
 import DomainListEditor from "../components/DomainListEditor.vue";
 import WebhookChannelEditor from "../components/WebhookChannelEditor.vue";
@@ -450,11 +451,11 @@ async function logout() {
 
     <p v-if="loading" class="state-msg">加载中…</p>
     <div v-if="flash" class="banner" :class="flashOk ? 'ok' : 'bad'">
-      <span class="banner-icon" aria-hidden="true">{{ flashOk ? "✓" : "!" }}</span>
+      <span class="banner-icon" aria-hidden="true"><AppIcon :name="flashOk ? 'circle-check' : 'circle-alert'" :size="15" /></span>
       <pre class="banner-text">{{ flash }}</pre>
     </div>
     <div v-if="error" class="banner bad">
-      <span class="banner-icon" aria-hidden="true">!</span>
+      <span class="banner-icon" aria-hidden="true"><AppIcon name="circle-alert" :size="15" /></span>
       <pre class="banner-text">{{ error }}</pre>
     </div>
 
@@ -501,7 +502,7 @@ async function logout() {
         <section id="general" class="card">
           <div class="card-head">
             <div class="card-title">
-              <span class="icon-badge" aria-hidden="true">◷</span>
+              <span class="icon-badge" aria-hidden="true"><AppIcon name="calendar-clock" :size="18" /></span>
               <div>
                 <h2>常规设置</h2>
                 <p class="card-sub">常规选项保存在数据库中，不需要编辑 Docker 环境变量。</p>
@@ -528,7 +529,7 @@ async function logout() {
             </div>
             <button type="button" class="mobile-timezone-trigger" @click="openMobileTimezonePicker">
               <span>{{ form.timezone || "选择时区" }}</span>
-              <span class="mobile-timezone-trigger-icon" aria-hidden="true">⌄</span>
+              <span class="mobile-timezone-trigger-icon" aria-hidden="true"><AppIcon name="chevron-down" :size="17" /></span>
             </button>
             <p class="field-hint">可按地区名称或 IANA 时区代码搜索，也可直接输入有效的时区代码。该设置统一用于定时任务、运行记录和 Webhook 通知的时间显示。</p>
           </div>
@@ -537,7 +538,7 @@ async function logout() {
             <section class="timezone-sheet" role="dialog" aria-modal="true" aria-labelledby="mobile-timezone-title" @keydown.esc="mobileTimezoneOpen = false">
               <header class="timezone-sheet-head">
                 <h3 id="mobile-timezone-title">选择时区</h3>
-                <button type="button" class="timezone-sheet-close" aria-label="关闭时区选择" @click="mobileTimezoneOpen = false">×</button>
+                <button type="button" class="timezone-sheet-close" aria-label="关闭时区选择" @click="mobileTimezoneOpen = false"><AppIcon name="x" :size="18" /></button>
               </header>
               <input v-model="timezoneQuery" class="timezone-sheet-search" type="search" autocomplete="off"
                 placeholder="搜索时区名称或代码，如 Asia/Tokyo" @keydown.enter.prevent />
@@ -568,7 +569,7 @@ async function logout() {
           <div class="card-head">
             <div class="card-title">
               <span class="icon-badge" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 8h14M5 16h14"/></svg>
+                <AppIcon name="workflow" :size="18" />
               </span>
               <div>
                 <h2>启动模式</h2>
@@ -620,7 +621,7 @@ async function logout() {
           <div class="card-head">
             <div class="card-title">
               <span class="icon-badge" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+                <AppIcon name="globe" :size="18" />
               </span>
               <div>
                 <h2>代理与远程列表</h2>
@@ -657,7 +658,7 @@ async function logout() {
           <div class="card-head">
             <div class="card-title">
               <span class="icon-badge" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+                <AppIcon name="list-checks" :size="18" />
               </span>
               <div>
                 <h2>自定义规则</h2>
@@ -708,7 +709,7 @@ async function logout() {
           <div class="card-head">
             <div class="card-title">
               <span class="icon-badge" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <AppIcon name="calendar-clock" :size="18" />
               </span>
               <div>
                 <h2>定时与 Webhook</h2>
@@ -782,8 +783,7 @@ async function logout() {
               class="btn primary btn-save"
               :disabled="!canSubmit"
             >
-              <svg v-if="saving" class="save-spinner" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="42 16" /></svg>
-              <svg v-else viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 4h12l3 3v13H4V4z"/><path d="M8 4v6h8V4M8 20v-6h8v6"/></svg>
+              <AppIcon :name="saving ? 'loader-circle' : 'save'" :size="17" :class="{ 'save-spinner': saving }" />
               <span>{{ saving ? "保存并生成中…" : "保存并生成 PAC" }}</span>
             </button>
           </div>
@@ -797,7 +797,7 @@ async function logout() {
         <div class="card-head">
           <div class="card-title">
             <span class="icon-badge" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5M4 19h16M8 15V9M12 15V7M16 15v-3"/></svg>
+              <AppIcon name="chart" :size="18" />
             </span>
             <div>
               <h2>最近生成记录</h2>
@@ -1487,12 +1487,12 @@ textarea.body-area {
   .desktop-timezone-picker { display:none; }
   .mobile-timezone-trigger { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:46px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:var(--text); font:inherit; text-align:left; }
   .mobile-timezone-trigger span:first-child { overflow-wrap:anywhere; }
-  .mobile-timezone-trigger-icon { color:var(--muted); font-size:18px; }
+  .mobile-timezone-trigger-icon { display:grid; place-items:center; color:var(--muted); }
   .timezone-sheet-backdrop { display:flex; position:fixed; z-index:1000; inset:0; align-items:flex-end; justify-content:center; padding:0; background:rgba(0,0,0,.48); }
   .timezone-sheet { display:flex; flex-direction:column; width:100%; max-height:min(82dvh,720px); padding:16px 16px max(16px,env(safe-area-inset-bottom)); border-radius:18px 18px 0 0; border:1px solid var(--line); border-bottom:0; background:var(--surface); box-shadow:0 -8px 32px rgba(0,0,0,.18); }
   .timezone-sheet-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
   .timezone-sheet-head h3 { margin:0; font-size:16px; }
-  .timezone-sheet-close { width:36px; height:36px; border:0; border-radius:8px; background:var(--surface-2); color:var(--text); font-size:24px; line-height:1; }
+  .timezone-sheet-close { display:grid; place-items:center; flex:0 0 36px; width:36px; height:36px; border:0; border-radius:8px; background:var(--surface-2); color:var(--text); font-size:24px; line-height:1; }
   .timezone-sheet-search { flex:0 0 auto; width:100%; min-height:44px; margin-bottom:10px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:var(--text); font:inherit; font-size:16px; }
   .timezone-sheet-options { min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
   .timezone-sheet .timezone-option { min-height:48px; }
