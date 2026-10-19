@@ -219,8 +219,22 @@ code {
 }
 
 .nav-btn.primary:hover {
-  filter: brightness(1.05);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
   color: var(--accent-contrast);
+  filter: none;
+}
+
+.nav-btn.primary:active {
+  background: var(--accent-active);
+  border-color: var(--accent-active);
+  color: var(--accent-contrast);
+}
+
+.nav-btn:not(.primary):active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .nav-btn.ghost {
