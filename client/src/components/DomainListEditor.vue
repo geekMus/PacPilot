@@ -96,7 +96,7 @@ const ruleDecorationField = StateField.define({
         classes.push("cm-rule-line-" + severity);
       }
       const targetColor = items.some((item) => item.severity === "error") ? "var(--red)" : items.some((item) => item.severity === "warning") ? "var(--warn)" : items.length ? "var(--accent)" : "transparent";
-      if (highlightLine === lineNumber) classes.push(highlight.token % 2 === 0 ? "cm-jump-highlight-a" : "cm-jump-highlight-b");
+      if (highlightLine === lineNumber) classes.push((highlight?.token ?? 0) % 2 === 0 ? "cm-jump-highlight-a" : "cm-jump-highlight-b");
       ranges.push(Decoration.line({ attributes: { class: classes.join(" "), style: "--cm-jump-target: " + targetColor + ";" } }).range(transaction.state.doc.line(lineNumber).from));
       if (lineNumber === activeLine && items.length) ranges.push(Decoration.widget({ widget: new InlineDiagnosticWidget(items), side: 1, block: false }).range(transaction.state.doc.line(lineNumber).to));
     }
@@ -181,18 +181,26 @@ function buildExtensions(dark: boolean) {
       },
       "&.cm-focused": { outline: "none" },
       ".cm-rule-diagnostic-gutter": { width: "16px", background: "var(--surface-2)" },
-      ".cm-rule-diagnostic-marker": { display: "inline-flex", width: "14px", height: "14px", marginLeft: "1px", alignItems: "center", justifyContent: "center", borderRadius: "50%", fontSize: "10px", fontWeight: "800", cursor: "help" },
-      ".cm-rule-diagnostic-marker.is-error": { color: "var(--red)", background: "var(--red-soft)" },
-      ".cm-rule-diagnostic-marker.is-warning": { color: "var(--warn)", background: "var(--warn-soft)" },
-      ".cm-rule-diagnostic-marker.is-info": { color: "var(--accent)", background: "var(--accent-soft)" },
+      ".cm-inline-diagnostic": { display: "inline-flex", alignItems: "baseline", gap: "6px", maxWidth: "min(560px, 90%)", marginLeft: "10px", padding: "2px 8px", borderRadius: "5px", fontSize: "11px", lineHeight: "1.5", verticalAlign: "baseline", whiteSpace: "normal", overflowWrap: "anywhere", opacity: "0.95" },
+      ".cm-inline-diagnostic.is-error": { color: "var(--red)", background: "var(--red-soft)" },
+      ".cm-inline-diagnostic.is-warning": { color: "var(--warn)", background: "var(--warn-soft)" },
+      ".cm-inline-diagnostic.is-info": { color: "var(--accent)", background: "var(--accent-soft)" },
+      ".cm-inline-diagnostic-label": { flex: "0 0 auto", fontWeight: "800", fontSize: "10px" },
+      ".cm-inline-diagnostic-message": { minWidth: "0" },
       ".cm-line.cm-rule-line-error": { background: "color-mix(in srgb, var(--red) 10%, transparent)" },
       ".cm-line.cm-rule-line-warning": { background: "color-mix(in srgb, var(--warn) 10%, transparent)" },
       ".cm-line.cm-rule-line-info": { background: "color-mix(in srgb, var(--accent) 7%, transparent)" },
-      ".cm-line.cm-jump-highlight": { animation: "cm-rule-jump-flash 1.5s ease-out both", borderRadius: "3px" },
-      "@keyframes cm-rule-jump-flash": {
-        "0%": { backgroundColor: "color-mix(in srgb, #a78bfa 32%, transparent)" },
-        "35%": { backgroundColor: "color-mix(in srgb, #a78bfa 22%, transparent)" },
-        "100%": { backgroundColor: "transparent" },
+      ".cm-line.cm-jump-highlight-a": { animation: "cm-rule-jump-flash-a 1.5s ease-out both", borderRadius: "3px" },
+      ".cm-line.cm-jump-highlight-b": { animation: "cm-rule-jump-flash-b 1.5s ease-out both", borderRadius: "3px" },
+      "@keyframes cm-rule-jump-flash-a": {
+        "0%": { backgroundColor: "color-mix(in srgb, #a78bfa 38%, transparent)" },
+        "40%": { backgroundColor: "color-mix(in srgb, #a78bfa 25%, var(--cm-jump-target) 10%)" },
+        "100%": { backgroundColor: "color-mix(in srgb, var(--cm-jump-target) 10%, transparent)" },
+      },
+      "@keyframes cm-rule-jump-flash-b": {
+        "0%": { backgroundColor: "color-mix(in srgb, #a78bfa 38%, transparent)" },
+        "40%": { backgroundColor: "color-mix(in srgb, #a78bfa 25%, var(--cm-jump-target) 10%)" },
+        "100%": { backgroundColor: "color-mix(in srgb, var(--cm-jump-target) 10%, transparent)" },
       },
     }),
   ];
