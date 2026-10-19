@@ -489,6 +489,11 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
   background:var(--surface);
   color:var(--text);
 }
+.rule-tabs button:active {
+  background:var(--accent-soft);
+  border-color:var(--accent);
+  color:var(--accent);
+}
 .rule-tabs button:focus-visible {
   outline:2px solid var(--accent);
   outline-offset:2px;
