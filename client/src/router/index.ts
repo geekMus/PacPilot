@@ -29,6 +29,11 @@ const router = createRouter({
       redirect: { name: "admin-dashboard" },
     },
     {
+      path: "/admin/workflows",
+      name: "admin-workflows",
+      component: () => import("../views/WorkflowView.vue"),
+    },
+    {
       path: "/admin/monitor",
       name: "admin-monitor",
       component: () => import("../views/MonitoringView.vue"),
