@@ -587,17 +587,10 @@ async function changeAdminPassword() {
   }
 }
 
-async function logout() {
-  await api.logout();
-  await router.push("/admin/login");
-}
 </script>
 
 <template>
   <AdminLayout active="settings" title="配置管理" subtitle="管理 PAC 生成方式、代理规则、定时任务与通知渠道。">
-    <template #actions>
-      <button type="button" class="admin-logout-button" @click="logout">退出登录</button>
-    </template>
     <div class="admin-page">
 
     <p v-if="loading" class="state-msg">加载中…</p>

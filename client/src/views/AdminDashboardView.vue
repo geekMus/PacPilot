@@ -90,13 +90,6 @@ async function generateNow(): Promise<void> {
     generating.value = false;
   }
 }
-async function logout(): Promise<void> {
-  try {
-    await api.logout();
-  } finally {
-    await router.replace("/admin/login");
-  }
-}
 
 onMounted(() => { void loadOverview(); });
 </script>
@@ -108,7 +101,6 @@ onMounted(() => { void loadOverview(); });
         <AppIcon :name="refreshing ? 'loader-circle' : 'refresh-cw'" :class="{ 'icon-spinning': refreshing }" :size="15" />
         {{ refreshing ? "刷新中…" : "刷新数据" }}
       </button>
-      <button class="dash-button logout-button" type="button" @click="logout"><AppIcon name="log-out" :size="15" />退出登录</button>
     </template>
 
     <div class="dashboard-view">

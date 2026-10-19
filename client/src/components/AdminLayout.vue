@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
+import { api } from "../api/client";
 import AppIcon from "./AppIcon.vue";
 import ThemeSwitcher from "./ThemeSwitcher.vue";
 
@@ -13,7 +14,24 @@ defineProps<{
 }>();
 
 const route = useRoute();
+const router = useRouter();
 const menuOpen = ref(false);
+const logoutBusy = ref(false);
+
+async function logout(): Promise<void> {
+  if (logoutBusy.value) return;
+  logoutBusy.value = true;
+  try {
+    await api.logout();
+  } finally {
+    menuOpen.value = false;
+    try {
+      await router.replace("/admin/login");
+    } finally {
+      logoutBusy.value = false;
+    }
+  }
+}
 
 watch(() => route.fullPath, () => {
   menuOpen.value = false;
@@ -91,6 +109,16 @@ watch(() => route.fullPath, () => {
       <div class="sidebar-bottom">
         <div class="sidebar-status"><span class="status-dot"></span><span>管理服务已连接</span></div>
         <span class="sidebar-note">设置保存于本地 SQLite 数据库</span>
+        <div class="sidebar-mobile-controls">
+          <div class="sidebar-theme-group">
+            <span class="sidebar-control-label">外观主题</span>
+            <ThemeSwitcher />
+          </div>
+          <button type="button" class="sidebar-logout-button" :disabled="logoutBusy" @click="logout">
+            <AppIcon :name="logoutBusy ? 'loader-circle' : 'log-out'" :size="16" :class="{ 'icon-spinning': logoutBusy }" />
+            {{ logoutBusy ? "正在退出…" : "退出登录" }}
+          </button>
+        </div>
       </div>
     </aside>
 
@@ -106,7 +134,11 @@ watch(() => route.fullPath, () => {
         </div>
         <div class="topbar-actions">
           <slot name="actions"></slot>
-          <ThemeSwitcher />
+          <button type="button" class="admin-logout-button" :disabled="logoutBusy" @click="logout">
+            <AppIcon :name="logoutBusy ? 'loader-circle' : 'log-out'" :size="15" :class="{ 'icon-spinning': logoutBusy }" />
+            {{ logoutBusy ? "正在退出…" : "退出登录" }}
+          </button>
+          <span class="topbar-theme-switcher"><ThemeSwitcher /></span>
         </div>
       </header>
       <main class="admin-content">
@@ -149,6 +181,18 @@ watch(() => route.fullPath, () => {
 .sidebar-link.active { color:var(--accent); background:var(--accent-soft); border-color:color-mix(in srgb,var(--accent) 22%,var(--line)); box-shadow:inset 3px 0 0 var(--accent); }
 .external-mark { margin-left:auto; opacity:.65; font-size:13px; }
 .sidebar-bottom { padding:14px 10px 0; border-top:1px solid var(--line); }
+.sidebar-mobile-controls { display:none; }
+.sidebar-theme-group { display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+.sidebar-control-label { color:var(--muted); font-size:10px; font-weight:800; letter-spacing:.08em; }
+.sidebar-theme-group :deep(.theme-switch) { max-width:100%; }
+.sidebar-theme-group :deep(.theme-btn) { min-height:34px; padding:0 11px; font-size:11px; }
+.sidebar-logout-button { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:42px; margin-top:14px; padding:0 12px; border:1px solid var(--line); border-radius:9px; color:var(--text); background:var(--surface); font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+.sidebar-logout-button:hover:not(:disabled) { color:var(--red); border-color:color-mix(in srgb,var(--red) 35%,var(--line)); background:var(--red-soft); }
+.sidebar-logout-button:disabled { opacity:.7; cursor:progress; }
+.admin-logout-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:38px; padding:0 13px; border:1px solid var(--line); border-radius:8px; color:var(--text); background:var(--surface); font:inherit; font-size:12px; font-weight:700; white-space:nowrap; cursor:pointer; }
+.admin-logout-button:hover:not(:disabled) { background:var(--surface-2); border-color:color-mix(in srgb,var(--accent) 36%,var(--line)); }
+.admin-logout-button:disabled { opacity:.7; cursor:progress; }
+.topbar-theme-switcher { display:inline-flex; }
 .sidebar-status { display:flex; align-items:center; gap:8px; color:var(--text); font-size:11px; font-weight:700; }
 .status-dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px var(--green-soft); }
 .sidebar-note { display:block; margin-top:7px; color:var(--muted); font-size:10px; line-height:1.5; }
@@ -274,6 +318,8 @@ watch(() => route.fullPath, () => {
 @media (max-width:1050px) { .admin-layout { --sidebar-width:238px; } .admin-topbar { gap:16px; } .admin-topbar :deep(.monitor-top-updated) { display:none; } .admin-content { padding-right:24px; padding-left:24px; } }
 @media (max-width:900px) {
   .admin-sidebar { box-shadow:none; transform:translateX(-102%); transition:transform .2s ease,box-shadow .2s ease; }
+  .sidebar-mobile-controls { display:flex; flex-direction:column; gap:14px; margin-top:16px; padding-top:15px; border-top:1px solid var(--line); }
+  .topbar-actions :deep(.admin-logout-button), .topbar-theme-switcher { display:none; }
   .admin-sidebar.is-open { transform:translateX(0); box-shadow:18px 0 48px rgba(10,20,35,.18); }
   .sidebar-backdrop { display:block; position:fixed; z-index:45; inset:0; border:0; background:rgba(12,18,30,.45); }
   .admin-main { margin-left:0; }
@@ -285,12 +331,12 @@ watch(() => route.fullPath, () => {
   .admin-content { padding:20px 18px 32px; }
 }
 @media (max-width:620px) {
-  .admin-topbar { display:grid; grid-template-columns:32px minmax(0,1fr); gap:5px 10px; align-items:center; min-height:0; padding:9px 13px; }
+  .admin-topbar { display:grid; grid-template-columns:32px minmax(0,1fr) auto; gap:5px 10px; align-items:center; min-height:0; padding:10px 16px 10px 13px; }
   .mobile-menu-toggle { grid-column:1; grid-row:1; width:32px; height:32px; }
   .topbar-title { grid-column:2; grid-row:1; }
   .topbar-kicker,.topbar-title p { display:none; }
   .topbar-title h1 { font-size:16px; line-height:1.25; }
-  .topbar-actions { grid-column:1 / -1; grid-row:2; width:100%; gap:5px; flex-wrap:nowrap; justify-content:flex-end; }
+  .topbar-actions { grid-column:3; grid-row:1; width:auto; gap:0; flex-wrap:nowrap; justify-content:flex-end; justify-self:end; padding-left:2px; }
   .topbar-actions :deep(.monitor-top-updated) { display:none; }
   .topbar-actions :deep(.dash-button.dash-button),.topbar-actions :deep(.monitor-button.monitor-button),.topbar-actions :deep(.admin-logout-button.admin-logout-button) { min-height:36px; padding:0 9px; border-radius:8px; font-size:11px; }
   .topbar-actions :deep(.theme-switch) { gap:0; padding:2px; border-radius:8px; }
