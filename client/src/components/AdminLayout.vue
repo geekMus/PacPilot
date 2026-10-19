@@ -143,7 +143,7 @@ watch(() => route.fullPath, () => {
 .mobile-menu-toggle { display:none; }
 .sidebar-backdrop { display:none; }
 @media (max-width:1050px) { .admin-layout { --sidebar-width:238px; } .admin-topbar { gap:16px; } .admin-content { padding-right:24px; padding-left:24px; } }
-@media (max-width:820px) {
+@media (max-width:900px) {
   .admin-sidebar { box-shadow:none; transform:translateX(-102%); transition:transform .2s ease,box-shadow .2s ease; }
   .admin-sidebar.is-open { transform:translateX(0); box-shadow:18px 0 48px rgba(10,20,35,.18); }
   .sidebar-backdrop { display:block; position:fixed; z-index:45; inset:0; border:0; background:rgba(12,18,30,.45); }
