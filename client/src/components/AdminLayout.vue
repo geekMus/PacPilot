@@ -142,7 +142,7 @@ watch(() => route.fullPath, () => {
 .admin-content { width:100%; max-width:1680px; margin:0 auto; padding:25px clamp(20px,3vw,42px) 40px; }
 .mobile-menu-toggle { display:none; }
 .sidebar-backdrop { display:none; }
-@media (max-width:1050px) { .admin-layout { --sidebar-width:238px; } .admin-topbar { gap:16px; } .admin-content { padding-right:24px; padding-left:24px; } }
+@media (max-width:1050px) { .admin-layout { --sidebar-width:238px; } .admin-topbar { gap:16px; } .admin-topbar :deep(.monitor-top-updated) { display:none; } .admin-content { padding-right:24px; padding-left:24px; } }
 @media (max-width:900px) {
   .admin-sidebar { box-shadow:none; transform:translateX(-102%); transition:transform .2s ease,box-shadow .2s ease; }
   .admin-sidebar.is-open { transform:translateX(0); box-shadow:18px 0 48px rgba(10,20,35,.18); }
