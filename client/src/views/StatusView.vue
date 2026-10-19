@@ -264,7 +264,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
             />
             <button type="submit" class="action-button primary" :disabled="!domainInput.trim()">判断路由</button>
           </form>
-          <p class="domain-check-note">此工具仅根据 PAC 中可识别的规则摘要进行估算，不查询 DNS，也不会执行 PAC 脚本。部分复杂规则或代理客户端行为可能无法完整反映；本机名称、无点主机名及私有或回环 IPv4 按本项目的本地直连规则处理。</p>
+          <p class="domain-check-note">此工具仅根据 PAC 中可识别的规则摘要进行估算，不查询 DNS，也不会执行 PAC 脚本。部分复杂规则或代理客户端行为可能无法完整反映；localhost、无点号主机名及 IPv4 回环 / RFC 1918 私网地址按本项目的直连规则处理。</p>
           <div v-if="domainRoute" class="domain-check-result" :class="'result-' + domainRoute.kind" role="status" aria-live="polite">
             <span class="result-mark" aria-hidden="true">
               {{ domainRoute.kind === "direct" ? "✓" : domainRoute.kind === "proxy" ? "↗" : domainRoute.kind === "blocked" ? "×" : "!" }}
@@ -326,7 +326,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               </div>
             </template>
             <template v-else>
-              <p class="rule-description">红色来源标签代表自定义黑名单；本地、回环及私网直连规则优先。</p>
+              <p class="rule-description">红色来源标签代表自定义黑名单；localhost、无点号主机名及 IPv4 回环 / RFC 1918 私网直连规则优先。</p>
               <RuleVirtualList :items="blockEntries" empty-text="没有配置黑名单。" :height="300" />
             </template>
           </div>
