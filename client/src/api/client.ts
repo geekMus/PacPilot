@@ -119,7 +119,7 @@ export interface StorageSummary {
   dbBytes: number;
   logBytes: number;
   retentionDays: number;
-  counts: { generationLogs: number; accessEvents: number; proxyProbeRuns: number; workflows: number };
+  counts: { generationLogs: number; accessEvents: number; proxyProbeRuns: number; workflows: number; activeWorkflows: number };
   pacFiles: { proxyPac: PacFileStatus; proxySourcePac: PacFileStatus };
 }
 export interface GenpacProbe {
