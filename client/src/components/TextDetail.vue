@@ -123,6 +123,7 @@ async function copyContent(): Promise<void> {
 }
 
 .text-detail-dialog {
+  box-sizing: border-box;
   position: fixed;
   width: min(680px, calc(100vw - 28px));
   max-width: none;
