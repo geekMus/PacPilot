@@ -575,6 +575,9 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
   .rule-tabs button { gap:4px; padding:0 4px; font-size:11px; }
   .rule-tabs button strong { min-width:20px; min-height:20px; padding:0 4px; }
   .domain-check-form { grid-template-columns:minmax(0,1fr); }
-  .domain-check-form button { width:100%; }
+  .domain-check-form input { min-height:44px; font-size:16px; }
+  .domain-check-form button { width:100%; min-height:44px; }
+  .action-button { min-height:42px; }
+  .source-actions a,.source-actions button { min-height:36px; padding-right:8px; padding-left:8px; }
 }
 </style>
