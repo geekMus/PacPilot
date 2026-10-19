@@ -208,8 +208,15 @@ const channelStatusText = computed(() => {
   border-radius: 8px; padding: 0 12px; min-height: 36px;
   background: var(--surface); color: var(--text); font-size: 11px; font-weight: 700; cursor: pointer;
 }
-.test-button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
-.test-button:disabled { opacity: .55; cursor: wait; }
+.test-button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background:var(--surface-2); }
+.test-button:active:not(:disabled) { border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
+.test-button:disabled {
+  opacity:1;
+  color:var(--control-disabled-text);
+  background:var(--control-disabled-bg);
+  border-color:var(--control-disabled-border);
+  cursor:not-allowed;
+}
 .provider-picker {
   box-sizing: border-box; margin: 0; padding: 12px; border: 1px solid var(--line);
   border-radius: 9px; background: var(--surface);
