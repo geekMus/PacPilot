@@ -61,11 +61,16 @@ const visiblePoints = computed<TrendBucket[]>(() => {
     source.length,
     Math.max(Math.min(source.length, 6), Math.floor((width + gap) / (targetBarWidth + gap))),
   );
-  const bucketSize = Math.max(1, Math.ceil(source.length / targetCount));
   const buckets: TrendBucket[] = [];
 
-  for (let index = 0; index < source.length; index += bucketSize) {
-    const batch = source.slice(index, index + bucketSize);
+  // Distribute samples evenly across the requested number of bars. Using a
+  // fixed bucket size can unexpectedly halve the bar count at certain widths.
+  for (let bucketIndex = 0; bucketIndex < targetCount; bucketIndex += 1) {
+    const startIndex = Math.floor(bucketIndex * source.length / targetCount);
+    const endIndex = Math.floor((bucketIndex + 1) * source.length / targetCount);
+    const batch = source.slice(startIndex, endIndex);
+    if (!batch.length) continue;
+
     const first = batch[0];
     const last = batch[batch.length - 1];
     buckets.push({
