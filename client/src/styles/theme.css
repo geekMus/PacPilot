@@ -12,8 +12,8 @@
   --accent-contrast: #ffffff;
   --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
   --control-disabled-bg: #e9edf3;
-  --control-disabled-text: #6b7a90;
-  --control-disabled-border: #d8dee8;
+  --control-disabled-text: #596579;
+  --control-disabled-border: #c7cfdb;
   --green: #1a9f6e;
   --green-soft: color-mix(in srgb, var(--green) 12%, transparent);
   --red: #d44a5c;
@@ -54,8 +54,8 @@ html.theme-dark {
   --accent-active: #a2b4ff;
   --accent-contrast: #0e1218;
   --control-disabled-bg: #242c39;
-  --control-disabled-text: #7f8ba0;
-  --control-disabled-border: #333d4c;
+  --control-disabled-text: #a1aec0;
+  --control-disabled-border: #404b5b;
   --green: #4ecf9a;
   --red: #f08a98;
   --warn: #e0b35a;
