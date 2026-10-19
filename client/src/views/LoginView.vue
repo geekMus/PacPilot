@@ -90,6 +90,16 @@ async function onSubmit() {
 .login-card label { display:block; margin-bottom:7px; font-size:12px; font-weight:650; }
 .login-card input { box-sizing:border-box; width:100%; min-height:44px; margin-bottom:13px; padding:10px 12px; border:1px solid var(--line); border-radius:9px; color:var(--text); background:var(--bg); }
 .login-card input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+.login-card input:disabled {
+  color:var(--control-disabled-text);
+  -webkit-text-fill-color:var(--control-disabled-text);
+  background:var(--control-disabled-bg);
+  border-color:var(--control-disabled-border);
+  box-shadow:none;
+  cursor:not-allowed;
+  opacity:1;
+}
+.login-card input:disabled::placeholder { color:var(--control-disabled-text); opacity:1; }
 .login-submit { display:flex; align-items:center; justify-content:space-between; width:100%; min-height:44px; padding:0 14px; border:1px solid var(--accent); border-radius:9px; background:var(--accent); color:var(--accent-contrast); font-size:13px; font-weight:650; cursor:pointer; }
 .login-submit:hover:not(:disabled) { background:var(--accent-hover); border-color:var(--accent-hover); color:var(--accent-contrast); }
 .login-submit:active:not(:disabled) { background:var(--accent-active); border-color:var(--accent-active); color:var(--accent-contrast); }
