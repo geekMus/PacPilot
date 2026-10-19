@@ -44,7 +44,13 @@ const isOpen = ref(false);
   flex: 1 1 auto;
   appearance: none;
   -webkit-appearance: none;
-  padding-right: 36px;
+  padding: 9px 36px 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background-color: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
   background-image: none;
   cursor: pointer;
 }
