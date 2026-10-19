@@ -145,6 +145,7 @@ watch(() => route.fullPath, () => {
 .sidebar-link { display:flex; align-items:center; gap:12px; min-height:42px; margin:3px 0; padding:0 11px; border:1px solid transparent; border-radius:10px; color:var(--muted); text-decoration:none; font-size:12px; font-weight:650; transition:background .15s,border-color .15s,color .15s; }
 .sidebar-link :deep(.app-icon) { flex:0 0 18px; }
 .sidebar-link:hover { color:var(--text); background:var(--surface-2); text-decoration:none; }
+.sidebar-link:active:not(.active) { color:var(--accent); background:var(--accent-soft); border-color:color-mix(in srgb,var(--accent) 24%,var(--line)); }
 .sidebar-link.active { color:var(--accent); background:var(--accent-soft); border-color:color-mix(in srgb,var(--accent) 22%,var(--line)); box-shadow:inset 3px 0 0 var(--accent); }
 .external-mark { margin-left:auto; opacity:.65; font-size:13px; }
 .sidebar-bottom { padding:14px 10px 0; border-top:1px solid var(--line); }
