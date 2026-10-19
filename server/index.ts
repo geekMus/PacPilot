@@ -4,6 +4,7 @@ import { createApp } from "./app";
 import { generatePac } from "./services/pac-generator";
 import { reschedule, stopScheduler } from "./services/scheduler";
 import { ensureAdminAuth } from "./services/admin-credentials";
+import { trackTcpConnection } from "./services/request-monitor";
 
 async function main(): Promise<void> {
   const env = loadEnv();
@@ -36,6 +37,8 @@ async function main(): Promise<void> {
     console.log(`[boot] status -> ${local}/`);
     console.log(`[boot] admin  -> ${local}/admin`);
   });
+
+  server.on("connection", trackTcpConnection);
 
   server.on("error", (err: NodeJS.ErrnoException) => {
     if (err.code === "EADDRINUSE") {

@@ -4,16 +4,21 @@
   --surface: #ffffff;
   --surface-2: #f0f3f7;
   --text: #1a2332;
-  --muted: #6b7a90;
+  --muted: #5f6d82;
   --line: #e4e9f0;
   --accent: #3556d8;
+  --accent-hover: #2b46c4;
+  --accent-active: #2139aa;
   --accent-contrast: #ffffff;
   --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
-  --green: #1a9f6e;
+  --control-disabled-bg: #e9edf3;
+  --control-disabled-text: #596579;
+  --control-disabled-border: #c7cfdb;
+  --green: #056b43;
   --green-soft: color-mix(in srgb, var(--green) 12%, transparent);
-  --red: #d44a5c;
+  --red: #b4233a;
   --red-soft: color-mix(in srgb, var(--red) 12%, transparent);
-  --warn: #c48a1a;
+  --warn: #805300;
   --warn-soft: color-mix(in srgb, var(--warn) 14%, transparent);
   --shadow: 0 1px 2px rgba(26, 35, 50, 0.04), 0 8px 24px rgba(26, 35, 50, 0.05);
   --radius: 14px;
@@ -45,7 +50,12 @@ html.theme-dark {
   --muted: #93a0b4;
   --line: #2a3342;
   --accent: #7b95ff;
+  --accent-hover: #8fa5ff;
+  --accent-active: #a2b4ff;
   --accent-contrast: #0e1218;
+  --control-disabled-bg: #242c39;
+  --control-disabled-text: #a1aec0;
+  --control-disabled-border: #404b5b;
   --green: #4ecf9a;
   --red: #f08a98;
   --warn: #e0b35a;
@@ -60,6 +70,20 @@ html.theme-dark {
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* 移除移动浏览器点击元素时默认出现的蓝色/半透明点击闪烁。 */
+  -webkit-tap-highlight-color: transparent;
+}
+
+a,
+button,
+input,
+textarea,
+select,
+summary,
+[role="tab"],
+[role="button"],
+[tabindex] {
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -95,11 +119,38 @@ select {
   outline-offset: 2px;
 }
 
-button:disabled,
-input:disabled,
-textarea:disabled,
-select:disabled {
+/* 原生禁用控件采用主题感知的背景、文字和边框；保持可辨识，不只依赖透明度。 */
+:root :is(input, textarea, select):disabled {
+  color: var(--control-disabled-text);
+  -webkit-text-fill-color: var(--control-disabled-text);
+  background-color: var(--control-disabled-bg);
+  border-color: var(--control-disabled-border);
   cursor: not-allowed;
+  opacity: 1;
+  box-shadow: none;
+}
+
+/* 所有真正禁用的按钮都使用统一的禁用配色，而不只是改变鼠标光标。 */
+:root :is(button, [role="button"], [role="tab"], summary):disabled {
+  color: var(--control-disabled-text);
+  -webkit-text-fill-color: var(--control-disabled-text);
+  background-color: var(--control-disabled-bg);
+  border-color: var(--control-disabled-border);
+  opacity: 1;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+  filter: none;
+}
+
+:root :is(input, textarea, select):disabled::placeholder {
+  color: var(--control-disabled-text);
+  opacity: 1;
+}
+
+/* 桌面点击与触屏按下都提供轻微反馈；颜色仍由组件的主题状态决定。 */
+:where(button, a, [role="button"], [role="tab"], summary):active {
+  transform: translateY(1px);
 }
 
 code {
@@ -179,12 +230,23 @@ code {
   color: var(--accent-contrast);
 }
 
-.nav-btn.primary:hover,
-.nav-btn.primary:active {
-  background: color-mix(in srgb, var(--accent) 90%, var(--text));
-  border-color: color-mix(in srgb, var(--accent) 90%, var(--text));
+.nav-btn.primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
   color: var(--accent-contrast);
   filter: none;
+}
+
+.nav-btn.primary:active {
+  background: var(--accent-active);
+  border-color: var(--accent-active);
+  color: var(--accent-contrast);
+}
+
+.nav-btn:not(.primary):active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .nav-btn.ghost {

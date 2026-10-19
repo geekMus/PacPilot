@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { isIP } from "node:net";
 import type { AppDatabase } from "../db/sqlite";
 import type { AppSettings } from "../db/settings";
 import { appendGenerationLog, getSettings } from "../db/sqlite";
@@ -22,10 +23,65 @@ export interface EngineProbe {
   engine: string;
   detail: string;
 }
+/**
+ * 校验 PAC 返回值中的代理指令，避免把格式错误的字符串写入最终 PAC。
+ * 每个代理项以分号分隔；代理地址必须包含有效端口。
+ */
+export function validatePacProxyString(value: string): string | null {
+  const raw = value.trim();
+  if (!raw) return "请填写 PAC 代理字符串。";
+
+  const entries = raw.split(";").map((entry) => entry.trim());
+  // 允许最后一个代理项后面带分号，但不允许中间出现空项。
+  while (entries.length > 0 && entries[entries.length - 1] === "") entries.pop();
+  if (entries.length === 0 || entries.some((entry) => !entry)) {
+    return "代理项之间请使用分号分隔，不能包含空代理项。";
+  }
+
+  const hostnamePattern = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*\.?$/i;
+
+  for (const [index, entry] of entries.entries()) {
+    if (/^DIRECT$/i.test(entry)) continue;
+
+    const match = entry.match(/^(PROXY|HTTP|HTTPS|SOCKS|SOCKS4|SOCKS5)\s+(\S+)$/i);
+    if (!match) {
+      return "第 " + (index + 1) + " 项“" + entry + "”格式无效。请使用 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 或 DIRECT 指令。";
+    }
+
+    const endpoint = match[2];
+    const endpointMatch = endpoint.match(/^(?:\[([^\]]+)\]|([^:\[\]\s]+)):(\d{1,5})$/);
+    if (!endpointMatch) {
+      return "第 " + (index + 1) + " 项代理地址格式无效，请使用 host:port；IPv6 地址请写成 [IPv6]:port。";
+    }
+
+    const host = endpointMatch[1] ?? endpointMatch[2] ?? "";
+    const port = Number(endpointMatch[3]);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      return "第 " + (index + 1) + " 项端口无效，端口范围必须是 1–65535。";
+    }
+
+    if (endpointMatch[1]) {
+      if (isIP(host) !== 6) {
+        return "第 " + (index + 1) + " 项的 IPv6 地址无效。";
+      }
+    } else {
+      const looksLikeIpv4 = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host);
+      const validHost = host.length <= 253 &&
+        (looksLikeIpv4 ? isIP(host) === 4 : hostnamePattern.test(host));
+      if (!validHost) {
+        return "第 " + (index + 1) + " 项的代理主机名或 IP 地址无效。";
+      }
+    }
+  }
+
+  return null;
+}
+
 
 function withPacVersionHeader(content: string): string {
-  const body = content.replace(/^\/\/ genpac-runner version:.*(?:\r?\n|$)/i, "");
-  return `// genpac-runner version: ${APP_VERSION}\n${body.replace(/^\n+/, "")}`;
+  // 兼容旧版英文头部，读写时统一为中文版本标记。
+  const body = content.replace(/^\/\/ genpac-runner (?:version:|版本[:：]).*(?:\r?\n|$)/i, "");
+  return "// genpac-runner 版本：" + APP_VERSION + "\n" + body.replace(/^\n+/, "");
 }
 
 function toJsArray(list: string[]): string {
@@ -36,10 +92,12 @@ function buildCustomPac(settings: AppSettings): string {
   const blockJs = toJsArray(settings.blockList);
   const directJs = toJsArray(settings.directList);
 
-  return `// User defined PAC (custom mode)
+  return `// genpac-runner 生成的 PAC（自定义规则模式）
+// 本机和内网地址优先直连；黑名单优先于自定义直连，其余请求使用默认代理
 function isMatch(host, list) {
+    host = String(host).toLowerCase();
     for (var i = 0; i < list.length; i++) {
-        var rule = list[i];
+        var rule = String(list[i]).toLowerCase();
         if (rule.indexOf('*') !== -1) {
             if (shExpMatch(host, rule)) return true;
         } else {
@@ -49,8 +107,10 @@ function isMatch(host, list) {
     return false;
 }
 
+// 自定义黑名单与直连规则
 var BLOCK_LIST  = [${blockJs}];
 var DIRECT_LIST = [${directJs}];
+// 默认代理策略（多个代理选项使用分号分隔）
 var PAC_PROXY   = ${JSON.stringify(settings.pacProxy)};
 
 function FindProxyForURL(url, host) {
@@ -102,7 +162,12 @@ async function runRemoteMode(
     settings.pacCompress
   );
   fs.writeFileSync(outFile, withPacVersionHeader(pac), "utf8");
-  return `SUCCESS (remote list, format=${parsed.format}, proxy=${parsed.proxyHosts.length}, direct=${parsed.directHosts.length})`;
+  const formatLabel = parsed.format === "gfwlist-base64"
+    ? "GFWList（Base64）"
+    : parsed.format === "abp"
+      ? "AutoProxy / ABP"
+      : "明文域名列表";
+  return `生成成功（远程规则：${formatLabel}，代理域名 ${parsed.proxyHosts.length} 条，例外直连 ${parsed.directHosts.length} 条）`;
 }
 
 export async function generatePac(
@@ -114,23 +179,26 @@ export async function generatePac(
   fs.mkdirSync(dataDir, { recursive: true });
 
   try {
+    const proxyError = validatePacProxyString(settings.pacProxy);
+    if (proxyError) throw new Error(proxyError);
+
     let message: string;
     if (settings.mode === "remote") {
       message = await runRemoteMode(settings, pacPath);
     } else {
       fs.writeFileSync(pacPath, withPacVersionHeader(buildCustomPac(settings)), "utf8");
-      message = "SUCCESS (custom rules mode)";
+      message = "生成成功（自定义规则模式）";
     }
 
     appendGenerationLog(database, true, settings.mode, message);
     await notifySuccess(settings);
-    console.log(`[pac] ${message} -> ${pacPath}`);
+    console.log(`[PAC] ${message}，文件：${pacPath}`);
     return { success: true, mode: settings.mode, message, pacPath };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     appendGenerationLog(database, false, settings.mode, message);
     await notifyFailure(settings, message);
-    console.error(`[pac] FAILED: ${message}`);
+    console.error(`[PAC] 生成失败：${message}`);
     return { success: false, mode: settings.mode, message, pacPath };
   }
 }

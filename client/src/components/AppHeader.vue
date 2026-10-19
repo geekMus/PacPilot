@@ -1,17 +1,14 @@
 <script setup lang="ts">
 import ThemeSwitcher from "./ThemeSwitcher.vue";
+import AppIcon from "./AppIcon.vue";
 
-defineProps<{ brand?: string; sub?: string }>();
+defineProps<{ brand?: string; sub?: string; homeTo?: string }>();
 </script>
 
 <template>
   <header class="topbar">
-    <RouterLink class="brand" to="/" aria-label="genpac-runner 运行概览">
-      <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="8.5"/><path d="M3.8 9h16.4M3.8 15h16.4M12 3.5a13 13 0 0 1 0 17M12 3.5a13 13 0 0 0 0 17"/>
-        </svg>
-      </span>
+    <RouterLink class="brand" :to="homeTo || '/'" aria-label="genpac-runner 首页">
+      <span class="brand-mark" aria-hidden="true"><AppIcon name="network" :size="18" :stroke-width="1.8" /></span>
       <span class="brand-copy">
         <span class="name">{{ brand || "genpac-runner" }}</span>
         <small v-if="sub">{{ sub }}</small>
@@ -27,21 +24,32 @@ defineProps<{ brand?: string; sub?: string }>();
 <style scoped>
 .topbar { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:var(--space-5); }
 .brand { display:flex; align-items:center; gap:10px; color:var(--text); text-decoration:none; flex:0 0 auto; }
-.brand-mark { display:grid; place-items:center; width:36px; height:36px; border:1px solid var(--line); border-radius:11px; background:var(--surface); color:var(--accent); }
+.brand-mark { display:grid; place-items:center; width:36px; height:36px; border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line)); border-radius:11px; background:var(--accent-soft); color:var(--accent); box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 3px 9px color-mix(in srgb,var(--accent) 8%,transparent); }
 .brand-copy .name { display:block; font-size:14px; font-weight:750; letter-spacing:-.02em; }
 .brand-copy small { display:block; margin-top:1px; color:var(--muted); font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
-.header-tools { display:flex; align-items:center; justify-content:flex-end; gap:12px; min-width:0; }
-.nav { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:7px; }
-.nav :deep(a),.nav :deep(button.linkish) { display:inline-flex; align-items:center; justify-content:center; min-height:35px; padding:0 12px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--text); font-size:12px; font-weight:650; text-decoration:none; white-space:nowrap; cursor:pointer; }
+.header-tools { display:flex; align-items:center; justify-content:flex-end; gap:10px; min-width:0; }
+.nav { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:6px; }
+.nav :deep(a),.nav :deep(button.linkish) { display:inline-flex; align-items:center; justify-content:center; min-height:36px; padding:0 12px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--text); font-size:12px; font-weight:650; text-decoration:none; white-space:nowrap; cursor:pointer; }
 .nav :deep(a:hover),.nav :deep(button.linkish:hover) { border-color:color-mix(in srgb,var(--accent) 40%,var(--line)); color:var(--accent); }
 .nav :deep(a.primary) { background:var(--accent); border-color:var(--accent); color:var(--accent-contrast); }
-.nav :deep(a.primary:hover),
-.nav :deep(a.primary:active) {
-  background:color-mix(in srgb,var(--accent) 90%,var(--text));
-  border-color:color-mix(in srgb,var(--accent) 90%,var(--text));
+.nav :deep(a.primary:hover) {
+  background:var(--accent-hover);
+  border-color:var(--accent-hover);
   color:var(--accent-contrast);
   filter:none;
+  text-decoration:none;
 }
-@media(max-width:720px) { .topbar { align-items:flex-start; flex-direction:column; gap:14px; } .header-tools { width:100%; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; } .nav { justify-content:flex-start; } }
-@media(max-width:400px) { .header-tools { flex-direction:column; } }
+.nav :deep(a.primary:active) {
+  background:var(--accent-active);
+  border-color:var(--accent-active);
+  color:var(--accent-contrast);
+}
+.nav :deep(a:not(.primary):active),.nav :deep(button.linkish:active) {
+  background:var(--accent-soft);
+  border-color:var(--accent);
+  color:var(--accent);
+  text-decoration:none;
+}
+@media(max-width:720px) { .topbar { align-items:flex-start; flex-direction:column; gap:12px; } .header-tools { width:100%; justify-content:space-between; align-items:center; flex-wrap:wrap; } .nav { justify-content:flex-start; } }
+@media(max-width:400px) { .nav :deep(a),.nav :deep(button.linkish) { min-height:36px; padding:0 9px; font-size:11px; } }
 </style>

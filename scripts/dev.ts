@@ -24,11 +24,9 @@ const env: Record<string, string | undefined> = {
 console.log(
   `[dev] profile=development DATA_DIR=${env.DATA_DIR} PORT=${env.PORT}`
 );
-if (!env.ADMIN_PASSWORD) {
-  console.log(
-    "[dev] 提示: 未设置 ADMIN_PASSWORD，后台 /admin 不会启用。请在开发环境 .env 中配置，或设置同名环境变量。"
-  );
-}
+console.log(
+  "[dev] 管理后台凭据保存在 DATA_DIR 指向的 SQLite 数据库中；新数据库初始密码为 password。"
+);
 
 const server = Bun.spawn(["bun", "--hot", "server/index.ts"], {
   stdout: "inherit",

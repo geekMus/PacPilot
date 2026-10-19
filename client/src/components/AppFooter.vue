@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import packageJson from "../../../package.json";
 import { api, type UpdateInfo } from "../api/client";
+import AppIcon from "./AppIcon.vue";
 const projectUrl = "https://github.com/geekMus/genpac-runner";
 const currentVersion = ref(String(packageJson.version));
 const updateInfo = ref<UpdateInfo | null>(null);
@@ -39,11 +40,10 @@ onMounted(() => { void loadVersionInfo(true); });
         <span>v{{ currentVersion }}</span><span v-if="hasUpdate" class="new-badge">New</span>
       </button>
     </div>
-    <p class="footer-caption">genpac-runner · 项目与版本信息</p>
     <Transition name="version-dialog">
       <div v-if="dialogOpen" class="dialog-backdrop" @click.self="dialogOpen = false" tabindex="-1">
         <section class="version-dialog" role="dialog" aria-modal="true" aria-labelledby="version-dialog-title">
-          <header class="dialog-header"><div><p class="dialog-kicker">PROJECT INFORMATION</p><h2 id="version-dialog-title">项目与版本</h2></div><button type="button" class="dialog-close" aria-label="关闭弹窗" @click="dialogOpen = false" autofocus>×</button></header>
+          <header class="dialog-header"><h2 id="version-dialog-title">项目与版本</h2><button type="button" class="dialog-close" aria-label="关闭弹窗" @click="dialogOpen = false" autofocus><AppIcon name="x" :size="17" /></button></header>
           <div class="version-grid"><div class="version-item"><span>当前版本</span><strong>v{{ currentVersion }}</strong></div><button type="button" class="version-item latest-version-item" :class="{ 'version-new': hasUpdate }" @click="loadVersionInfo(true)" :disabled="isCheckingVersion" :aria-label="isCheckingVersion ? '正在获取最新版本' : '点击获取最新版本'"><span>最新版本 <small>{{ isCheckingVersion ? "获取中…" : "点击刷新" }}</small></span><strong>{{ latestVersion === "暂时未知" ? latestVersion : "v" + latestVersion }}</strong></button></div>
           <div v-if="hasUpdate" class="dialog-update-note" role="status"><span class="dialog-update-dot"></span><div><strong>发现新版本 {{ updateInfo?.latestVersion }}</strong><p>当前运行版本较旧，可前往项目仓库查看最新代码与更新说明。</p></div></div>
           <p v-else-if="isCheckingVersion" class="dialog-status" role="status">正在获取最新版本…</p>
@@ -58,21 +58,21 @@ onMounted(() => { void loadVersionInfo(true); });
   </footer>
 </template>
 <style scoped>
-.app-footer { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-top:36px; padding:17px 2px 5px; border-top:1px solid var(--line); color:var(--muted); font-size:12px; }
+.app-footer { display:flex; justify-content:flex-start; align-items:center; gap:14px; margin-top:28px; padding:14px 2px 4px; border-top:1px solid var(--line); color:var(--muted); font-size:12px; }
 .footer-project { display:flex; align-items:center; gap:12px; }
 .github-project-link { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:34px; padding:0 11px; border:1px solid var(--line); border-radius:999px; color:var(--text); background:var(--surface); text-decoration:none; font-weight:650; transition:color .15s,border-color .15s,transform .15s; }
-.github-project-link:hover { color:var(--accent); border-color:var(--accent); transform:translateY(-1px); }
+.github-project-link:hover { color:var(--accent); border-color:var(--accent); background:var(--surface-2); transform:translateY(-1px); }
+.github-project-link:active { color:var(--accent); border-color:var(--accent); background:var(--accent-soft); transform:translateY(0); }
 .version-badge { position:relative; display:inline-flex; align-items:center; min-height:31px; padding:0 12px; border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line)); border-radius:999px; background:var(--accent-soft); color:var(--accent); font:inherit; font-size:12px; font-weight:750; font-variant-numeric:tabular-nums; cursor:pointer; transition:transform .15s,box-shadow .15s; }
 .version-badge:hover { transform:translateY(-1px); box-shadow:0 3px 10px rgba(30,64,175,.12); }
-.version-badge.is-update { border-color:#fdba74; background:#fff7ed; color:#c2410c; }
-.new-badge { position:absolute; top:-8px; right:-10px; padding:2px 5px; border:2px solid var(--surface); border-radius:999px; background:#f97316; color:white; font-size:9px; font-weight:800; line-height:1.15; letter-spacing:.02em; }
-.footer-caption { margin:0; text-align:right; color:var(--muted); font-size:11px; }
+.version-badge:active { transform:translateY(0); box-shadow:inset 0 1px 2px rgba(30,40,60,.12); }
+.version-badge.is-update { border-color:color-mix(in srgb,var(--warn) 55%,var(--line)); background:var(--warn-soft); color:var(--text); }
+.new-badge { position:absolute; top:-8px; right:-10px; padding:2px 5px; border:2px solid var(--surface); border-radius:999px; background:var(--warn); color:var(--accent-contrast); font-size:9px; font-weight:800; line-height:1.15; letter-spacing:.02em; }
 .dialog-backdrop { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; overflow-y:auto; padding:20px; background:rgba(15,23,42,.48); backdrop-filter:blur(3px); }
 .version-dialog { width:min(100%,440px); padding:22px; border:1px solid var(--line); border-radius:18px; background:var(--surface); color:var(--text); box-shadow:0 24px 80px rgba(0,0,0,.24); }
 .dialog-header { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:19px; }
-.dialog-kicker { margin:0 0 5px; color:var(--muted); font-size:10px; font-weight:750; letter-spacing:.14em; }
 .dialog-header h2 { margin:0; font-size:20px; letter-spacing:-.02em; }
-.dialog-close { display:grid; place-items:center; width:32px; height:32px; border:1px solid var(--line); border-radius:9px; background:var(--surface-2); color:var(--muted); font-size:22px; cursor:pointer; }
+.dialog-close { display:grid; place-items:center; flex:0 0 32px; width:32px; height:32px; border:1px solid var(--line); border-radius:9px; background:var(--surface-2); color:var(--muted); font-size:22px; cursor:pointer; }
 .version-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 .version-item { display:flex; flex-direction:column; gap:7px; min-width:0; padding:14px; border:1px solid var(--line); border-radius:12px; background:var(--surface-2); }
 .version-item span { color:var(--muted); font-size:11px; }
@@ -81,35 +81,28 @@ onMounted(() => { void loadVersionInfo(true); });
 .latest-version-item:hover:not(:disabled) { border-color:var(--accent); }
 .latest-version-item:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .latest-version-item:disabled {
-  background:var(--surface-2);
-  border-color:var(--line);
-  color:var(--muted);
   cursor:wait;
+  color:var(--control-disabled-text);
+  border-color:var(--control-disabled-border);
+  background:var(--control-disabled-bg);
 }
-.latest-version-item:disabled span,
-.latest-version-item:disabled strong,
-.latest-version-item:disabled small { color:var(--muted); }
 .latest-version-item span small { margin-left:4px; color:var(--accent); font-size:10px; font-weight:650; }
-.version-item.version-new { border-color:#fdba74; background:#fff7ed; color:#9a3412; }
-.dialog-update-note { display:flex; align-items:flex-start; gap:10px; margin-top:15px; padding:12px; border:1px solid #fdba74; border-radius:12px; background:#fff7ed; color:#9a3412; }
-.dialog-update-dot { flex:0 0 8px; width:8px; height:8px; margin-top:5px; border-radius:50%; background:#f97316; }
+.version-item.version-new { border-color:color-mix(in srgb,var(--warn) 55%,var(--line)); background:var(--warn-soft); color:var(--text); }
+.dialog-update-note { display:flex; align-items:flex-start; gap:10px; margin-top:15px; padding:12px; border:1px solid color-mix(in srgb,var(--warn) 55%,var(--line)); border-radius:12px; background:var(--warn-soft); color:var(--text); }
+.dialog-update-dot { flex:0 0 8px; width:8px; height:8px; margin-top:5px; border-radius:50%; background:var(--warn); }
 .dialog-update-note strong { font-size:13px; }
-.dialog-update-note p { margin:4px 0 0; color:#9a3412; font-size:12px; line-height:1.55; }
+.dialog-update-note p { margin:4px 0 0; color:var(--muted); font-size:12px; line-height:1.55; }
 .dialog-status { margin:15px 0 0; color:var(--muted); font-size:12px; line-height:1.55; }
 .dialog-actions { display:flex; flex-wrap:wrap; gap:9px; margin-top:20px; }
 .dialog-project-button,.dialog-secondary-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:39px; padding:0 14px; border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--text); font:inherit; font-size:12px; font-weight:650; text-decoration:none; cursor:pointer; }
 .dialog-project-button { flex:1; background:var(--accent); border-color:var(--accent); color:var(--accent-contrast); }
-.dialog-project-button:hover,
-.dialog-project-button:active {
-  background:color-mix(in srgb,var(--accent) 90%,var(--text));
-  border-color:color-mix(in srgb,var(--accent) 90%,var(--text));
-  color:var(--accent-contrast);
-  filter:none;
-}
+.dialog-project-button:hover { background:var(--accent-hover); border-color:var(--accent-hover); color:var(--accent-contrast); filter:none; }
+.dialog-project-button:active { background:var(--accent-active); border-color:var(--accent-active); color:var(--accent-contrast); }
+.dialog-secondary-button:active { background:var(--accent-soft); color:var(--accent); }
 .dialog-secondary-button:hover { border-color:var(--accent); color:var(--accent); }
 .version-dialog-enter-active,.version-dialog-leave-active { transition:opacity .16s ease,transform .16s ease; }
 .version-dialog-enter-active .version-dialog,.version-dialog-leave-active .version-dialog { transition:transform .16s ease; }
 .version-dialog-enter-from,.version-dialog-leave-to { opacity:0; }
 .version-dialog-enter-from .version-dialog,.version-dialog-leave-to .version-dialog { transform:translateY(7px) scale(.99); }
-@media(max-width:560px) { .app-footer { align-items:flex-start; flex-direction:column; } .footer-caption { text-align:left; } .version-dialog { padding:18px; } }
+@media(max-width:560px) { .app-footer { align-items:flex-start; flex-direction:column; margin-top:22px; padding-top:12px; } .version-dialog { padding:18px; } }
 </style>

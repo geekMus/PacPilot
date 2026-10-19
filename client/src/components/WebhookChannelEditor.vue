@@ -60,8 +60,7 @@ const channelStatusText = computed(() => {
     <div class="channel-head">
       <div class="channel-heading">
         <span class="channel-mark" aria-hidden="true">
-          <svg v-if="kind === 'success'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>
-          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v5m0 4h.01"/><path d="M10.3 3.9 1.8 18.2A2 2 0 0 0 3.5 21h17a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+          <AppIcon :name="kind === 'success' ? 'circle-check' : 'alert-triangle'" :size="18" :stroke-width="1.8" />
         </span>
         <div>
           <h3>{{ title }}</h3>
@@ -69,6 +68,7 @@ const channelStatusText = computed(() => {
         </div>
       </div>
       <button type="button" class="test-button" :disabled="pending" @click="emit('test')">
+        <AppIcon :name="pending ? 'loader-circle' : 'activity'" :class="{ 'icon-spinning': pending }" :size="14" />
         {{ pending ? "发送中…" : "发送测试" }}
       </button>
     </div>
@@ -138,7 +138,8 @@ const channelStatusText = computed(() => {
           <input :value="config.dingTalkSecret" :type="showDingTalkSecret ? 'text' : 'password'"
             autocomplete="new-password" placeholder="SEC 开头的密钥"
             @input="update('dingTalkSecret', inputValue($event))" />
-          <button type="button" class="reveal-button" @click="showDingTalkSecret = !showDingTalkSecret">
+          <button type="button" class="reveal-button" :aria-label="showDingTalkSecret ? '隐藏 Secret' : '显示 Secret'" :aria-pressed="showDingTalkSecret" @click="showDingTalkSecret = !showDingTalkSecret">
+            <AppIcon :name="showDingTalkSecret ? 'eye-off' : 'eye'" :size="14" />
             {{ showDingTalkSecret ? "隐藏" : "显示" }}
           </button>
         </div>
@@ -178,7 +179,7 @@ const channelStatusText = computed(() => {
       <span class="timeout-note">请求超时：10 秒</span>
     </div>
     <p v-if="resultMessage" class="test-result" :class="resultOk ? 'success' : 'failure'" role="status" aria-live="polite">
-      <span aria-hidden="true">{{ resultOk ? "✓" : "!" }}</span>{{ resultMessage }}
+      <AppIcon :name="resultOk ? 'circle-check' : 'circle-alert'" :size="15" />{{ resultMessage }}
     </p>
   </section>
 </template>
@@ -200,21 +201,26 @@ const channelStatusText = computed(() => {
   display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 auto;
   border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--muted);
 }
-.channel-mark svg { width: 17px; height: 17px; }
+.channel-mark :deep(.app-icon) { width: 18px; height: 18px; }
+.channel-success .channel-mark { color:var(--green); background:var(--green-soft); border-color:color-mix(in srgb,var(--green) 22%,var(--line)); }
+.channel-failure .channel-mark { color:var(--red); background:var(--red-soft); border-color:color-mix(in srgb,var(--red) 22%,var(--line)); }
 .channel-heading h3 { margin: 0; font-size: 13px; font-weight: 750; }
 .channel-heading p { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
 .test-button {
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
   box-sizing: border-box; flex: 0 0 auto; appearance: none; border: 1px solid var(--line);
   border-radius: 8px; padding: 0 12px; min-height: 36px;
   background: var(--surface); color: var(--text); font-size: 11px; font-weight: 700; cursor: pointer;
+  transition:background .15s,border-color .15s,color .15s;
 }
-.test-button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.test-button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background:var(--surface-2); }
+.test-button:active:not(:disabled) { border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
 .test-button:disabled {
-  background:var(--surface-2);
-  border-color:var(--line);
-  color:var(--muted);
   opacity:1;
-  cursor:wait;
+  color:var(--control-disabled-text);
+  background:var(--control-disabled-bg);
+  border-color:var(--control-disabled-border);
+  cursor:not-allowed;
 }
 .provider-picker {
   box-sizing: border-box; margin: 0; padding: 12px; border: 1px solid var(--line);
@@ -254,10 +260,14 @@ const channelStatusText = computed(() => {
   outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .reveal-button {
-  box-sizing: border-box; flex: 0 0 auto; min-width: 54px; border: 1px solid var(--line);
-  border-radius: 8px; padding: 0 10px; background: var(--surface); color: var(--muted);
-  font-size: 11px; cursor: pointer;
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  box-sizing: border-box; flex: 0 0 auto; min-width: 66px; min-height:40px; border: 1px solid var(--line);
+  border-radius: 8px; padding: 0 10px; background: var(--surface); color: var(--text);
+  font-size: 11px; cursor: pointer; transition:background .15s,border-color .15s,color .15s;
 }
+.reveal-button:hover:not(:disabled) { border-color:var(--accent); background:var(--surface-2); color:var(--accent); }
+.reveal-button:active:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); color:var(--accent); }
+.reveal-button:disabled { color:var(--control-disabled-text); background:var(--control-disabled-bg); border-color:var(--control-disabled-border); cursor:not-allowed; }
 .segmented {
   display: inline-flex; align-self: flex-start; gap: 3px; padding: 3px;
   border: 1px solid var(--line); border-radius: 9px; background: var(--bg);
@@ -266,7 +276,12 @@ const channelStatusText = computed(() => {
   min-height: 32px; border: 0; border-radius: 6px; background: transparent; color: var(--muted);
   padding: 0 12px; font-size: 11px; cursor: pointer;
 }
+.segmented button:hover:not(:disabled) { color:var(--text); background:var(--surface-2); }
+.segmented button:active:not(:disabled) { color:var(--accent); background:var(--accent-soft); }
 .segmented button.active { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.segmented button:disabled { color:var(--control-disabled-text); background:var(--control-disabled-bg); cursor:not-allowed; }
+.icon-spinning { animation: webhook-icon-spin .9s linear infinite; }
+@keyframes webhook-icon-spin { to { transform: rotate(360deg); } }
 .channel-footer {
   display: flex; align-items: center; gap: 7px; margin-top: auto; padding-top: 12px;
   border-top: 1px solid var(--line); color: var(--muted); font-size: 10px;

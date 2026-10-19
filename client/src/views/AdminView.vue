@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, computed } from "vue";
-import { useRouter } from "vue-router";
+import { onMounted, reactive, ref, computed, nextTick, watch } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import {
   api,
   type AppSettings,
@@ -8,15 +8,18 @@ import {
   type GenpacProbe,
   type WebhookConfig,
 } from "../api/client";
-import AppHeader from "../components/AppHeader.vue";
+import AdminLayout from "../components/AdminLayout.vue";
+import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
 import DomainListEditor from "../components/DomainListEditor.vue";
 import WebhookChannelEditor from "../components/WebhookChannelEditor.vue";
+import TextDetail from "../components/TextDetail.vue";
 import cronstrue from "cronstrue";
 import { CronExpressionParser } from "cron-parser";
 import "cronstrue/locales/zh_CN";
 
 const router = useRouter();
+const route = useRoute();
 const loading = ref(true);
 const saving = ref(false);
 const flash = ref("");
@@ -39,7 +42,6 @@ const form = reactive({
   mode: "custom" as "custom" | "remote",
   pacProxy: "",
   pacCompress: true,
-  pacPrecise: false,
   listUrl: "",
   directListText: "",
   blockListText: "",
@@ -124,6 +126,17 @@ function openMobileTimezonePicker() {
   timezoneQuery.value = "";
   mobileTimezoneOpen.value = true;
 }
+
+async function scrollToCurrentSection(): Promise<void> {
+  await nextTick();
+  const hash = route.hash;
+  if (!hash || !/^#[a-z-]+$/.test(hash)) return;
+  document.querySelector(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+watch(() => route.hash, (hash) => {
+  if (hash) void scrollToCurrentSection();
+});
 
 const modeHint = computed(() =>
   form.mode === "custom"
@@ -258,7 +271,6 @@ function applySettings(s: AppSettings) {
   form.mode = s.mode;
   form.pacProxy = s.pacProxy;
   form.pacCompress = s.pacCompress;
-  form.pacPrecise = s.pacPrecise;
   form.listUrl = s.listUrl;
   form.directListText = s.directList.join("\n");
   form.blockListText = s.blockList.join("\n");
@@ -282,7 +294,6 @@ function toPayload(): AppSettings {
     mode: form.mode,
     pacProxy: form.pacProxy,
     pacCompress: form.pacCompress,
-    pacPrecise: form.pacPrecise,
     listUrl: form.listUrl,
     directList: split(form.directListText),
     blockList: split(form.blockListText),
@@ -332,6 +343,8 @@ async function load() {
     }
   } finally {
     loading.value = false;
+    await nextTick();
+    if (route.hash) void scrollToCurrentSection();
   }
 }
 
@@ -430,32 +443,24 @@ async function logout() {
 </script>
 
 <template>
-  <main class="page admin-page">
-    <AppHeader brand="genpac-runner" sub="控制台">
-      <RouterLink to="/">运行概览</RouterLink>
-      <button type="button" class="linkish" @click="logout">退出</button>
-    </AppHeader>
-
-    <section class="page-hero">
-      <div class="page-kicker">控制台</div>
-      <h1 class="page-title">配置管理</h1>
-      <p class="page-intro">
-        参数保存在本地数据库，保存后可立即重新生成 PAC。
-      </p>
-    </section>
+  <AdminLayout active="settings" title="配置管理" subtitle="管理 PAC 生成方式、代理规则、定时任务与通知渠道。">
+    <template #actions>
+      <button type="button" class="admin-logout-button" @click="logout">退出登录</button>
+    </template>
+    <div class="admin-page">
 
     <p v-if="loading" class="state-msg">加载中…</p>
     <div v-if="flash" class="banner" :class="flashOk ? 'ok' : 'bad'">
-      <span class="banner-icon" aria-hidden="true">{{ flashOk ? "✓" : "!" }}</span>
+      <span class="banner-icon" aria-hidden="true"><AppIcon :name="flashOk ? 'circle-check' : 'circle-alert'" :size="15" /></span>
       <pre class="banner-text">{{ flash }}</pre>
     </div>
     <div v-if="error" class="banner bad">
-      <span class="banner-icon" aria-hidden="true">!</span>
+      <span class="banner-icon" aria-hidden="true"><AppIcon name="circle-alert" :size="15" /></span>
       <pre class="banner-text">{{ error }}</pre>
     </div>
 
     <template v-if="!loading && !error">
-      <section class="card security-card">
+      <section id="security" class="card security-card">
         <div class="card-head">
           <div>
             <h2>管理密码</h2>
@@ -494,10 +499,10 @@ async function logout() {
 
       <form v-if="!securityStatus.mustChangePassword" class="stack" @submit.prevent="saveAndGenerate">
         <!-- 常规设置 -->
-        <section class="card">
+        <section id="general" class="card">
           <div class="card-head">
             <div class="card-title">
-              <span class="icon-badge" aria-hidden="true">◷</span>
+              <span class="icon-badge" aria-hidden="true"><AppIcon name="calendar-clock" :size="18" /></span>
               <div>
                 <h2>常规设置</h2>
                 <p class="card-sub">常规选项保存在数据库中，不需要编辑 Docker 环境变量。</p>
@@ -524,7 +529,7 @@ async function logout() {
             </div>
             <button type="button" class="mobile-timezone-trigger" @click="openMobileTimezonePicker">
               <span>{{ form.timezone || "选择时区" }}</span>
-              <span class="mobile-timezone-trigger-icon" aria-hidden="true">⌄</span>
+              <span class="mobile-timezone-trigger-icon" aria-hidden="true"><AppIcon name="chevron-down" :size="17" /></span>
             </button>
             <p class="field-hint">可按地区名称或 IANA 时区代码搜索，也可直接输入有效的时区代码。该设置统一用于定时任务、运行记录和 Webhook 通知的时间显示。</p>
           </div>
@@ -533,7 +538,7 @@ async function logout() {
             <section class="timezone-sheet" role="dialog" aria-modal="true" aria-labelledby="mobile-timezone-title" @keydown.esc="mobileTimezoneOpen = false">
               <header class="timezone-sheet-head">
                 <h3 id="mobile-timezone-title">选择时区</h3>
-                <button type="button" class="timezone-sheet-close" aria-label="关闭时区选择" @click="mobileTimezoneOpen = false">×</button>
+                <button type="button" class="timezone-sheet-close" aria-label="关闭时区选择" @click="mobileTimezoneOpen = false"><AppIcon name="x" :size="18" /></button>
               </header>
               <input v-model="timezoneQuery" class="timezone-sheet-search" type="search" autocomplete="off"
                 placeholder="搜索时区名称或代码，如 Asia/Tokyo" @keydown.enter.prevent />
@@ -560,11 +565,11 @@ async function logout() {
         </section>
 
         <!-- 模式 -->
-        <section class="card">
+        <section id="mode" class="card">
           <div class="card-head">
             <div class="card-title">
               <span class="icon-badge" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 8h14M5 16h14"/></svg>
+                <AppIcon name="workflow" :size="18" />
               </span>
               <div>
                 <h2>启动模式</h2>
@@ -612,11 +617,11 @@ async function logout() {
         </section>
 
         <!-- 代理 -->
-        <section class="card">
+        <section id="proxy" class="card">
           <div class="card-head">
             <div class="card-title">
               <span class="icon-badge" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+                <AppIcon name="globe" :size="18" />
               </span>
               <div>
                 <h2>代理与远程列表</h2>
@@ -632,16 +637,16 @@ async function logout() {
               v-model="form.pacProxy"
               placeholder="SOCKS5 127.0.0.1:1080; DIRECT"
             />
+            <p class="field-hint">每个代理项用分号分隔。支持 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 和 DIRECT；代理地址必须填写端口，例如 SOCKS5 127.0.0.1:1080; DIRECT。</p>
           </div>
-          <div class="field">
+          <div class="field" :class="{ 'is-disabled': form.mode !== 'remote' }">
             <label for="listUrl">规则列表 URL <span class="lab-hint">GFWList / 域名型 AutoProxy、ABP / 明文域名</span></label>
-            <input id="listUrl" v-model="form.listUrl" :disabled="form.mode !== 'remote'" :aria-describedby="form.mode !== 'remote' ? 'list-url-disabled-hint' : undefined" placeholder="https://example.com/list.txt" />
-            <p v-if="form.mode !== 'remote'" id="list-url-disabled-hint" class="field-hint">当前为自定义规则模式；切换到「远程规则列表」后才能编辑此项。</p>
-            <p v-else class="field-hint">按提取出的域名进行匹配；URL 路径、资源类型等复杂过滤条件不会保留。</p>
+            <input id="listUrl" v-model="form.listUrl" :disabled="form.mode !== 'remote'" :aria-disabled="form.mode !== 'remote'" placeholder="https://example.com/list.txt" />
+            <p class="field-hint">按提取出的域名进行匹配；URL 路径、资源类型等复杂过滤条件不会保留。<span v-if="form.mode !== 'remote'" class="disabled-hint">切换到远程规则列表模式后可编辑。</span></p>
           </div>
           <div class="checks">
-            <label class="check" :class="{ disabled: form.mode !== 'remote' }" :aria-disabled="form.mode !== 'remote'">
-              <input v-model="form.pacCompress" type="checkbox" :disabled="form.mode !== 'remote'" />
+            <label class="check" :class="{ 'is-disabled': form.mode !== 'remote' }" :aria-disabled="form.mode !== 'remote'">
+              <input v-model="form.pacCompress" type="checkbox" :disabled="form.mode !== 'remote'" :aria-disabled="form.mode !== 'remote'" />
               <span>压缩远程 PAC</span>
             </label>
           </div>
@@ -649,11 +654,11 @@ async function logout() {
         </section>
 
         <!-- 规则列表 -->
-        <section class="card">
+        <section id="rules" class="card">
           <div class="card-head">
             <div class="card-title">
               <span class="icon-badge" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+                <AppIcon name="list-checks" :size="18" />
               </span>
               <div>
                 <h2>自定义规则</h2>
@@ -670,7 +675,7 @@ async function logout() {
               <p><strong>黑名单：</strong>命中后返回 <code>PROXY 0.0.0.0:0</code>，让客户端连接不可用的代理地址以阻止访问；具体提示取决于客户端。</p>
               <p><strong>匹配优先级（两种模式相同）：</strong></p>
               <ol>
-                <li>本机 / 内网地址 → 始终直连</li>
+                <li>localhost、无点号主机名、IPv4 回环与 RFC 1918 私网地址 → 直连</li>
                 <li>黑名单 → 拒绝</li>
                 <li>直连列表 → 直连</li>
                 <li>若为远程列表模式：再匹配远程规则（列表中的域名走代理，列表内例外直连）</li>
@@ -700,11 +705,11 @@ async function logout() {
         </section>
 
         <!-- 定时与 webhook -->
-        <section class="card">
+        <section id="schedule" class="card">
           <div class="card-head">
             <div class="card-title">
               <span class="icon-badge" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <AppIcon name="calendar-clock" :size="18" />
               </span>
               <div>
                 <h2>定时与 Webhook</h2>
@@ -778,8 +783,7 @@ async function logout() {
               class="btn primary btn-save"
               :disabled="!canSubmit"
             >
-              <svg v-if="saving" class="save-spinner" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="42 16" /></svg>
-              <svg v-else viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 4h12l3 3v13H4V4z"/><path d="M8 4v6h8V4M8 20v-6h8v6"/></svg>
+              <AppIcon :name="saving ? 'loader-circle' : 'save'" :size="17" :class="{ 'save-spinner': saving }" />
               <span>{{ saving ? "保存并生成中…" : "保存并生成 PAC" }}</span>
             </button>
           </div>
@@ -789,11 +793,11 @@ async function logout() {
         </div>
       </form>
 
-      <section class="card">
+      <section id="logs" class="card">
         <div class="card-head">
           <div class="card-title">
             <span class="icon-badge" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5M4 19h16M8 15V9M12 15V7M16 15v-3"/></svg>
+              <AppIcon name="chart" :size="18" />
             </span>
             <div>
               <h2>最近生成记录</h2>
@@ -820,7 +824,7 @@ async function logout() {
                   </span>
                 </td>
                 <td>{{ l.mode }}</td>
-                <td class="msg">{{ l.message }}</td>
+                <td class="msg"><TextDetail :text="l.message || ''" label="生成记录信息" /></td>
               </tr>
               <tr v-if="!logs.length">
                 <td colspan="4" class="empty">暂无记录</td>
@@ -831,13 +835,32 @@ async function logout() {
       </section>
     </template>
     <AppFooter />
-  </main>
+    </div>
+  </AdminLayout>
 </template>
 
 <style scoped>
 .admin-page {
+  min-width: 0;
   padding-bottom: var(--space-6);
 }
+.admin-logout-button {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:34px;
+  padding:0 11px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--surface);
+  color:var(--text);
+  font:inherit;
+  font-size:11px;
+  font-weight:700;
+  cursor:pointer;
+}
+.admin-logout-button:hover { border-color:var(--accent); color:var(--accent); }
+#security,#general,#mode,#proxy,#rules,#schedule,#logs { scroll-margin-top: 110px; }
 .state-msg {
   color: var(--muted);
 }
@@ -944,10 +967,20 @@ h2 {
   opacity: 0;
   pointer-events: none;
 }
+.mode-card:not(.active):hover {
+  border-color: color-mix(in srgb,var(--accent) 48%,var(--line));
+  background: var(--surface);
+}
 .mode-card.active {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-soft);
   background: var(--surface);
+}
+.mode-card:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
+.mode-card:active { transform:translateY(1px); }
+.check:not(.is-disabled):hover {
+  border-color:color-mix(in srgb,var(--accent) 40%,var(--line));
+  background:color-mix(in srgb,var(--accent) 5%,var(--surface-2));
 }
 .mode-top {
   display: flex;
@@ -1010,15 +1043,6 @@ h2 {
 .field:last-child {
   margin-bottom: 0;
 }
-.field input:disabled:not([type="checkbox"]),
-.field textarea:disabled {
-  background: var(--surface-2);
-  border-color: var(--line);
-  color: var(--muted);
-  -webkit-text-fill-color: var(--muted);
-  opacity: 1;
-  cursor: not-allowed;
-}
 .field label {
   display: block;
   font-size: 13px;
@@ -1070,16 +1094,7 @@ textarea {
   font-size: 14px;
   cursor: pointer;
   user-select: none;
-  transition: background .15s, border-color .15s, color .15s;
 }
-.check.disabled {
-  background: var(--bg);
-  border-color: var(--line);
-  color: var(--muted);
-  cursor: not-allowed;
-}
-.check.disabled span { color: var(--muted); }
-.check.disabled input { opacity: .55; cursor: not-allowed; }
 .check input {
   width: 18px;
   height: 18px;
@@ -1121,12 +1136,28 @@ textarea {
   border-color: var(--accent);
   color: var(--accent-contrast);
 }
-.btn.primary:hover:not(:disabled),
-.btn.primary:active:not(:disabled) {
-  background: color-mix(in srgb, var(--accent) 90%, var(--text));
-  border-color: color-mix(in srgb, var(--accent) 90%, var(--text));
+.btn.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
   color: var(--accent-contrast);
   filter: none;
+}
+.btn.primary:active:not(:disabled) {
+  background: var(--accent-active);
+  border-color: var(--accent-active);
+  color: var(--accent-contrast);
+}
+.btn:not(.primary):active:not(:disabled) {
+  background:var(--accent-soft);
+  border-color:var(--accent);
+  color:var(--accent);
+}
+.admin-logout-button:active:not(:disabled),
+.chip:active:not(:disabled),
+.webhook-test-button:active:not(:disabled),
+.timezone-option:active:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 .admin-page .actions .btn-save {
   display: inline-flex;
@@ -1136,26 +1167,36 @@ textarea {
   min-width: 190px;
   min-height: 46px;
   padding: 11px 20px;
-  background: #405fe8;
-  border: 1px solid #405fe8;
-  color: #fff !important;
-  -webkit-text-fill-color: #fff;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: var(--accent-contrast) !important;
+  -webkit-text-fill-color: var(--accent-contrast);
   font-weight: 750;
   letter-spacing: .01em;
-  box-shadow: 0 5px 14px rgba(64, 95, 232, .22);
+  box-shadow: 0 5px 14px color-mix(in srgb,var(--accent) 22%,transparent);
   transition: background .15s, box-shadow .15s, transform .15s;
 }
 .admin-page .actions .btn-save svg { flex: 0 0 auto; }
-.admin-page .actions .btn-save:hover:not(:disabled) {
-  background: #304fd4;
-  border-color: #304fd4;
-  box-shadow: 0 7px 18px rgba(64, 95, 232, .28);
+.admin-page .actions .btn-save:hover:not(:disabled),.admin-page .actions .btn-save:active:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--accent-contrast) !important;
+  -webkit-text-fill-color: var(--accent-contrast);
+  box-shadow: 0 7px 18px color-mix(in srgb,var(--accent) 28%,transparent);
   filter: none;
   transform: translateY(-1px);
 }
 .admin-page .actions .btn-save:focus-visible {
-  outline: 3px solid color-mix(in srgb, #405fe8 28%, transparent);
+  outline: 3px solid color-mix(in srgb, var(--accent) 34%, transparent);
   outline-offset: 3px;
+}
+.admin-page .actions .btn-save:active:not(:disabled) {
+  background:var(--accent-active);
+  border-color:var(--accent-active);
+  color:var(--accent-contrast) !important;
+  -webkit-text-fill-color:var(--accent-contrast);
+  box-shadow:0 2px 6px color-mix(in srgb,var(--accent) 20%,transparent);
+  transform:translateY(0);
 }
 .admin-page .actions .btn-save:disabled {
   opacity: 1;
@@ -1173,9 +1214,37 @@ textarea {
   background: transparent;
 }
 .btn:disabled {
-  opacity: 0.55;
+  opacity: 1;
+  color: var(--control-disabled-text);
+  background: var(--control-disabled-bg);
+  border-color: var(--control-disabled-border);
+  -webkit-text-fill-color: var(--control-disabled-text);
+  box-shadow: none;
   cursor: not-allowed;
 }
+.field.is-disabled label { color: var(--control-disabled-text); }
+.field.is-disabled .field-hint,
+.field.is-disabled .disabled-hint,
+.field.is-disabled .lab-hint { color: var(--control-disabled-text); }
+.admin-page .field.is-disabled input:disabled,
+.admin-page .field.is-disabled select:disabled,
+.admin-page .field.is-disabled textarea:disabled {
+  color: var(--control-disabled-text);
+  -webkit-text-fill-color: var(--control-disabled-text);
+  background: var(--control-disabled-bg);
+  border-color: var(--control-disabled-border);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 1;
+}
+.check.is-disabled {
+  color: var(--control-disabled-text);
+  border-color: var(--control-disabled-border);
+  background: var(--control-disabled-bg);
+  cursor: not-allowed;
+}
+.check.is-disabled span { color: var(--control-disabled-text); }
+.check.is-disabled input { cursor: not-allowed; accent-color:var(--control-disabled-text); }
 .linkish {
   background: transparent;
   border: 0;
@@ -1213,8 +1282,7 @@ tr:last-child td {
   white-space: nowrap;
 }
 .msg {
-  word-break: break-word;
-  white-space: pre-wrap;
+  max-width: 360px;
 }
 .empty {
   color: var(--muted);
@@ -1325,10 +1393,8 @@ tr:last-child td {
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.chip:hover:not(:disabled),
-.chip:active:not(:disabled) {
+.chip:hover {
   border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
-  background: var(--accent-soft);
   color: var(--accent);
 }
 .chip.active {
@@ -1406,8 +1472,13 @@ textarea.body-area {
   color: var(--accent);
 }
 .webhook-test-button:disabled {
-  opacity: 0.55;
-  cursor: wait;
+  opacity: 1;
+  color: var(--control-disabled-text);
+  -webkit-text-fill-color: var(--control-disabled-text);
+  background: var(--control-disabled-bg);
+  border-color: var(--control-disabled-border);
+  box-shadow: none;
+  cursor: not-allowed;
 }
 .webhook-test-result {
   margin: 0 0 10px;
@@ -1489,12 +1560,12 @@ textarea.body-area {
   .desktop-timezone-picker { display:none; }
   .mobile-timezone-trigger { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:46px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:var(--text); font:inherit; text-align:left; }
   .mobile-timezone-trigger span:first-child { overflow-wrap:anywhere; }
-  .mobile-timezone-trigger-icon { color:var(--muted); font-size:18px; }
+  .mobile-timezone-trigger-icon { display:grid; place-items:center; color:var(--muted); }
   .timezone-sheet-backdrop { display:flex; position:fixed; z-index:1000; inset:0; align-items:flex-end; justify-content:center; padding:0; background:rgba(0,0,0,.48); }
   .timezone-sheet { display:flex; flex-direction:column; width:100%; max-height:min(82dvh,720px); padding:16px 16px max(16px,env(safe-area-inset-bottom)); border-radius:18px 18px 0 0; border:1px solid var(--line); border-bottom:0; background:var(--surface); box-shadow:0 -8px 32px rgba(0,0,0,.18); }
   .timezone-sheet-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
   .timezone-sheet-head h3 { margin:0; font-size:16px; }
-  .timezone-sheet-close { width:36px; height:36px; border:0; border-radius:8px; background:var(--surface-2); color:var(--text); font-size:24px; line-height:1; }
+  .timezone-sheet-close { display:grid; place-items:center; flex:0 0 36px; width:36px; height:36px; border:0; border-radius:8px; background:var(--surface-2); color:var(--text); font-size:24px; line-height:1; }
   .timezone-sheet-search { flex:0 0 auto; width:100%; min-height:44px; margin-bottom:10px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:var(--text); font:inherit; font-size:16px; }
   .timezone-sheet-options { min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
   .timezone-sheet .timezone-option { min-height:48px; }
