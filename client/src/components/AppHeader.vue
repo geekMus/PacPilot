@@ -44,6 +44,12 @@ defineProps<{ brand?: string; sub?: string; homeTo?: string }>();
   border-color:var(--accent-active);
   color:var(--accent-contrast);
 }
+.nav :deep(a:not(.primary):active),.nav :deep(button.linkish:active) {
+  background:var(--accent-soft);
+  border-color:var(--accent);
+  color:var(--accent);
+  text-decoration:none;
+}
 @media(max-width:720px) { .topbar { align-items:flex-start; flex-direction:column; gap:12px; } .header-tools { width:100%; justify-content:space-between; align-items:center; flex-wrap:wrap; } .nav { justify-content:flex-start; } }
 @media(max-width:400px) { .nav :deep(a),.nav :deep(button.linkish) { min-height:36px; padding:0 9px; font-size:11px; } }
 </style>
