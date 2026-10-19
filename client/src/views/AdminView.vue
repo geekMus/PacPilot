@@ -1003,7 +1003,7 @@ async function changeAdminPassword() {
             <div class="storage-metric"><span>日志估算占用</span><strong>{{ storage ? formatBytes(storage.logBytes) : "读取中…" }}</strong><small>生成日志、访问记录与代理测试记录</small></div>
           </div>
           <div class="retention-setting">
-            <div class="retention-copy"><strong>日志保留时间</strong><p>服务启动时自动清理超过保留时间的运行日志；工作流历史单独保存，不受此项影响。</p></div>
+            <div class="retention-copy"><strong>日志保留时间</strong><p>服务启动时及运行期间定期清理超过保留时间的运行日志；工作流历史单独保存，不受此项影响。</p></div>
             <label class="retention-control" for="log-retention-days">
               <span class="sr-only">日志保留时间</span>
               <select id="log-retention-days" v-model.number="form.logRetentionDays">
@@ -1948,4 +1948,24 @@ textarea.body-area {
   .timezone-custom-option { border-top:1px solid var(--line); margin-top:4px; }
   .timezone-sheet-hint { margin:10px 0 0; color:var(--muted); font-size:12px; line-height:1.45; }
 }
+
+.storage-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-bottom:18px; }
+.storage-metric { display:grid; gap:7px; min-width:0; padding:14px; border:1px solid var(--line); border-radius:9px; background:var(--surface-2); }
+.storage-metric span,.storage-metric small { color:var(--muted); font-size:11px; }
+.storage-metric strong { color:var(--text); font-size:21px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.storage-metric small { line-height:1.5; }
+.retention-setting { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:15px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+.retention-copy strong { color:var(--text); font-size:13px; }
+.retention-copy p,.storage-note { margin:6px 0 0; color:var(--muted); font-size:11px; line-height:1.6; }
+.retention-control select { min-height:40px; min-width:140px; padding:0 10px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--text); font:inherit; }
+.storage-counts { display:flex; flex-wrap:wrap; gap:8px; margin-top:13px; }
+.storage-counts span { padding:5px 8px; border-radius:6px; background:var(--surface-2); color:var(--muted); font-size:10px; }
+.storage-actions { display:flex; flex-wrap:wrap; gap:9px; margin-top:16px; }
+.storage-actions button { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:38px; padding:0 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:var(--text); font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+.storage-actions button:disabled { opacity:.55; cursor:not-allowed; }
+.storage-actions .danger-action { border-color:color-mix(in srgb,var(--red) 40%,var(--line)); color:var(--red); }
+.storage-note { margin-top:12px; }
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+@media(max-width:600px) { .storage-metrics { grid-template-columns:1fr; } .storage-metric { padding:12px; } .storage-metric strong { font-size:19px; } .retention-setting { align-items:flex-start; flex-direction:column; } .retention-control,.retention-control select { width:100%; } .storage-actions { display:grid; grid-template-columns:1fr; } }
+
 </style>
