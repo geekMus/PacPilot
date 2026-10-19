@@ -261,7 +261,9 @@ const channelStatusText = computed(() => {
   padding: 0 12px; font-size: 11px; cursor: pointer;
 }
 .segmented button.active { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
-.icon-spinning { animation: webhook-icon-spin .9s linear infinite; }\n@keyframes webhook-icon-spin { to { transform: rotate(360deg); } }\n.channel-footer {
+.icon-spinning { animation: webhook-icon-spin .9s linear infinite; }
+@keyframes webhook-icon-spin { to { transform: rotate(360deg); } }
+.channel-footer {
   display: flex; align-items: center; gap: 7px; margin-top: auto; padding-top: 12px;
   border-top: 1px solid var(--line); color: var(--muted); font-size: 10px;
 }
