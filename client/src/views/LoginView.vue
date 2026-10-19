@@ -75,7 +75,7 @@ async function onSubmit() {
 </template>
 
 <style scoped>
-.auth-page { min-height:calc(100dvh - 60px); display:flex; flex-direction:column; }
+.auth-page { min-height:100dvh; display:flex; flex-direction:column; }
 .auth-layout { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(280px,.8fr); align-items:center; gap:clamp(24px,6vw,72px); flex:1; padding:24px 0 56px; }
 .auth-intro .page-kicker { color:var(--accent); }
 .auth-intro .page-title { max-width:9em; font-size:clamp(30px,5vw,44px); margin:9px 0 16px; }
