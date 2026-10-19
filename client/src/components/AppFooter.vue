@@ -34,7 +34,7 @@ onMounted(() => { void loadVersionInfo(true); });
   <footer class="app-footer" @keydown.esc.stop.prevent="dialogOpen = false">
     <div class="footer-project">
       <a class="github-project-link" :href="projectUrl" target="_blank" rel="noopener noreferrer" aria-label="打开 genpac-runner 的 GitHub 项目" title="GitHub 项目地址">
-        <AppIcon name="github" :size="19" :stroke-width="1.8" /><span>GitHub</span>
+        <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path fill="currentColor" d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.55.1.76-.24.76-.53v-2.04c-3.1.68-3.76-1.32-3.76-1.32-.5-1.3-1.24-1.65-1.24-1.65-1.01-.69.08-.68.08-.68 1.12.08 1.71 1.15 1.71 1.15.99 1.7 2.6 1.21 3.23.93.1-.72.39-1.21.7-1.49-2.47-.28-5.07-1.24-5.07-5.5 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.05 1.15a10.6 10.6 0 0 1 5.55 0c2.11-1.45 3.05-1.15 3.05-1.15.61 1.54.23 2.68.11 2.96.72.78 1.15 1.78 1.15 3.01 0 4.27-2.6 5.21-5.08 5.49.4.35.75 1.02.75 2.06V22c0 .29.2.64.76.53A11.1 11.1 0 0 0 12 .9Z"/></svg><span>GitHub</span>
       </a>
       <button type="button" class="version-badge" :class="{ 'is-update': hasUpdate }" @click="dialogOpen = true" :aria-label="hasUpdate ? '查看新版本详情' : '查看当前版本信息'">
         <span>v{{ currentVersion }}</span><span v-if="hasUpdate" class="new-badge">New</span>
@@ -51,7 +51,7 @@ onMounted(() => { void loadVersionInfo(true); });
           <p v-else-if="updateInfo?.checked" class="dialog-status">你当前使用的已经是最新版本。</p>
           <p v-else class="dialog-status">暂时无法获取远程版本信息；这不会影响 PAC 和管理功能。</p>
           <div class="dialog-actions"><a class="dialog-project-button" :href="updateInfo?.repositoryUrl || projectUrl" target="_blank" rel="noopener noreferrer">
-            <AppIcon name="github" :size="17" :stroke-width="1.8" />访问 GitHub 项目</a><button type="button" class="dialog-secondary-button" @click="dialogOpen = false">关闭</button></div>
+            <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.55.1.76-.24.76-.53v-2.04c-3.1.68-3.76-1.32-3.76-1.32-.5-1.3-1.24-1.65-1.24-1.65-1.01-.69.08-.68.08-.68 1.12.08 1.71 1.15 1.71 1.15.99 1.7 2.6 1.21 3.23.93.1-.72.39-1.21.7-1.49-2.47-.28-5.07-1.24-5.07-5.5 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.05 1.15a10.6 10.6 0 0 1 5.55 0c2.11-1.45 3.05-1.15 3.05-1.15.61 1.54.23 2.68.11 2.96.72.78 1.15 1.78 1.15 3.01 0 4.27-2.6 5.21-5.08 5.49.4.35.75 1.02.75 2.06V22c0 .29.2.64.76.53A11.1 11.1 0 0 0 12 .9Z"/></svg>访问 GitHub 项目</a><button type="button" class="dialog-secondary-button" @click="dialogOpen = false">关闭</button></div>
         </section>
       </div>
     </Transition>
