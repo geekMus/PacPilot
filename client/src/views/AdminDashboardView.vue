@@ -12,6 +12,7 @@ import {
 } from "../api/client";
 import AdminLayout from "../components/AdminLayout.vue";
 import AppFooter from "../components/AppFooter.vue";
+import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
 
 const router = useRouter();
 const loading = ref(true);
@@ -29,20 +30,8 @@ const engine = ref<GenpacProbe | null>(null);
 
 const modeLabel = computed(() => settings.value?.mode === "remote" ? "远程规则列表" : "自定义规则");
 const customRuleCount = computed(() => (settings.value?.directList.length ?? 0) + (settings.value?.blockList.length ?? 0));
-const maxTrendRequests = computed(() => Math.max(1, ...(monitor.value?.requestTrend ?? []).map((item) => item.requests)));
 const latestLog = computed(() => logs.value[0] ?? null);
 
-function formatTrendHour(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("zh-CN", {
-    timeZone: settings.value?.timezone || "Asia/Shanghai",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    hour12: false,
-  }).format(date);
-}
 function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
   const date = new Date(value);
@@ -230,18 +219,16 @@ onMounted(() => { void loadOverview(); });
 
       <section class="dashboard-panel activity-panel">
         <header class="panel-header">
-          <div><h3>近 24 小时访问趋势</h3><p>按小时汇总 genpac-runner 收到的请求；不等同于代理服务端的流量。</p></div>
+          <div><h3>近 24 小时访问趋势</h3><p>按小时汇总应用收到的请求；窄区域会自动合并相邻小时，悬停柱形可查看时间区间。</p></div>
           <RouterLink to="/admin/monitor">详细监控 <span aria-hidden="true">↗</span></RouterLink>
         </header>
-        <div v-if="monitor?.requestTrend?.length" class="overview-trend" role="img" aria-label="近 24 小时访问趋势">
-          <div v-for="(point, index) in monitor.requestTrend" :key="point.hour" class="overview-trend-column" :title="formatTrendHour(point.hour) + '：' + point.requests + ' 次请求，' + point.errors + ' 次错误'">
-            <div class="overview-trend-bar-area">
-              <div class="overview-trend-bar" :style="{ height: (point.requests / maxTrendRequests * 100) + '%' }"></div>
-              <div v-if="point.errors" class="overview-trend-errors" :style="{ height: (point.errors / maxTrendRequests * 100) + '%' }"></div>
-            </div>
-            <span>{{ index % 6 === 0 || index === monitor.requestTrend.length - 1 ? formatTrendHour(point.hour) : "" }}</span>
-          </div>
-        </div>
+        <ResponsiveTrendChart
+          v-if="monitor?.requestTrend?.length"
+          :points="monitor.requestTrend"
+          :time-zone="settings?.timezone || 'Asia/Shanghai'"
+          aria-label="近 24 小时访问趋势"
+          compact
+        />
         <div v-else class="panel-empty">暂无访问趋势数据；服务收到请求后会逐步形成统计。</div>
         <div class="trend-legend">
           <span><i class="trend-swatch"></i>请求量</span><span><i class="trend-swatch errors"></i>错误请求</span>
@@ -249,11 +236,6 @@ onMounted(() => { void loadOverview(); });
         </div>
       </section>
 
-      <section class="dashboard-shortcuts">
-        <RouterLink to="/admin#mode" class="shortcut-tile"><span class="shortcut-icon">↔</span><span><strong>启动模式</strong><small>自定义规则或远程列表</small></span><b>→</b></RouterLink>
-        <RouterLink to="/admin#rules" class="shortcut-tile"><span class="shortcut-icon">≡</span><span><strong>域名规则</strong><small>管理直连与黑名单</small></span><b>→</b></RouterLink>
-        <RouterLink to="/admin#schedule" class="shortcut-tile"><span class="shortcut-icon">◷</span><span><strong>定时与通知</strong><small>配置 Cron 与 Webhook</small></span><b>→</b></RouterLink>
-      </section>
       <AppFooter />
     </div>
   </AdminLayout>
@@ -261,7 +243,7 @@ onMounted(() => { void loadOverview(); });
 
 <style scoped>
 .dashboard-view { min-width: 0; }
-.welcome-row { display:flex; align-items:flex-end; justify-content:space-between; gap:22px; margin-bottom:22px; }
+.welcome-row { display:flex; align-items:flex-end; justify-content:space-between; gap:18px; margin-bottom:18px; }
 .welcome-row h2 { margin:0; font-size:clamp(22px,2.5vw,28px); line-height:1.2; letter-spacing:-.04em; }
 .quick-actions { display:flex; flex-wrap:wrap; gap:8px; }
 .dash-button { display:inline-flex; align-items:center; justify-content:center; min-height:36px; padding:0 12px; border:1px solid var(--line); border-radius:8px; font:inherit; font-size:11px; font-weight:700; text-decoration:none; cursor:pointer; white-space:nowrap; transition:filter .15s,background .15s; }
@@ -311,26 +293,12 @@ onMounted(() => { void loadOverview(); });
 .result-pill.bad { color:var(--red); background:var(--red-soft); border-color:color-mix(in srgb,var(--red) 24%,var(--line)); }
 .panel-empty { padding:24px 12px; border:1px dashed var(--line); border-radius:8px; color:var(--muted); text-align:center; font-size:11px; }
 .activity-panel { margin-bottom:16px; }
-.overview-trend { display:grid; grid-template-columns:repeat(24,minmax(0,1fr)); gap:5px; align-items:end; padding-top:7px; }
-.overview-trend-column { display:flex; flex-direction:column; min-width:0; align-items:center; gap:7px; color:var(--muted); font-size:9px; }
-.overview-trend-bar-area { position:relative; display:flex; align-items:flex-end; width:100%; height:100px; overflow:hidden; border-radius:5px 5px 0 0; background:var(--surface-2); }
-.overview-trend-bar,.overview-trend-errors { position:absolute; bottom:0; left:15%; right:15%; border-radius:4px 4px 0 0; }
-.overview-trend-bar { background:var(--accent); opacity:.9; }
-.overview-trend-errors { background:var(--red); opacity:.95; min-height:2px; }
 .trend-legend { display:flex; flex-wrap:wrap; align-items:center; gap:13px; margin-top:15px; color:var(--muted); font-size:10px; }
 .trend-legend > span { display:inline-flex; align-items:center; gap:6px; }
 .trend-swatch { width:8px; height:8px; border-radius:3px; background:var(--accent); }
 .trend-swatch.errors { background:var(--red); }
 .trend-note { margin-left:auto; }
-.dashboard-shortcuts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:22px; }
-.shortcut-tile { display:flex; align-items:center; gap:10px; min-width:0; padding:13px; border:1px solid var(--line); border-radius:10px; background:var(--surface); text-decoration:none; transition:border-color .15s,transform .15s; }
-.shortcut-tile:hover { border-color:color-mix(in srgb,var(--accent) 40%,var(--line)); transform:translateY(-1px); }
-.shortcut-icon { display:grid; place-items:center; flex:0 0 32px; width:32px; height:32px; border-radius:9px; background:var(--surface-2); color:var(--accent); font-size:17px; }
-.shortcut-tile > span:nth-child(2) { display:flex; flex-direction:column; gap:3px; min-width:0; }
-.shortcut-tile strong { color:var(--text); font-size:11px; }
-.shortcut-tile small { color:var(--muted); font-size:9px; line-height:1.4; }
-.shortcut-tile b { margin-left:auto; color:var(--muted); }
 @media (max-width:1240px) { .overview-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .overview-grid { grid-template-columns:1fr; } }
-@media (max-width:760px) { .welcome-row { flex-direction:column; align-items:flex-start; } .quick-actions { width:100%; } .quick-actions .dash-button { flex:1; } .dashboard-shortcuts { grid-template-columns:1fr; } .config-details { gap:0 11px; } }
-@media (max-width:500px) { .overview-metrics { gap:8px; } .overview-metric { padding:12px; } .metric-value { font-size:18px; } .metric-note { font-size:9px; } .dashboard-panel { padding:13px; } .recent-table { min-width:560px; } .overview-trend { gap:2px; } .overview-trend-bar-area { height:72px; } .trend-note { margin-left:0; flex-basis:100%; } .panel-header { align-items:flex-start; } }
+@media (max-width:760px) { .welcome-row { flex-direction:column; align-items:flex-start; gap:12px; } .quick-actions { width:100%; } .quick-actions .dash-button { flex:1; } .config-details { gap:0 11px; } }
+@media (max-width:500px) { .overview-metrics { gap:8px; } .overview-metric { padding:12px; } .metric-value { font-size:18px; } .metric-note { font-size:9px; } .dashboard-panel { padding:13px; } .recent-table { min-width:560px; } .quick-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; } .quick-actions .dash-button { min-width:0; width:100%; padding:0 7px; white-space:normal; line-height:1.25; } .quick-actions .dash-button:last-child { grid-column:1 / -1; } .trend-note { margin-left:0; flex-basis:100%; } .panel-header { align-items:flex-start; } }
 </style>
