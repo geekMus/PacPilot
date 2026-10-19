@@ -76,6 +76,13 @@ const host = ref<HTMLDivElement | null>(null);
 let view: EditorView | null = null;
 let themeObs: MutationObserver | null = null;
 
+function jumpToLine(lineNumber: number) {
+  if (!view || lineNumber < 1 || lineNumber > view.state.doc.lines) return;
+  const position = view.state.doc.line(lineNumber).from;
+  view.dispatch({ selection: { anchor: position }, effects: EditorView.scrollIntoView(position, { y: "center" }) });
+  view.focus();
+}
+
 function isDark(): boolean {
   return document.documentElement.classList.contains("theme-dark");
 }
@@ -189,13 +196,31 @@ watch(
 </script>
 
 <template>
-  <div class="editor-shell" :class="{ 'is-invalid': invalid }" :style="{ height: height + 'px' }">
-    <div ref="host" class="cm-host" />
-    <div v-if="!modelValue && placeholder" class="ph">{{ placeholder }}</div>
+  <div class="domain-editor">
+    <div class="editor-shell" :class="{ 'is-invalid': invalid }" :style="{ height: height + 'px' }">
+      <div ref="host" class="cm-host" />
+      <div v-if="!modelValue && placeholder" class="ph">{{ placeholder }}</div>
+    </div>
+    <div v-if="diagnostics.length" class="rule-diagnostic-list" aria-label="规则检查提示">
+      <button
+        v-for="(item, index) in diagnostics.slice(0, 8)"
+        :key="item.line + '-' + item.severity + '-' + item.message + '-' + index"
+        type="button"
+        class="rule-diagnostic-item"
+        :class="'is-' + item.severity"
+        :title="'点击跳转到第 ' + item.line + ' 行'"
+        @click="jumpToLine(item.line)"
+      >
+        <span class="rule-diagnostic-line">第 {{ item.line }} 行</span>
+        <span>{{ item.message }}</span>
+      </button>
+      <p v-if="diagnostics.length > 8" class="rule-diagnostic-more">还有 {{ diagnostics.length - 8 }} 条提示，已在对应行标记。</p>
+    </div>
   </div>
 </template>
 
 <style scoped>
+.domain-editor { min-width: 0; }
 .editor-shell {
   position: relative;
   border: 1px solid var(--line);
@@ -250,6 +275,14 @@ watch(
   color: var(--muted);
 }
 
+.rule-diagnostic-list { display: flex; flex-direction: column; gap: 4px; max-height: 144px; overflow: auto; margin-top: 8px; padding: 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); }
+.rule-diagnostic-item { display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 5px 6px; border: 0; border-radius: 5px; background: transparent; color: var(--text); font: inherit; font-size: 11px; line-height: 1.4; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
+.rule-diagnostic-item:hover { background: var(--surface); }
+.rule-diagnostic-item.is-error { color: var(--red); }
+.rule-diagnostic-item.is-warning { color: var(--warn); }
+.rule-diagnostic-item.is-info { color: var(--accent); }
+.rule-diagnostic-line { flex: 0 0 auto; font-weight: 700; white-space: nowrap; }
+.rule-diagnostic-more { margin: 2px 6px 4px; color: var(--muted); font-size: 11px; }
 .ph {
   position: absolute;
   top: 12px;
