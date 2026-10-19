@@ -79,7 +79,6 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
   };
   res.json({dataBytes,dbBytes,logBytes:operationalLogStorageBytes(database),retentionDays:getSettings(database).logRetentionDays,counts,pacFiles:{proxyPac:pacFileInfo("proxy.pac"),proxySourcePac:pacFileInfo("proxy.source.pac")}});
  });
- });
  router.delete("/api/admin/pac-files",requireAdmin(database),(_req,res)=>{
   if(hasActivePacWorkflow(database)){res.status(409).json({error:"仍有工作流在等待或执行中，不能删除 PAC 文件。请等任务结束后重试。"});return;}
   const deleted:string[]=[];
