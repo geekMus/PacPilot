@@ -278,8 +278,16 @@ export function pacFileMtime(dataDir: string): Date | null {
   const sourcePath = path.join(dataDir, "proxy.source.pac");
   const pacPath = path.join(dataDir, "proxy.pac");
   try {
-    return fs.statSync(fs.existsSync(sourcePath) ? sourcePath : pacPath).mtime;
+    const pacStat = fs.statSync(pacPath);
+    if (!pacStat.isFile() || pacStat.size === 0) return null;
+    const sourceStat = fs.statSync(sourcePath);
+    return sourceStat.isFile() && sourceStat.size > 0 ? sourceStat.mtime : pacStat.mtime;
   } catch {
-    return null;
+    try {
+      const pacStat = fs.statSync(pacPath);
+      return pacStat.isFile() && pacStat.size > 0 ? pacStat.mtime : null;
+    } catch {
+      return null;
+    }
   }
 }
