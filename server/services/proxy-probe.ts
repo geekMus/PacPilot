@@ -6,8 +6,25 @@ import { performance } from "node:perf_hooks";
 import type { AppDatabase } from "../db/sqlite";
 import { recordProxyProbe, type ProxyProbeInput } from "../db/monitoring";
 
-const TARGET_HOST = "example.com";
-const TARGET_PORT = 443;
+export const DEFAULT_PROXY_TEST_URL = "https://www.google.com/generate_204";
+
+/** Validate an administrator-configured HTTPS test URL before opening a proxy tunnel. */
+export function parseProxyTestUrl(raw: string): URL {
+  const value = String(raw ?? "").trim();
+  if (!value) throw new Error("代理测试地址不能为空。");
+  if (/[\u0000-\u0020\u007f]/.test(value)) throw new Error("代理测试地址不能包含空白字符或控制字符；请检查 URL 编码。");
+
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("代理测试地址格式无效，请填写完整的 HTTPS URL，例如 https://www.google.com/generate_204。");
+  }
+  if (url.protocol !== "https:") throw new Error("代理测试地址目前只支持 HTTPS URL。");
+  if (!url.hostname || url.username || url.password) throw new Error("代理测试地址必须包含主机名，且不能包含用户名或密码。");
+  if (url.hash) throw new Error("代理测试地址不能包含 URL 片段（# 后的内容）。");
+  return url;
+}
 const MAX_PROXIES_PER_RUN = 5;
 const CONNECT_TIMEOUT_MS = 3500;
 const IO_TIMEOUT_MS = 4500;
@@ -39,6 +56,7 @@ export interface ProxyProbeResult {
 }
 
 export interface ProxyProbeBatch {
+  targetUrl: string;
   targetHost: string;
   targetPort: number;
   results: ProxyProbeResult[];
@@ -49,15 +67,20 @@ export interface ProxyProbeBatch {
 
 export async function testConfiguredProxies(
   database: AppDatabase,
-  pacProxy: string
+  pacProxy: string,
+  targetUrlRaw = DEFAULT_PROXY_TEST_URL
 ): Promise<ProxyProbeBatch> {
+  const targetUrl = parseProxyTestUrl(targetUrlRaw);
+  const targetHost = targetUrl.hostname.replace(/^\[|\]$/g, "");
+  const targetPort = Number(targetUrl.port || "443");
+  const targetPath = (targetUrl.pathname || "/") + targetUrl.search;
   const parsed = parsePacProxy(pacProxy);
   if (parsed.candidates.length === 0) {
     throw new Error(parsed.warnings[0] || "PAC 代理字符串中没有可测试的代理指令；DIRECT 不需要进行代理连通性检测。");
   }
 
   const candidates = parsed.candidates.slice(0, MAX_PROXIES_PER_RUN);
-  const results = await Promise.all(candidates.map((candidate) => probeCandidate(candidate)));
+  const results = await Promise.all(candidates.map((candidate) => probeCandidate(candidate, targetUrl, targetHost, targetPort, targetPath)));
   for (const result of results) {
     const item: ProxyProbeInput = {
       tested_at: result.testedAt,
@@ -77,8 +100,9 @@ export async function testConfiguredProxies(
   }
 
   return {
-    targetHost: TARGET_HOST,
-    targetPort: TARGET_PORT,
+    targetUrl: targetUrl.toString(),
+    targetHost,
+    targetPort,
     results,
     ignoredDirectEntries: parsed.ignoredDirectEntries,
     parseWarnings: parsed.warnings,
@@ -171,7 +195,7 @@ function parseProxyAddress(kind: ProxyKind, rawAddress: string): ProxyCandidate 
   return { kind, host, port, username, password };
 }
 
-async function probeCandidate(candidate: ProxyCandidate): Promise<ProxyProbeResult> {
+async function probeCandidate(candidate: ProxyCandidate, targetUrl: URL, targetHost: string, targetPort: number, targetPath: string): Promise<ProxyProbeResult> {
   const testedAt = new Date().toISOString();
   const label = candidate.kind + " " + formatHostPort(candidate.host, candidate.port);
   let socket: Socket | null = null;
@@ -209,18 +233,18 @@ async function probeCandidate(candidate: ProxyCandidate): Promise<ProxyProbeResu
     }
 
     phase = "PROXY_HANDSHAKE";
-    await establishProxyTunnel(candidate, proxyChannel, TARGET_HOST, TARGET_PORT);
+    await establishProxyTunnel(candidate, proxyChannel, targetHost, targetPort);
     handshakeMs = roundedMs(performance.now() - handshakeStarted);
 
     targetStarted = performance.now();
     phase = "TARGET_TLS";
-    targetTls = await connectTls(proxyChannel, TARGET_HOST, IO_TIMEOUT_MS);
+    targetTls = await connectTls(proxyChannel, targetHost, IO_TIMEOUT_MS);
 
     phase = "TARGET_HTTP";
     const headersPromise = readHttpHeader(targetTls, IO_TIMEOUT_MS);
     targetTls.write(
-      "GET / HTTP/1.1\r\n" +
-      "Host: " + TARGET_HOST + "\r\n" +
+      "GET " + targetPath + " HTTP/1.1\r\n" +
+      "Host: " + targetUrl.host + "\r\n" +
       "User-Agent: genpac-runner-monitor\r\n" +
       "Accept: */*\r\n" +
       "Connection: close\r\n\r\n"
@@ -265,7 +289,7 @@ async function probeCandidate(candidate: ProxyCandidate): Promise<ProxyProbeResu
     proxyLabel: label,
     proxyHost: candidate.host,
     proxyPort: candidate.port,
-    targetHost: TARGET_HOST + ":" + TARGET_PORT,
+    targetHost: formatHostPort(targetHost, targetPort),
     success,
     tcpMs,
     handshakeMs,
@@ -306,9 +330,10 @@ async function establishHttpConnectTunnel(
       Buffer.from(candidate.username + ":" + (candidate.password ?? ""), "utf8").toString("base64") + "\r\n"
     : "";
   const responsePromise = readHttpHeader(socket, IO_TIMEOUT_MS);
+  const targetAuthority = formatHostPort(targetHost, targetPort);
   socket.write(
-    "CONNECT " + targetHost + ":" + targetPort + " HTTP/1.1\r\n" +
-    "Host: " + targetHost + ":" + targetPort + "\r\n" +
+    "CONNECT " + targetAuthority + " HTTP/1.1\r\n" +
+    "Host: " + targetAuthority + "\r\n" +
     "Proxy-Connection: Keep-Alive\r\n" + auth + "\r\n"
   );
   const response = await responsePromise;

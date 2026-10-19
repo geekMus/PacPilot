@@ -59,6 +59,7 @@ export interface AppSettings {
   directList: string[];
   cronSchedule: string;
   timezone: string;
+  proxyTestUrl: string;
   webhookSuccessUrl: string;
   webhookSuccessBody: string;
   webhookFailureUrl: string;
@@ -140,6 +141,7 @@ export interface ProxyProbeResult {
 }
 
 export interface ProxyProbeBatch {
+  targetUrl: string;
   targetHost: string;
   targetPort: number;
   results: ProxyProbeResult[];
@@ -208,6 +210,10 @@ export const api = {
   genpacStatus: () => request<GenpacProbe>("/api/admin/genpac-status"),
   monitorSummary: () => request<MonitorSummary>("/api/admin/monitor/summary"),
   monitorAccess: (limit = 50) => request<AccessEvent[]>(`/api/admin/monitor/access?limit=${limit}`),
+  proxyProbeTarget: () => request<{ url: string }>("/api/admin/monitor/probe-target"),
+  saveProxyProbeTarget: (url: string) => request<{ url: string }>("/api/admin/monitor/probe-target", {
+    method: "PUT", body: JSON.stringify({ url }),
+  }),
   testProxies: () => request<ProxyProbeBatch>("/api/admin/monitor/probe", {
     method: "POST", body: JSON.stringify({}),
   }),

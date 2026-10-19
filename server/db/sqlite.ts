@@ -206,6 +206,7 @@ function normalizeSettings(
       : [],
     cronSchedule: String(s.cronSchedule || "").trim(),
     timezone: normalizeTimeZone(String(s.timezone || DEFAULT_SETTINGS.timezone)),
+    proxyTestUrl: String(s.proxyTestUrl || DEFAULT_SETTINGS.proxyTestUrl).trim(),
     webhookSuccessUrl,
     webhookSuccessBody,
     webhookFailureUrl,

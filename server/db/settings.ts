@@ -85,6 +85,8 @@ export interface AppSettings {
   cronSchedule: string;
   /** IANA timezone used by scheduled tasks and displayed timestamps. */
   timezone: string;
+  /** HTTPS URL requested through each proxy during connectivity checks. */
+  proxyTestUrl: string;
   /** Legacy fields retained for smooth migration from earlier versions. */
   webhookSuccessUrl: string;
   webhookSuccessBody: string;
@@ -105,6 +107,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   directList: [],
   cronSchedule: "",
   timezone: "Asia/Shanghai",
+  proxyTestUrl: "https://www.google.com/generate_204",
   webhookSuccessUrl: "",
   webhookSuccessBody: "",
   webhookFailureUrl: "",

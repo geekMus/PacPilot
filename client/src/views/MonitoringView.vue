@@ -27,6 +27,20 @@ const probing = ref(false);
 const error = ref("");
 const refreshError = ref("");
 const probeError = ref("");
+const proxyTestUrl = ref("https://www.google.com/generate_204");
+const savedProxyTestUrl = ref("https://www.google.com/generate_204");
+const proxyTestTargetLoaded = ref(false);
+const savingProxyTestTarget = ref(false);
+const proxyTestTargetMessage = ref("");
+const proxyTestTargetMessageOk = ref<boolean | null>(null);
+const proxyTestTargetChanged = computed(() => proxyTestUrl.value.trim() !== savedProxyTestUrl.value);
+const proxyTestTargetValid = computed(() => {
+  try {
+    const value = proxyTestUrl.value.trim();
+    const url = new URL(value);
+    return url.protocol === "https:" && Boolean(url.hostname) && !url.username && !url.password && !url.hash && !/[\u0000-\u0020\u007f]/.test(value);
+  } catch { return false; }
+});
 const lastUpdated = ref("");
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
@@ -76,8 +90,39 @@ async function loadProbeHistory(): Promise<void> {
   }
 }
 
+async function loadProxyTestTarget(): Promise<void> {
+  try {
+    const result = await api.proxyProbeTarget();
+    proxyTestUrl.value = result.url;
+    savedProxyTestUrl.value = result.url;
+    proxyTestTargetLoaded.value = true;
+  } catch (caught) {
+    proxyTestTargetMessageOk.value = false;
+    proxyTestTargetMessage.value = caught instanceof Error ? caught.message : String(caught);
+  }
+}
+
+async function saveProxyTestTarget(): Promise<void> {
+  if (!proxyTestTargetLoaded.value || savingProxyTestTarget.value || !proxyTestTargetValid.value || !proxyTestTargetChanged.value) return;
+  savingProxyTestTarget.value = true;
+  proxyTestTargetMessage.value = "";
+  proxyTestTargetMessageOk.value = null;
+  try {
+    const result = await api.saveProxyProbeTarget(proxyTestUrl.value.trim());
+    proxyTestUrl.value = result.url;
+    savedProxyTestUrl.value = result.url;
+    proxyTestTargetMessageOk.value = true;
+    proxyTestTargetMessage.value = "测试地址已保存，之后的代理检测都会使用此地址。";
+  } catch (caught) {
+    proxyTestTargetMessageOk.value = false;
+    proxyTestTargetMessage.value = caught instanceof Error ? caught.message : String(caught);
+  } finally {
+    savingProxyTestTarget.value = false;
+  }
+}
+
 async function runProxyTest(): Promise<void> {
-  if (probing.value) return;
+  if (probing.value || !proxyTestTargetLoaded.value || proxyTestTargetChanged.value) return;
   probing.value = true;
   probeError.value = "";
   latestProbe.value = null;
@@ -180,7 +225,7 @@ async function initialise(): Promise<void> {
       return;
     }
     authChecking.value = false;
-    await Promise.all([refreshDashboard(), loadProbeHistory()]);
+    await Promise.all([refreshDashboard(), loadProbeHistory(), loadProxyTestTarget()]);
     refreshTimer = setInterval(() => { void refreshDashboard(true); }, 15000);
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : String(caught);
@@ -357,16 +402,37 @@ onUnmounted(() => {
             <h2>代理连通性测试</h2>
             <p>测试当前保存的 PAC 代理指令；每个代理有 12 秒总超时。不会把 PAC 中的 DIRECT 项当作代理节点。</p>
           </div>
-          <button class="monitor-button primary" type="button" :disabled="probing" @click="runProxyTest">
+          <button class="monitor-button primary" type="button" :disabled="probing || savingProxyTestTarget || !proxyTestTargetLoaded || proxyTestTargetChanged" @click="runProxyTest">
             <AppIcon :name="probing ? 'loader-circle' : 'zap'" :class="{ 'icon-spinning': probing }" :size="15" />{{ probing ? "正在检测…" : "立即测试代理" }}
           </button>
         </div>
 
         <div class="probe-target">
           <span class="target-icon" aria-hidden="true"><AppIcon name="network" :size="18" /></span>
-          <div>
-            <strong>测试目标：example.com:443</strong>
-            <p>通过代理建立目标连接、完成 TLS 握手并请求 HTTP 响应。测试从 genpac-runner 所在容器/主机网络发起。</p>
+          <div class="probe-target-content">
+            <label for="proxy-test-target">代理测试地址（HTTPS）</label>
+            <div class="probe-target-controls">
+              <input
+                id="proxy-test-target"
+                v-model="proxyTestUrl"
+                class="probe-target-input"
+                type="url"
+                autocomplete="url"
+                spellcheck="false"
+                placeholder="https://www.google.com/generate_204"
+                :disabled="!proxyTestTargetLoaded || savingProxyTestTarget || probing"
+                @input="proxyTestTargetMessage = ''; proxyTestTargetMessageOk = null"
+              />
+              <button class="monitor-button secondary" type="button" :disabled="!proxyTestTargetLoaded || savingProxyTestTarget || probing || !proxyTestTargetValid || !proxyTestTargetChanged" @click="saveProxyTestTarget">
+                <AppIcon :name="savingProxyTestTarget ? 'loader-circle' : 'save'" :class="{ 'icon-spinning': savingProxyTestTarget }" :size="14" />
+                {{ savingProxyTestTarget ? "保存中…" : "保存地址" }}
+              </button>
+            </div>
+            <p>默认使用 Google 的 <code>https://www.google.com/generate_204</code>。可以更换为其他 HTTPS 地址，支持自定义路径和查询参数；检测请求会经过正在测试的代理。</p>
+            <p v-if="!proxyTestTargetValid" class="probe-target-hint is-warning">请填写完整有效的 HTTPS URL，不要包含用户名、密码或 # 片段。</p>
+            <p v-else-if="proxyTestTargetChanged" class="probe-target-hint is-warning">地址尚未保存；保存后才能使用新地址进行测试。</p>
+            <p v-else class="probe-target-hint">当前生效地址：<code>{{ savedProxyTestUrl }}</code></p>
+            <p v-if="proxyTestTargetMessage" class="probe-target-message" :class="proxyTestTargetMessageOk ? 'is-success' : 'is-error'" role="status" aria-live="polite">{{ proxyTestTargetMessage }}</p>
           </div>
         </div>
 
@@ -377,6 +443,7 @@ onUnmounted(() => {
             <strong>本次检测结果</strong>
             <span>{{ latestProbe.results.length }} 个代理节点 · {{ formatDate(latestProbe.results[0]?.testedAt) }}</span>
           </div>
+          <p class="panel-footnote probe-run-target">本次测试地址：<code>{{ latestProbe.targetUrl }}</code></p>
           <div v-for="(result, index) in latestProbe.results" :key="result.proxyLabel + index" class="probe-card">
             <div class="probe-card-top">
               <div class="probe-title">
@@ -550,8 +617,18 @@ onUnmounted(() => {
 .monitor-empty { padding:26px 12px; color:var(--muted); font-size:13px; text-align:center; border:1px dashed var(--line); border-radius:10px; }
 .probe-target { display:flex; gap:12px; align-items:flex-start; margin:0 0 16px; }
 .target-icon { width:34px; height:34px; display:grid; place-items:center; border-radius:10px; background:var(--accent-soft); color:var(--accent); flex:0 0 auto; border:1px solid color-mix(in srgb,var(--accent) 18%,var(--line)); }
-.probe-target strong { color:var(--text); font-size:13px; }
-.probe-target p { margin:3px 0 0; }
+.probe-target-content { flex:1; min-width:0; }
+.probe-target-content > label { display:block; margin-bottom:7px; color:var(--text); font-weight:700; }
+.probe-target-controls { display:flex; align-items:stretch; gap:9px; }
+.probe-target-input { box-sizing:border-box; flex:1; min-width:0; min-height:40px; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--bg); color:var(--text); font:inherit; font-size:12px; }
+.probe-target-input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+.probe-target-input:disabled { color:var(--control-disabled-text); background:var(--control-disabled-bg); border-color:var(--control-disabled-border); cursor:not-allowed; opacity:1; }
+.probe-target-content p { margin:6px 0 0; overflow-wrap:anywhere; }
+.probe-target-content code,.probe-run-target code { overflow-wrap:anywhere; white-space:normal; }
+.probe-target-hint.is-warning { color:var(--warn); }
+.probe-target-message.is-success { color:var(--green); }
+.probe-target-message.is-error { color:var(--red); }
+.probe-run-target { margin:0; }
 .probe-results { display:flex; flex-direction:column; gap:12px; }
 .probe-run-head { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:12px; }
 .probe-run-head span { color:var(--muted); }
@@ -580,5 +657,5 @@ onUnmounted(() => {
 @keyframes monitor-spin { to { transform:rotate(360deg); } }
 .probe-history-error { min-width:220px; max-width:340px; overflow-wrap:anywhere; color:var(--red); }
 @media(max-width:1100px) { .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .monitor-panel { padding:16px; } .probe-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-@media(max-width:560px) { .monitor-title-row { flex-direction:column; } .monitor-title-row .monitor-button { align-self:flex-start; } .panel-heading { flex-direction:column; align-items:stretch; gap:8px; margin-bottom:12px; } .panel-actions { align-self:flex-start; } .panel-heading > .monitor-button { align-self:flex-start; } .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:14px 0 20px; } .metric-card { padding:12px 11px; border-radius:11px; } .metric-label { font-size:10px; } .metric-value { font-size:1.32rem; } .monitor-panel { padding:13px; margin-bottom:16px; } .trend-sample-note { margin-left:0; flex-basis:100%; } .probe-run-head { flex-direction:column; align-items:flex-start; } .probe-metrics { gap:7px; } }
+@media(max-width:560px) { .probe-target-controls { flex-direction:column; } .probe-target-controls .monitor-button { align-self:flex-start; } .monitor-title-row { flex-direction:column; } .monitor-title-row .monitor-button { align-self:flex-start; } .panel-heading { flex-direction:column; align-items:stretch; gap:8px; margin-bottom:12px; } .panel-actions { align-self:flex-start; } .panel-heading > .monitor-button { align-self:flex-start; } .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:14px 0 20px; } .metric-card { padding:12px 11px; border-radius:11px; } .metric-label { font-size:10px; } .metric-value { font-size:1.32rem; } .monitor-panel { padding:13px; margin-bottom:16px; } .trend-sample-note { margin-left:0; flex-basis:100%; } .probe-run-head { flex-direction:column; align-items:flex-start; } .probe-metrics { gap:7px; } }
 </style>

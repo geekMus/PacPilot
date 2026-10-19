@@ -47,6 +47,7 @@ const form = reactive({
   blockListText: "",
   cronSchedule: "",
   timezone: "Asia/Shanghai",
+  proxyTestUrl: "https://www.google.com/generate_204",
   webhookSuccessUrl: "",
   webhookSuccessBody: "",
   webhookFailureUrl: "",
@@ -276,6 +277,7 @@ function applySettings(s: AppSettings) {
   form.blockListText = s.blockList.join("\n");
   form.cronSchedule = s.cronSchedule;
   form.timezone = s.timezone || "Asia/Shanghai";
+  form.proxyTestUrl = s.proxyTestUrl || "https://www.google.com/generate_204";
   form.webhookSuccessUrl = s.webhookSuccessUrl;
   form.webhookSuccessBody = s.webhookSuccessBody;
   form.webhookFailureUrl = s.webhookFailureUrl;
@@ -299,6 +301,7 @@ function toPayload(): AppSettings {
     blockList: split(form.blockListText),
     cronSchedule: form.cronSchedule,
     timezone: form.timezone.trim(),
+    proxyTestUrl: form.proxyTestUrl.trim(),
     webhookSuccessUrl: form.webhookSuccessConfig.url,
     webhookSuccessBody: form.webhookSuccessConfig.body,
     webhookFailureUrl: form.webhookFailureConfig.url,
