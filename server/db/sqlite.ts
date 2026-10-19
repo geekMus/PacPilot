@@ -373,6 +373,25 @@ export function listWorkflowStages(database: AppDatabase, runId: number): Workfl
 }
 
 
+/** Clear all execution history and stage timelines, but never while a workflow is active. */
+export function clearWorkflowHistory(database: AppDatabase): { deletedRuns: number; activeRuns: number } {
+  database.exec("BEGIN IMMEDIATE");
+  try {
+    const activeRow = database.query("SELECT COUNT(*) AS count FROM workflow_runs WHERE status IN ('pending','running')").get() as { count: number };
+    const activeRuns = Number(activeRow.count || 0);
+    if (activeRuns > 0) {
+      database.exec("ROLLBACK");
+      return { deletedRuns: 0, activeRuns };
+    }
+    const deletedRuns = Number(database.query("DELETE FROM workflow_runs").run().changes);
+    database.exec("COMMIT");
+    return { deletedRuns, activeRuns: 0 };
+  } catch (error) {
+    try { database.exec("ROLLBACK"); } catch { /* transaction may already be closed */ }
+    throw error;
+  }
+}
+
 /** Delete one terminal workflow execution and its stage timeline. Active runs cannot be removed. */
 export function deleteWorkflowRun(database: AppDatabase, id: number): "deleted" | "not-found" | "active" {
   const run = getWorkflowRun(database, id);
