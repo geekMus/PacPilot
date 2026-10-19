@@ -519,8 +519,13 @@ async function saveAndGenerate() {
         : `配置已保存，但生成失败：\n${result.message}`,
       result.success
     );
-    logs.value = await api.logs();
-    genpacProbe.value = await api.genpacStatus().catch(() => genpacProbe.value);
+    // 辅助面板刷新失败不能反过来把已经完成的保存/生成显示为失败。
+    const [latestLogs, latestProbe] = await Promise.all([
+      api.logs().catch(() => null),
+      api.genpacStatus().catch(() => null),
+    ]);
+    if (latestLogs) logs.value = latestLogs;
+    if (latestProbe) genpacProbe.value = latestProbe;
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
