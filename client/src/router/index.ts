@@ -14,11 +14,6 @@ const router = createRouter({
       component: () => import("../views/AdminDashboardView.vue"),
     },
     {
-      path: "/status",
-      name: "legacy-status",
-      redirect: "/",
-    },
-    {
       path: "/admin/login",
       name: "login",
       component: () => import("../views/LoginView.vue"),
