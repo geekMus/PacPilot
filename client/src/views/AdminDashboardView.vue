@@ -104,7 +104,7 @@ onMounted(() => { void loadOverview(); });
 <template>
   <AdminLayout active="dashboard" title="系统总览" subtitle="查看 PAC 配置、生成状态、访问情况与常用管理入口。">
     <template #actions>
-      <button class="dash-button secondary" type="button" :disabled="refreshing" @click="loadOverview">
+      <button class="dash-button secondary" :class="{ 'is-loading': refreshing }" type="button" :disabled="refreshing" @click="loadOverview">
         <AppIcon :name="refreshing ? 'loader-circle' : 'refresh-cw'" :class="{ 'icon-spinning': refreshing }" :size="15" />
         {{ refreshing ? "刷新中…" : "刷新数据" }}
       </button>
@@ -119,9 +119,9 @@ onMounted(() => { void loadOverview(); });
         <div class="quick-actions">
           <RouterLink to="/admin" class="dash-button secondary"><AppIcon name="settings" :size="16" />打开配置</RouterLink>
           <RouterLink to="/admin/monitor" class="dash-button secondary"><AppIcon name="activity" :size="16" />查看网络监控</RouterLink>
-          <button type="button" class="dash-button primary" :disabled="generating || loading" @click="generateNow">
-            <AppIcon :name="generating ? 'loader-circle' : 'zap'" :class="{ 'icon-spinning': generating }" :size="16" />
-            {{ generating ? "正在生成…" : "立即生成 PAC" }}
+          <button type="button" class="dash-button primary" :class="{ 'is-loading': generating || loading }" :disabled="generating || loading" @click="generateNow">
+            <AppIcon :name="generating || loading ? 'loader-circle' : 'zap'" :class="{ 'icon-spinning': generating || loading }" :size="16" />
+            {{ generating ? "正在生成…" : loading ? "正在读取…" : "立即生成 PAC" }}
           </button>
         </div>
       </div>
@@ -240,8 +240,15 @@ onMounted(() => { void loadOverview(); });
   color:var(--control-disabled-text);
   background:var(--control-disabled-bg);
   border-color:var(--control-disabled-border);
-  cursor:wait;
+  cursor:not-allowed;
   filter:none;
+}
+.dash-button.secondary.is-loading:disabled,.dash-button.logout-button.is-loading:disabled {
+  color:var(--text);
+  -webkit-text-fill-color:var(--text);
+  background:var(--surface);
+  border-color:var(--line);
+  cursor:progress;
 }
 .dash-button.secondary:hover:not(:disabled),.dash-button.logout-button:hover:not(:disabled) {
   color:var(--text);

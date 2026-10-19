@@ -338,7 +338,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
 
       <section v-if="status.mode !== 'empty'" class="source-footer">
         <div class="source-caption"><span class="source-dot" aria-hidden="true"></span><span>摘要来自当前已生成的 PAC 文件</span></div>
-        <div class="source-actions"><span class="source-updated">文件更新时间：{{ status.updatedAt }}</span><a href="/proxy.pac" target="_blank" rel="noopener noreferrer"><AppIcon name="external-link" :size="14" />查看 PAC</a><a href="/proxy.pac?download=1"><AppIcon name="download" :size="14" />下载 PAC</a><button type="button" @click="loadStatus" :disabled="loading"><AppIcon :name="loading ? 'loader-circle' : 'refresh-cw'" :class="{ 'icon-spinning': loading }" :size="14" />{{ loading ? "刷新中…" : "刷新状态" }}</button></div>
+        <div class="source-actions"><span class="source-updated">文件更新时间：{{ status.updatedAt }}</span><a href="/proxy.pac" target="_blank" rel="noopener noreferrer"><AppIcon name="external-link" :size="14" />查看 PAC</a><a href="/proxy.pac?download=1"><AppIcon name="download" :size="14" />下载 PAC</a><button type="button" :class="{ 'is-loading': loading }" @click="loadStatus" :disabled="loading"><AppIcon :name="loading ? 'loader-circle' : 'refresh-cw'" :class="{ 'icon-spinning': loading }" :size="14" />{{ loading ? "刷新中…" : "刷新状态" }}</button></div>
       </section>
     </template>
     <AppFooter />
@@ -553,7 +553,14 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
   color:var(--control-disabled-text);
   background:var(--control-disabled-bg);
   border-color:var(--control-disabled-border);
-  cursor:wait;
+  cursor:not-allowed;
+}
+.source-actions button.is-loading:disabled {
+  color:var(--text);
+  -webkit-text-fill-color:var(--text);
+  background:var(--surface);
+  border-color:var(--line);
+  cursor:progress;
 }
 
 .state-card { display:flex; align-items:flex-start; gap:14px; padding:18px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }

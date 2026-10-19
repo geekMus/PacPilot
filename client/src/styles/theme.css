@@ -143,6 +143,37 @@ select {
   filter: none;
 }
 
+/*
+ * A loading button is temporarily non-interactive, not unavailable. Preserve
+ * legible text and the normal button variant while it waits for a response.
+ */
+:root button.is-loading:disabled {
+  opacity: 1;
+  cursor: progress;
+  box-shadow: none;
+  transform: none;
+  filter: none;
+}
+
+:root button.is-loading:disabled:not(.primary):not(.btn-save):not(.login-submit):not(.dash-button):not(.monitor-button):not(.action-button) {
+  color: var(--text);
+  -webkit-text-fill-color: var(--text);
+  background-color: var(--surface);
+  border-color: var(--line);
+}
+
+:root button.is-loading:disabled:is(.primary, .login-submit) {
+  color: var(--accent-contrast);
+  -webkit-text-fill-color: var(--accent-contrast);
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+:root button.is-loading:disabled .app-icon,
+:root button.is-loading:disabled svg {
+  opacity: 1;
+}
+
 :root :is(input, textarea, select):disabled::placeholder {
   color: var(--control-disabled-text);
   opacity: 1;

@@ -44,7 +44,7 @@ onMounted(() => { void loadVersionInfo(true); });
       <div v-if="dialogOpen" class="dialog-backdrop" @click.self="dialogOpen = false" tabindex="-1">
         <section class="version-dialog" role="dialog" aria-modal="true" aria-labelledby="version-dialog-title">
           <header class="dialog-header"><h2 id="version-dialog-title">项目与版本</h2><button type="button" class="dialog-close" aria-label="关闭弹窗" @click="dialogOpen = false" autofocus><AppIcon name="x" :size="17" /></button></header>
-          <div class="version-grid"><div class="version-item"><span>当前版本</span><strong>v{{ currentVersion }}</strong></div><button type="button" class="version-item latest-version-item" :class="{ 'version-new': hasUpdate }" @click="loadVersionInfo(true)" :disabled="isCheckingVersion" :aria-label="isCheckingVersion ? '正在获取最新版本' : '点击获取最新版本'"><span>最新版本 <small>{{ isCheckingVersion ? "获取中…" : "点击刷新" }}</small></span><strong>{{ latestVersion === "暂时未知" ? latestVersion : "v" + latestVersion }}</strong></button></div>
+          <div class="version-grid"><div class="version-item"><span>当前版本</span><strong>v{{ currentVersion }}</strong></div><button type="button" class="version-item latest-version-item" :class="{ 'version-new': hasUpdate, 'is-loading': isCheckingVersion }" @click="loadVersionInfo(true)" :disabled="isCheckingVersion" :aria-label="isCheckingVersion ? '正在获取最新版本' : '点击获取最新版本'"><span>最新版本 <small>{{ isCheckingVersion ? "获取中…" : "点击刷新" }}</small></span><strong>{{ latestVersion === "暂时未知" ? latestVersion : "v" + latestVersion }}</strong></button></div>
           <div v-if="hasUpdate" class="dialog-update-note" role="status"><span class="dialog-update-dot"></span><div><strong>发现新版本 {{ updateInfo?.latestVersion }}</strong><p>当前运行版本较旧，可前往项目仓库查看最新代码与更新说明。</p></div></div>
           <p v-else-if="isCheckingVersion" class="dialog-status" role="status">正在获取最新版本…</p>
           <p v-else-if="refreshFailed" class="dialog-status" role="status">获取最新版本失败，请稍后点击上方“最新版本”重试。这不会影响 PAC 和管理功能。</p>
@@ -81,10 +81,17 @@ onMounted(() => { void loadVersionInfo(true); });
 .latest-version-item:hover:not(:disabled) { border-color:var(--accent); }
 .latest-version-item:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .latest-version-item:disabled {
-  cursor:wait;
+  cursor:not-allowed;
   color:var(--control-disabled-text);
   border-color:var(--control-disabled-border);
   background:var(--control-disabled-bg);
+}
+.latest-version-item.is-loading:disabled {
+  cursor:progress;
+  color:var(--text);
+  -webkit-text-fill-color:var(--text);
+  border-color:var(--line);
+  background:var(--surface);
 }
 .latest-version-item span small { margin-left:4px; color:var(--accent); font-size:10px; font-weight:650; }
 .version-item.version-new { border-color:color-mix(in srgb,var(--warn) 55%,var(--line)); background:var(--warn-soft); color:var(--text); }

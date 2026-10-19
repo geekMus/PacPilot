@@ -492,7 +492,7 @@ async function logout() {
             <input id="confirm-admin-password" v-model="passwordForm.confirmPassword" type="password" autocomplete="new-password" required />
           </div>
           <div class="actions">
-            <button type="submit" class="btn primary" :disabled="passwordSaving">
+            <button type="submit" class="btn primary" :class="{ 'is-loading': passwordSaving }" :disabled="passwordSaving">
               {{ passwordSaving ? "正在修改…" : "修改管理密码" }}
             </button>
           </div>
@@ -784,6 +784,7 @@ async function logout() {
             <button
               type="submit"
               class="btn primary btn-save"
+              :class="{ 'is-loading': saving }"
               :disabled="!canSubmit"
             >
               <AppIcon :name="saving ? 'loader-circle' : 'save'" :size="17" :class="{ 'save-spinner': saving }" />
@@ -1210,6 +1211,14 @@ textarea {
   -webkit-text-fill-color: var(--muted);
   box-shadow: none;
   transform: none;
+}
+.admin-page .actions .btn-save.is-loading:disabled {
+  cursor: progress;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast) !important;
+  -webkit-text-fill-color: var(--accent-contrast);
+  box-shadow: none;
 }
 .save-spinner { width: 17px; height: 17px; animation: save-spin .8s linear infinite; }
 @keyframes save-spin { to { transform: rotate(360deg); } }

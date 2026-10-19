@@ -63,7 +63,7 @@ async function onSubmit() {
           <label for="pw">管理密码</label>
           <input id="pw" v-model="password" type="password" required autocomplete="current-password"
             placeholder="输入管理密码" :disabled="adminEnabled === false" autofocus />
-          <button type="submit" class="login-submit" :disabled="loading || !password || adminEnabled === false">
+          <button type="submit" class="login-submit" :class="{ 'is-loading': loading }" :disabled="loading || !password || adminEnabled === false">
             {{ loading ? "正在验证…" : "登录控制台" }}<AppIcon :name="loading ? 'loader-circle' : 'arrow-right'" :class="{ 'icon-spinning': loading }" :size="16" />
           </button>
         </form>
@@ -110,6 +110,13 @@ async function onSubmit() {
   background:var(--control-disabled-bg);
   border-color:var(--control-disabled-border);
   cursor:not-allowed;
+}
+.login-submit.is-loading:disabled {
+  color:var(--accent-contrast);
+  -webkit-text-fill-color:var(--accent-contrast);
+  background:var(--accent);
+  border-color:var(--accent);
+  cursor:progress;
 }
 .icon-spinning { animation: login-icon-spin .9s linear infinite; }
 @keyframes login-icon-spin { to { transform:rotate(360deg); } }

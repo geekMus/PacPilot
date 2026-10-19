@@ -247,7 +247,7 @@ onUnmounted(() => {
         <span class="live-dot" :class="{ busy: refreshing }"></span>
         更新于 {{ formatDate(lastUpdated) }}
       </span>
-      <button class="monitor-button secondary" type="button" :disabled="refreshing" @click="refreshDashboard()">
+      <button class="monitor-button secondary" :class="{ 'is-loading': refreshing }" type="button" :disabled="refreshing" @click="refreshDashboard()">
         <AppIcon :name="refreshing ? 'loader-circle' : 'refresh-cw'" :class="{ 'icon-spinning': refreshing }" :size="15" />
         {{ refreshing ? "刷新中…" : "刷新数据" }}
       </button>
@@ -402,7 +402,7 @@ onUnmounted(() => {
             <h2>代理连通性测试</h2>
             <p>测试当前保存的 PAC 代理指令；每个代理有 12 秒总超时。不会把 PAC 中的 DIRECT 项当作代理节点。</p>
           </div>
-          <button class="monitor-button primary" type="button" :disabled="probing || savingProxyTestTarget || !proxyTestTargetLoaded || proxyTestTargetChanged" @click="runProxyTest">
+          <button class="monitor-button primary" :class="{ 'is-loading': probing }" type="button" :disabled="probing || savingProxyTestTarget || !proxyTestTargetLoaded || proxyTestTargetChanged" @click="runProxyTest">
             <AppIcon :name="probing ? 'loader-circle' : 'zap'" :class="{ 'icon-spinning': probing }" :size="15" />{{ probing ? "正在检测…" : "立即测试代理" }}
           </button>
         </div>
@@ -423,7 +423,7 @@ onUnmounted(() => {
                 :disabled="!proxyTestTargetLoaded || savingProxyTestTarget || probing"
                 @input="proxyTestTargetMessage = ''; proxyTestTargetMessageOk = null"
               />
-              <button class="monitor-button secondary" type="button" :disabled="!proxyTestTargetLoaded || savingProxyTestTarget || probing || !proxyTestTargetValid || !proxyTestTargetChanged" @click="saveProxyTestTarget">
+              <button class="monitor-button secondary" :class="{ 'is-loading': savingProxyTestTarget }" type="button" :disabled="!proxyTestTargetLoaded || savingProxyTestTarget || probing || !proxyTestTargetValid || !proxyTestTargetChanged" @click="saveProxyTestTarget">
                 <AppIcon :name="savingProxyTestTarget ? 'loader-circle' : 'save'" :class="{ 'icon-spinning': savingProxyTestTarget }" :size="14" />
                 {{ savingProxyTestTarget ? "保存中…" : "保存地址" }}
               </button>
@@ -566,8 +566,15 @@ onUnmounted(() => {
   color:var(--control-disabled-text);
   background:var(--control-disabled-bg);
   border-color:var(--control-disabled-border);
-  cursor:wait;
+  cursor:not-allowed;
   filter:none;
+}
+.monitor-button.secondary.is-loading:disabled {
+  color:var(--text);
+  -webkit-text-fill-color:var(--text);
+  background:var(--surface);
+  border-color:var(--line);
+  cursor:progress;
 }
 .monitor-button.primary { background:var(--accent); border-color:var(--accent); color:var(--accent-contrast); }
 .monitor-button.secondary { color:var(--text); background:var(--surface); }

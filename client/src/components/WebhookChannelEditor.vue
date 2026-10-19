@@ -68,7 +68,7 @@ const channelStatusText = computed(() => {
           <p>{{ kind === "success" ? "PAC 生成成功后发送" : "PAC 生成失败时发送" }}</p>
         </div>
       </div>
-      <button type="button" class="test-button" :disabled="pending" @click="emit('test')">
+      <button type="button" class="test-button" :class="{ 'is-loading': pending }" :disabled="pending" @click="emit('test')">
         <AppIcon :name="pending ? 'loader-circle' : 'activity'" :class="{ 'icon-spinning': pending }" :size="14" />
         {{ pending ? "发送中…" : "发送测试" }}
       </button>
@@ -222,6 +222,13 @@ const channelStatusText = computed(() => {
   background:var(--control-disabled-bg);
   border-color:var(--control-disabled-border);
   cursor:not-allowed;
+}
+.test-button.is-loading:disabled {
+  color:var(--text);
+  -webkit-text-fill-color:var(--text);
+  background:var(--surface);
+  border-color:var(--line);
+  cursor:progress;
 }
 .provider-picker {
   box-sizing: border-box; margin: 0; padding: 12px; border: 1px solid var(--line);
