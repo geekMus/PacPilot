@@ -49,6 +49,18 @@ export interface MonitorSummary {
   p95ResponseMs: number;
   errorRate: number;
   requestTrend: Array<{ hour: string; requests: number; errors: number }>;
+  pacRequestsLastHour: number;
+  pacRequestsLast24h: number;
+  pacSuccessRate: number;
+  pacFailureRequestsLast24h: number;
+  pacAverageResponseMs: number;
+  latestPacRequest: {
+    created_at: string;
+    source_ip: string;
+    status_code: number;
+    duration_ms: number;
+  } | null;
+  pacRequestTrend: Array<{ hour: string; requests: number; errors: number; averageResponseMs: number }>;
 }
 
 let lastPruneAt = 0;
@@ -122,6 +134,32 @@ export function getMonitorSummary(
     "SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) AS errors " +
     "FROM access_events WHERE created_at >= ? GROUP BY hour_key"
   ).all(dayAgo) as Array<{ hour_key: string; total: number; errors: number | null }>;
+
+  // PAC 文件本身是本服务的核心指标，独立统计 /proxy.pac，避免网页和管理 API 混入。
+  const pacDay = database.query(
+    "SELECT COUNT(*) AS total, " +
+    "SUM(CASE WHEN status_code >= 200 AND status_code < 400 THEN 1 ELSE 0 END) AS successful, " +
+    "SUM(CASE WHEN status_code >= 400 OR status_code < 200 THEN 1 ELSE 0 END) AS failures, " +
+    "AVG(duration_ms) AS average_ms " +
+    "FROM access_events WHERE category = 'pac' AND created_at >= ?"
+  ).get(dayAgo) as { total: number; successful: number | null; failures: number | null; average_ms: number | null } | null;
+  const pacHour = database.query(
+    "SELECT COUNT(*) AS total FROM access_events WHERE category = 'pac' AND created_at >= ?"
+  ).get(hourAgo) as { total: number } | null;
+  const latestPacRequest = database.query(
+    "SELECT created_at, source_ip, status_code, duration_ms FROM access_events " +
+    "WHERE category = 'pac' ORDER BY id DESC LIMIT 1"
+  ).get() as { created_at: string; source_ip: string; status_code: number; duration_ms: number } | null;
+  const pacHourlyRows = database.query(
+    "SELECT substr(created_at, 1, 13) AS hour_key, COUNT(*) AS total, " +
+    "SUM(CASE WHEN status_code >= 400 OR status_code < 200 THEN 1 ELSE 0 END) AS errors, " +
+    "AVG(duration_ms) AS average_ms " +
+    "FROM access_events WHERE category = 'pac' AND created_at >= ? GROUP BY hour_key"
+  ).all(dayAgo) as Array<{ hour_key: string; total: number; errors: number | null; average_ms: number | null }>;
+  const pacHourlyByKey = new Map(pacHourlyRows.map((row) => [
+    row.hour_key,
+    { requests: Number(row.total), errors: Number(row.errors ?? 0), averageResponseMs: Math.round(Number(row.average_ms ?? 0) * 10) / 10 },
+  ]));
   const hourlyByKey = new Map(hourlyRows.map((row) => [
     row.hour_key,
     { requests: Number(row.total), errors: Number(row.errors ?? 0) },
@@ -145,6 +183,25 @@ export function getMonitorSummary(
   return {
     generatedAt: new Date(now).toISOString(),
     requestTrend,
+    pacRequestsLastHour: Number(pacHour?.total ?? 0),
+    pacRequestsLast24h: Number(pacDay?.total ?? 0),
+    pacSuccessRate: Number(pacDay?.total ?? 0) > 0
+      ? Math.round((Number(pacDay?.successful ?? 0) / Number(pacDay?.total ?? 0)) * 1000) / 10
+      : 100,
+    pacFailureRequestsLast24h: Number(pacDay?.failures ?? 0),
+    pacAverageResponseMs: Math.round(Number(pacDay?.average_ms ?? 0) * 10) / 10,
+    latestPacRequest: latestPacRequest ?? null,
+    pacRequestTrend: Array.from({ length: 24 }, (_, index) => {
+      const slot = new Date(currentHour - (23 - index) * 60 * 60 * 1000);
+      const key = slot.toISOString().slice(0, 13);
+      const values = pacHourlyByKey.get(key);
+      return {
+        hour: slot.toISOString(),
+        requests: values?.requests ?? 0,
+        errors: values?.errors ?? 0,
+        averageResponseMs: values?.averageResponseMs ?? 0,
+      };
+    }),
     activeRequests: Math.max(0, activeRequests),
     tcpConnections: Math.max(0, tcpConnections),
     requestsLastHour: Number(hour?.total ?? 0),
