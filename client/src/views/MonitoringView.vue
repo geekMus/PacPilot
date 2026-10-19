@@ -339,7 +339,8 @@ onUnmounted(() => {
                 <td class="nowrap">{{ formatDuration(event.duration_ms) }}</td>
                 <td class="nowrap">{{ formatBytes(event.response_bytes) }}</td>
                 <td class="ua-cell">
-                  <TextDetail :text="event.user_agent || ''" label="客户端信息" />
+                  <TextDetail v-if="event.user_agent" :text="event.user_agent" label="客户端信息" />
+                  <span v-else>—</span>
                 </td>
               </tr>
             </tbody>
@@ -442,9 +443,11 @@ onUnmounted(() => {
                 <td class="nowrap">{{ formatDuration(item.target_ms) }}</td>
                 <td class="probe-history-error">
                   <TextDetail
-                    :text="item.success ? '—' : probePhaseLabel(item.phase) + '：' + item.error"
+                    v-if="!item.success"
+                    :text="probePhaseLabel(item.phase) + '：' + (item.error || '未提供错误详情')"
                     label="检测失败原因"
                   />
+                  <span v-else>—</span>
                 </td>
               </tr>
             </tbody>
