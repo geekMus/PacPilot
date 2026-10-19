@@ -52,6 +52,7 @@ export interface AppSettings {
   cronSchedule: string;
   timezone: string;
   proxyTestUrl: string;
+  logRetentionDays: number;
   webhookSuccessUrl: string;
   webhookSuccessBody: string;
   webhookFailureUrl: string;
@@ -74,6 +75,7 @@ export interface GenerationLog {
   created_at: string;
 }
 export interface GenerateResult {
+  workflowId?: number;
   success: boolean;
   mode: string;
   message: string;
@@ -83,6 +85,30 @@ export interface GenerateResult {
 export interface SaveAndGenerateResult {
   settings: AppSettings;
   generation: GenerateResult;
+  workflowId?: number;
+}
+
+export type WorkflowStatus = "pending" | "running" | "succeeded" | "failed";
+export interface WorkflowRun {
+  id: number;
+  source: string;
+  status: WorkflowStatus;
+  stage: string;
+  mode: string;
+  message: string;
+  error: string;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  duration_ms: number | null;
+}
+export interface WorkflowList { current: WorkflowRun | null; runs: WorkflowRun[]; }
+export interface StorageSummary {
+  dataBytes: number;
+  dbBytes: number;
+  logBytes: number;
+  retentionDays: number;
+  counts: { generationLogs: number; accessEvents: number; proxyProbeRuns: number; workflows: number };
 }
 export interface GenpacProbe {
   available: boolean;
@@ -214,6 +240,10 @@ export const api = {
     }),
   generate: () => request<GenerateResult>("/api/admin/generate", { method: "POST" }),
   logs: () => request<GenerationLog[]>("/api/admin/logs"),
+  workflows: (limit = 50) => request<WorkflowList>(`/api/admin/workflows?limit=${limit}`),
+  storage: () => request<StorageSummary>("/api/admin/storage"),
+  cleanupLogs: () => request<{ deleted: { generationLogs: number; accessEvents: number; proxyProbeRuns: number }; retentionDays: number }>("/api/admin/logs/cleanup", { method: "POST" }),
+  factoryReset: () => request<{ ok: boolean; message: string }>("/api/admin/factory-reset", { method: "POST" }),
   genpacStatus: () => request<GenpacProbe>("/api/admin/genpac-status"),
   monitorSummary: () => request<MonitorSummary>("/api/admin/monitor/summary"),
   monitorAccess: (limit = 50) => request<AccessEvent[]>(`/api/admin/monitor/access?limit=${limit}`),
