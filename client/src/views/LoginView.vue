@@ -5,6 +5,8 @@ import { api } from "../api/client";
 import AppHeader from "../components/AppHeader.vue";
 import AppFooter from "../components/AppFooter.vue";
 import AppIcon from "../components/AppIcon.vue";
+import { useToast } from "../composables/useToast";
+const { notify } = useToast();
 
 const router = useRouter();
 const route = useRoute();
@@ -31,9 +33,11 @@ async function onSubmit() {
   loading.value = true;
   try {
     await api.login(password.value);
+    notify("登录成功", "success");
     await router.push("/admin/dashboard");
   } catch (e) {
     error.value = e instanceof Error ? e.message : "登录失败，请重试。";
+    notify(error.value, "error");
   } finally {
     loading.value = false;
   }

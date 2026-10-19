@@ -5,7 +5,7 @@ import { api } from "../api/client";
 import AppIcon from "./AppIcon.vue";
 import ThemeSwitcher from "./ThemeSwitcher.vue";
 
-type AdminSection = "dashboard" | "settings" | "monitor" | "workflow";
+type AdminSection = "dashboard" | "settings" | "system-settings" | "monitor" | "workflow";
 
 defineProps<{
   active: AdminSection;
@@ -70,6 +70,24 @@ watch(() => route.fullPath, () => {
             <span>系统总览</span>
           </RouterLink>
           <RouterLink
+            to="/admin/monitor"
+            class="sidebar-link"
+            :class="{ active: active === 'monitor' }"
+            :aria-current="active === 'monitor' ? 'page' : undefined"
+          >
+            <AppIcon name="activity" :size="18" />
+            <span>网络监控</span>
+          </RouterLink>
+          <RouterLink
+            to="/admin/settings"
+            class="sidebar-link"
+            :class="{ active: active === 'settings' }"
+            :aria-current="active === 'settings' ? 'page' : undefined"
+          >
+            <AppIcon name="sliders-horizontal" :size="18" />
+            <span>配置管理</span>
+          </RouterLink>
+          <RouterLink
             to="/admin/workflows"
             class="sidebar-link"
             :class="{ active: active === 'workflow' }"
@@ -79,26 +97,13 @@ watch(() => route.fullPath, () => {
             <span>工作流</span>
           </RouterLink>
           <RouterLink
-            to="/admin/monitor"
+            to="/admin/system-settings"
             class="sidebar-link"
-            :class="{ active: active === 'monitor' }"
-            :aria-current="active === 'monitor' ? 'page' : undefined"
+            :class="{ active: active === 'system-settings' }"
+            :aria-current="active === 'system-settings' ? 'page' : undefined"
           >
-            <AppIcon name="activity" :size="18" />
-            <span>网络监控</span>
-          </RouterLink>
-        </section>
-
-        <section class="nav-group" aria-labelledby="nav-configuration">
-          <p id="nav-configuration" class="nav-caption">配置</p>
-          <RouterLink
-            to="/admin/settings"
-            class="sidebar-link"
-            :class="{ active: active === 'settings' }"
-            :aria-current="active === 'settings' ? 'page' : undefined"
-          >
-            <AppIcon name="settings" :size="18" />
-            <span>配置设置</span>
+            <AppIcon name="settings-2" :size="18" />
+            <span>系统设置</span>
           </RouterLink>
         </section>
 

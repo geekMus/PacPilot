@@ -5,20 +5,41 @@ import { api, type WorkflowRun } from "../api/client";
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
+import { useToast } from "../composables/useToast";
 
 const router = useRouter();
+const { notify } = useToast();
 const loading = ref(true);
 const refreshing = ref(false);
 const error = ref("");
 const current = ref<WorkflowRun | null>(null);
+const activeRuns = ref<WorkflowRun[]>([]);
 const runs = ref<WorkflowRun[]>([]);
 const selectedStatus = ref("all");
 const selectedSource = ref("all");
 const page = ref(1);
 const pageSize = 20;
+const deletingId = ref<number | null>(null);
+const confirmingDeleteId = ref<number | null>(null);
+const confirmingCancelId = ref<number | null>(null);
+const cancellingId = ref<number | null>(null);
+let previousStatuses = new Map<number, string>();
+let statusSnapshotReady = false;
 let pollHandle: ReturnType<typeof setInterval> | undefined;
+let requestInFlight = false;
+const isActiveRun = (run: WorkflowRun | null | undefined) => Boolean(run && (run.status === "pending" || run.status === "running"));
+function syncPolling(run: WorkflowRun | null) {
+  if (isActiveRun(run)) {
+    if (!pollHandle) pollHandle = setInterval(() => { if (isActiveRun(current.value)) void load(true); else stopPolling(); }, 3000);
+  } else stopPolling();
+}
+function stopPolling() {
+  if (pollHandle) clearInterval(pollHandle);
+  pollHandle = undefined;
+}
 
 const active = computed(() => Boolean(current.value));
+const otherActiveRuns = computed(() => activeRuns.value.filter((run) => run.id !== current.value?.id));
 const filteredRuns = computed(() => runs.value.filter((run) =>
   (selectedStatus.value === "all" || run.status === selectedStatus.value) &&
   (selectedSource.value === "all" || run.source === selectedSource.value)
@@ -30,6 +51,7 @@ const statusNames: Record<string, string> = {
   running: "执行中",
   succeeded: "成功",
   failed: "失败",
+  cancelled: "已取消",
 };
 const sourceNames: Record<string, string> = {
   startup: "服务启动",
@@ -50,6 +72,8 @@ const durationLabel = (run: WorkflowRun) => {
 const dateLabel = (value: string | null) => value ? new Date(value).toLocaleString() : "—";
 
 async function load(silent = false) {
+  if (requestInFlight) return;
+  requestInFlight = true;
   if (!silent) refreshing.value = true;
   error.value = "";
   try {
@@ -59,21 +83,67 @@ async function load(silent = false) {
       return;
     }
     const result = await api.workflows(200);
+    if (statusSnapshotReady) {
+      for (const run of result.runs) {
+        const previous = previousStatuses.get(run.id);
+        if ((previous === "running" || previous === "pending") && ["succeeded", "failed", "cancelled"].includes(run.status)) {
+          const message = run.status === "succeeded" ? `工作流 #${run.id} 已执行完成` : run.status === "failed" ? `工作流 #${run.id} 执行失败：${run.error || run.message || "请查看执行详情"}` : `工作流 #${run.id} 已取消排队`;
+          notify(message, run.status === "succeeded" ? "success" : run.status === "failed" ? "error" : "warning", 6500);
+        }
+      }
+    }
+    previousStatuses = new Map(result.runs.map((run) => [run.id, run.status]));
+    statusSnapshotReady = true;
     current.value = result.current;
+    activeRuns.value = result.active ?? (result.current ? [result.current] : []);
     runs.value = result.runs;
     page.value = Math.min(page.value, pageCount.value);
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : String(caught);
+    if (!silent) notify(error.value, "error");
   } finally {
     loading.value = false;
     refreshing.value = false;
+    requestInFlight = false;
+    syncPolling(current.value);
   }
 }
-onMounted(() => {
-  void load();
-  pollHandle = setInterval(() => { void load(true); }, 3000);
-});
-onUnmounted(() => { if (pollHandle) clearInterval(pollHandle); });
+async function deleteRun(run: WorkflowRun) {
+  if (deletingId.value !== null || confirmingDeleteId.value !== run.id) return;
+  if (run.status === "running" || run.status === "pending") {
+    notify("等待中或执行中的工作流不能删除。", "warning");
+    return;
+  }
+  deletingId.value = run.id;
+  try {
+    await api.deleteWorkflow(run.id);
+    runs.value = runs.value.filter((item) => item.id !== run.id);
+    previousStatuses.delete(run.id);
+    confirmingDeleteId.value = null;
+    notify(`工作流执行记录 #${run.id} 已删除`, "success");
+    page.value = Math.min(page.value, pageCount.value);
+    if (current.value?.id === run.id) current.value = null;
+  } catch (caught) {
+    notify(caught instanceof Error ? caught.message : String(caught), "error");
+  } finally {
+    deletingId.value = null;
+  }
+}
+async function cancelRun(run: WorkflowRun) {
+  if (run.status !== "pending" || cancellingId.value !== null || confirmingCancelId.value !== run.id) return;
+  cancellingId.value = run.id;
+  try {
+    await api.cancelWorkflow(run.id);
+    confirmingCancelId.value = null;
+    await load(true);
+  } catch (caught) {
+    notify(caught instanceof Error ? caught.message : String(caught), "error");
+  } finally {
+    cancellingId.value = null;
+  }
+}
+onMounted(() => { void load(); });
+onUnmounted(stopPolling);
 </script>
 
 <template>
@@ -94,16 +164,21 @@ onUnmounted(() => { if (pollHandle) clearInterval(pollHandle); });
       </div>
 
       <section class="workflow-current panel">
+        <div class="panel-heading"><div><p class="eyebrow">WORKFLOW CATALOG</p><h2>工作流定义</h2><p class="panel-subtitle">名称与标识固定，触发来源可以有多种。</p></div><span class="count-pill">1 个工作流</span></div>
+        <div class="catalog-item"><div class="current-icon"><AppIcon name="workflow" :size="22" /></div><div class="catalog-copy"><strong>PAC 生成工作流</strong><span>根据当前配置生成 PAC 文件，并记录每次执行结果。</span><small>标识：pac-generation · 触发方式：服务启动、定时任务、手动生成、保存并生成</small></div><span class="read-only-pill">只读</span></div>
+      </section>
+
+      <section class="workflow-current panel">
         <div class="panel-heading">
           <div>
             <p class="eyebrow">CURRENT TASK</p>
             <h2>当前工作流</h2>
           </div>
-          <span class="status-pill" :class="active ? 'running' : 'idle'">{{ active ? statusLabel(current!.status) : "空闲" }}</span>
+          <span class="status-pill" :class="active ? current!.status : 'idle'"><AppIcon v-if="active && (current!.status === 'running' || current!.status === 'pending')" :name="current!.status === 'pending' ? 'clock' : 'loader-circle'" :size="13" :class="{spinning: current!.status === 'running'}" />{{ active ? statusLabel(current!.status) : "空闲" }}</span>
         </div>
         <template v-if="current">
           <div class="current-main">
-            <div class="current-icon"><AppIcon :name="current.status === 'failed' ? 'circle-alert' : 'workflow'" :size="23" /></div>
+            <div class="current-icon"><AppIcon :name="current.status === 'failed' ? 'circle-alert' : current.status === 'running' ? 'loader-circle' : current.status === 'pending' ? 'clock' : current.status === 'succeeded' ? 'check-circle-2' : 'workflow'" :size="23"  :class="{ spinning: current.status === 'running' }" /></div>
             <div class="current-copy">
               <strong>{{ sourceLabel(current.source) }}</strong>
               <span>{{ current.stage || "正在准备任务" }}</span>
@@ -116,13 +191,30 @@ onUnmounted(() => { if (pollHandle) clearInterval(pollHandle); });
             <div><span>开始时间</span><strong>{{ dateLabel(current.started_at || current.created_at) }}</strong></div>
             <div><span>已运行</span><strong>{{ durationLabel(current) }}</strong></div>
           </div>
+          <div class="current-actions">
+            <RouterLink class="workflow-button secondary" :to="`/admin/workflows/${current.id}`"><AppIcon name="external-link" :size="14"/> 查看详情</RouterLink>
+            <div v-if="current.status === 'pending'" class="confirm-anchor"><button class="workflow-button cancel-button" type="button" :disabled="cancellingId === current.id" @click="confirmingCancelId = confirmingCancelId === current.id ? null : current.id"><AppIcon name="x" :size="14"/> 取消排队</button><div v-if="confirmingCancelId === current.id" class="confirm-popover cancel-popover" role="group"><strong>取消这条等待任务？</strong><span>取消后将不再执行，但保留执行记录。</span><div><button type="button" class="confirm-cancel" @click.stop="confirmingCancelId = null">返回</button><button type="button" class="confirm-cancel-action" :disabled="cancellingId === current.id" @click="cancelRun(current)">{{cancellingId === current.id ? "取消中…" : "确认取消"}}</button></div></div></div>
+          </div>
           <div v-if="current.error" class="workflow-error-detail"><strong>错误详情</strong><pre>{{ current.error }}</pre></div>
         </template>
         <div v-else class="empty-current">
           <AppIcon name="check-circle-2" :size="26" />
           <strong>{{ loading ? "正在读取工作流状态…" : "当前没有正在执行的工作流" }}</strong>
-          <span>手动生成、保存并生成、定时任务和服务启动时的 PAC 生成都会记录在这里。</span>
-          <RouterLink v-if="!loading" to="/admin/settings">前往配置并生成 PAC</RouterLink>
+        </div>
+      </section>
+
+      <section v-if="otherActiveRuns.length" class="workflow-queue panel">
+        <div class="panel-heading">
+          <div><p class="eyebrow">ACTIVE QUEUE</p><h2>其他运行与等待任务</h2><p class="panel-subtitle">同类型任务按队列顺序执行；不同类型的工作流可以独立运行。</p></div>
+          <span class="count-pill">{{ otherActiveRuns.length }} 个任务</span>
+        </div>
+        <div class="queue-list">
+          <div v-for="run in otherActiveRuns" :key="run.id" class="queue-item">
+            <span class="queue-icon"><AppIcon :name="run.status === 'running' ? 'loader-circle' : 'clock'" :size="17" :class="{spinning:run.status === 'running'}"/></span>
+            <div class="queue-copy"><div><strong>#{{run.id}} · {{sourceLabel(run.source)}}</strong><span class="status-pill" :class="run.status">{{statusLabel(run.status)}}</span></div><p>{{run.stage || run.message || "等待执行"}}</p></div>
+            <RouterLink class="workflow-button secondary" :to="`/admin/workflows/${run.id}`">查看详情</RouterLink>
+            <div v-if="run.status === 'pending'" class="confirm-anchor"><button class="workflow-button cancel-button" type="button" :disabled="cancellingId === run.id" @click.stop="confirmingCancelId = confirmingCancelId === run.id ? null : run.id; confirmingDeleteId = null"><AppIcon name="x" :size="14"/> 取消排队</button><div v-if="confirmingCancelId === run.id" class="confirm-popover cancel-popover" role="group"><strong>取消这条等待任务？</strong><span>取消后将不再执行，但保留执行记录。</span><div><button type="button" class="confirm-cancel" @click.stop="confirmingCancelId = null">返回</button><button type="button" class="confirm-cancel-action" :disabled="cancellingId === run.id" @click.stop="cancelRun(run)">{{cancellingId === run.id ? "取消中…" : "确认取消"}}</button></div></div></div>
+          </div>
         </div>
       </section>
 
@@ -139,6 +231,7 @@ onUnmounted(() => { if (pollHandle) clearInterval(pollHandle); });
               <option value="running">执行中</option>
               <option value="succeeded">成功</option>
               <option value="failed">失败</option>
+              <option value="cancelled">已取消</option>
             </select>
           </label>
           <label>任务来源
@@ -153,19 +246,25 @@ onUnmounted(() => { if (pollHandle) clearInterval(pollHandle); });
         </div>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>任务</th><th>状态</th><th>来源</th><th>阶段 / 结果</th><th>开始时间</th><th>耗时</th></tr></thead>
+            <thead><tr><th>序号</th><th>工作流名称</th><th>触发时间</th><th>结果</th><th>耗时</th><th>操作</th></tr></thead>
             <tbody>
-              <tr v-for="run in visibleRuns" :key="run.id">
-                <td class="task-id">#{{ run.id }}</td>
-                <td><span class="status-pill" :class="run.status">{{ statusLabel(run.status) }}</span></td>
-                <td>{{ sourceLabel(run.source) }}</td>
-                <td class="result-cell">
-                  <strong>{{ run.stage || "—" }}</strong>
-                  <span>{{ run.error || run.message || "—" }}</span>
+              <template v-for="run in visibleRuns" :key="run.id"><tr class="workflow-run-row" tabindex="0" role="link" :aria-label="`查看工作流 #${run.id} 详情`" @click="router.push(`/admin/workflows/${run.id}`)" @keydown.enter.prevent="router.push(`/admin/workflows/${run.id}`)" @keydown.space.prevent="router.push(`/admin/workflows/${run.id}`)">
+                <td class="task-id"><span class="id-trigger">#{{run.id}}</span></td>
+                <td><span class="name-trigger ellipsis">PAC 生成工作流</span></td>
+                <td class="date-cell"><span class="date-trigger ellipsis">{{dateLabel(run.started_at || run.created_at)}}</span></td>
+                <td><span class="result-trigger"><span class="status-pill" :class="run.status"><AppIcon v-if="run.status === 'running' || run.status === 'pending'" :name="run.status === 'pending' ? 'clock' : 'loader-circle'" :size="13" :class="{spinning:run.status === 'running'}"/>{{statusLabel(run.status)}}</span></span></td>
+                <td class="duration-cell"><span class="duration-trigger ellipsis">{{durationLabel(run)}}</span></td>
+                <td class="actions-cell">
+                  <div v-if="run.status === 'pending'" class="confirm-anchor" @click.stop>
+                    <button class="row-action-button cancel-button" type="button" :disabled="cancellingId !== null" aria-label="取消排队" title="取消排队" @click.stop="confirmingCancelId = confirmingCancelId === run.id ? null : run.id; confirmingDeleteId = null"><AppIcon name="x" :size="15"/></button>
+                    <div v-if="confirmingCancelId === run.id" class="confirm-popover cancel-popover" role="group"><strong>取消这条等待任务？</strong><span>取消后将不再执行，但保留执行记录。</span><div><button type="button" class="confirm-cancel" @click.stop="confirmingCancelId = null">返回</button><button type="button" class="confirm-cancel-action" :disabled="cancellingId === run.id" @click.stop="cancelRun(run)">{{cancellingId === run.id ? "取消中…" : "确认取消"}}</button></div></div>
+                  </div>
+                  <div v-else-if="run.status !== 'running'" class="confirm-anchor" @click.stop>
+                    <button class="row-action-button delete-run-button" type="button" :disabled="deletingId !== null" aria-label="删除执行记录" title="删除执行记录" @click.stop="confirmingDeleteId = confirmingDeleteId === run.id ? null : run.id; confirmingCancelId = null"><AppIcon name="trash-2" :size="15"/></button>
+                    <div v-if="confirmingDeleteId === run.id" class="confirm-popover" role="group"><strong>删除这条记录？</strong><span>阶段详情也会一并删除。</span><div><button type="button" class="confirm-cancel" @click.stop="confirmingDeleteId = null">取消</button><button type="button" class="confirm-delete" :disabled="deletingId === run.id" @click.stop="deleteRun(run)">{{deletingId === run.id ? "删除中…" : "确认删除"}}</button></div></div>
+                  </div>
                 </td>
-                <td class="date-cell">{{ dateLabel(run.started_at || run.created_at) }}</td>
-                <td class="duration-cell">{{ durationLabel(run) }}</td>
-              </tr>
+              </tr></template>
               <tr v-if="!loading && !filteredRuns.length"><td colspan="6" class="empty-row">没有符合当前筛选条件的工作流记录。</td></tr>
               <tr v-if="loading && !runs.length"><td colspan="6" class="empty-row">正在加载历史记录…</td></tr>
             </tbody>
@@ -186,6 +285,51 @@ onUnmounted(() => { if (pollHandle) clearInterval(pollHandle); });
 
 <style scoped>
 .workflow-page { display:grid; gap:18px; }
+.catalog-item { display:flex; align-items:center; gap:13px; padding:14px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); }
+.catalog-copy { display:grid; gap:5px; min-width:0; flex:1; }
+.catalog-copy strong { color:var(--text); font-size:14px; }
+.catalog-copy span,.catalog-copy small { color:var(--muted); font-size:12px; line-height:1.5; overflow-wrap:anywhere; }
+.read-only-pill { padding:4px 8px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:11px; white-space:nowrap; }
+.workflow-run-row { cursor:pointer; outline-offset:-2px; }
+.workflow-run-row:focus-visible { outline:2px solid var(--accent); }
+ .workflow-run-row:hover td { background:var(--surface-2); }
+ .actions-cell { width:104px; min-width:104px; text-align:center; white-space:nowrap; }
+.actions-cell .confirm-anchor { display:inline-block; }
+.ellipsis { display:block; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.name-trigger { max-width:150px; }
+.date-trigger { max-width:170px; }
+.duration-trigger { max-width:95px; }
+.result-trigger { max-width:130px; }
+.id-trigger { max-width:65px; }
+.row-action-button { display:inline-grid; place-items:center; width:32px; height:32px; border:1px solid var(--line); border-radius:8px; background:var(--surface); cursor:pointer; }
+ .delete-run-button { color:var(--red); background:var(--red-soft,var(--surface)); border-color:color-mix(in srgb,var(--red) 30%,var(--line)); }
+.cancel-button { color:var(--amber,#b45309); background:var(--amber-soft,#fff3dc); border-color:color-mix(in srgb,var(--amber,#d97706) 35%,var(--line)); }
+.row-action-button:disabled { opacity:.4; cursor:not-allowed; }
+.confirm-anchor { position:relative; display:inline-block; }
+.confirm-popover { position:absolute; z-index:20; right:0; top:calc(100% + 7px); width:220px; padding:12px; border:1px solid var(--line); border-radius:10px; background:var(--surface); box-shadow:0 10px 30px rgba(0,0,0,.14); text-align:left; }
+.confirm-popover strong,.confirm-popover span { display:block; }
+.confirm-popover strong { color:var(--text); font-size:12px; }
+.confirm-popover span { margin-top:5px; color:var(--muted); font-size:11px; line-height:1.5; }
+.confirm-popover>div { display:flex; justify-content:flex-end; gap:7px; margin-top:12px; }
+.confirm-popover button { min-height:29px; padding:0 9px; border:1px solid var(--line); border-radius:6px; background:var(--surface-2); color:var(--text); font:inherit; font-size:11px; cursor:pointer; }
+ .confirm-popover .confirm-delete { background:var(--red); border-color:var(--red); color:white; }
+.confirm-popover .confirm-cancel-action { background:var(--amber-soft, #fff3dc); border-color:color-mix(in srgb, var(--amber, #d97706) 40%, var(--line)); color:var(--amber, #b45309); }
+.cancel-popover { border-color:color-mix(in srgb,var(--amber,#d97706) 35%,var(--line)); }
+.workflow-button.cancel-button { background:var(--amber-soft,#fff3dc); border-color:color-mix(in srgb,var(--amber,#d97706) 35%,var(--line)); color:var(--amber,#b45309); }
+.confirm-popover button:disabled { opacity:.5; cursor:not-allowed; }
+ .current-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+.workflow-queue .panel-heading { margin-bottom:12px; }
+.queue-list { display:grid; gap:8px; }
+.queue-item { display:flex; align-items:center; gap:11px; min-width:0; padding:11px; border:1px solid var(--line); border-radius:9px; background:var(--surface-2); }
+.queue-icon { display:grid; place-items:center; flex:0 0 34px; width:34px; height:34px; border-radius:9px; color:var(--accent); background:var(--accent-soft); }
+.queue-copy { display:grid; gap:5px; min-width:0; flex:1; }
+.queue-copy>div { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.queue-copy strong { color:var(--text); font-size:12px; }
+.queue-copy p { margin:0; color:var(--muted); font-size:11px; overflow-wrap:anywhere; }
+@media(max-width:700px) { .queue-item { align-items:flex-start; flex-wrap:wrap; } .queue-copy { flex-basis:calc(100% - 50px); } }
+.delete-run-button:focus-visible,.workflow-button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.status-pill { gap:5px; }
+@media (prefers-reduced-motion: reduce) { .spinning { animation-duration:.01ms; animation-iteration-count:1; } }
 .history-filters { display:flex; flex-wrap:wrap; gap:12px; margin:-3px 0 16px; }
 .history-filters label { display:grid; gap:6px; color:var(--muted); font-size:11px; }
 .history-filters select { min-width:150px; min-height:36px; padding:0 10px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:var(--text); font:inherit; }
@@ -205,7 +349,8 @@ onUnmounted(() => { if (pollHandle) clearInterval(pollHandle); });
 .status-pill,.count-pill { display:inline-flex; align-items:center; justify-content:center; padding:5px 9px; border:1px solid var(--line); border-radius:999px; background:var(--surface-2); color:var(--muted); font-size:11px; font-weight:800; white-space:nowrap; }
 .status-pill.running,.status-pill.pending { color:var(--accent); border-color:color-mix(in srgb,var(--accent) 35%,var(--line)); }
 .status-pill.succeeded { color:var(--green); border-color:color-mix(in srgb,var(--green) 35%,var(--line)); }
-.status-pill.failed { color:var(--red); border-color:color-mix(in srgb,var(--red) 35%,var(--line)); }
+ .status-pill.failed { color:var(--red); border-color:color-mix(in srgb,var(--red) 35%,var(--line)); }
+.status-pill.cancelled { color:var(--muted); }
 .current-main { display:flex; align-items:center; gap:12px; }
 .current-icon { display:grid; place-items:center; width:46px; height:46px; border-radius:12px; background:var(--accent-soft); color:var(--accent); }
 .current-copy { display:grid; gap:5px; min-width:0; }
@@ -220,21 +365,21 @@ onUnmounted(() => { if (pollHandle) clearInterval(pollHandle); });
 .empty-current strong { color:var(--text); font-size:14px; }
 .empty-current span { max-width:500px; font-size:12px; line-height:1.6; }
 .empty-current a { margin-top:3px; color:var(--accent); font-size:12px; font-weight:700; }
-.table-scroll { width:100%; overflow-x:auto; }
-table { width:100%; border-collapse:collapse; text-align:left; font-size:12px; }
+ .table-scroll { width:100%; overflow-x:auto; }
+table { width:100%; min-width:720px; border-collapse:collapse; text-align:left; font-size:12px; table-layout:fixed; }
+thead th:nth-child(1) { width:70px; } thead th:nth-child(2) { width:160px; } thead th:nth-child(3) { width:190px; } thead th:nth-child(4) { width:130px; } thead th:nth-child(5) { width:100px; } thead th:nth-child(6) { width:125px; }
+thead th:nth-child(6) { text-align:center; }
 th { padding:10px 12px; color:var(--muted); background:var(--surface-2); font-size:10px; white-space:nowrap; }
 td { padding:13px 12px; border-bottom:1px solid var(--line); color:var(--text); vertical-align:top; }
 .task-id,.date-cell,.duration-cell { white-space:nowrap; font-variant-numeric:tabular-nums; }
-.result-cell { min-width:190px; max-width:380px; }
-.result-cell strong,.result-cell span { display:block; overflow-wrap:anywhere; }
-.result-cell span { margin-top:5px; color:var(--muted); font-size:11px; line-height:1.5; }
+ .result-cell { min-width:0; max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .empty-row { padding:30px 12px; color:var(--muted); text-align:center; }
 .workflow-error-detail { margin-top:16px; padding:13px; border:1px solid color-mix(in srgb,var(--red) 30%,var(--line)); border-radius:8px; background:var(--red-soft); color:var(--red); }
 .workflow-error-detail pre { margin:8px 0 0; font:inherit; font-size:12px; white-space:pre-wrap; overflow-wrap:anywhere; }
 .workflow-alert { display:grid; gap:6px; padding:14px; border:1px solid var(--line); border-radius:10px; font-size:12px; }
 .workflow-alert.error { border-color:var(--red); color:var(--red); }
 .workflow-alert button { justify-self:start; color:inherit; }
-.spinning { animation:spin .9s linear infinite; }
+ .spinning { animation:spin .9s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
-@media(max-width:700px) { .panel { padding:15px; } .current-meta { grid-template-columns:repeat(2,minmax(0,1fr)); } .panel-heading h2 { font-size:17px; } }
+@media(max-width:700px) { .panel { padding:15px; } .current-meta { grid-template-columns:repeat(2,minmax(0,1fr)); } .panel-heading h2 { font-size:17px; } .table-scroll { margin-inline:-4px; } table { min-width:680px; } .name-trigger { max-width:105px; } .date-trigger { max-width:135px; } .duration-trigger { max-width:72px; } .result-trigger { max-width:105px; } .actions-cell { width:100px; min-width:100px; } }
 </style>

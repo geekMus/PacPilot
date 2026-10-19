@@ -84,6 +84,20 @@ function migrate(database: AppDatabase): void {
     );
     CREATE INDEX IF NOT EXISTS idx_workflow_runs_created ON workflow_runs(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_workflow_runs_status ON workflow_runs(status, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS workflow_stages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      run_id INTEGER NOT NULL REFERENCES workflow_runs(id) ON DELETE CASCADE,
+      stage_key TEXT NOT NULL,
+      name TEXT NOT NULL,
+      status TEXT NOT NULL,
+      message TEXT NOT NULL DEFAULT '',
+      error TEXT NOT NULL DEFAULT '',
+      started_at TEXT,
+      finished_at TEXT,
+      duration_ms INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_workflow_stages_run ON workflow_stages(run_id, id);
   `);
 
   const row = database
@@ -234,7 +248,7 @@ function normalizeSettings(
 }
 
 
-export type WorkflowStatus = "pending" | "running" | "succeeded" | "failed";
+export type WorkflowStatus = "pending" | "running" | "succeeded" | "failed" | "cancelled";
 export interface WorkflowRun {
   id: number;
   source: string;
@@ -270,8 +284,11 @@ export function listWorkflowRuns(database: AppDatabase, limit = 50): WorkflowRun
   return database.query("SELECT * FROM workflow_runs ORDER BY id DESC LIMIT ?")
     .all(Math.max(1, Math.min(200, Math.floor(limit)))) as WorkflowRun[];
 }
+export function listActiveWorkflowRuns(database: AppDatabase): WorkflowRun[] {
+  return database.query("SELECT * FROM workflow_runs WHERE status IN ('pending','running') ORDER BY CASE status WHEN 'running' THEN 0 ELSE 1 END, id ASC").all() as WorkflowRun[];
+}
 export function getCurrentWorkflow(database: AppDatabase): WorkflowRun | null {
-  return (database.query("SELECT * FROM workflow_runs WHERE status IN ('pending','running') ORDER BY id DESC LIMIT 1").get() as WorkflowRun | null) ?? null;
+  return (database.query("SELECT * FROM workflow_runs WHERE status IN ('pending','running') ORDER BY CASE status WHEN 'running' THEN 0 ELSE 1 END, id ASC LIMIT 1").get() as WorkflowRun | null) ?? null;
 }
 export function markInterruptedWorkflows(database: AppDatabase): void {
   const now = new Date().toISOString();
@@ -280,12 +297,31 @@ export function markInterruptedWorkflows(database: AppDatabase): void {
 }
 export function cleanupOperationalLogs(database: AppDatabase, retentionDays = getSettings(database).logRetentionDays): { generationLogs: number; accessEvents: number; proxyProbeRuns: number } {
   if (retentionDays <= 0) return { generationLogs: 0, accessEvents: 0, proxyProbeRuns: 0 };
-  const cutoff = new Date(Date.now() - retentionDays * 86400000).toISOString();
-  const generationLogs = Number(database.query("DELETE FROM generation_log WHERE created_at < datetime(?, 'utc')").run(cutoff).changes);
-  const accessEvents = Number(database.query("DELETE FROM access_events WHERE created_at < ?").run(cutoff).changes);
-  const proxyProbeRuns = Number(database.query("DELETE FROM proxy_probe_runs WHERE tested_at < ?").run(cutoff).changes);
+  const cutoffDate = new Date(Date.now() - retentionDays * 86400000);
+  // generation_log.created_at uses SQLite's UTC "YYYY-MM-DD HH:mm:ss" format;
+  // access/probe timestamps use ISO 8601. Compare each table in its stored format.
+  const cutoffIso = cutoffDate.toISOString();
+  const cutoffSql = cutoffIso.slice(0, 19).replace("T", " ");
+  const generationLogs = Number(database.query("DELETE FROM generation_log WHERE created_at < ?").run(cutoffSql).changes);
+  const accessEvents = Number(database.query("DELETE FROM access_events WHERE created_at < ?").run(cutoffIso).changes);
+  const proxyProbeRuns = Number(database.query("DELETE FROM proxy_probe_runs WHERE tested_at < ?").run(cutoffIso).changes);
   return { generationLogs, accessEvents, proxyProbeRuns };
 }
+/** Delete operational logs without touching workflow execution history. */
+export function clearOperationalLogs(database: AppDatabase): { generationLogs: number; accessEvents: number; proxyProbeRuns: number } {
+  database.exec("BEGIN IMMEDIATE");
+  try {
+    const generationLogs = Number(database.query("DELETE FROM generation_log").run().changes);
+    const accessEvents = Number(database.query("DELETE FROM access_events").run().changes);
+    const proxyProbeRuns = Number(database.query("DELETE FROM proxy_probe_runs").run().changes);
+    database.exec("COMMIT");
+    return { generationLogs, accessEvents, proxyProbeRuns };
+  } catch (error) {
+    try { database.exec("ROLLBACK"); } catch { /* transaction may already be closed */ }
+    throw error;
+  }
+}
+
 export function operationalLogStorageBytes(database: AppDatabase): number {
   const row = database.query(`
     SELECT
@@ -302,4 +338,46 @@ export function closeDb(): void {
     db.close();
     db = null;
   }
+}
+
+
+export interface WorkflowStage {
+  id: number; run_id: number; stage_key: string; name: string;
+  status: "pending" | "running" | "succeeded" | "failed" | "skipped";
+  message: string; error: string; started_at: string | null; finished_at: string | null; duration_ms: number | null;
+}
+export function startWorkflowStage(database: AppDatabase, runId: number, stageKey: string, name: string, message: string): number {
+  const now = new Date().toISOString();
+  const result = database.query("INSERT INTO workflow_stages (run_id,stage_key,name,status,message,started_at) VALUES (?,?,?,'running',?,?)").run(runId, stageKey, name, message, now);
+  return Number(result.lastInsertRowid);
+}
+export function finishWorkflowStage(database: AppDatabase, stageId: number, status: "succeeded" | "failed" | "skipped", message: string, error = ""): void {
+  const now = new Date().toISOString();
+  database.query("UPDATE workflow_stages SET status=?,message=?,error=?,finished_at=?,duration_ms=CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0,CAST((julianday(?) - julianday(started_at))*86400000 AS INTEGER)) END WHERE id=?").run(status, message, error, now, now, stageId);
+}
+/** Cancel a queued execution only. Running tasks are intentionally not interrupted. */
+export function cancelPendingWorkflow(database: AppDatabase, id: number): "cancelled" | "not-found" | "not-pending" {
+  const run = getWorkflowRun(database, id);
+  if (!run) return "not-found";
+  if (run.status !== "pending") return "not-pending";
+  const now = new Date().toISOString();
+  const result = database.query("UPDATE workflow_runs SET status='cancelled', stage='已取消', message='任务在等待期间被取消', error='', finished_at=? WHERE id=? AND status='pending'").run(now, id);
+  return Number(result.changes) > 0 ? "cancelled" : "not-pending";
+}
+
+export function getWorkflowRun(database: AppDatabase, id: number): WorkflowRun | null {
+  return (database.query("SELECT * FROM workflow_runs WHERE id = ?").get(id) as WorkflowRun | null) ?? null;
+}
+export function listWorkflowStages(database: AppDatabase, runId: number): WorkflowStage[] {
+  return database.query("SELECT * FROM workflow_stages WHERE run_id = ? ORDER BY id").all(runId) as WorkflowStage[];
+}
+
+
+/** Delete one terminal workflow execution and its stage timeline. Active runs cannot be removed. */
+export function deleteWorkflowRun(database: AppDatabase, id: number): "deleted" | "not-found" | "active" {
+  const run = getWorkflowRun(database, id);
+  if (!run) return "not-found";
+  if (run.status === "pending" || run.status === "running") return "active";
+  database.query("DELETE FROM workflow_runs WHERE id = ? AND status NOT IN ('pending','running')").run(id);
+  return getWorkflowRun(database, id) ? "active" : "deleted";
 }

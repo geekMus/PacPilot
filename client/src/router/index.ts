@@ -24,6 +24,11 @@ const router = createRouter({
       component: () => import("../views/AdminView.vue"),
     },
     {
+      path: "/admin/system-settings",
+      name: "admin-system-settings",
+      component: () => import("../views/SystemSettingsView.vue"),
+    },
+    {
       // 兼容旧地址，并将后台默认入口统一指向总览。
       path: "/admin",
       redirect: { name: "admin-dashboard" },
@@ -32,6 +37,12 @@ const router = createRouter({
       path: "/admin/workflows",
       name: "admin-workflows",
       component: () => import("../views/WorkflowView.vue"),
+    },
+    {
+      path: "/admin/workflows/:id",
+      name: "admin-workflow-detail",
+      component: () => import("../views/WorkflowDetailView.vue"),
+      props: true,
     },
     {
       path: "/admin/monitor",

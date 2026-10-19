@@ -14,6 +14,8 @@ import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
 import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
 import TextDetail from "../components/TextDetail.vue";
+import { useToast } from "../composables/useToast";
+const { notify } = useToast();
 
 const router = useRouter();
 const summary = ref<MonitorSummary | null>(null);
@@ -105,6 +107,7 @@ async function loadProxyTestTarget(): Promise<void> {
     proxyTestTargetLoaded.value = false;
     proxyTestTargetMessageOk.value = false;
     proxyTestTargetMessage.value = caught instanceof Error ? caught.message : String(caught);
+    notify(proxyTestTargetMessage.value, "error");
   } finally {
     loadingProxyTestTarget.value = false;
   }
@@ -121,9 +124,11 @@ async function saveProxyTestTarget(): Promise<void> {
     savedProxyTestUrl.value = result.url;
     proxyTestTargetMessageOk.value = true;
     proxyTestTargetMessage.value = "测试地址已保存，之后的代理检测都会使用此地址。";
+    notify("测试地址保存成功", "success");
   } catch (caught) {
     proxyTestTargetMessageOk.value = false;
     proxyTestTargetMessage.value = caught instanceof Error ? caught.message : String(caught);
+    notify(proxyTestTargetMessage.value, "error");
   } finally {
     savingProxyTestTarget.value = false;
   }
@@ -136,10 +141,12 @@ async function runProxyTest(): Promise<void> {
   latestProbe.value = null;
   try {
     latestProbe.value = await api.testProxies();
+    notify("代理连通性测试已完成", "success");
     await loadProbeHistory();
     await refreshDashboard(true);
   } catch (caught) {
     probeError.value = caught instanceof Error ? caught.message : String(caught);
+    notify(probeError.value, "error");
     await loadProbeHistory();
   } finally {
     probing.value = false;

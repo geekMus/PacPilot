@@ -69,8 +69,9 @@ export function requestMonitoringMiddleware(database: AppDatabase) {
 }
 
 function shouldRecord(path: string): boolean {
-  // 监控页面的轮询接口不计入访问统计，避免监控面板把自己的轮询当成访客流量。
+  // 监控、存储刷新与日志清理接口不计入访问统计，避免统计/清理操作反过来污染自身结果。
   if (path.startsWith("/api/admin/monitor/")) return false;
+  if (path === "/api/admin/storage" || path === "/api/admin/logs/cleanup" || path === "/api/admin/logs/clear") return false;
   // 静态资源与浏览器图标请求很多，但不代表独立页面访问。
   if (path.startsWith("/assets/") || path === "/favicon.ico") return false;
   if (/\.(?:js|mjs|css|map|png|jpe?g|gif|webp|svg|ico|woff2?|ttf)$/i.test(path)) return false;

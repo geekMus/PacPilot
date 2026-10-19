@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { AppDatabase } from "../db/sqlite";
 import type { EnvConfig } from "../config/env";
-import { cleanupOperationalLogs, getCurrentWorkflow, getSettings, listWorkflowRuns, operationalLogStorageBytes, recentLogs, setSettings, updateSettings } from "../db/sqlite";
+import { cleanupOperationalLogs, clearOperationalLogs, getCurrentWorkflow, getSettings, listWorkflowRuns, listActiveWorkflowRuns, operationalLogStorageBytes, recentLogs, setSettings, updateSettings, getWorkflowRun, listWorkflowStages, deleteWorkflowRun, cancelPendingWorkflow } from "../db/sqlite";
 import type { AppSettings, GenerationMode } from "../db/settings";
 import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../db/settings";
 import { clearSessionCookie, createSessionToken, isLoggedIn, requireAdmin, setSessionCookie } from "../middleware/auth";
@@ -52,10 +52,13 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
  router.post("/api/admin/password",requireAdmin(database,true),(req,res)=>{try{changeAdminPassword(database,String(req.body?.currentPassword??""),String(req.body?.newPassword??""));clearSessionCookie(res);res.json({ok:true});}catch(e){res.status(400).json({error:e instanceof Error?e.message:String(e)});}});
  router.get("/api/admin/settings",requireAdmin(database),(_req,res)=>res.json(getSettings(database)));
  router.put("/api/admin/settings",requireAdmin(database),(req,res)=>{const result=persistSettings((req.body||{}) as Record<string,unknown>,env,database);if("error" in result){res.status(400).json({error:result.error});return;}res.json(result.settings);});
- router.post("/api/admin/settings/save-and-generate",requireAdmin(database),(req,res)=>{if(hasActivePacWorkflow(database)){res.status(409).json({error:"已有 PAC 工作流正在执行，请等待当前任务完成后再试。"});return;}const saved=persistSettings((req.body||{}) as Record<string,unknown>,env,database);if("error" in saved){res.status(400).json({error:saved.error});return;}try{const workflowId=startPacWorkflow(database,env.dataDir,"save-and-generate");res.status(202).json({settings:saved.settings,workflowId});}catch(e){res.status(409).json({error:e instanceof Error?e.message:String(e)});}});
+ router.post("/api/admin/settings/save-and-generate",requireAdmin(database),(req,res)=>{const saved=persistSettings((req.body||{}) as Record<string,unknown>,env,database);if("error" in saved){res.status(400).json({error:saved.error});return;}try{const workflowId=startPacWorkflow(database,env.dataDir,"save-and-generate");res.status(202).json({settings:saved.settings,workflowId,status:getWorkflowRun(database,workflowId)?.status??"pending"});}catch(e){res.status(409).json({error:e instanceof Error?e.message:String(e)});}});
  router.post("/api/admin/webhook-test",requireAdmin(database),async(req,res)=>{const c=normalizeWebhookConfig(req.body?.config??req.body),errors=validateWebhookConfig(c);if(errors.length){res.status(400).json({error:errors.join("\n")});return;}res.json(await sendWebhookTest(c,getSettings(database).timezone));});
- router.post("/api/admin/generate",requireAdmin(database),(_req,res)=>{try{const workflowId=startPacWorkflow(database,env.dataDir,"manual");res.status(202).json({workflowId,status:"running"});}catch(e){res.status(409).json({error:e instanceof Error?e.message:String(e)});}});
- router.get("/api/admin/workflows",requireAdmin(database),(req,res)=>{res.setHeader("Cache-Control","no-store");const limit=Math.min(200,Math.max(1,Number.parseInt(String(req.query.limit??"50"),10)||50));res.json({current:getCurrentWorkflow(database),runs:listWorkflowRuns(database,limit)});});
+ router.post("/api/admin/generate",requireAdmin(database),(_req,res)=>{try{const workflowId=startPacWorkflow(database,env.dataDir,"manual");res.status(202).json({workflowId,status:getWorkflowRun(database,workflowId)?.status??"pending"});}catch(e){res.status(409).json({error:e instanceof Error?e.message:String(e)});}});
+ router.get("/api/admin/workflows",requireAdmin(database),(req,res)=>{res.setHeader("Cache-Control","no-store");const limit=Math.min(200,Math.max(1,Number.parseInt(String(req.query.limit??"50"),10)||50));res.json({current:getCurrentWorkflow(database),active:listActiveWorkflowRuns(database),runs:listWorkflowRuns(database,limit)});});
+ router.get("/api/admin/workflows/:id",requireAdmin(database),(req,res)=>{res.setHeader("Cache-Control","no-store");const id=Number.parseInt(req.params.id,10);if(!Number.isSafeInteger(id)||id<1){res.status(400).json({error:"工作流编号无效。"});return;}const run=getWorkflowRun(database,id);if(!run){res.status(404).json({error:"找不到该工作流执行记录。"});return;}res.json({run,stages:listWorkflowStages(database,id)});});
+ router.post("/api/admin/workflows/:id/cancel",requireAdmin(database),(req,res)=>{res.setHeader("Cache-Control","no-store");const id=Number.parseInt(req.params.id,10);if(!Number.isSafeInteger(id)||id<1){res.status(400).json({error:"工作流编号无效。"});return;}const result=cancelPendingWorkflow(database,id);if(result==="not-found"){res.status(404).json({error:"找不到该工作流执行记录。"});return;}if(result==="not-pending"){res.status(409).json({error:"该工作流已开始执行或已经结束，无法取消排队。"});return;}res.json({ok:true,id,status:"cancelled"});});
+  router.delete("/api/admin/workflows/:id",requireAdmin(database),(req,res)=>{res.setHeader("Cache-Control","no-store");const id=Number.parseInt(req.params.id,10);if(!Number.isSafeInteger(id)||id<1){res.status(400).json({error:"工作流编号无效。"});return;}const result=deleteWorkflowRun(database,id);if(result==="not-found"){res.status(404).json({error:"找不到该工作流执行记录。"});return;}if(result==="active"){res.status(409).json({error:"工作流仍在等待或执行中，不能删除。"});return;}res.json({ok:true,id});});
  router.get("/api/admin/storage",requireAdmin(database),(_req,res)=>{
   res.setHeader("Cache-Control","no-store");
   let dataBytes=0;
@@ -66,6 +69,13 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
   res.json({dataBytes,dbBytes,logBytes:operationalLogStorageBytes(database),retentionDays:getSettings(database).logRetentionDays,counts});
  });
  router.post("/api/admin/logs/cleanup",requireAdmin(database),(_req,res)=>{const deleted=cleanupOperationalLogs(database);if(deleted.generationLogs+deleted.accessEvents+deleted.proxyProbeRuns>0){database.exec("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");}res.json({deleted,retentionDays:getSettings(database).logRetentionDays});});
+ router.post("/api/admin/logs/clear",requireAdmin(database),(_req,res)=>{
+  try{
+   const deleted=clearOperationalLogs(database);
+   database.exec("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
+   res.json({deleted,retentionDays:getSettings(database).logRetentionDays});
+  }catch(error){res.status(500).json({error:error instanceof Error?error.message:String(error)});}
+ });
  router.post("/api/admin/factory-reset",requireAdmin(database),(req,res)=>{
   if(req.body?.confirm!=="RESET"){res.status(400).json({error:"恢复出厂设置确认信息无效，请刷新页面后重试。"});return;}
   if(hasActivePacWorkflow(database)){res.status(409).json({error:"工作流正在执行，请等待完成后再恢复出厂设置。"});return;}

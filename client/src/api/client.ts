@@ -85,13 +85,14 @@ export interface GenerateResult {
 export interface SaveAndGenerateResult {
   settings: AppSettings;
   workflowId: number;
+  status: WorkflowStatus;
 }
 export interface GenerateStartResult {
   workflowId: number;
-  status: "running";
+  status: WorkflowStatus;
 }
 
-export type WorkflowStatus = "pending" | "running" | "succeeded" | "failed";
+export type WorkflowStatus = "pending" | "running" | "succeeded" | "failed" | "cancelled";
 export interface WorkflowRun {
   id: number;
   source: string;
@@ -105,7 +106,13 @@ export interface WorkflowRun {
   finished_at: string | null;
   duration_ms: number | null;
 }
-export interface WorkflowList { current: WorkflowRun | null; runs: WorkflowRun[]; }
+export interface WorkflowStage {
+  id: number; run_id: number; stage_key: string; name: string;
+  status: "pending" | "running" | "succeeded" | "failed" | "skipped";
+  message: string; error: string; started_at: string | null; finished_at: string | null; duration_ms: number | null;
+}
+export interface WorkflowDetail { run: WorkflowRun; stages: WorkflowStage[]; }
+export interface WorkflowList { current: WorkflowRun | null; active: WorkflowRun[]; runs: WorkflowRun[]; }
 export interface StorageSummary {
   dataBytes: number;
   dbBytes: number;
@@ -244,8 +251,12 @@ export const api = {
   generate: () => request<GenerateStartResult>("/api/admin/generate", { method: "POST" }),
   logs: () => request<GenerationLog[]>("/api/admin/logs"),
   workflows: (limit = 50) => request<WorkflowList>(`/api/admin/workflows?limit=${limit}`),
+  workflowDetail: (id: number) => request<WorkflowDetail>(`/api/admin/workflows/${id}`),
+  deleteWorkflow: (id: number) => request<{ ok: boolean; id: number }>(`/api/admin/workflows/${id}`, { method: "DELETE" }),
+  cancelWorkflow: (id: number) => request<{ ok: boolean; id: number; status: "cancelled" }>(`/api/admin/workflows/${id}/cancel`, { method: "POST" }),
   storage: () => request<StorageSummary>("/api/admin/storage"),
   cleanupLogs: () => request<{ deleted: { generationLogs: number; accessEvents: number; proxyProbeRuns: number }; retentionDays: number }>("/api/admin/logs/cleanup", { method: "POST" }),
+  clearLogs: () => request<{ deleted: { generationLogs: number; accessEvents: number; proxyProbeRuns: number }; retentionDays: number }>("/api/admin/logs/clear", { method: "POST" }),
   factoryReset: () => request<{ ok: boolean; message: string }>("/api/admin/factory-reset", { method: "POST", body: JSON.stringify({ confirm: "RESET" }) }),
   genpacStatus: () => request<GenpacProbe>("/api/admin/genpac-status"),
   monitorSummary: () => request<MonitorSummary>("/api/admin/monitor/summary"),

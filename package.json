@@ -1,6 +1,6 @@
 {
   "name": "genpac-runner",
-  "version": "2026.10.19-r21",
+  "version": "2026.10.19-r22",
   "private": true,
   "description": "自动生成与压缩 PAC 文件工具，支持自定义规则 / GFWList、Vue3 后台、Webhook 与跨平台管理员密码重置（Bun 运行时）",
   "type": "module",
