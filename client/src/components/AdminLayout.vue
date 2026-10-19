@@ -49,13 +49,13 @@ watch(() => route.fullPath, () => {
     ></button>
 
     <aside class="admin-sidebar" :class="{ 'is-open': menuOpen }">
-      <RouterLink to="/" class="sidebar-brand" aria-label="返回公共状态页">
+      <div class="sidebar-brand" aria-label="genpac-runner 项目名称">
         <span class="brand-mark" aria-hidden="true"><AppIcon name="network" :size="20" :stroke-width="1.8" /></span>
         <span class="brand-copy">
           <strong>genpac-runner</strong>
           <small>管理控制台</small>
         </span>
-      </RouterLink>
+      </div>
 
       <nav class="sidebar-nav" aria-label="管理导航">
         <section class="nav-group" aria-labelledby="nav-workbench">
