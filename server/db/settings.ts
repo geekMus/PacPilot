@@ -87,6 +87,8 @@ export interface AppSettings {
   timezone: string;
   /** HTTPS URL requested through each proxy during connectivity checks. */
   proxyTestUrl: string;
+  /** Automatically delete operational logs older than this many days; 0 disables automatic cleanup. */
+  logRetentionDays: number;
   /** Legacy fields retained for smooth migration from earlier versions. */
   webhookSuccessUrl: string;
   webhookSuccessBody: string;
@@ -108,6 +110,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   cronSchedule: "",
   timezone: "Asia/Shanghai",
   proxyTestUrl: "https://www.google.com/generate_204",
+  logRetentionDays: 30,
   webhookSuccessUrl: "",
   webhookSuccessBody: "",
   webhookFailureUrl: "",
