@@ -590,7 +590,7 @@ async function changeAdminPassword() {
 </script>
 
 <template>
-  <AdminLayout active="settings" title="配置管理" subtitle="管理 PAC 生成方式、代理规则、定时任务与通知渠道。">
+  <AdminLayout active="settings" title="配置设置" subtitle="管理 PAC 生成方式、代理规则、定时任务与通知渠道。">
     <div class="admin-page">
 
     <p v-if="loading" class="state-msg">加载中…</p>
