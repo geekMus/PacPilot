@@ -162,6 +162,14 @@ watch(() => route.fullPath, () => {
 .topbar-title h1 { margin:0; color:var(--text); font-size:21px; line-height:1.2; letter-spacing:-.035em; font-weight:800; }
 .topbar-title p { margin:5px 0 0; color:var(--muted); font-size:11px; line-height:1.45; }
 .topbar-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; flex:0 0 auto; min-width:0; }
+.admin-topbar :deep(.dash-button.dash-button),
+.admin-topbar :deep(.monitor-button.monitor-button),
+.admin-topbar :deep(.admin-logout-button.admin-logout-button) {
+  min-height: 38px;
+  padding-right: 13px;
+  padding-left: 13px;
+  font-size: 12px;
+}
 .admin-content {
   --radius: 12px;
   --admin-panel-padding: 20px;
