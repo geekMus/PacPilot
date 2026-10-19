@@ -15,7 +15,7 @@ const props = withDefaults(defineProps<{
   overscan?: number;
 }>(), {
   height: 300,
-  rowHeight: 32,
+  rowHeight: 36,
   overscan: 6,
 });
 
@@ -35,6 +35,14 @@ const visibleItems = computed(() =>
 );
 const totalHeight = computed(() => props.items.length * props.rowHeight);
 const offsetY = computed(() => startIndex.value * props.rowHeight);
+
+function sourceClass(source?: string): string {
+  if (!source) return "source-neutral";
+  if (source.includes("黑名单")) return "source-block";
+  if (source.includes("自定义")) return "source-custom";
+  if (source.includes("远程")) return "source-remote";
+  return "source-neutral";
+}
 
 function onScroll(event: Event) {
   scrollTop.value = (event.currentTarget as HTMLDivElement).scrollTop;
@@ -65,7 +73,11 @@ watch(() => props.items, () => {
           role="listitem"
         >
           <TextDetail :text="item.domain" label="域名规则" class="domain-detail"><code>{{ item.domain }}</code></TextDetail>
-          <span v-if="item.source" class="row-source">{{ item.source }}</span>
+          <span
+            v-if="item.source"
+            class="row-source"
+            :class="sourceClass(item.source)"
+          >{{ item.source }}</span>
         </div>
       </div>
     </div>
@@ -98,18 +110,42 @@ watch(() => props.items, () => {
   padding: 0 10px;
   border-bottom: 1px solid var(--line);
 }
+.virtual-row:last-child { border-bottom: 0; }
 .virtual-row > .domain-detail {
-  flex: 1;
+  flex: 1 1 auto;
   font-size: 11px;
 }
 .row-source {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
-  max-width: 84px;
-  overflow: hidden;
+  max-width: 124px;
+  padding: 3px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
   color: var(--muted);
-  text-overflow: ellipsis;
-  white-space: nowrap;
   font-size: 10px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+  white-space: nowrap;
+}
+.row-source.source-custom {
+  border-color: color-mix(in srgb, var(--green) 32%, var(--line));
+  background: var(--green-soft);
+  color: var(--green);
+}
+.row-source.source-remote {
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--line));
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.row-source.source-block {
+  border-color: color-mix(in srgb, var(--red) 32%, var(--line));
+  background: var(--red-soft);
+  color: var(--red);
 }
 .virtual-empty {
   display: grid;
