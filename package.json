@@ -11,7 +11,10 @@
     "build": "bun run build:client",
     "build:client": "bunx --bun vite build --config client/vite.config.ts",
     "start": "bun run scripts/start-prod.ts",
-    "typecheck": "bunx tsc -p server/tsconfig.json --noEmit && bunx vue-tsc -p client/tsconfig.json --noEmit"
+    "typecheck": "bunx tsc -p server/tsconfig.json --noEmit && bunx vue-tsc -p client/tsconfig.json --noEmit",
+    "reset:admin-password": "bun run scripts/reset-admin-password.ts",
+    "reset:admin-password:development": "bun run scripts/reset-admin-password.ts --development",
+    "reset:admin-password:production": "bun run scripts/reset-admin-password.ts --production"
   },
   "engines": {
     "bun": ">=1.1.0"

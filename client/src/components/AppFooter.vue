@@ -1,34 +1,102 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import packageJson from "../../../package.json";
-import { api, type UpdateInfo } from "../api/client";
 import AppIcon from "./AppIcon.vue";
+
 const projectUrl = "https://github.com/geekMus/genpac-runner";
+const packageJsonUrl = "https://github.mus.pp.ua/https://raw.githubusercontent.com/geekMus/genpac-runner/refs/heads/main/package.json";
 const currentVersion = ref(String(packageJson.version));
+interface UpdateInfo {
+  latestVersion: string | null;
+  updateAvailable: boolean;
+  checked: boolean;
+  repositoryUrl: string;
+}
+interface CalendarVersion {
+  date: string;
+  revision: number;
+}
 const updateInfo = ref<UpdateInfo | null>(null);
 const dialogOpen = ref(false);
-const isCheckingVersion = ref(false);
+const pendingVersionRequests = ref(0);
+const isCheckingVersion = computed(() => pendingVersionRequests.value > 0);
 const refreshFailed = ref(false);
 const hasUpdate = computed(() => Boolean(updateInfo.value?.updateAvailable && updateInfo.value.latestVersion));
 const latestVersion = computed(() => updateInfo.value?.latestVersion || "暂时未知");
-async function loadVersionInfo(forceRefresh = false) {
-  if (isCheckingVersion.value) return;
-  isCheckingVersion.value = true;
+let requestSequence = 0;
+
+function parseCalendarVersion(value: string): CalendarVersion | null {
+  const match = /^(\d{4})\.(\d{2})\.(\d{2})(?:-r([1-9]\d*))?$/.exec(value);
+  if (!match) return null;
+  const year = match[1];
+  const month = match[2];
+  const day = match[3];
+  const revisionText = match[4];
+  const date = new Date(year + "-" + month + "-" + day + "T00:00:00.000Z");
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.toISOString().slice(0, 10) !== year + "-" + month + "-" + day
+  ) return null;
+  return { date: year + "." + month + "." + day, revision: revisionText ? Number(revisionText) : 0 };
+}
+
+function isNewerVersion(candidate: string, current: string): boolean {
+  const next = parseCalendarVersion(candidate);
+  const installed = parseCalendarVersion(current);
+  if (!next || !installed) return false;
+  if (next.date !== installed.date) return next.date > installed.date;
+  return next.revision > installed.revision;
+}
+
+function openVersionDialog(): void {
+  dialogOpen.value = true;
+  // 打开弹窗是独立的主动刷新动作，即使进入页面时的请求仍在进行，也会再发起一次。
+  void loadVersionInfo();
+}
+
+async function loadVersionInfo(): Promise<void> {
+  const requestId = ++requestSequence;
+  pendingVersionRequests.value += 1;
   refreshFailed.value = false;
-  if (forceRefresh) updateInfo.value = null;
+  updateInfo.value = null;
 
   try {
-    const result = await api.checkForUpdates(forceRefresh);
-    if (result.currentVersion) currentVersion.value = result.currentVersion;
-    updateInfo.value = result;
-    refreshFailed.value = !result.latestVersion;
+    // 每次触发都由用户浏览器直连指定代理 URL；唯一参数与 no-store 用于尽量避开旧缓存。
+    // 只发送 CORS 安全列出的 Accept 头，避免额外请求头触发预检请求。
+    const sourceUrl = new URL(packageJsonUrl);
+    sourceUrl.searchParams.set("_cacheBust", String(Date.now()) + "-" + String(requestId));
+    const response = await fetch(sourceUrl.toString(), {
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(7000),
+    });
+    if (!response.ok) throw new Error("版本查询失败：HTTP " + response.status);
+
+    const data = await response.json() as { version?: unknown };
+    const version = typeof data.version === "string" ? data.version.trim() : "";
+    if (!parseCalendarVersion(version)) throw new Error("远程 package.json 中的版本号无效");
+
+    // 并发刷新时只采用最近一次触发的结果，避免较早的响应覆盖较新的查询结果。
+    if (requestId === requestSequence) {
+      updateInfo.value = {
+        latestVersion: version,
+        updateAvailable: isNewerVersion(version, currentVersion.value),
+        checked: true,
+        repositoryUrl: projectUrl,
+      };
+      refreshFailed.value = false;
+    }
   } catch {
-    refreshFailed.value = true;
+    if (requestId === requestSequence) {
+      updateInfo.value = null;
+      refreshFailed.value = true;
+    }
   } finally {
-    isCheckingVersion.value = false;
+    pendingVersionRequests.value = Math.max(0, pendingVersionRequests.value - 1);
   }
 }
-onMounted(() => { void loadVersionInfo(true); });
+
+onMounted(() => { void loadVersionInfo(); });
 </script>
 <template>
   <footer class="app-footer" @keydown.esc.stop.prevent="dialogOpen = false">
@@ -36,7 +104,7 @@ onMounted(() => { void loadVersionInfo(true); });
       <a class="github-project-link" :href="projectUrl" target="_blank" rel="noopener noreferrer" aria-label="打开 genpac-runner 的 GitHub 项目" title="GitHub 项目地址">
         <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path fill="currentColor" d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.55.1.76-.24.76-.53v-2.04c-3.1.68-3.76-1.32-3.76-1.32-.5-1.3-1.24-1.65-1.24-1.65-1.01-.69.08-.68.08-.68 1.12.08 1.71 1.15 1.71 1.15.99 1.7 2.6 1.21 3.23.93.1-.72.39-1.21.7-1.49-2.47-.28-5.07-1.24-5.07-5.5 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.05 1.15a10.6 10.6 0 0 1 5.55 0c2.11-1.45 3.05-1.15 3.05-1.15.61 1.54.23 2.68.11 2.96.72.78 1.15 1.78 1.15 3.01 0 4.27-2.6 5.21-5.08 5.49.4.35.75 1.02.75 2.06V22c0 .29.2.64.76.53A11.1 11.1 0 0 0 12 .9Z"/></svg><span>GitHub</span>
       </a>
-      <button type="button" class="version-badge" :class="{ 'is-update': hasUpdate }" @click="dialogOpen = true" :aria-label="hasUpdate ? '查看新版本详情' : '查看当前版本信息'">
+      <button type="button" class="version-badge" :class="{ 'is-update': hasUpdate }" @click="openVersionDialog" :aria-label="hasUpdate ? '查看新版本详情' : '查看当前版本信息'">
         <span>v{{ currentVersion }}</span><span v-if="hasUpdate" class="new-badge">New</span>
       </button>
     </div>
@@ -44,7 +112,7 @@ onMounted(() => { void loadVersionInfo(true); });
       <div v-if="dialogOpen" class="dialog-backdrop" @click.self="dialogOpen = false" tabindex="-1">
         <section class="version-dialog" role="dialog" aria-modal="true" aria-labelledby="version-dialog-title">
           <header class="dialog-header"><h2 id="version-dialog-title">项目与版本</h2><button type="button" class="dialog-close" aria-label="关闭弹窗" @click="dialogOpen = false" autofocus><AppIcon name="x" :size="17" /></button></header>
-          <div class="version-grid"><div class="version-item"><span>当前版本</span><strong>v{{ currentVersion }}</strong></div><button type="button" class="version-item latest-version-item" :class="{ 'version-new': hasUpdate, 'is-loading': isCheckingVersion }" @click="loadVersionInfo(true)" :disabled="isCheckingVersion" :aria-label="isCheckingVersion ? '正在获取最新版本' : '点击获取最新版本'"><span>最新版本 <small>{{ isCheckingVersion ? "获取中…" : "点击刷新" }}</small></span><strong>{{ latestVersion === "暂时未知" ? latestVersion : "v" + latestVersion }}</strong></button></div>
+          <div class="version-grid"><div class="version-item"><span>当前版本</span><strong>v{{ currentVersion }}</strong></div><button type="button" class="version-item latest-version-item" :class="{ 'version-new': hasUpdate, 'is-loading': isCheckingVersion }" @click="loadVersionInfo" :disabled="isCheckingVersion" :aria-label="isCheckingVersion ? '正在获取最新版本' : '点击获取最新版本'"><span>最新版本 <small>{{ isCheckingVersion ? "获取中…" : "点击刷新" }}</small></span><strong>{{ latestVersion === "暂时未知" ? latestVersion : "v" + latestVersion }}</strong></button></div>
           <div v-if="hasUpdate" class="dialog-update-note" role="status"><span class="dialog-update-dot"></span><div><strong>发现新版本 {{ updateInfo?.latestVersion }}</strong><p>当前运行版本较旧，可前往项目仓库查看最新代码与更新说明。</p></div></div>
           <p v-else-if="isCheckingVersion" class="dialog-status" role="status">正在获取最新版本…</p>
           <p v-else-if="refreshFailed" class="dialog-status" role="status">获取最新版本失败，请稍后点击上方“最新版本”重试。这不会影响 PAC 和管理功能。</p>

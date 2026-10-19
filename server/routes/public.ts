@@ -3,7 +3,6 @@ import type { EnvConfig } from "../config/env";
 import { pacFileMtime, readPacFile } from "../services/pac-generator";
 import { parsePacStatus } from "../services/pac-parser";
 import { getSettings, type AppDatabase } from "../db/sqlite";
-import { getUpdateInfo } from "../services/update-check";
 import { APP_VERSION, PROJECT_URL } from "../version";
 
 function sendPac(
@@ -48,11 +47,6 @@ export function publicRoutes(env: EnvConfig, database: AppDatabase): Router {
       version: APP_VERSION,
       repositoryUrl: PROJECT_URL,
     });
-  });
-
-  router.get("/api/meta/update", async (req, res) => {
-    res.setHeader("Cache-Control", "no-store");
-    res.json(await getUpdateInfo(req.query.refresh === "1"));
   });
 
   router.get("/api/status", (_req, res) => {

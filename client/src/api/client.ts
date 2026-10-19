@@ -10,14 +10,6 @@ export interface AdminSession {
   mustChangePassword: boolean;
 }
 
-export interface UpdateInfo {
-  currentVersion: string;
-  latestVersion: string | null;
-  updateAvailable: boolean;
-  checked: boolean;
-  repositoryUrl: string;
-}
-
 export type WebhookProvider = "custom" | "dingtalk";
 export type WebhookMethod = "POST" | "PUT" | "PATCH";
 export type DingTalkMessageType = "text" | "markdown";
@@ -186,7 +178,6 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   meta: () => request<Meta>("/api/meta"),
-  checkForUpdates: (refresh = false) => request<UpdateInfo>(`/api/meta/update${refresh ? "?refresh=1" : ""}`),
   status: () => request<PacStatus>("/api/status"),
   session: () => request<AdminSession>("/api/admin/session"),
   changePassword: (body: { currentPassword: string; newPassword: string }) =>
