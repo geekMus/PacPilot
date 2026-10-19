@@ -55,11 +55,16 @@ class InlineDiagnosticWidget extends WidgetType {
     return this.diagnostics.length === other.diagnostics.length &&
       this.diagnostics.every((item, index) => item.line === other.diagnostics[index]?.line && item.severity === other.diagnostics[index]?.severity && item.message === other.diagnostics[index]?.message);
   }
+  // 诊断只是只读提示，不应截获编辑器点击、光标移动或文本选择。
+  ignoreEvent(_event: Event): boolean { return true; }
   toDOM() {
     const container = document.createElement("span");
     const severity = this.diagnostics.some((item) => item.severity === "error") ? "error" : this.diagnostics.some((item) => item.severity === "warning") ? "warning" : "info";
     container.className = "cm-inline-diagnostic is-" + severity;
-    container.setAttribute("role", "status");
+    container.setAttribute("role", "note");
+    container.setAttribute("aria-label", "当前行规则诊断");
+    container.setAttribute("contenteditable", "false");
+    container.setAttribute("unselectable", "on");
     const label = document.createElement("span");
     label.className = "cm-inline-diagnostic-label";
     label.textContent = severity === "error" ? "错误" : severity === "warning" ? "提醒" : "建议";
@@ -182,7 +187,7 @@ function buildExtensions(dark: boolean) {
       },
       "&.cm-focused": { outline: "none" },
       ".cm-rule-diagnostic-gutter": { width: "16px", background: "var(--surface-2)" },
-      ".cm-inline-diagnostic": { display: "inline-flex", alignItems: "baseline", gap: "6px", maxWidth: "min(560px, 90%)", marginLeft: "10px", padding: "2px 8px", borderRadius: "5px", fontSize: "11px", lineHeight: "1.5", verticalAlign: "baseline", whiteSpace: "normal", overflowWrap: "anywhere", opacity: "0.95" },
+      ".cm-inline-diagnostic": { display: "inline-flex", alignItems: "baseline", gap: "6px", maxWidth: "min(560px, 90%)", marginLeft: "10px", padding: "2px 8px", borderRadius: "5px", fontSize: "11px", lineHeight: "1.5", verticalAlign: "baseline", whiteSpace: "normal", overflowWrap: "anywhere", opacity: "0.95", userSelect: "none", pointerEvents: "none", cursor: "default" },
       ".cm-inline-diagnostic.is-error": { color: "var(--red)", background: "var(--red-soft)" },
       ".cm-inline-diagnostic.is-warning": { color: "var(--warn)", background: "var(--warn-soft)" },
       ".cm-inline-diagnostic.is-info": { color: "var(--accent)", background: "var(--accent-soft)" },
@@ -200,8 +205,8 @@ function buildExtensions(dark: boolean) {
       },
       "@keyframes cm-rule-jump-flash-b": {
         "0%": { backgroundColor: "color-mix(in srgb, #a78bfa 38%, transparent)" },
-        "40%": { backgroundColor: "color-mix(in srgb, #a78bfa 25%, var(--cm-jump-target) 10%)" },
-        "100%": { backgroundColor: "color-mix(in srgb, var(--cm-jump-target) 10%, transparent)" },
+        "40%": { backgroundColor: "color-mix(in srgb, #a78bfa 25%, var(--cm-jump-target) var(--cm-jump-strength, 0%))" },
+        "100%": { backgroundColor: "color-mix(in srgb, var(--cm-jump-target) var(--cm-jump-strength, 0%), transparent)" },
       },
     }),
   ];
@@ -389,7 +394,6 @@ watch(
   .rule-diagnostic-message { grid-row: 1; grid-column: 2; }
   .rule-diagnostic-jump { grid-row: 2; grid-column: 2; justify-self: start; padding-top: 2px; }
   .rule-diagnostic-footer { padding: 6px 9px; font-size: 10px; }
-  .rule-diagnostic-jump { display: none; }
 }
 .ph {
   position: absolute;
