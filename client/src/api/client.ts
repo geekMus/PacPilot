@@ -246,7 +246,7 @@ export const api = {
   workflows: (limit = 50) => request<WorkflowList>(`/api/admin/workflows?limit=${limit}`),
   storage: () => request<StorageSummary>("/api/admin/storage"),
   cleanupLogs: () => request<{ deleted: { generationLogs: number; accessEvents: number; proxyProbeRuns: number }; retentionDays: number }>("/api/admin/logs/cleanup", { method: "POST" }),
-  factoryReset: () => request<{ ok: boolean; message: string }>("/api/admin/factory-reset", { method: "POST" }),
+  factoryReset: () => request<{ ok: boolean; message: string }>("/api/admin/factory-reset", { method: "POST", body: JSON.stringify({ confirm: "RESET" }) }),
   genpacStatus: () => request<GenpacProbe>("/api/admin/genpac-status"),
   monitorSummary: () => request<MonitorSummary>("/api/admin/monitor/summary"),
   monitorAccess: (limit = 50) => request<AccessEvent[]>(`/api/admin/monitor/access?limit=${limit}`),
