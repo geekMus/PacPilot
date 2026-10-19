@@ -61,9 +61,11 @@ onMounted(() => { void loadVersionInfo(true); });
 .app-footer { display:flex; justify-content:flex-start; align-items:center; gap:14px; margin-top:28px; padding:14px 2px 4px; border-top:1px solid var(--line); color:var(--muted); font-size:12px; }
 .footer-project { display:flex; align-items:center; gap:12px; }
 .github-project-link { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:34px; padding:0 11px; border:1px solid var(--line); border-radius:999px; color:var(--text); background:var(--surface); text-decoration:none; font-weight:650; transition:color .15s,border-color .15s,transform .15s; }
-.github-project-link:hover { color:var(--accent); border-color:var(--accent); transform:translateY(-1px); }
+.github-project-link:hover { color:var(--accent); border-color:var(--accent); background:var(--surface-2); transform:translateY(-1px); }
+.github-project-link:active { color:var(--accent); border-color:var(--accent); background:var(--accent-soft); transform:translateY(0); }
 .version-badge { position:relative; display:inline-flex; align-items:center; min-height:31px; padding:0 12px; border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line)); border-radius:999px; background:var(--accent-soft); color:var(--accent); font:inherit; font-size:12px; font-weight:750; font-variant-numeric:tabular-nums; cursor:pointer; transition:transform .15s,box-shadow .15s; }
 .version-badge:hover { transform:translateY(-1px); box-shadow:0 3px 10px rgba(30,64,175,.12); }
+.version-badge:active { transform:translateY(0); box-shadow:inset 0 1px 2px rgba(30,40,60,.12); }
 .version-badge.is-update { border-color:color-mix(in srgb,var(--warn) 55%,var(--line)); background:var(--warn-soft); color:var(--text); }
 .new-badge { position:absolute; top:-8px; right:-10px; padding:2px 5px; border:2px solid var(--surface); border-radius:999px; background:#f97316; color:white; font-size:9px; font-weight:800; line-height:1.15; letter-spacing:.02em; }
 .dialog-backdrop { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; overflow-y:auto; padding:20px; background:rgba(15,23,42,.48); backdrop-filter:blur(3px); }
