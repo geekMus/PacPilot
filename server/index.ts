@@ -23,13 +23,6 @@ async function main(): Promise<void> {
   console.log("[boot] admin=enabled");
   if (adminSecurity.isDefaultPassword) console.warn("[security] 当前仍使用默认管理密码 password，请登录后台立即修改。");
 
-  const result = await runPacWorkflow(database, env.dataDir, "startup").then((workflow) => workflow.generation);
-  if (!result.success) {
-    console.warn("[boot] initial PAC generation failed:", result.message);
-  }
-
-  reschedule(database, env.dataDir);
-
   const app = createApp(env, database);
 
   const server = app.listen(env.port, env.host, () => {
@@ -41,6 +34,13 @@ async function main(): Promise<void> {
     console.log(`[boot] PAC    -> ${local}/proxy.pac`);
     console.log(`[boot] status -> ${local}/`);
     console.log(`[boot] admin  -> ${local}/admin`);
+    // Start listening first so the admin UI can observe the startup workflow in real time.
+    void runPacWorkflow(database, env.dataDir, "startup")
+      .then(({ generation }) => {
+        if (!generation.success) console.warn("[boot] initial PAC generation failed:", generation.message);
+      })
+      .catch((error) => console.error("[boot] initial PAC workflow failed:", error))
+      .finally(() => reschedule(database, env.dataDir));
   });
 
   server.on("connection", trackTcpConnection);
