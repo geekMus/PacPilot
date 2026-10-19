@@ -137,14 +137,36 @@ export function parseRemoteListText(body: string): RemoteListParseResult {
 export async function fetchAndParseRemoteList(
   url: string
 ): Promise<RemoteListParseResult> {
-  const res = await fetch(url, {
-    headers: { "User-Agent": "genpac-runner/2 (bun)" },
-    signal: AbortSignal.timeout(90_000),
-  });
-  if (!res.ok) {
-    throw new Error(`下载远程列表失败：HTTP ${res.status} ${res.statusText}`);
+  let lastError: unknown;
+  // 远程源偶发断开连接时有限重试；HTTP 错误不重试，避免重复请求无效地址。
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent": "genpac-runner/2 (bun)",
+          "Accept": "text/plain, text/*;q=0.9, */*;q=0.8",
+        },
+        signal: AbortSignal.timeout(90_000),
+      });
+      if (!res.ok) {
+        throw new Error(`下载远程列表失败：HTTP ${res.status} ${res.statusText}`);
+      }
+      return parseRemoteListText(await res.text());
+    } catch (error) {
+      lastError = error;
+      // HTTP 响应错误和列表格式错误是确定性错误，不应重试。
+      if (error instanceof Error && /^(下载远程列表失败：HTTP|远程列表内容为空|未能从远程列表解析|列表 Base64 解码失败)/.test(error.message)) {
+        throw error;
+      }
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 400 : 1000));
+      }
+    }
   }
-  return parseRemoteListText(await res.text());
+  const detail = lastError instanceof Error ? lastError.message : String(lastError);
+  throw new Error(
+    `远程规则列表下载失败：连接意外中断（已重试 2 次）。请检查容器的 DNS、IPv4/IPv6 出口及列表源是否可访问。详情：${detail}`
+  );
 }
 
 function escapeJsString(s: string): string {
