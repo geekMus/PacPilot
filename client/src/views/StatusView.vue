@@ -198,7 +198,7 @@ const activeRuleCount = computed(() => {
 
 <template>
   <main class="page status-page">
-    <AppHeader brand="genpac-runner" sub="运行概览">
+    <AppHeader brand="genpac-runner" sub="公共状态页" home-to="/status">
       <RouterLink v-if="meta?.adminEnabled" class="primary" to="/admin">配置管理</RouterLink>
     </AppHeader>
 
