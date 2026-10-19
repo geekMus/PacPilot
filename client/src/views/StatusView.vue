@@ -133,7 +133,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
   if (host === "localhost" || !host.includes(".") || isPrivateOrLoopbackIpv4(host)) {
     return {
       kind: "direct", host, title: "直连",
-      detail: "命中 PAC 的本地 / 内网优先规则。",
+      detail: "命中 PAC 的 localhost、无点号主机名或 IPv4 回环 / RFC 1918 私网地址直连规则。",
       matchedRule: null, source: "本地 / 内网规则",
     };
   }
