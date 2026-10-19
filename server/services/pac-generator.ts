@@ -180,7 +180,8 @@ async function runRemoteMode(
     settings.directList,
     settings.pacCompress
   );
-  fs.writeFileSync(outFile, withPacVersionHeader(pac), "utf8");
+  const output = settings.pacCompress ? await compressPac(pac) : pac;
+  fs.writeFileSync(outFile, withPacVersionHeader(output), "utf8");
   const formatLabel = parsed.format === "gfwlist-base64"
     ? "GFWList（Base64）"
     : parsed.format === "abp"
