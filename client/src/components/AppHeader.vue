@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import ThemeSwitcher from "./ThemeSwitcher.vue";
 
-defineProps<{ brand?: string; sub?: string }>();
+defineProps<{ brand?: string; sub?: string; homeTo?: string }>();
 </script>
 
 <template>
   <header class="topbar">
-    <RouterLink class="brand" to="/" aria-label="genpac-runner 运行概览">
+    <RouterLink class="brand" :to="homeTo || '/'" aria-label="genpac-runner 首页">
       <span class="brand-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="8.5"/><path d="M3.8 9h16.4M3.8 15h16.4M12 3.5a13 13 0 0 1 0 17M12 3.5a13 13 0 0 0 0 17"/>
