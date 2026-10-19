@@ -19,7 +19,7 @@ onMounted(async () => {
     const meta = await api.meta();
     adminEnabled.value = meta.adminEnabled;
     const session = await api.session();
-    if (session.loggedIn) await router.replace("/");
+    if (session.loggedIn) await router.replace("/admin/dashboard");
   } catch (e) {
     error.value = e instanceof Error ? e.message : "暂时无法连接服务，请检查后端状态。";
   }
@@ -30,7 +30,7 @@ async function onSubmit() {
   loading.value = true;
   try {
     await api.login(password.value);
-    await router.push("/");
+    await router.push("/admin/dashboard");
   } catch (e) {
     error.value = e instanceof Error ? e.message : "登录失败，请重试。";
   } finally {
@@ -42,7 +42,7 @@ async function onSubmit() {
 <template>
   <main class="page auth-page">
     <AppHeader brand="genpac-runner" sub="安全登录" home-to="/status">
-      <RouterLink to="/status">公共状态页</RouterLink>
+      <RouterLink to="/">公共状态页</RouterLink>
     </AppHeader>
     <section class="auth-layout">
       <div class="auth-intro">
