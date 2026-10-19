@@ -967,12 +967,21 @@ h2 {
   opacity: 0;
   pointer-events: none;
 }
+.mode-card:not(.active):hover {
+  border-color: color-mix(in srgb,var(--accent) 48%,var(--line));
+  background: var(--surface);
+}
 .mode-card.active {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-soft);
   background: var(--surface);
 }
 .mode-card:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
+.mode-card:active { transform:translateY(1px); }
+.check:not(.is-disabled):hover {
+  border-color:color-mix(in srgb,var(--accent) 40%,var(--line));
+  background:color-mix(in srgb,var(--accent) 5%,var(--surface-2));
+}
 .mode-top {
   display: flex;
   flex-wrap: wrap;
