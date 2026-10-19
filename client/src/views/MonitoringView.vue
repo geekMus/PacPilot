@@ -9,7 +9,7 @@ import {
   type ProxyProbeBatch,
   type ProxyProbeRecord,
 } from "../api/client";
-import AppHeader from "../components/AppHeader.vue";
+import AdminLayout from "../components/AdminLayout.vue";
 import AppFooter from "../components/AppFooter.vue";
 
 const router = useRouter();
@@ -213,29 +213,20 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="page monitor-page">
-    <AppHeader brand="genpac-runner" sub="网络监控">
-      <RouterLink to="/">运行概览</RouterLink>
-      <RouterLink to="/admin">配置管理</RouterLink>
-      <button type="button" class="linkish" @click="logout">退出</button>
-    </AppHeader>
-
-    <section class="page-hero">
-      <div class="page-kicker">网络监控中心</div>
-      <div class="monitor-title-row">
-        <div>
-          <h1 class="page-title">访问与代理状态</h1>
-          <p class="page-intro">监控 genpac-runner 自身访问情况，并从当前服务端网络手动检测 PAC 中配置的代理节点。</p>
-        </div>
-        <button class="monitor-button secondary" type="button" :disabled="refreshing" @click="refreshDashboard()">
-          {{ refreshing ? "刷新中…" : "刷新数据" }}
-        </button>
-      </div>
-      <div class="monitor-meta" v-if="lastUpdated">
+  <AdminLayout active="monitor" title="网络监控" subtitle="查看访问趋势、请求记录，并手动检测 PAC 代理节点。">
+    <template #actions>
+      <span v-if="lastUpdated" class="monitor-top-updated">
         <span class="live-dot" :class="{ busy: refreshing }"></span>
-        数据更新时间：{{ formatDate(lastUpdated) }} · 每 15 秒自动刷新
-      </div>
-    </section>
+        更新于 {{ formatDate(lastUpdated) }}
+      </span>
+      <button class="monitor-button secondary" type="button" :disabled="refreshing" @click="refreshDashboard()">
+        {{ refreshing ? "刷新中…" : "刷新数据" }}
+      </button>
+      <button class="monitor-button secondary" type="button" @click="logout">退出登录</button>
+    </template>
+
+    <div class="monitor-page">
+      <div class="monitor-page-note">自动刷新间隔为 15 秒。请求统计仅包含 genpac-runner 自身接收的流量，不代表代理服务器的实际转发流量。</div>
 
     <section v-if="authChecking || loading" class="monitor-state" aria-live="polite">
       <span class="monitor-spinner"></span>
@@ -478,11 +469,14 @@ onUnmounted(() => {
     </template>
 
     <AppFooter />
-  </main>
+    </div>
+  </AdminLayout>
 </template>
 
 <style scoped>
-.monitor-page { --monitor-gap: 18px; }
+.monitor-page { --monitor-gap: 18px; min-width: 0; }
+.monitor-top-updated { display:inline-flex; align-items:center; gap:7px; color:var(--muted); font-size:10px; white-space:nowrap; }
+.monitor-page-note { margin-bottom:16px; padding:10px 12px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--muted); font-size:11px; line-height:1.55; }
 .monitor-title-row { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
 .monitor-title-row .page-intro { max-width: 48rem; }
 .monitor-meta { display:flex; align-items:center; gap:8px; margin-top:14px; color:var(--muted); font-size:12px; }
