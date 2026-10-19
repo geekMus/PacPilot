@@ -5,9 +5,8 @@ import {
   keymap,
   lineNumbers,
   highlightActiveLine,
-  gutter,
-  GutterMarker,
   Decoration,
+  WidgetType,
 } from "@codemirror/view";
 import { EditorState, StateEffect, StateField, RangeSetBuilder } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
@@ -31,14 +30,14 @@ const emit = defineEmits<{
 }>();
 
 const setRuleDiagnostics = StateEffect.define<RuleDiagnostic[]>();
-const setJumpHighlight = StateEffect.define<number | null>();
-const jumpHighlightField = StateField.define<number | null>({
+const setJumpHighlight = StateEffect.define<{ line: number; token: number } | null>();
+const jumpHighlightField = StateField.define<{ line: number; token: number } | null>({
   create: () => null,
   update(value, transaction) {
     for (const effect of transaction.effects) if (effect.is(setJumpHighlight)) value = effect.value;
     if (transaction.docChanged && value !== null) {
-      const changedLine = transaction.state.doc.lineAt(Math.min(transaction.changes.mapPos(transaction.startState.doc.line(Math.min(value, transaction.startState.doc.lines)).from), transaction.state.doc.length)).number;
-      value = changedLine;
+      const pos = transaction.changes.mapPos(transaction.startState.doc.line(Math.min(value.line, transaction.startState.doc.lines)).from);
+      value = { ...value, line: transaction.state.doc.lineAt(Math.min(pos, transaction.state.doc.length)).number };
     }
     return value;
   },
@@ -50,18 +49,26 @@ const ruleDiagnosticsField = StateField.define<RuleDiagnostic[]>({
     return value;
   },
 });
-class RuleDiagnosticMarker extends GutterMarker {
-  constructor(readonly diagnostic: RuleDiagnostic) { super(); }
-  toDOM() {
-    const marker = document.createElement("span");
-    marker.className = "cm-rule-diagnostic-marker " + (this.diagnostic.severity === "error" ? "is-error" : this.diagnostic.severity === "warning" ? "is-warning" : "is-info");
-    marker.textContent = this.diagnostic.severity === "error" ? "×" : this.diagnostic.severity === "warning" ? "!" : "i";
-    marker.title = this.diagnostic.message;
-    marker.setAttribute("aria-label", this.diagnostic.message);
-    return marker;
+class InlineDiagnosticWidget extends WidgetType {
+  constructor(readonly diagnostics: RuleDiagnostic[]) { super(); }
+  eq(other: InlineDiagnosticWidget) {
+    return this.diagnostics.length === other.diagnostics.length &&
+      this.diagnostics.every((item, index) => item.line === other.diagnostics[index]?.line && item.severity === other.diagnostics[index]?.severity && item.message === other.diagnostics[index]?.message);
   }
-  eq(other: RuleDiagnosticMarker) {
-    return this.diagnostic.line === other.diagnostic.line && this.diagnostic.message === other.diagnostic.message && this.diagnostic.severity === other.diagnostic.severity;
+  toDOM() {
+    const container = document.createElement("span");
+    const severity = this.diagnostics.some((item) => item.severity === "error") ? "error" : this.diagnostics.some((item) => item.severity === "warning") ? "warning" : "info";
+    container.className = "cm-inline-diagnostic is-" + severity;
+    container.setAttribute("role", "status");
+    const label = document.createElement("span");
+    label.className = "cm-inline-diagnostic-label";
+    label.textContent = severity === "error" ? "错误" : severity === "warning" ? "提醒" : "建议";
+    container.append(label);
+    const message = document.createElement("span");
+    message.className = "cm-inline-diagnostic-message";
+    message.textContent = this.diagnostics.map((item) => item.message).join(" · ");
+    container.append(message);
+    return container;
   }
 }
 const ruleDecorationField = StateField.define({
