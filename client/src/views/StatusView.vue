@@ -209,6 +209,27 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
       </div>
     </section>
 
+    <section v-if="status?.hasPac" class="pac-access-card" aria-label="PAC 文件操作">
+      <div class="pac-access-copy">
+        <span class="pac-access-kicker"><AppIcon name="file-check-2" :size="14" /> 当前 PAC 文件</span>
+        <h2>获取 PAC 文件</h2>
+        <p>查看当前生成的代理规则文件，或下载到设备中使用。</p>
+        <span class="pac-access-updated">最后生成：{{ status.updatedAt }}</span>
+      </div>
+      <div class="pac-access-actions">
+        <a class="pac-access-link primary" href="/proxy.pac" target="_blank" rel="noopener noreferrer">
+          <AppIcon name="external-link" :size="17" />查看 PAC
+        </a>
+        <a class="pac-access-link secondary" href="/proxy.pac?download=1">
+          <AppIcon name="download" :size="17" />下载 PAC
+        </a>
+        <button class="pac-access-refresh" type="button" :class="{ 'is-loading': loading }" @click="loadStatus" :disabled="loading">
+          <AppIcon :name="loading ? 'loader-circle' : 'refresh-cw'" :class="{ 'icon-spinning': loading }" :size="15" />
+          {{ loading ? "刷新中…" : "刷新状态" }}
+        </button>
+      </div>
+    </section>
+
     <section v-if="loading" class="state-card" aria-live="polite">
       <span class="spinner" aria-hidden="true"></span>
       <div><strong>正在读取运行状态</strong><p>正在检查当前 PAC 文件和生成模式。</p></div>
@@ -336,10 +357,6 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
         <div class="state-icon"><AppIcon name="info" :size="18" /></div><div class="state-copy"><strong>{{ status.modeLabel }}</strong><p>{{ status.notice }}</p></div>
       </section>
 
-      <section v-if="status.mode !== 'empty'" class="source-footer">
-        <div class="source-caption"><span class="source-dot" aria-hidden="true"></span><span>摘要来自当前已生成的 PAC 文件</span></div>
-        <div class="source-actions"><span class="source-updated">文件更新时间：{{ status.updatedAt }}</span><a href="/proxy.pac" target="_blank" rel="noopener noreferrer"><AppIcon name="external-link" :size="14" />查看 PAC</a><a href="/proxy.pac?download=1"><AppIcon name="download" :size="14" />下载 PAC</a><button type="button" :class="{ 'is-loading': loading }" @click="loadStatus" :disabled="loading"><AppIcon :name="loading ? 'loader-circle' : 'refresh-cw'" :class="{ 'icon-spinning': loading }" :size="14" />{{ loading ? "刷新中…" : "刷新状态" }}</button></div>
-      </section>
     </template>
     <AppFooter />
   </main>
@@ -538,30 +555,30 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
 .default-proxy span { color:var(--muted); font-size:11px; font-weight:650; }
 .default-proxy code { max-width:100%; overflow-wrap:anywhere; color:var(--accent); font-size:13px; }
 .default-proxy p { margin:0; color:var(--muted); font-size:12px; line-height:1.5; }
+.pac-access-card {
+  display:flex; align-items:center; justify-content:space-between; gap:24px;
+  margin:0 0 22px; padding:clamp(20px,3vw,28px);
+  border:1px solid color-mix(in srgb,var(--accent) 24%,var(--line));
+  border-radius:17px;
+  background:linear-gradient(115deg,color-mix(in srgb,var(--accent) 8%,var(--surface)),var(--surface) 74%);
+  box-shadow:var(--shadow);
+}
+.pac-access-copy { min-width:0; }
+.pac-access-kicker { display:inline-flex; align-items:center; gap:6px; color:var(--accent); font-size:11px; font-weight:750; }
+.pac-access-copy h2 { margin:10px 0 6px; color:var(--text); font-size:clamp(1.15rem,2.6vw,1.45rem); letter-spacing:-.025em; }
+.pac-access-copy p { margin:0; color:var(--muted); font-size:12px; line-height:1.6; }
+.pac-access-updated { display:block; margin-top:12px; color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; }
+.pac-access-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:8px; flex-shrink:0; }
+.pac-access-link,.pac-access-refresh { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:0 16px; border:1px solid var(--line); border-radius:10px; font:inherit; font-size:12px; font-weight:750; text-decoration:none; white-space:nowrap; cursor:pointer; transition:background .15s,border-color .15s,transform .15s; }
+.pac-access-link.primary { border-color:var(--accent); background:var(--accent); color:var(--on-accent,#fff); box-shadow:0 4px 12px color-mix(in srgb,var(--accent) 18%,transparent); }
+.pac-access-link.primary:hover { filter:brightness(1.04); transform:translateY(-1px); text-decoration:none; }
+.pac-access-link.secondary { background:var(--surface); color:var(--text); }
+.pac-access-link.secondary:hover,.pac-access-refresh:hover:not(:disabled) { border-color:color-mix(in srgb,var(--accent) 45%,var(--line)); background:var(--surface-2); text-decoration:none; }
+.pac-access-refresh { background:transparent; color:var(--accent); }
+.pac-access-refresh:disabled { color:var(--control-disabled-text); background:var(--control-disabled-bg); border-color:var(--control-disabled-border); cursor:not-allowed; }
+.pac-access-refresh.is-loading:disabled { color:var(--text); background:var(--surface); border-color:var(--line); cursor:progress; }
+.pac-access-link:focus-visible,.pac-access-refresh:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 .source-footer { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px 20px; padding-top:18px; color:var(--muted); font-size:11px; }
-.source-caption,.source-actions { display:flex; align-items:center; flex-wrap:wrap; }
-.source-caption { gap:8px; min-width:0; line-height:1.5; }
-.source-actions { gap:6px; }
-.source-updated { margin-right:6px; line-height:1.5; font-variant-numeric:tabular-nums; }
-.source-dot { display:inline-block; flex:0 0 7px; width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px var(--green-soft); }
-.source-actions a,.source-actions button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:30px; padding:0 9px; border:1px solid transparent; border-radius:7px; background:transparent; color:var(--accent); font:inherit; text-decoration:none; white-space:nowrap; cursor:pointer; transition:background .15s,border-color .15s,color .15s; }
-.source-actions a:hover,.source-actions button:hover:not(:disabled) { background:var(--surface-2); border-color:color-mix(in srgb,var(--accent) 35%,var(--line)); color:var(--text); text-decoration:none; }
-.source-actions a:active,.source-actions button:active:not(:disabled) { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); text-decoration:none; }
-.source-actions a:focus-visible,.source-actions button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-.source-actions button:disabled {
-  opacity:1;
-  color:var(--control-disabled-text);
-  background:var(--control-disabled-bg);
-  border-color:var(--control-disabled-border);
-  cursor:not-allowed;
-}
-.source-actions button.is-loading:disabled {
-  color:var(--text);
-  -webkit-text-fill-color:var(--text);
-  background:var(--surface);
-  border-color:var(--line);
-  cursor:progress;
-}
 
 .state-card { display:flex; align-items:flex-start; gap:14px; padding:18px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
 .state-card strong { font-size:14px; }
@@ -601,9 +618,10 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
   .stat-card { min-height:108px; padding:13px 12px; border-radius:12px; }
   .stat-number { font-size:25px; }
   .section-head { flex-direction:column; align-items:flex-start; gap:6px; }
-  .source-footer { align-items:flex-start; }
-  .source-actions { align-items:center; gap:4px; }
-  .source-updated { flex-basis:100%; margin:0 0 3px; }
+  .pac-access-card { align-items:stretch; flex-direction:column; gap:18px; padding:18px; }
+  .pac-access-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); justify-content:stretch; }
+  .pac-access-link,.pac-access-refresh { min-height:44px; padding:0 10px; }
+  .pac-access-refresh { grid-column:1 / -1; }
   .rule-tabs { gap:5px; padding:4px; }
   .rule-tabs button { gap:4px; padding:0 4px; font-size:11px; }
   .rule-tabs button strong { min-width:20px; min-height:20px; padding:0 4px; }

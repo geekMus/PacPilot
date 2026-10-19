@@ -168,7 +168,6 @@ onMounted(() => { void loadOverview(); });
             <div class="config-detail"><span>生成结果</span><strong :class="latestLog?.success ? 'value-good' : latestLog ? 'value-warning' : ''">{{ latestLog ? latestLog.success ? "成功" : "失败" : "暂无记录" }}</strong></div>
           </div>
           <div class="panel-footer-links">
-            <a href="/proxy.pac" target="_blank" rel="noopener noreferrer">直接查看 proxy.pac <AppIcon name="external-link" :size="13" /></a>
             <RouterLink to="/">打开公共状态页 <AppIcon name="arrow-up-right" :size="13" /></RouterLink>
           </div>
         </article>
