@@ -197,7 +197,6 @@ function normalizeSettings(
     mode,
     pacProxy: String(s.pacProxy || DEFAULT_SETTINGS.pacProxy).trim(),
     pacCompress: Boolean(s.pacCompress),
-    pacPrecise: Boolean(s.pacPrecise),
     listUrl: String(s.listUrl || s.gfwlistUrl || "").trim(),
     blockList: Array.isArray(s.blockList)
       ? s.blockList.map((x) => String(x).trim()).filter(Boolean)
