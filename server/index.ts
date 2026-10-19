@@ -13,6 +13,8 @@ async function main(): Promise<void> {
   const adminSecurity = ensureAdminAuth(database);
   markInterruptedWorkflows(database);
   cleanupOperationalLogs(database);
+  const logCleanupTimer = setInterval(() => cleanupOperationalLogs(database), 24 * 60 * 60 * 1000);
+  logCleanupTimer.unref();
 
   console.log("[boot] genpac-runner starting...");
   console.log(`[boot] profile=${env.runtimeProfile}`);
@@ -55,6 +57,7 @@ async function main(): Promise<void> {
       console.error("[boot] server error:", err);
     }
     stopScheduler();
+    clearInterval(logCleanupTimer);
     closeDb();
     process.exit(1);
   });
@@ -62,6 +65,7 @@ async function main(): Promise<void> {
   const shutdown = (): void => {
     console.log("[boot] shutting down...");
     stopScheduler();
+    clearInterval(logCleanupTimer);
     server.close(() => {
       closeDb();
       process.exit(0);
