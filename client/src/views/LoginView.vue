@@ -94,6 +94,12 @@ async function onSubmit() {
 .login-footnote { margin:14px 0 0; color:var(--muted); font-size:11px; }
 .alert { padding:10px 12px; border:1px solid color-mix(in srgb,var(--red) 35%,var(--line)); border-radius:9px; background:var(--red-soft); margin-bottom:14px; font-size:12px; line-height:1.5; }
 .alert.warning { border-color:color-mix(in srgb,var(--warn) 35%,var(--line)); background:var(--warn-soft); }
-@media(max-width:680px) { .auth-layout { grid-template-columns:1fr; align-content:start; gap:24px; padding-top:12px; } .auth-intro .page-title { max-width:13em; font-size:32px; } .security-note { margin-top:16px; } .login-card { justify-self:stretch; max-width:none; } }
+@media(max-width:680px) {
+  .auth-layout { grid-template-columns:1fr; align-content:start; gap:24px; padding-top:12px; }
+  .auth-intro .page-title { max-width:13em; font-size:32px; }
+  .security-note { margin-top:16px; }
+  .login-card { justify-self:stretch; max-width:none; }
+  .login-card input { min-height:44px; font-size:16px; }
+}
 .success-alert { border-color: var(--green); background: var(--green-soft); color: var(--green); }
 </style>
