@@ -99,10 +99,6 @@ watch(() => route.fullPath, () => {
             <AppIcon name="globe" :size="18" />
             <span>公共状态页</span>
           </RouterLink>
-          <a class="sidebar-link" href="/proxy.pac" target="_blank" rel="noopener noreferrer">
-            <AppIcon name="file-text" :size="18" />
-            <span>PAC 文件</span><AppIcon class="external-mark" name="arrow-up-right" :size="14" />
-          </a>
         </section>
       </nav>
 
