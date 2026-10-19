@@ -60,6 +60,7 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
   try{
    const result=clearWorkflowHistory(database);
    if(result.activeRuns>0){res.status(409).json({error:"仍有工作流在等待或执行中，不能清空执行历史。请等所有任务结束后重试。",activeRuns:result.activeRuns});return;}
+   if(result.deletedRuns>0)database.exec("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
    res.json({ok:true,deletedRuns:result.deletedRuns});
   }catch(error){res.status(500).json({error:error instanceof Error?error.message:String(error)});}
  });
