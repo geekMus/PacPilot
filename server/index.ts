@@ -1,7 +1,8 @@
 import { loadEnv } from "./config/env";
 import { getDb, closeDb } from "./db/sqlite";
 import { createApp } from "./app";
-import { generatePac } from "./services/pac-generator";
+import { runPacWorkflow } from "./services/workflow";
+import { cleanupOperationalLogs, markInterruptedWorkflows } from "./db/sqlite";
 import { reschedule, stopScheduler } from "./services/scheduler";
 import { ensureAdminAuth } from "./services/admin-credentials";
 import { trackTcpConnection } from "./services/request-monitor";
@@ -10,6 +11,8 @@ async function main(): Promise<void> {
   const env = loadEnv();
   const database = getDb(env.dataDir);
   const adminSecurity = ensureAdminAuth(database);
+  markInterruptedWorkflows(database);
+  cleanupOperationalLogs(database);
 
   console.log("[boot] genpac-runner starting...");
   console.log(`[boot] profile=${env.runtimeProfile}`);
@@ -18,7 +21,7 @@ async function main(): Promise<void> {
   console.log("[boot] admin=enabled");
   if (adminSecurity.isDefaultPassword) console.warn("[security] 当前仍使用默认管理密码 password，请登录后台立即修改。");
 
-  const result = await generatePac(database, env.dataDir);
+  const result = await runPacWorkflow(database, env.dataDir, "startup").then((workflow) => workflow.generation);
   if (!result.success) {
     console.warn("[boot] initial PAC generation failed:", result.message);
   }
