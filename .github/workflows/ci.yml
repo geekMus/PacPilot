@@ -36,3 +36,31 @@ jobs:
 
       - name: 构建前端
         run: bun run build:client
+
+      # 仅在网络监控功能分支构建临时 ARM64 测试镜像；不推送 GHCR、不更新正式标签。
+      - name: 启用 ARM64 构建支持
+        if: github.ref == 'refs/heads/feature/network-monitoring-v1'
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: arm64
+
+      - name: 设置 Docker Buildx
+        if: github.ref == 'refs/heads/feature/network-monitoring-v1'
+        uses: docker/setup-buildx-action@v4
+
+      - name: 构建 ARM64 测试镜像
+        if: github.ref == 'refs/heads/feature/network-monitoring-v1'
+        run: docker buildx build --platform linux/arm64 --load --tag genpac-runner:network-monitoring-v1 .
+
+      - name: 导出 ARM64 测试镜像
+        if: github.ref == 'refs/heads/feature/network-monitoring-v1'
+        run: docker save genpac-runner:network-monitoring-v1 --output /tmp/genpac-runner-network-monitoring-v1-arm64.tar
+
+      - name: 上传短期测试产物
+        if: github.ref == 'refs/heads/feature/network-monitoring-v1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: genpac-runner-network-monitoring-v1-arm64
+          path: /tmp/genpac-runner-network-monitoring-v1-arm64.tar
+          if-no-files-found: error
+          retention-days: 7
