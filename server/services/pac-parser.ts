@@ -19,44 +19,93 @@ export interface PacStatusPayload {
   hasPac: boolean;
 }
 
-function parseJsArray(source: string, name: string): string[] | null {
-  const re = new RegExp("\\bvar\\s+" + name + "\\s*=\\s*\\[(.*?)\\]\\s*;", "s");
-  const match = source.match(re);
+/**
+ * 从压缩或未压缩的生成器代码中读取变量初始化表达式。
+ * 不依赖分号、换行或声明顺序；支持 Terser 将多个 var 声明合并的输出。
+ */
+function readInitializer(source: string, name: string): string | null {
+  const re = new RegExp("\\bvar\\s+" + name + "\\s*=");
+  const match = re.exec(source);
   if (!match) return null;
-  const raw = match[1].trim();
-  if (!raw) return [];
-  const literals = [...raw.matchAll(/"(?:\\.|[^"\\])*"/g)].map((item) => item[0]);
-  const remainder = raw.replace(/"(?:\\.|[^"\\])*"/g, "").replace(/[\s,]/g, "");
-  if (remainder) return null;
+  let index = match.index + match[0].length;
+  while (/\\s/.test(source[index] ?? "")) index++;
+  const start = index;
+  const first = source[index];
+
+  if (first === "[" || first === "{") {
+    const stack: string[] = [];
+    let quote = "";
+    let escaped = false;
+    for (; index < source.length; index++) {
+      const char = source[index];
+      if (quote) {
+        if (escaped) escaped = false;
+        else if (char === "\\\\") escaped = true;
+        else if (char === quote) quote = "";
+        continue;
+      }
+      if (char === "'" || char === '"') { quote = char; continue; }
+      if (char === "[" || char === "{") stack.push(char);
+      else if (char === "]" || char === "}") {
+        const expected = char === "]" ? "[" : "{";
+        if (stack.pop() !== expected) return null;
+        if (stack.length === 0) return source.slice(start, index + 1).trim();
+      }
+    }
+    return null;
+  }
+
+  if (first === '"' || first === "'") {
+    const quote = first;
+    let escaped = false;
+    for (index++; index < source.length; index++) {
+      const char = source[index];
+      if (escaped) escaped = false;
+      else if (char === "\\\\") escaped = true;
+      else if (char === quote) return source.slice(start, index + 1);
+    }
+    return null;
+  }
+
+  index = start;
+  while (index < source.length && source[index] !== ";" && source[index] !== ",") index++;
+  const value = source.slice(start, index).trim();
+  return value || null;
+}
+
+function parseJsArray(source: string, name: string): string[] | null {
+  const raw = readInitializer(source, name);
+  if (raw === null) return null;
   try {
-    return literals.map((item) => JSON.parse(item) as string);
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.every((item) => typeof item === "string")
+      ? parsed
+      : null;
   } catch {
     return null;
   }
 }
 
 function parseJsString(source: string, name: string): string | null {
-  const re = new RegExp("\\bvar\\s+" + name + "\\s*=\\s*(\"(?:\\\\.|[^\"\\\\])*\")\\s*;");
-  const match = source.match(re);
-  if (!match) return null;
+  const raw = readInitializer(source, name);
+  if (raw === null) return null;
   try {
-    return JSON.parse(match[1]) as string;
+    const parsed: unknown = JSON.parse(raw);
+    return typeof parsed === "string" ? parsed : null;
   } catch {
     return null;
   }
 }
 
 function parseJsMap(source: string, name: string): string[] | null {
-  const re = new RegExp("\\bvar\\s+" + name + "\\s*=\\s*\\{([\\s\\S]*?)\\}\\s*;");
-  const match = source.match(re);
-  if (!match) return null;
-  const raw = match[1].trim();
-  if (!raw) return [];
-  const entries = [...raw.matchAll(/("(?:\\.|[^"\\])*")\s*:\s*1\b/g)];
-  const remainder = raw.replace(/"(?:\\.|[^"\\])*"\s*:\s*1\b/g, "").replace(/[\s,]/g, "");
-  if (remainder) return null;
+  const raw = readInitializer(source, name);
+  if (raw === null) return null;
   try {
-    return [...new Set(entries.map((entry) => JSON.parse(entry[1]) as string))];
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const entries = Object.entries(parsed as Record<string, unknown>);
+    if (entries.some(([key, value]) => !key || value !== 1)) return null;
+    return [...new Set(entries.map(([key]) => key))];
   } catch {
     return null;
   }
