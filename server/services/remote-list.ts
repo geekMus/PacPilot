@@ -189,8 +189,9 @@ var proxyHosts = {${compress ? proxyObj : `\n  ${proxyObj}\n`}};
 var remoteDirect = {${compress ? remoteDirectObj : `\n  ${remoteDirectObj}\n`}};
 
 function isMatch(host, list) {
+  host = String(host).toLowerCase();
   for (var i = 0; i < list.length; i++) {
-    var rule = list[i];
+    var rule = String(list[i]).toLowerCase();
     if (rule.indexOf("*") !== -1) {
       if (shExpMatch(host, rule)) return true;
     } else {
