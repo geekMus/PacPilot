@@ -96,6 +96,24 @@ const ruleDecorationField = StateField.define({
 });
 
 const host = ref<HTMLDivElement | null>(null);
+const activeDiagnostic = ref<RuleDiagnostic | null>(null);
+function syncLineNumberTitles(editor: EditorView) {
+  const byLine = new Map<number, string[]>();
+  for (const item of editor.state.field(ruleDiagnosticsField)) byLine.set(item.line, [...(byLine.get(item.line) ?? []), item.message]);
+  editor.dom.querySelectorAll<HTMLElement>(".cm-lineNumbers .cm-gutterElement").forEach((element) => {
+    const lineNumber = Number(element.textContent?.trim());
+    const messages = byLine.get(lineNumber);
+    if (messages?.length) { element.title = messages.join("\n"); element.dataset.ruleDiagnosticLine = String(lineNumber); }
+    else { element.removeAttribute("title"); delete element.dataset.ruleDiagnosticLine; }
+  });
+}
+function handleEditorGutterClick(event: MouseEvent) {
+  const target = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-rule-diagnostic-line]") : null;
+  if (!target) return;
+  const line = Number(target.dataset.ruleDiagnosticLine);
+  const diagnostic = props.diagnostics.find((item) => item.line === line);
+  if (diagnostic) activeDiagnostic.value = diagnostic;
+}
 let view: EditorView | null = null;
 let themeObs: MutationObserver | null = null;
 
@@ -147,9 +165,8 @@ function buildExtensions(dark: boolean) {
     keymap.of([...defaultKeymap, ...historyKeymap]),
     EditorView.lineWrapping,
     EditorView.updateListener.of((u) => {
-      if (u.docChanged) {
-        emit("update:modelValue", u.state.doc.toString());
-      }
+      if (u.docChanged) emit("update:modelValue", u.state.doc.toString());
+      if (u.docChanged || u.transactions.some((transaction) => transaction.effects.some((effect) => effect.is(setRuleDiagnostics)))) syncLineNumberTitles(u.view);
     }),
     EditorView.theme({
       "&": {
@@ -177,8 +194,8 @@ function buildExtensions(dark: boolean) {
       ".cm-line.cm-rule-line-info": { background: "color-mix(in srgb, var(--accent) 7%, transparent)" },
       ".cm-line.cm-jump-highlight": { animation: "cm-rule-jump-flash 1.5s ease-out both", borderRadius: "3px" },
       "@keyframes cm-rule-jump-flash": {
-        "0%": { backgroundColor: "color-mix(in srgb, var(--accent) 26%, transparent)" },
-        "35%": { backgroundColor: "color-mix(in srgb, var(--accent) 18%, transparent)" },
+        "0%": { backgroundColor: "color-mix(in srgb, #a78bfa 32%, transparent)" },
+        "35%": { backgroundColor: "color-mix(in srgb, #a78bfa 22%, transparent)" },
         "100%": { backgroundColor: "transparent" },
       },
     }),
@@ -243,7 +260,12 @@ watch(
 <template>
   <div class="domain-editor">
     <div class="editor-shell" :class="{ 'is-invalid': invalid }" :style="{ height: height + 'px' }">
-      <div ref="host" class="cm-host" />
+      <div ref="host" class="cm-host" @click="handleEditorGutterClick" />
+      <div v-if="activeDiagnostic" class="inline-diagnostic-popover" role="status">
+        <span class="inline-diagnostic-mark" :class="'is-' + activeDiagnostic.severity">{{ activeDiagnostic.severity === 'error' ? '×' : activeDiagnostic.severity === 'warning' ? '!' : 'i' }}</span>
+        <div class="inline-diagnostic-copy"><strong>第 {{ activeDiagnostic.line }} 行</strong><span>{{ activeDiagnostic.message }}</span></div>
+        <button type="button" class="inline-diagnostic-close" aria-label="关闭规则提示" @click="activeDiagnostic = null">×</button>
+      </div>
       <div v-if="!modelValue && placeholder" class="ph">{{ placeholder }}</div>
     </div>
     <section v-if="diagnostics.length" class="rule-diagnostic-panel" aria-label="规则检查结果" aria-live="polite">
@@ -324,6 +346,16 @@ watch(
 }
 
 .cm-host :deep(.cm-rule-diagnostic-gutter) { min-width: 16px; }
+.cm-host :deep(.cm-lineNumbers .cm-gutterElement[data-rule-diagnostic-line]) { cursor: help; border-radius: 4px; }
+.cm-host :deep(.cm-lineNumbers .cm-gutterElement[data-rule-diagnostic-line]:hover) { color: var(--accent); background: var(--accent-soft); }
+.inline-diagnostic-popover { position: absolute; z-index: 5; right: 8px; bottom: 8px; display: flex; align-items: flex-start; gap: 8px; width: min(420px, calc(100% - 16px)); padding: 9px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); box-shadow: 0 6px 24px rgba(0,0,0,.16); color: var(--text); }
+.inline-diagnostic-mark { display: inline-grid; place-items: center; flex: 0 0 auto; width: 18px; height: 18px; border-radius: 50%; font-size: 12px; font-weight: 800; }
+.inline-diagnostic-mark.is-error { color: var(--red); background: var(--red-soft); }
+.inline-diagnostic-mark.is-warning { color: var(--warn); background: var(--warn-soft); }
+.inline-diagnostic-mark.is-info { color: var(--accent); background: var(--accent-soft); }
+.inline-diagnostic-copy { display: grid; gap: 3px; min-width: 0; font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+.inline-diagnostic-copy strong { font-size: 10px; color: var(--muted); }
+.inline-diagnostic-close { flex: 0 0 auto; border: 0; padding: 0 2px; background: transparent; color: var(--muted); font: inherit; font-size: 18px; line-height: 1; cursor: pointer; }
 .cm-host :deep(.cm-scroller::-webkit-scrollbar-thumb:hover) {
   background: var(--scrollbar-thumb-hover);
 }
@@ -335,8 +367,8 @@ watch(
   color: var(--muted);
 }
 
-.rule-diagnostic-panel { margin-top: 10px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-md, 10px); background: var(--surface); }
-.rule-diagnostic-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.rule-diagnostic-panel { margin-top: 8px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-md, 10px); background: var(--surface); }
+.rule-diagnostic-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; padding: 8px 10px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
 .rule-diagnostic-title, .rule-diagnostic-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; min-width: 0; }
 .rule-diagnostic-title { color: var(--text); font-size: 12px; }
 .rule-diagnostic-title-icon { display: inline-grid; width: 18px; height: 18px; place-items: center; border-radius: 6px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 800; }
@@ -345,8 +377,8 @@ watch(
 .diagnostic-count.is-error { color: var(--red); background: var(--red-soft); }
 .diagnostic-count.is-warning { color: var(--warn); background: var(--warn-soft); }
 .diagnostic-count.is-info { color: var(--accent); background: var(--accent-soft); }
-.rule-diagnostic-list { display: flex; flex-direction: column; gap: 3px; max-height: 260px; overflow: auto; padding: 6px; overscroll-behavior: contain; }
-.rule-diagnostic-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 9px; width: 100%; padding: 9px 8px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--text); font: inherit; font-size: 12px; line-height: 1.5; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
+.rule-diagnostic-list { display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow: auto; padding: 6px; overscroll-behavior: contain; }
+.rule-diagnostic-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 8px; width: 100%; padding: 7px 7px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--text); font: inherit; font-size: 12px; line-height: 1.5; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
 .rule-diagnostic-item:hover, .rule-diagnostic-item:focus-visible { border-color: var(--line); background: var(--surface-2); }
 .rule-diagnostic-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .rule-diagnostic-line { display: inline-flex; align-items: center; justify-content: center; min-height: 22px; padding: 2px 7px; border-radius: 5px; background: var(--surface-2); color: var(--muted); font-size: 10px; font-weight: 750; white-space: nowrap; }
@@ -362,12 +394,14 @@ watch(
 @media (max-width: 600px) {
   .rule-diagnostic-heading { align-items: flex-start; flex-direction: column; padding: 9px 10px; }
   .rule-diagnostic-summary { gap: 5px; }
-  .rule-diagnostic-list { max-height: 300px; padding: 5px; }
-  .rule-diagnostic-item { grid-template-columns: auto minmax(0, 1fr); gap: 7px; padding: 9px 7px; font-size: 12px; }
+  .rule-diagnostic-list { max-height: 160px; padding: 4px; }
+  .inline-diagnostic-popover { right: 5px; bottom: 5px; width: calc(100% - 10px); padding: 8px; }
+  .rule-diagnostic-item { grid-template-columns: auto minmax(0, 1fr); gap: 6px; padding: 7px 6px; font-size: 11px; }
   .rule-diagnostic-line { grid-row: 1; grid-column: 1; }
   .rule-diagnostic-message { grid-row: 1; grid-column: 2; }
   .rule-diagnostic-jump { grid-row: 2; grid-column: 2; justify-self: start; padding-top: 2px; }
-  .rule-diagnostic-footer { padding: 8px 10px; }
+  .rule-diagnostic-footer { padding: 6px 9px; font-size: 10px; }
+  .rule-diagnostic-jump { display: none; }
 }
 .ph {
   position: absolute;
