@@ -12,9 +12,19 @@ const refreshing = ref(false);
 const error = ref("");
 const current = ref<WorkflowRun | null>(null);
 const runs = ref<WorkflowRun[]>([]);
+const selectedStatus = ref("all");
+const selectedSource = ref("all");
+const page = ref(1);
+const pageSize = 20;
 let pollHandle: ReturnType<typeof setInterval> | undefined;
 
 const active = computed(() => Boolean(current.value));
+const filteredRuns = computed(() => runs.value.filter((run) =>
+  (selectedStatus.value === "all" || run.status === selectedStatus.value) &&
+  (selectedSource.value === "all" || run.source === selectedSource.value)
+));
+const pageCount = computed(() => Math.max(1, Math.ceil(filteredRuns.value.length / pageSize)));
+const visibleRuns = computed(() => filteredRuns.value.slice((page.value - 1) * pageSize, page.value * pageSize));
 const statusNames: Record<string, string> = {
   pending: "等待执行",
   running: "执行中",
@@ -48,9 +58,10 @@ async function load(silent = false) {
       await router.replace("/admin/login");
       return;
     }
-    const result = await api.workflows(100);
+    const result = await api.workflows(200);
     current.value = result.current;
     runs.value = result.runs;
+    page.value = Math.min(page.value, pageCount.value);
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : String(caught);
   } finally {
@@ -118,13 +129,33 @@ onUnmounted(() => { if (pollHandle) clearInterval(pollHandle); });
       <section class="workflow-history panel">
         <div class="panel-heading">
           <div><p class="eyebrow">HISTORY</p><h2>执行历史</h2><p class="panel-subtitle">最近 {{ runs.length }} 条任务记录；历史记录与生成日志分开保存。</p></div>
-          <span class="count-pill">{{ runs.length }} 条</span>
+          <span class="count-pill">{{ filteredRuns.length }} 条匹配</span>
+        </div>
+        <div class="history-filters" aria-label="筛选工作流历史">
+          <label>执行状态
+            <select v-model="selectedStatus" @change="page = 1">
+              <option value="all">全部状态</option>
+              <option value="pending">等待执行</option>
+              <option value="running">执行中</option>
+              <option value="succeeded">成功</option>
+              <option value="failed">失败</option>
+            </select>
+          </label>
+          <label>任务来源
+            <select v-model="selectedSource" @change="page = 1">
+              <option value="all">全部来源</option>
+              <option value="startup">服务启动</option>
+              <option value="scheduled">定时任务</option>
+              <option value="manual">手动生成</option>
+              <option value="save-and-generate">保存并生成</option>
+            </select>
+          </label>
         </div>
         <div class="table-scroll">
           <table>
             <thead><tr><th>任务</th><th>状态</th><th>来源</th><th>阶段 / 结果</th><th>开始时间</th><th>耗时</th></tr></thead>
             <tbody>
-              <tr v-for="run in runs" :key="run.id">
+              <tr v-for="run in visibleRuns" :key="run.id">
                 <td class="task-id">#{{ run.id }}</td>
                 <td><span class="status-pill" :class="run.status">{{ statusLabel(run.status) }}</span></td>
                 <td>{{ sourceLabel(run.source) }}</td>
@@ -135,10 +166,17 @@ onUnmounted(() => { if (pollHandle) clearInterval(pollHandle); });
                 <td class="date-cell">{{ dateLabel(run.started_at || run.created_at) }}</td>
                 <td class="duration-cell">{{ durationLabel(run) }}</td>
               </tr>
-              <tr v-if="!loading && !runs.length"><td colspan="6" class="empty-row">暂无工作流历史。启动服务或执行一次 PAC 生成后，这里会显示完整记录。</td></tr>
+              <tr v-if="!loading && !filteredRuns.length"><td colspan="6" class="empty-row">没有符合当前筛选条件的工作流记录。</td></tr>
               <tr v-if="loading && !runs.length"><td colspan="6" class="empty-row">正在加载历史记录…</td></tr>
             </tbody>
           </table>
+        </div>
+        <div v-if="filteredRuns.length > pageSize" class="history-pagination">
+          <span>第 {{ page }} / {{ pageCount }} 页</span>
+          <div>
+            <button type="button" :disabled="page <= 1" @click="page--">上一页</button>
+            <button type="button" :disabled="page >= pageCount" @click="page++">下一页</button>
+          </div>
         </div>
       </section>
       <AppFooter />
@@ -148,6 +186,13 @@ onUnmounted(() => { if (pollHandle) clearInterval(pollHandle); });
 
 <style scoped>
 .workflow-page { display:grid; gap:18px; }
+.history-filters { display:flex; flex-wrap:wrap; gap:12px; margin:-3px 0 16px; }
+.history-filters label { display:grid; gap:6px; color:var(--muted); font-size:11px; }
+.history-filters select { min-width:150px; min-height:36px; padding:0 10px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:var(--text); font:inherit; }
+.history-pagination { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:16px; color:var(--muted); font-size:12px; }
+.history-pagination div { display:flex; gap:8px; }
+.history-pagination button { min-height:34px; padding:0 11px; border:1px solid var(--line); border-radius:7px; background:var(--surface-2); color:var(--text); font:inherit; cursor:pointer; }
+.history-pagination button:disabled { opacity:.45; cursor:not-allowed; }
 .panel { min-width:0; padding:22px; border:1px solid var(--line); border-radius:14px; background:var(--surface); box-shadow:var(--shadow-sm, 0 4px 18px rgba(0,0,0,.03)); }
 .panel-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; }
 .panel-heading h2 { margin:0; color:var(--text); font-size:19px; }
