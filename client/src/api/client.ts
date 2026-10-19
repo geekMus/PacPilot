@@ -94,6 +94,77 @@ export interface GenpacProbe {
   detail: string;
 }
 
+
+export interface AccessEvent {
+  id: number;
+  created_at: string;
+  method: string;
+  path: string;
+  category: "page" | "pac" | "public-api" | "admin-api" | string;
+  source_ip: string;
+  user_agent: string;
+  status_code: number;
+  duration_ms: number;
+  response_bytes: number;
+}
+
+export interface MonitorSummary {
+  generatedAt: string;
+  timezone: string;
+  activeRequests: number;
+  tcpConnections: number;
+  requestsLastHour: number;
+  requestsLast24h: number;
+  uniqueSourcesLast24h: number;
+  errorRequestsLast24h: number;
+  serverErrorsLast24h: number;
+  averageResponseMs: number;
+  p95ResponseMs: number;
+  errorRate: number;
+  requestTrend: Array<{ hour: string; requests: number; errors: number }>;
+}
+
+export interface ProxyProbeResult {
+  testedAt: string;
+  proxyLabel: string;
+  proxyHost: string;
+  proxyPort: number;
+  targetHost: string;
+  success: boolean;
+  tcpMs: number | null;
+  handshakeMs: number | null;
+  targetMs: number | null;
+  httpStatus: number | null;
+  phase: string;
+  error: string;
+  isLoopback: boolean;
+}
+
+export interface ProxyProbeBatch {
+  targetHost: string;
+  targetPort: number;
+  results: ProxyProbeResult[];
+  ignoredDirectEntries: number;
+  parseWarnings: string[];
+  limited: boolean;
+}
+
+export interface ProxyProbeRecord {
+  id: number;
+  tested_at: string;
+  proxy_label: string;
+  proxy_host: string;
+  proxy_port: number;
+  target_host: string;
+  success: boolean;
+  tcp_ms: number | null;
+  handshake_ms: number | null;
+  target_ms: number | null;
+  http_status: number | null;
+  phase: string;
+  error: string;
+}
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     credentials: "same-origin",
@@ -136,4 +207,10 @@ export const api = {
   generate: () => request<GenerateResult>("/api/admin/generate", { method: "POST" }),
   logs: () => request<GenerationLog[]>("/api/admin/logs"),
   genpacStatus: () => request<GenpacProbe>("/api/admin/genpac-status"),
+  monitorSummary: () => request<MonitorSummary>("/api/admin/monitor/summary"),
+  monitorAccess: (limit = 50) => request<AccessEvent[]>(`/api/admin/monitor/access?limit=${limit}`),
+  testProxies: () => request<ProxyProbeBatch>("/api/admin/monitor/probe", {
+    method: "POST", body: JSON.stringify({}),
+  }),
+  proxyProbeHistory: (limit = 30) => request<ProxyProbeRecord[]>(`/api/admin/monitor/probes?limit=${limit}`),
 };

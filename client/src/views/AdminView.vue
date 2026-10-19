@@ -433,6 +433,7 @@ async function logout() {
   <main class="page admin-page">
     <AppHeader brand="genpac-runner" sub="控制台">
       <RouterLink to="/">运行概览</RouterLink>
+      <RouterLink to="/admin/monitor">网络监控</RouterLink>
       <button type="button" class="linkish" @click="logout">退出</button>
     </AppHeader>
 

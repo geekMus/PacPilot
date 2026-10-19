@@ -35,6 +35,39 @@ function migrate(database: AppDatabase): void {
       message    TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS access_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      created_at TEXT NOT NULL,
+      method TEXT NOT NULL,
+      path TEXT NOT NULL,
+      category TEXT NOT NULL,
+      source_ip TEXT NOT NULL,
+      user_agent TEXT NOT NULL DEFAULT '',
+      status_code INTEGER NOT NULL,
+      duration_ms REAL NOT NULL DEFAULT 0,
+      response_bytes INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_access_events_created_at ON access_events(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_access_events_source_created ON access_events(source_ip, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS proxy_probe_runs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tested_at TEXT NOT NULL,
+      proxy_label TEXT NOT NULL,
+      proxy_host TEXT NOT NULL,
+      proxy_port INTEGER NOT NULL,
+      target_host TEXT NOT NULL,
+      success INTEGER NOT NULL,
+      tcp_ms REAL,
+      handshake_ms REAL,
+      target_ms REAL,
+      http_status INTEGER,
+      phase TEXT NOT NULL,
+      error TEXT NOT NULL DEFAULT ''
+    );
+    CREATE INDEX IF NOT EXISTS idx_proxy_probe_tested_at ON proxy_probe_runs(tested_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_proxy_probe_label_tested ON proxy_probe_runs(proxy_label, tested_at DESC);
   `);
 
   const row = database

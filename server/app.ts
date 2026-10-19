@@ -7,6 +7,7 @@ import type { AppDatabase } from "./db/sqlite";
 import type { EnvConfig } from "./config/env";
 import { publicRoutes } from "./routes/public";
 import { adminRoutes } from "./routes/admin";
+import { requestMonitoringMiddleware } from "./services/request-monitor";
 
 export function createApp(
   env: EnvConfig,
@@ -15,6 +16,7 @@ export function createApp(
   const app = express();
 
   app.disable("x-powered-by");
+  app.use(requestMonitoringMiddleware(database));
   app.use(express.urlencoded({ extended: true, limit: "1mb" }));
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());

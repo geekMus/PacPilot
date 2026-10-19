@@ -19,6 +19,11 @@ const router = createRouter({
       component: () => import("../views/AdminView.vue"),
     },
     {
+      path: "/admin/monitor",
+      name: "admin-monitor",
+      component: () => import("../views/MonitoringView.vue"),
+    },
+    {
       path: "/:pathMatch(.*)*",
       name: "not-found",
       component: () => import("../views/NotFoundView.vue"),

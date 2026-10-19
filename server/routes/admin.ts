@@ -10,12 +10,16 @@ import { generatePac, probeGenpac } from "../services/pac-generator";
 import { reschedule } from "../services/scheduler";
 import { sendWebhookTest, validateWebhookConfig } from "../services/webhook";
 import cron from "node-cron";
+import { getMonitorSummary, listAccessEvents, listProxyProbeRuns } from "../db/monitoring";
+import { getActiveRequestCount, getTcpConnectionCount } from "../services/request-monitor";
+import { testConfiguredProxies } from "../services/proxy-probe";
 
 function parseList(raw:unknown):string[]{if(Array.isArray(raw))return raw.map(String).map(s=>s.trim()).filter(Boolean);if(typeof raw!=="string")return[];return raw.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);}
 function validTimeZone(v:string):boolean{try{new Intl.DateTimeFormat("en-US",{timeZone:v}).format(new Date());return true;}catch{return false;}}
 function bodyToSettings(b:Record<string,unknown>):AppSettings{const m=String(b.mode??"");const mode:GenerationMode=m==="remote"||m==="genpac"?"remote":"custom";return{mode,pacProxy:String(b.pacProxy??""),pacCompress:Boolean(b.pacCompress),pacPrecise:Boolean(b.pacPrecise),listUrl:String(b.listUrl??b.gfwlistUrl??""),blockList:parseList(b.blockList),directList:parseList(b.directList),cronSchedule:String(b.cronSchedule??""),timezone:String(b.timezone??"Asia/Shanghai").trim(),webhookSuccessUrl:String(b.webhookSuccessUrl??""),webhookSuccessBody:String(b.webhookSuccessBody??""),webhookFailureUrl:String(b.webhookFailureUrl??""),webhookFailureBody:String(b.webhookFailureBody??""),webhookSuccessConfig:normalizeWebhookConfig(b.webhookSuccessConfig,String(b.webhookSuccessUrl??""),String(b.webhookSuccessBody??"")),webhookFailureConfig:normalizeWebhookConfig(b.webhookFailureConfig,String(b.webhookFailureUrl??""),String(b.webhookFailureBody??""))};}
 export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
  const router=Router();
+ let monitorProbeInProgress = false;
  router.get("/api/admin/session",(req,res)=>res.json({loggedIn:isLoggedIn(req,database),...getAdminSecurityStatus(database)}));
  router.post("/api/admin/login",(req,res)=>{const pw=String(req.body?.password??"");if(!verifyAdminPassword(database,pw)){res.status(401).json({error:"密码错误"});return;}const token=createSessionToken(getAdminSessionSecret(database));const secure=req.secure||req.headers["x-forwarded-proto"]==="https";setSessionCookie(res,token,secure);res.json({ok:true,...getAdminSecurityStatus(database)});});
  router.post("/api/admin/logout",(_req,res)=>{clearSessionCookie(res);res.json({ok:true});});
@@ -26,5 +30,32 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
  router.post("/api/admin/generate",requireAdmin(database),async(_req,res)=>{const result=await generatePac(database,env.dataDir);res.status(result.success?200:500).json(result);});
  router.get("/api/admin/logs",requireAdmin(database),(_req,res)=>res.json(recentLogs(database,50,getSettings(database).timezone)));
  router.get("/api/admin/genpac-status",requireAdmin(database),async(_req,res)=>res.json(await probeGenpac()));
+ router.get("/api/admin/monitor/summary",requireAdmin(database),(_req,res)=>{
+  res.setHeader("Cache-Control","no-store");
+  res.json({...getMonitorSummary(database,getActiveRequestCount(),getTcpConnectionCount()),timezone:getSettings(database).timezone});
+ });
+ router.get("/api/admin/monitor/access",requireAdmin(database),(req,res)=>{
+  res.setHeader("Cache-Control","no-store");
+  const limit=Math.min(200,Math.max(1,Number.parseInt(String(req.query.limit??"50"),10)||50));
+  res.json(listAccessEvents(database,limit));
+ });
+ router.get("/api/admin/monitor/probes",requireAdmin(database),(req,res)=>{
+  res.setHeader("Cache-Control","no-store");
+  const limit=Math.min(200,Math.max(1,Number.parseInt(String(req.query.limit??"30"),10)||30));
+  res.json(listProxyProbeRuns(database,limit));
+ });
+ router.post("/api/admin/monitor/probe",requireAdmin(database),async(_req,res)=>{
+  res.setHeader("Cache-Control","no-store");
+  if(monitorProbeInProgress){res.status(409).json({error:"已有代理连通性测试正在运行，请稍后再试。"});return;}
+  monitorProbeInProgress=true;
+  try{
+   const result=await testConfiguredProxies(database,getSettings(database).pacProxy);
+   res.json(result);
+  }catch(e){
+   res.status(400).json({error:e instanceof Error?e.message:String(e)});
+  }finally{
+   monitorProbeInProgress=false;
+  }
+ });
  return router;
 }
