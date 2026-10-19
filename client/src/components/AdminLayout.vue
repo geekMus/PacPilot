@@ -236,6 +236,7 @@ watch(() => route.fullPath, () => {
 }
 .admin-content :deep(.recent-table),
 .admin-content :deep(.table-wrap table) {
+  min-width: 560px;
   font-size: 12px;
 }
 .admin-content :deep(.recent-table th),
