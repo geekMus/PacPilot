@@ -64,7 +64,7 @@ watch(() => props.items, () => {
           :style="{ height: rowHeight + 'px' }"
           role="listitem"
         >
-          <TextDetail :text="item.domain" label="域名规则" class="domain-detail" />
+          <TextDetail :text="item.domain" label="域名规则" class="domain-detail"><code>{{ item.domain }}</code></TextDetail>
           <span v-if="item.source" class="row-source">{{ item.source }}</span>
         </div>
       </div>
