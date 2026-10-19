@@ -96,8 +96,9 @@ const ruleDecorationField = StateField.define({
         classes.push("cm-rule-line-" + severity);
       }
       const targetColor = items.some((item) => item.severity === "error") ? "var(--red)" : items.some((item) => item.severity === "warning") ? "var(--warn)" : items.length ? "var(--accent)" : "transparent";
+      const targetStrength = items.some((item) => item.severity === "info") && !items.some((item) => item.severity !== "info") ? "7%" : items.length ? "10%" : "0%";
       if (highlightLine === lineNumber) classes.push((highlight?.token ?? 0) % 2 === 0 ? "cm-jump-highlight-a" : "cm-jump-highlight-b");
-      ranges.push(Decoration.line({ attributes: { class: classes.join(" "), style: "--cm-jump-target: " + targetColor + ";" } }).range(transaction.state.doc.line(lineNumber).from));
+      ranges.push(Decoration.line({ attributes: { class: classes.join(" "), style: "--cm-jump-target: " + targetColor + "; --cm-jump-strength: " + targetStrength + ";" } }).range(transaction.state.doc.line(lineNumber).from));
       if (lineNumber === activeLine && items.length) ranges.push(Decoration.widget({ widget: new InlineDiagnosticWidget(items), side: 1, block: false }).range(transaction.state.doc.line(lineNumber).to));
     }
     ranges.sort((a, b) => a.from - b.from);
@@ -131,7 +132,7 @@ function jumpToLine(lineNumber: number) {
     scroller.scrollTop = Math.max(0, block.top - targetOffset);
   }
 
-  // 只更新选区与高亮，不使用 scrollIntoView，也不主动 focus，避免浏览器滚动外层页面。
+  // 只更新选区与高亮，不使用 scrollIntoView；聚焦时使用 preventScroll 避免浏览器滚动外层页面。
   editor.dispatch({
     selection: { anchor: line.to },
     effects: setJumpHighlight.of({ line: lineNumber, token: (editor.state.field(jumpHighlightField)?.token ?? 0) + 1 }),
@@ -194,8 +195,8 @@ function buildExtensions(dark: boolean) {
       ".cm-line.cm-jump-highlight-b": { animation: "cm-rule-jump-flash-b 1.5s ease-out both", borderRadius: "3px" },
       "@keyframes cm-rule-jump-flash-a": {
         "0%": { backgroundColor: "color-mix(in srgb, #a78bfa 38%, transparent)" },
-        "40%": { backgroundColor: "color-mix(in srgb, #a78bfa 25%, var(--cm-jump-target) 10%)" },
-        "100%": { backgroundColor: "color-mix(in srgb, var(--cm-jump-target) 10%, transparent)" },
+        "40%": { backgroundColor: "color-mix(in srgb, #a78bfa 25%, var(--cm-jump-target) var(--cm-jump-strength, 0%))" },
+        "100%": { backgroundColor: "color-mix(in srgb, var(--cm-jump-target) var(--cm-jump-strength, 0%), transparent)" },
       },
       "@keyframes cm-rule-jump-flash-b": {
         "0%": { backgroundColor: "color-mix(in srgb, #a78bfa 38%, transparent)" },
