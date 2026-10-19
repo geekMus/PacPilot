@@ -30,7 +30,7 @@ watch(() => route.fullPath, () => {
     ></button>
 
     <aside class="admin-sidebar" :class="{ 'is-open': menuOpen }">
-      <RouterLink to="/" class="sidebar-brand" aria-label="进入管理总览">
+      <RouterLink to="/admin/dashboard" class="sidebar-brand" aria-label="进入管理总览">
         <span class="brand-mark" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9">
             <circle cx="12" cy="12" r="8.5" />
@@ -45,7 +45,7 @@ watch(() => route.fullPath, () => {
 
       <nav class="sidebar-nav" aria-label="管理导航">
         <p class="nav-caption">工作台</p>
-        <RouterLink to="/" class="sidebar-link" :class="{ active: active === 'dashboard' }">
+        <RouterLink to="/admin/dashboard" class="sidebar-link" :class="{ active: active === 'dashboard' }">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="4" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/></svg>
           <span>系统总览</span>
         </RouterLink>
@@ -72,7 +72,7 @@ watch(() => route.fullPath, () => {
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7M21 3 11 13"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
           <span>查看 PAC 文件</span><span class="external-mark" aria-hidden="true">↗</span>
         </a>
-        <RouterLink to="/status" class="sidebar-link">
+        <RouterLink to="/" class="sidebar-link">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h18M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z"/><path d="m8 12 2.5 2.5L16 9"/></svg>
           <span>公共状态页</span>
         </RouterLink>
