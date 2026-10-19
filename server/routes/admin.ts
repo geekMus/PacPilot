@@ -65,7 +65,7 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
   const counts=database.query("SELECT (SELECT COUNT(*) FROM generation_log) AS generationLogs,(SELECT COUNT(*) FROM access_events) AS accessEvents,(SELECT COUNT(*) FROM proxy_probe_runs) AS proxyProbeRuns,(SELECT COUNT(*) FROM workflow_runs) AS workflows").get();
   res.json({dataBytes,dbBytes,logBytes:operationalLogStorageBytes(database),retentionDays:getSettings(database).logRetentionDays,counts});
  });
- router.post("/api/admin/logs/cleanup",requireAdmin(database),(_req,res)=>{res.json({deleted:cleanupOperationalLogs(database),retentionDays:getSettings(database).logRetentionDays});});
+ router.post("/api/admin/logs/cleanup",requireAdmin(database),(_req,res)=>{const deleted=cleanupOperationalLogs(database);if(deleted.generationLogs+deleted.accessEvents+deleted.proxyProbeRuns>0){database.exec("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");}res.json({deleted,retentionDays:getSettings(database).logRetentionDays});});
  router.post("/api/admin/factory-reset",requireAdmin(database),(_req,res)=>{
   if(hasActivePacWorkflow(database)){res.status(409).json({error:"工作流正在执行，请等待完成后再恢复出厂设置。"});return;}
   try{
@@ -73,6 +73,7 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
    database.exec("DELETE FROM generation_log; DELETE FROM access_events; DELETE FROM proxy_probe_runs; DELETE FROM workflow_runs;");
    setSettings(database,DEFAULT_SETTINGS);
    database.exec("COMMIT");
+   database.exec("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
    for(const name of ["proxy.pac","proxy.source.pac"]){try{fs.unlinkSync(path.join(env.dataDir,name));}catch{/* already absent */}}
    reschedule(database,env.dataDir);
    res.json({ok:true,message:"已恢复默认配置并清理运行记录。管理员密码保持不变。"});
