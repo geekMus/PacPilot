@@ -10,7 +10,7 @@ const status = ref<PacStatus | null>(null);
 const meta = ref<Meta | null>(null);
 const error = ref("");
 const loading = ref(true);
-const adminEntry = ref<"/admin/dashboard" | "/admin/settings" | "/admin/login">("/admin/login");
+const adminEntry = ref<"/admin/dashboard" | "/admin/settings" | "/admin/login">("/admin/dashboard");
 
 async function loadStatus() {
   loading.value = true;
