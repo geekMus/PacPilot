@@ -497,7 +497,23 @@ onUnmounted(() => {
 .monitor-button:disabled { opacity:.55; cursor:wait; }
 .monitor-button.primary { background:var(--accent); border-color:var(--accent); color:var(--accent-contrast); }
 .monitor-button.secondary { color:var(--text); background:var(--surface); }
-.monitor-button:hover:not(:disabled) { filter:brightness(1.05); }
+.monitor-button.secondary:hover:not(:disabled) {
+  background:var(--surface-2);
+  border-color:color-mix(in srgb,var(--accent) 36%,var(--line));
+  color:var(--text);
+  filter:none;
+}
+.monitor-button.primary:hover:not(:disabled) {
+  background:var(--accent-hover);
+  border-color:var(--accent-hover);
+  color:var(--accent-contrast);
+  filter:none;
+}
+.monitor-button.primary:active:not(:disabled) {
+  background:var(--accent-active);
+  border-color:var(--accent-active);
+  color:var(--accent-contrast);
+}
 .icon-spinning { animation: icon-spin .9s linear infinite; }
 @keyframes icon-spin { to { transform:rotate(360deg); } }
 .monitor-notice,.probe-target { padding:12px 14px; border-radius:10px; background:var(--surface-2); border:1px solid var(--line); font-size:12px; color:var(--muted); line-height:1.65; margin-bottom:14px; }
