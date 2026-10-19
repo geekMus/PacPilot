@@ -21,5 +21,5 @@ const options: { value: ThemeMode; label: string; title: string }[] = [
 .theme-btn { appearance:none; border:0; background:transparent; color:var(--muted); min-height:29px; padding:0 9px; border-radius:7px; font-size:11px; font-weight:650; line-height:1; cursor:pointer; white-space:nowrap; }
 .theme-btn.active { background:var(--accent-soft); color:var(--accent); }
 .theme-btn:hover { color:var(--text); }
-@media(max-width:400px) { .theme-btn { min-height:32px; padding:0 12px; } }
+@media(max-width:620px) { .theme-switch { gap:0; padding:2px; border-radius:8px; } .theme-btn { min-height:26px; padding:0 6px; font-size:9px; } }
 </style>
