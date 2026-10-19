@@ -1,4 +1,5 @@
 import fs from "fs";
+import { minify } from "terser";
 import path from "path";
 import { isIP } from "node:net";
 import type { AppDatabase } from "../db/sqlite";
@@ -78,12 +79,18 @@ export function validatePacProxyString(value: string): string | null {
 }
 
 
-function compressPac(content: string): string {
-  return content
-    .split("\n")
-    .map((line) => line.replace(/^\s+/, ""))
-    .filter((line) => line && !line.startsWith("//"))
-    .join("\n");
+async function compressPac(content: string): Promise<string> {
+  const result = await minify(content, {
+    ecma: 5,
+    compress: { defaults: true, passes: 2 },
+    // 不混淆变量名，避免无意义的可读性损失。
+    mangle: false,
+    format: { comments: false, beautify: false, ecma: 5 },
+  });
+  if (typeof result.code !== "string" || !result.code.trim()) {
+    throw new Error("PAC 压缩失败：压缩器未生成有效代码。");
+  }
+  return result.code;
 }
 
 function withPacVersionHeader(content: string): string {
@@ -97,8 +104,8 @@ function toJsArray(list: string[], compress: boolean): string {
 }
 
 function buildCustomPac(settings: AppSettings): string {
-  const blockJs = toJsArray(settings.blockList, settings.pacCompress);
-  const directJs = toJsArray(settings.directList, settings.pacCompress);
+  const blockJs = toJsArray(settings.blockList, false);
+  const directJs = toJsArray(settings.directList, false);
 
   return `// genpac-runner 生成的 PAC（自定义规则模式）
 // 本机和内网地址优先直连；黑名单优先于自定义直连，其余请求使用默认代理
@@ -120,8 +127,8 @@ function isMatch(host, list) {
 }
 
 // 自定义黑名单与直连规则
-var BLOCK_LIST  = [${settings.pacCompress ? blockJs : `\n    ${blockJs}\n`}];
-var DIRECT_LIST = [${settings.pacCompress ? directJs : `\n    ${directJs}\n`}];
+var BLOCK_LIST  = [\n    ${blockJs}\n];
+var DIRECT_LIST = [\n    ${directJs}\n];
 // 默认代理策略（多个代理选项使用分号分隔）
 var PAC_PROXY   = ${JSON.stringify(settings.pacProxy)};
 
@@ -199,7 +206,7 @@ export async function generatePac(
       message = await runRemoteMode(settings, pacPath);
     } else {
       const customPac = buildCustomPac(settings);
-      const output = settings.pacCompress ? compressPac(customPac) : customPac;
+      const output = settings.pacCompress ? await compressPac(customPac) : customPac;
       fs.writeFileSync(pacPath, withPacVersionHeader(output), "utf8");
       message = "生成成功（自定义规则模式" + (settings.pacCompress ? "，已压缩" : "，未压缩") + "）";
     }
