@@ -216,6 +216,7 @@ function categoryLabel(category: string): string {
 }
 
 function statusLabel(code: number): string {
+  if (code === 304) return "缓存未修改";
   if (code >= 500) return "服务端错误";
   if (code >= 400) return "客户端错误";
   if (code >= 300) return "重定向";
@@ -399,7 +400,7 @@ onUnmounted(() => {
             <select v-model="accessStatus">
               <option value="all">全部状态</option>
               <option value="success">成功（2xx）</option>
-              <option value="redirect">重定向（3xx）</option>
+              <option value="redirect">3xx（重定向 / 缓存）</option>
               <option value="client-error">客户端错误（4xx）</option>
               <option value="server-error">服务端错误（5xx）</option>
             </select>
