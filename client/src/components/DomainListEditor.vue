@@ -6,7 +6,6 @@ import {
   lineNumbers,
   highlightActiveLine,
   Decoration,
-  WidgetType,
 } from "@codemirror/view";
 import { EditorState, StateEffect, StateField } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
@@ -30,6 +29,8 @@ const emit = defineEmits<{
 }>();
 
 const setRuleDiagnostics = StateEffect.define<RuleDiagnostic[]>();
+const activeLine = ref(1);
+const selectedDiagnosticKey = ref<string | null>(null);
 const setJumpHighlight = StateEffect.define<{ line: number; token: number } | null>();
 const jumpHighlightField = StateField.define<{ line: number; token: number } | null>({
   create: () => null,
@@ -49,33 +50,6 @@ const ruleDiagnosticsField = StateField.define<RuleDiagnostic[]>({
     return value;
   },
 });
-class InlineDiagnosticWidget extends WidgetType {
-  constructor(readonly diagnostics: RuleDiagnostic[]) { super(); }
-  eq(other: InlineDiagnosticWidget) {
-    return this.diagnostics.length === other.diagnostics.length &&
-      this.diagnostics.every((item, index) => item.line === other.diagnostics[index]?.line && item.severity === other.diagnostics[index]?.severity && item.message === other.diagnostics[index]?.message);
-  }
-  // 诊断只是只读提示，不应截获编辑器点击、光标移动或文本选择。
-  ignoreEvent(_event: Event): boolean { return true; }
-  toDOM() {
-    const container = document.createElement("span");
-    const severity = this.diagnostics.some((item) => item.severity === "error") ? "error" : this.diagnostics.some((item) => item.severity === "warning") ? "warning" : "info";
-    container.className = "cm-inline-diagnostic is-" + severity;
-    container.setAttribute("role", "note");
-    container.setAttribute("aria-label", "当前行规则诊断");
-    container.setAttribute("contenteditable", "false");
-    container.setAttribute("unselectable", "on");
-    const label = document.createElement("span");
-    label.className = "cm-inline-diagnostic-label";
-    label.textContent = severity === "error" ? "错误" : severity === "warning" ? "提醒" : "建议";
-    container.append(label);
-    const message = document.createElement("span");
-    message.className = "cm-inline-diagnostic-message";
-    message.textContent = this.diagnostics.map((item) => item.message).join(" · ");
-    container.append(message);
-    return container;
-  }
-}
 const ruleDecorationField = StateField.define({
   create: () => Decoration.none,
   update(decorations, transaction) {
@@ -87,10 +61,8 @@ const ruleDecorationField = StateField.define({
     for (const diagnostic of diagnostics) byLine.set(diagnostic.line, [...(byLine.get(diagnostic.line) ?? []), diagnostic]);
     const highlight = transaction.state.field(jumpHighlightField);
     const highlightLine = highlight?.line ?? null;
-    const activeLine = transaction.state.doc.lineAt(transaction.state.selection.main.head).number;
     const lineNumbersToDecorate = new Set([...byLine.keys()]);
     if (highlightLine !== null) lineNumbersToDecorate.add(highlightLine);
-    if (byLine.has(activeLine)) lineNumbersToDecorate.add(activeLine);
     const ranges = [];
     for (const lineNumber of lineNumbersToDecorate) {
       if (lineNumber < 1 || lineNumber > transaction.state.doc.lines) continue;
@@ -104,7 +76,6 @@ const ruleDecorationField = StateField.define({
       const targetStrength = items.some((item) => item.severity === "info") && !items.some((item) => item.severity !== "info") ? "7%" : items.length ? "10%" : "0%";
       if (highlightLine === lineNumber) classes.push((highlight?.token ?? 0) % 2 === 0 ? "cm-jump-highlight-a" : "cm-jump-highlight-b");
       ranges.push(Decoration.line({ attributes: { class: classes.join(" "), style: "--cm-jump-target: " + targetColor + "; --cm-jump-strength: " + targetStrength + ";" } }).range(transaction.state.doc.line(lineNumber).from));
-      if (lineNumber === activeLine && items.length) ranges.push(Decoration.widget({ widget: new InlineDiagnosticWidget(items), side: 1, block: false }).range(transaction.state.doc.line(lineNumber).to));
     }
     ranges.sort((a, b) => a.from - b.from);
     return Decoration.set(ranges, true);
@@ -117,10 +88,12 @@ let view: EditorView | null = null;
 let themeObs: MutationObserver | null = null;
 
 let jumpHighlightTimer: number | null = null;
-function jumpToLine(lineNumber: number) {
+function jumpToLine(lineNumber: number, diagnosticKey: string) {
   if (!view || lineNumber < 1 || lineNumber > view.state.doc.lines) return;
   const editor = view;
   const line = editor.state.doc.line(lineNumber);
+  selectedDiagnosticKey.value = diagnosticKey;
+  activeLine.value = lineNumber;
   const scroller = editor.scrollDOM;
   if (jumpHighlightTimer !== null) window.clearTimeout(jumpHighlightTimer);
 
@@ -183,6 +156,16 @@ function buildExtensions(dark: boolean) {
     }),
     EditorView.updateListener.of((u) => {
       if (u.docChanged) emit("update:modelValue", u.state.doc.toString());
+      if (u.docChanged || u.selectionSet) {
+        const line = u.state.doc.lineAt(u.state.selection.main.head).number;
+        activeLine.value = line;
+        if (selectedDiagnosticKey.value) {
+          const selected = props.diagnostics.find((item, index) =>
+            String(item.line) + "-" + item.severity + "-" + item.message + "-" + index === selectedDiagnosticKey.value
+          );
+          if (!selected || selected.line !== line) selectedDiagnosticKey.value = null;
+        }
+      }
     }),
     EditorView.theme({
       "&": {
@@ -201,12 +184,6 @@ function buildExtensions(dark: boolean) {
       },
       "&.cm-focused": { outline: "none" },
       ".cm-rule-diagnostic-gutter": { width: "16px", background: "var(--surface-2)" },
-      ".cm-inline-diagnostic": { display: "inline-flex", alignItems: "baseline", gap: "6px", maxWidth: "min(560px, 90%)", marginLeft: "10px", padding: "2px 8px", borderRadius: "5px", fontSize: "11px", lineHeight: "1.5", verticalAlign: "baseline", whiteSpace: "normal", overflowWrap: "anywhere", opacity: "0.95", userSelect: "none", pointerEvents: "none", cursor: "default" },
-      ".cm-inline-diagnostic.is-error": { color: "var(--red)", background: "var(--red-soft)" },
-      ".cm-inline-diagnostic.is-warning": { color: "var(--warn)", background: "var(--warn-soft)" },
-      ".cm-inline-diagnostic.is-info": { color: "var(--accent)", background: "var(--accent-soft)" },
-      ".cm-inline-diagnostic-label": { flex: "0 0 auto", fontWeight: "800", fontSize: "10px" },
-      ".cm-inline-diagnostic-message": { minWidth: "0" },
       ".cm-line.cm-rule-line-error": { background: "color-mix(in srgb, var(--red) 10%, transparent)" },
       ".cm-line.cm-rule-line-warning": { background: "color-mix(in srgb, var(--warn) 10%, transparent)" },
       ".cm-line.cm-rule-line-info": { background: "color-mix(in srgb, var(--accent) 7%, transparent)" },
@@ -306,16 +283,16 @@ watch(
           :key="item.line + '-' + item.severity + '-' + item.message + '-' + index"
           type="button"
           class="rule-diagnostic-item"
-          :class="'is-' + item.severity"
+          :class="['is-' + item.severity, { 'is-active': selectedDiagnosticKey === String(item.line) + '-' + item.severity + '-' + item.message + '-' + index && activeLine === item.line }]
           :title="'定位到第 ' + item.line + ' 行'"
-          @click="jumpToLine(item.line)"
+          @click="jumpToLine(item.line, String(item.line) + '-' + item.severity + '-' + item.message + '-' + index)"
         >
           <span class="rule-diagnostic-line">第 {{ item.line }} 行</span>
           <span class="rule-diagnostic-message">{{ item.message }}</span>
           <span class="rule-diagnostic-jump" aria-hidden="true">定位 ↗</span>
         </button>
       </div>
-      <p class="rule-diagnostic-footer">点击任意提示可跳转到对应行；将光标放在有问题的行上，也会在代码末尾显示提示。</p>
+      <p class="rule-diagnostic-footer">点击提示可跳转到对应行；选中项会随编辑器光标位置同步，切换到其他行后自动取消选中。</p>
     </section>
   </div>
 </template>
@@ -388,6 +365,8 @@ watch(
 .rule-diagnostic-list { display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow: auto; padding: 6px; overscroll-behavior: contain; }
 .rule-diagnostic-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 8px; width: 100%; padding: 7px 7px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--text); font: inherit; font-size: 12px; line-height: 1.5; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
 .rule-diagnostic-item:hover, .rule-diagnostic-item:focus-visible { border-color: var(--line); background: var(--surface-2); }
+.rule-diagnostic-item.is-active { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.rule-diagnostic-item.is-active .rule-diagnostic-line { color: var(--accent); background: var(--surface); }
 .rule-diagnostic-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .rule-diagnostic-line { display: inline-flex; align-items: center; justify-content: center; min-height: 22px; padding: 2px 7px; border-radius: 5px; background: var(--surface-2); color: var(--muted); font-size: 10px; font-weight: 750; white-space: nowrap; }
 .rule-diagnostic-item.is-error .rule-diagnostic-line { color: var(--red); background: var(--red-soft); }
