@@ -11,6 +11,7 @@ import {
   type PacStatus,
 } from "../api/client";
 import AdminLayout from "../components/AdminLayout.vue";
+import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
 import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
 import TextDetail from "../components/TextDetail.vue";
@@ -104,9 +105,10 @@ onMounted(() => { void loadOverview(); });
   <AdminLayout active="dashboard" title="系统总览" subtitle="查看 PAC 配置、生成状态、访问情况与常用管理入口。">
     <template #actions>
       <button class="dash-button secondary" type="button" :disabled="refreshing" @click="loadOverview">
+        <AppIcon :name="refreshing ? 'loader-circle' : 'refresh-cw'" :class="{ 'icon-spinning': refreshing }" :size="15" />
         {{ refreshing ? "刷新中…" : "刷新数据" }}
       </button>
-      <button class="dash-button logout-button" type="button" @click="logout">退出登录</button>
+      <button class="dash-button logout-button" type="button" @click="logout"><AppIcon name="log-out" :size="15" />退出登录</button>
     </template>
 
     <div class="dashboard-view">
@@ -115,9 +117,10 @@ onMounted(() => { void loadOverview(); });
           <h2>常用操作</h2>
         </div>
         <div class="quick-actions">
-          <RouterLink to="/admin" class="dash-button secondary">打开配置</RouterLink>
-          <RouterLink to="/admin/monitor" class="dash-button secondary">查看网络监控</RouterLink>
+          <RouterLink to="/admin" class="dash-button secondary"><AppIcon name="settings" :size="16" />打开配置</RouterLink>
+          <RouterLink to="/admin/monitor" class="dash-button secondary"><AppIcon name="activity" :size="16" />查看网络监控</RouterLink>
           <button type="button" class="dash-button primary" :disabled="generating || loading" @click="generateNow">
+            <AppIcon :name="generating ? 'loader-circle' : 'zap'" :class="{ 'icon-spinning': generating }" :size="16" />
             {{ generating ? "正在生成…" : "立即生成 PAC" }}
           </button>
         </div>
@@ -135,22 +138,22 @@ onMounted(() => { void loadOverview(); });
 
       <section class="overview-metrics" aria-label="关键状态">
         <article class="overview-metric">
-          <div class="metric-top"><span class="metric-label">PAC 文件状态</span><span class="metric-icon" aria-hidden="true">P</span></div>
+          <div class="metric-top"><span class="metric-label">PAC 文件状态</span><span class="metric-icon is-file"><AppIcon name="file-check" :size="18" :stroke-width="1.8" /></span></div>
           <strong class="metric-value" :class="status?.hasPac ? 'value-good' : 'value-warning'">{{ loading ? "读取中…" : status?.hasPac ? "已生成" : "尚未生成" }}</strong>
           <span class="metric-note">{{ status?.hasPac ? "已存在可供客户端获取的规则文件" : "请保存配置并生成 PAC 文件" }}</span>
         </article>
         <article class="overview-metric">
-          <div class="metric-top"><span class="metric-label">当前生成模式</span><span class="metric-icon" aria-hidden="true">↔</span></div>
+          <div class="metric-top"><span class="metric-label">当前生成模式</span><span class="metric-icon is-route"><AppIcon name="route" :size="18" :stroke-width="1.8" /></span></div>
           <strong class="metric-value">{{ loading ? "读取中…" : modeLabel }}</strong>
           <span class="metric-note">{{ settings?.mode === "remote" ? "按远程列表匹配域名规则" : "使用自定义直连、黑名单及默认代理" }}</span>
         </article>
         <article class="overview-metric">
-          <div class="metric-top"><span class="metric-label">自定义规则</span><span class="metric-icon" aria-hidden="true">≡</span></div>
+          <div class="metric-top"><span class="metric-label">自定义规则</span><span class="metric-icon is-rules"><AppIcon name="list-checks" :size="18" :stroke-width="1.8" /></span></div>
           <strong class="metric-value">{{ customRuleCount }}</strong>
           <span class="metric-note">直连 {{ settings?.directList.length ?? 0 }} 条 · 黑名单 {{ settings?.blockList.length ?? 0 }} 条</span>
         </article>
         <article class="overview-metric">
-          <div class="metric-top"><span class="metric-label">近 1 小时请求</span><span class="metric-icon" aria-hidden="true">⌁</span></div>
+          <div class="metric-top"><span class="metric-label">近 1 小时请求</span><span class="metric-icon is-activity"><AppIcon name="activity" :size="18" :stroke-width="1.8" /></span></div>
           <strong class="metric-value">{{ monitor ? monitor.requestsLastHour : "—" }}</strong>
           <span class="metric-note">网页、PAC 与 API 请求，不代表代理转发流量</span>
         </article>
@@ -160,7 +163,7 @@ onMounted(() => { void loadOverview(); });
         <article class="dashboard-panel">
           <header class="panel-header">
             <div><h3>当前配置</h3><p>系统正在使用的主要设置</p></div>
-            <RouterLink to="/admin">编辑配置 <span aria-hidden="true">↗</span></RouterLink>
+            <RouterLink to="/admin">编辑配置 <AppIcon name="arrow-up-right" :size="13" /></RouterLink>
           </header>
           <div class="config-details">
             <div class="config-detail"><span>生成模式</span><strong>{{ modeLabel }}</strong></div>
@@ -173,15 +176,15 @@ onMounted(() => { void loadOverview(); });
             <div class="config-detail"><span>生成结果</span><strong :class="latestLog?.success ? 'value-good' : latestLog ? 'value-warning' : ''">{{ latestLog ? latestLog.success ? "成功" : "失败" : "暂无记录" }}</strong></div>
           </div>
           <div class="panel-footer-links">
-            <a href="/proxy.pac" target="_blank" rel="noopener noreferrer">直接查看 proxy.pac <span aria-hidden="true">↗</span></a>
-            <RouterLink to="/">打开公共状态页 <span aria-hidden="true">↗</span></RouterLink>
+            <a href="/proxy.pac" target="_blank" rel="noopener noreferrer">直接查看 proxy.pac <AppIcon name="external-link" :size="13" /></a>
+            <RouterLink to="/">打开公共状态页 <AppIcon name="arrow-up-right" :size="13" /></RouterLink>
           </div>
         </article>
 
         <article class="dashboard-panel">
           <header class="panel-header">
             <div><h3>最近生成记录</h3><p>最近 6 条记录，便于快速定位失败原因</p></div>
-            <RouterLink to="/admin#logs">查看记录 <span aria-hidden="true">↗</span></RouterLink>
+            <RouterLink to="/admin#logs">查看记录 <AppIcon name="arrow-up-right" :size="13" /></RouterLink>
           </header>
           <div v-if="logs.length" class="table-scroll">
             <table class="recent-table">
@@ -189,7 +192,7 @@ onMounted(() => { void loadOverview(); });
               <tbody>
                 <tr v-for="entry in logs" :key="entry.id">
                   <td class="nowrap">{{ entry.created_at }}</td>
-                  <td><span class="result-pill" :class="entry.success ? 'good' : 'bad'">{{ entry.success ? "成功" : "失败" }}</span></td>
+                  <td><span class="result-pill" :class="entry.success ? 'good' : 'bad'"><AppIcon :name="entry.success ? 'circle-check' : 'circle-x'" :size="13" />{{ entry.success ? "成功" : "失败" }}</span></td>
                   <td>{{ modeForLog(entry.mode) }}</td>
                   <td class="log-message"><TextDetail :text="entry.message || ''" label="生成记录信息" /></td>
                 </tr>
@@ -203,7 +206,7 @@ onMounted(() => { void loadOverview(); });
       <section class="dashboard-panel activity-panel">
         <header class="panel-header">
           <div><h3>近 24 小时访问趋势</h3><p>按小时汇总应用收到的请求；窄区域会自动合并相邻小时，悬停柱形可查看时间区间。</p></div>
-          <RouterLink to="/admin/monitor">详细监控 <span aria-hidden="true">↗</span></RouterLink>
+          <RouterLink to="/admin/monitor">详细监控 <AppIcon name="arrow-up-right" :size="13" /></RouterLink>
         </header>
         <ResponsiveTrendChart
           v-if="monitor?.requestTrend?.length"
@@ -229,7 +232,7 @@ onMounted(() => { void loadOverview(); });
 .welcome-row { display:flex; align-items:flex-end; justify-content:space-between; gap:18px; margin-bottom:18px; }
 .welcome-row h2 { margin:0; font-size:clamp(22px,2.5vw,28px); line-height:1.2; letter-spacing:-.04em; }
 .quick-actions { display:flex; flex-wrap:wrap; gap:8px; }
-.dash-button { display:inline-flex; align-items:center; justify-content:center; min-height:36px; padding:0 12px; border:1px solid var(--line); border-radius:8px; font:inherit; font-size:11px; font-weight:700; text-decoration:none; cursor:pointer; white-space:nowrap; transition:filter .15s,background .15s; }
+.dash-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:36px; padding:0 12px; border:1px solid var(--line); border-radius:8px; font:inherit; font-size:11px; font-weight:700; text-decoration:none; cursor:pointer; white-space:nowrap; transition:filter .15s,background .15s; }
 .dash-button.secondary,.dash-button.logout-button { color:var(--text); background:var(--surface); }
 .dash-button.primary { color:var(--accent-contrast); background:var(--accent); border-color:var(--accent); }
 .dash-button:disabled { opacity:.55; cursor:wait; }
@@ -245,7 +248,11 @@ onMounted(() => { void loadOverview(); });
 .overview-metric { min-width:0; display:flex; flex-direction:column; gap:7px; padding:17px; border:1px solid var(--line); border-radius:12px; background:var(--surface); box-shadow:var(--shadow); }
 .metric-top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
 .metric-label { color:var(--muted); font-size:11px; font-weight:700; }
-.metric-icon { display:grid; place-items:center; width:30px; height:30px; border-radius:9px; background:var(--accent-soft); color:var(--accent); font-size:16px; }
+.metric-icon { display:grid; place-items:center; width:34px; height:34px; border:1px solid color-mix(in srgb,var(--accent) 18%,var(--line)); border-radius:11px; background:var(--accent-soft); color:var(--accent); box-shadow:inset 0 1px 0 rgba(255,255,255,.28); }
+.metric-icon.is-file { color:var(--green); background:var(--green-soft); border-color:color-mix(in srgb,var(--green) 20%,var(--line)); }
+.metric-icon.is-route { color:var(--accent); }
+.metric-icon.is-rules { color:#8b5cf6; background:color-mix(in srgb,#8b5cf6 11%,var(--surface)); border-color:color-mix(in srgb,#8b5cf6 20%,var(--line)); }
+.metric-icon.is-activity { color:#0e9f9a; background:color-mix(in srgb,#0e9f9a 11%,var(--surface)); border-color:color-mix(in srgb,#0e9f9a 20%,var(--line)); }
 .metric-value { display:block; font-size:clamp(20px,2.5vw,27px); line-height:1.2; letter-spacing:-.04em; overflow-wrap:anywhere; }
 .value-good { color:var(--green); }
 .value-warning { color:var(--warn); }
@@ -271,7 +278,7 @@ onMounted(() => { void loadOverview(); });
 .recent-table tbody tr:hover { background:color-mix(in srgb,var(--accent) 4%,transparent); }
 .nowrap { white-space:nowrap; }
 .log-message { min-width:135px; max-width:220px; color:var(--muted); }
-.result-pill { display:inline-flex; border:1px solid var(--line); border-radius:999px; padding:3px 7px; font-size:9px; font-weight:800; white-space:nowrap; }
+.result-pill { display:inline-flex; align-items:center; gap:4px; border:1px solid var(--line); border-radius:999px; padding:4px 8px; font-size:10px; font-weight:800; white-space:nowrap; }
 .result-pill.good { color:var(--green); background:var(--green-soft); border-color:color-mix(in srgb,var(--green) 24%,var(--line)); }
 .result-pill.bad { color:var(--red); background:var(--red-soft); border-color:color-mix(in srgb,var(--red) 24%,var(--line)); }
 .panel-empty { padding:24px 12px; border:1px dashed var(--line); border-radius:8px; color:var(--muted); text-align:center; font-size:11px; }
@@ -279,6 +286,8 @@ onMounted(() => { void loadOverview(); });
 .trend-legend { display:flex; flex-wrap:wrap; align-items:center; gap:13px; margin-top:15px; color:var(--muted); font-size:10px; }
 .trend-legend > span { display:inline-flex; align-items:center; gap:6px; }
 .trend-swatch { width:8px; height:8px; border-radius:3px; background:var(--accent); }
+.icon-spinning { animation: icon-spin .9s linear infinite; }
+@keyframes icon-spin { to { transform:rotate(360deg); } }
 .trend-swatch.errors { background:var(--red); }
 .trend-note { margin-left:auto; }
 @media (max-width:1050px) { .overview-grid { grid-template-columns:1fr; } .overview-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
