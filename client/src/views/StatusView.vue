@@ -194,8 +194,8 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
 
 <template>
   <main class="page status-page">
-    <AppHeader brand="genpac-runner" sub="公共状态页" home-to="/">
-      <RouterLink v-if="meta?.adminEnabled" class="primary" to="/admin">配置管理</RouterLink>
+    <AppHeader brand="genpac-runner" sub="公共状态页">
+      <RouterLink v-if="meta?.adminEnabled" class="primary" to="/admin/dashboard">后台管理</RouterLink>
     </AppHeader>
 
     <section class="page-hero">
@@ -244,8 +244,8 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
       <section v-if="status.mode === 'empty'" class="empty-hero">
         <div class="empty-icon" aria-hidden="true"><AppIcon name="file-cog" :size="26" :stroke-width="1.7" /></div>
         <h2>还没有生成 PAC</h2>
-        <p>先进入配置管理，设置启动模式和规则，然后点击「保存并生成 PAC」。生成后，这里会显示可识别的规则摘要。</p>
-        <RouterLink class="action-button primary" to="/admin">前往配置管理</RouterLink>
+        <p>先进入后台管理，在配置页面设置启动模式和规则，然后点击「保存并生成 PAC」。生成后，这里会显示可识别的规则摘要。</p>
+        <RouterLink class="action-button primary" to="/admin/dashboard">进入后台管理</RouterLink>
       </section>
 
       <template v-else-if="hasRuleSummary">
@@ -316,7 +316,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               <h2>域名路由明细</h2>
               <p class="section-description">每条规则都标明来源；长域名可点击查看完整内容，列表较长时可在固定区域内滚动。</p>
             </div>
-            <RouterLink v-if="meta?.adminEnabled" to="/admin" class="text-link">编辑规则 <AppIcon name="arrow-right" :size="14" /></RouterLink>
+            <RouterLink v-if="meta?.adminEnabled" to="/admin/settings" class="text-link">编辑规则 <AppIcon name="arrow-right" :size="14" /></RouterLink>
           </div>
 
           <div class="rule-tabs" role="tablist" aria-label="域名规则类型">
