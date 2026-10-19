@@ -11,6 +11,7 @@ import {
 } from "../api/client";
 import AdminLayout from "../components/AdminLayout.vue";
 import AppFooter from "../components/AppFooter.vue";
+import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
 
 const router = useRouter();
 const summary = ref<MonitorSummary | null>(null);
@@ -115,26 +116,6 @@ function formatDate(value: string | null | undefined): string {
   } catch {
     return date.toLocaleString();
   }
-}
-
-const maxTrendRequests = computed(() =>
-  Math.max(1, ...(summary.value?.requestTrend ?? []).map((item) => item.requests))
-);
-
-function formatTrendHour(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("zh-CN", {
-    timeZone: timeZone.value,
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    hour12: false,
-  }).format(date);
-}
-
-function formatTrendTooltip(point: { hour: string; requests: number; errors: number }): string {
-  return formatDate(point.hour) + " · " + point.requests + " 次请求 · " + point.errors + " 次错误";
 }
 
 function formatDuration(value: number | null | undefined): string {
@@ -295,15 +276,12 @@ onUnmounted(() => {
           </div>
           <span class="panel-count">峰值 {{ Math.max(0, ...(summary?.requestTrend ?? []).map((item) => item.requests)) }} 次/小时</span>
         </div>
-        <div v-if="summary?.requestTrend?.length" class="trend-chart" role="img" aria-label="最近 24 小时按小时统计的请求量和错误请求量">
-          <div v-for="(point, index) in summary.requestTrend" :key="point.hour" class="trend-column" :title="formatTrendTooltip(point)">
-            <div class="trend-bar-area">
-              <div class="trend-bar" :style="{ height: (point.requests / maxTrendRequests * 100) + '%' }"></div>
-              <div v-if="point.errors > 0" class="trend-error-bar" :style="{ height: (point.errors / maxTrendRequests * 100) + '%' }"></div>
-            </div>
-            <span class="trend-hour">{{ index % 4 === 0 || index === summary.requestTrend.length - 1 ? formatTrendHour(point.hour) : "" }}</span>
-          </div>
-        </div>
+        <ResponsiveTrendChart
+          v-if="summary?.requestTrend?.length"
+          :points="summary.requestTrend"
+          :time-zone="timeZone"
+          aria-label="最近 24 小时按小时统计的请求量和错误请求量"
+        />
         <div v-else class="monitor-empty">暂无足够的请求记录；后续会逐步形成按小时统计的趋势。</div>
         <div class="trend-legend">
           <span><i class="legend-swatch request-swatch"></i>请求</span>
@@ -476,7 +454,7 @@ onUnmounted(() => {
 <style scoped>
 .monitor-page { --monitor-gap: 18px; min-width: 0; }
 .monitor-top-updated { display:inline-flex; align-items:center; gap:7px; color:var(--muted); font-size:10px; white-space:nowrap; }
-.monitor-page-note { margin-bottom:16px; padding:10px 12px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--muted); font-size:11px; line-height:1.55; }
+.monitor-page-note { margin-bottom:14px; padding:10px 12px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--muted); font-size:11px; line-height:1.55; }
 .monitor-title-row { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
 .monitor-title-row .page-intro { max-width: 48rem; }
 .monitor-meta { display:flex; align-items:center; gap:8px; margin-top:14px; color:var(--muted); font-size:12px; }
@@ -488,14 +466,8 @@ onUnmounted(() => {
 .metric-value { font-size:clamp(1.45rem,2.5vw,1.9rem); line-height:1.2; letter-spacing:-.04em; overflow-wrap:anywhere; }
 .metric-value.value-warn { color:var(--warn); }
 .metric-note { color:var(--muted); font-size:11px; line-height:1.45; }
-.monitor-panel { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:var(--space-5); box-shadow:var(--shadow); min-width:0; }
+.monitor-panel { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px; margin-bottom:22px; box-shadow:var(--shadow); min-width:0; }
 .panel-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:16px; }
-.trend-chart { display:grid; grid-template-columns:repeat(24,minmax(0,1fr)); gap:5px; padding:8px 4px 0; border-bottom:1px solid var(--line); }
-.trend-column { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; min-width:0; gap:7px; }
-.trend-bar-area { height:100px; width:100%; position:relative; display:flex; align-items:flex-end; justify-content:center; border-radius:5px 5px 0 0; background:color-mix(in srgb,var(--muted) 5%,transparent); overflow:hidden; }
-.trend-bar { position:absolute; left:10%; right:10%; bottom:0; min-height:0; background:var(--accent); border-radius:4px 4px 0 0; }
-.trend-error-bar { position:absolute; left:10%; right:10%; bottom:0; background:var(--red); opacity:.95; min-height:2px; }
-.trend-hour { height:28px; font-size:10px; white-space:nowrap; color:var(--muted); writing-mode:horizontal-tb; }
 .trend-legend { display:flex; flex-wrap:wrap; align-items:center; gap:14px; padding-top:14px; font-size:11px; color:var(--muted); }
 .trend-legend > span { display:inline-flex; align-items:center; gap:6px; }
 .legend-swatch { display:inline-block; width:9px; height:9px; border-radius:3px; }
@@ -564,5 +536,5 @@ onUnmounted(() => {
 @keyframes monitor-spin { to { transform:rotate(360deg); } }
 .probe-history-error { min-width:220px; max-width:340px; overflow-wrap:anywhere; color:var(--red); }
 @media(max-width:900px) { .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .monitor-panel { padding:16px; } .probe-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-@media(max-width:560px) { .monitor-title-row { flex-direction:column; } .monitor-title-row .monitor-button { align-self:flex-start; } .panel-heading { flex-direction:column; align-items:stretch; } .panel-actions { align-self:flex-start; } .panel-heading > .monitor-button { align-self:flex-start; } .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; } .metric-card { padding:13px 12px; } .metric-label { font-size:11px; } .metric-value { font-size:1.4rem; } .monitor-panel { padding:13px; } .trend-chart { gap:2px; } .trend-bar-area { height:76px; } .trend-hour { font-size:9px; } .trend-sample-note { margin-left:0; } .probe-run-head { flex-direction:column; align-items:flex-start; } .probe-metrics { gap:7px; } }
+@media(max-width:560px) { .monitor-title-row { flex-direction:column; } .monitor-title-row .monitor-button { align-self:flex-start; } .panel-heading { flex-direction:column; align-items:stretch; gap:8px; margin-bottom:12px; } .panel-actions { align-self:flex-start; } .panel-heading > .monitor-button { align-self:flex-start; } .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:14px 0 20px; } .metric-card { padding:12px 11px; border-radius:11px; } .metric-label { font-size:10px; } .metric-value { font-size:1.32rem; } .monitor-panel { padding:13px; margin-bottom:16px; } .trend-sample-note { margin-left:0; flex-basis:100%; } .probe-run-head { flex-direction:column; align-items:flex-start; } .probe-metrics { gap:7px; } }
 </style>
