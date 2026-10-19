@@ -84,8 +84,11 @@ export interface GenerateResult {
 
 export interface SaveAndGenerateResult {
   settings: AppSettings;
-  generation: GenerateResult;
-  workflowId?: number;
+  workflowId: number;
+}
+export interface GenerateStartResult {
+  workflowId: number;
+  status: "running";
 }
 
 export type WorkflowStatus = "pending" | "running" | "succeeded" | "failed";
@@ -238,7 +241,7 @@ export const api = {
     request<WebhookTestResult>("/api/admin/webhook-test", {
       method: "POST", body: JSON.stringify(body),
     }),
-  generate: () => request<GenerateResult>("/api/admin/generate", { method: "POST" }),
+  generate: () => request<GenerateStartResult>("/api/admin/generate", { method: "POST" }),
   logs: () => request<GenerationLog[]>("/api/admin/logs"),
   workflows: (limit = 50) => request<WorkflowList>(`/api/admin/workflows?limit=${limit}`),
   storage: () => request<StorageSummary>("/api/admin/storage"),
