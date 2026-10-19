@@ -42,11 +42,11 @@ jobs:
           set -euo pipefail
           export LC_ALL=C
 
-          # CalVer 格式：YYYY.MM.DD；同一天需要多次发布时使用 YYYY.MM.DD-r1、-r2。
+          # CalVer 格式：YYYY.MM.DD；同一天需要多次发布时使用 YYYY.MM.DD-r1 / YYYY.MM.DD-R1、-r2。
           is_calendar_version() {
             local value="$1" base year month day normalized
-            [[ "$value" =~ ^([0-9]{4})\.([0-9]{2})\.([0-9]{2})(-r([1-9][0-9]*))?$ ]] || return 1
-            base="${value%%-r*}"
+            [[ "$value" =~ ^([0-9]{4})\.([0-9]{2})\.([0-9]{2})(-[rR]([1-9][0-9]*))?$ ]] || return 1
+            base="${value%%-[rR]*}"
             IFS=. read -r year month day <<< "$base"
             normalized="$(date -u -d "${year}-${month}-${day}" +%Y.%m.%d 2>/dev/null || true)"
             [[ "$normalized" == "$base" ]]
@@ -70,7 +70,7 @@ jobs:
           if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == "refs/heads/main" ]]; then
             # 任何实际发布都必须使用中国时区的当天日期，包括从旧版本格式迁移的首次日期版本。
             if [[ "$VERSION" != "$PREVIOUS_VERSION" ]]; then
-              CURRENT_DATE="${VERSION%%-r*}"
+              CURRENT_DATE="${VERSION%%-[rR]*}"
               TODAY_DATE="$(TZ=Asia/Shanghai date +%Y.%m.%d)"
               if [[ "$CURRENT_DATE" != "$TODAY_DATE" ]]; then
                 echo "::error::只能发布当天日期的版本：今天是 $TODAY_DATE，本次版本为 $VERSION。"
@@ -82,11 +82,11 @@ jobs:
               REASON="package.json.version 没有变化，跳过镜像发布。"
             elif is_calendar_version "$PREVIOUS_VERSION"; then
               CURRENT_DATE="${VERSION%%-r*}"
-              PREVIOUS_DATE="${PREVIOUS_VERSION%%-r*}"
+              PREVIOUS_DATE="${PREVIOUS_VERSION%%-[rR]*}"
               CURRENT_REVISION="0"
               PREVIOUS_REVISION="0"
-              [[ "$VERSION" == *-r* ]] && CURRENT_REVISION="${VERSION##*-r}"
-              [[ "$PREVIOUS_VERSION" == *-r* ]] && PREVIOUS_REVISION="${PREVIOUS_VERSION##*-r}"
+              [[ "$VERSION" == *-[rR]* ]] && CURRENT_REVISION="${VERSION##*-[rR]}"
+              [[ "$PREVIOUS_VERSION" == *-[rR]* ]] && PREVIOUS_REVISION="${PREVIOUS_VERSION##*-[rR]}"
 
               if [[ "$CURRENT_DATE" == "$PREVIOUS_DATE" ]] && (( 10#$CURRENT_REVISION <= 10#$PREVIOUS_REVISION )); then
                 echo "::error::同一天的修订序号必须递增：上一版本为 $PREVIOUS_VERSION，本次为 $VERSION。"
