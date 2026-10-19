@@ -122,29 +122,31 @@ function jumpToLine(lineNumber: number) {
   const editor = view;
   const line = editor.state.doc.line(lineNumber);
   const scroller = editor.scrollDOM;
-  const block = editor.lineBlockAt(line.from);
-  const viewportTop = scroller.scrollTop;
-  const viewportBottom = viewportTop + scroller.clientHeight;
-  // 只要目标行有任意部分可见，就不滚动；完全位于视口外才调整内部滚动条。
-  const lineVisible = block.bottom > viewportTop && block.top < viewportBottom;
-
   if (jumpHighlightTimer !== null) window.clearTimeout(jumpHighlightTimer);
 
-  // 仅当目标行不可见时修改 CodeMirror 自身的 scrollTop，绝不触发页面/祖先容器滚动。
-  if (!lineVisible) {
-    const lineHeight = Math.max(1, block.height);
-    const targetOffset = Math.max(0, (scroller.clientHeight - lineHeight) / 2);
-    scroller.scrollTop = Math.max(0, block.top - targetOffset);
-  }
-
-  // 只更新选区与高亮，不使用 scrollIntoView；聚焦时使用 preventScroll 避免浏览器滚动外层页面。
   editor.dispatch({
     selection: { anchor: line.to },
     effects: setJumpHighlight.of({ line: lineNumber, token: (editor.state.field(jumpHighlightField)?.token ?? 0) + 1 }),
   });
-  // 保留行末光标，便于立即编辑；preventScroll 禁止浏览器为聚焦而滚动页面。
   editor.contentDOM.focus({ preventScroll: true });
 
+  const ensureLineVisible = () => {
+    if (view !== editor || lineNumber > editor.state.doc.lines) return;
+    const block = editor.lineBlockAt(editor.state.doc.line(lineNumber).from);
+    const rect = scroller.getBoundingClientRect();
+    const top = rect.top + scroller.clientTop;
+    const bottom = top + scroller.clientHeight;
+    const lineTop = top + block.top - scroller.scrollTop;
+    const lineBottom = lineTop + Math.max(1, block.height);
+    if (lineBottom <= top || lineTop >= bottom) {
+      scroller.scrollTop = Math.max(0, block.top - Math.max(0, (scroller.clientHeight - block.height) / 2));
+    }
+  };
+  // 兼容移动端触摸、软键盘及容器重排后的布局变化。
+  requestAnimationFrame(() => {
+    ensureLineVisible();
+    requestAnimationFrame(ensureLineVisible);
+  });
   jumpHighlightTimer = window.setTimeout(() => {
     if (view) view.dispatch({ effects: setJumpHighlight.of(null) });
     jumpHighlightTimer = null;
@@ -166,9 +168,21 @@ function buildExtensions(dark: boolean) {
     history(),
     keymap.of([...defaultKeymap, ...historyKeymap]),
     EditorView.lineWrapping,
+    EditorView.domEventHandlers({
+      click(event, editor) {
+        // 空白处点击或手机触摸时，显式将当前行同步到实际点击位置。
+        const target = event.target;
+        if (target instanceof Element && target.closest(".cm-gutters")) return false;
+        const pos = editor.posAtCoords({ x: event.clientX, y: event.clientY });
+        if (pos === null) return false;
+        const clickedLine = editor.state.doc.lineAt(pos).number;
+        const activeLine = editor.state.doc.lineAt(editor.state.selection.main.head).number;
+        if (clickedLine !== activeLine) editor.dispatch({ selection: { anchor: pos } });
+        return false;
+      },
+    }),
     EditorView.updateListener.of((u) => {
       if (u.docChanged) emit("update:modelValue", u.state.doc.toString());
-
     }),
     EditorView.theme({
       "&": {
@@ -386,14 +400,19 @@ watch(
 .rule-diagnostic-jump { align-self: center; color: var(--muted); font-size: 10px; white-space: nowrap; }
 .rule-diagnostic-footer { margin: 0; padding: 8px 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; line-height: 1.45; }
 @media (max-width: 600px) {
-  .rule-diagnostic-heading { align-items: flex-start; flex-direction: column; padding: 9px 10px; }
-  .rule-diagnostic-summary { gap: 5px; }
-  .rule-diagnostic-list { max-height: 160px; padding: 4px; }
-  .rule-diagnostic-item { grid-template-columns: auto minmax(0, 1fr); gap: 6px; padding: 7px 6px; font-size: 11px; }
-  .rule-diagnostic-line { grid-row: 1; grid-column: 1; }
-  .rule-diagnostic-message { grid-row: 1; grid-column: 2; }
-  .rule-diagnostic-jump { grid-row: 2; grid-column: 2; justify-self: start; padding-top: 2px; }
-  .rule-diagnostic-footer { padding: 6px 9px; font-size: 10px; }
+  .rule-diagnostic-panel { margin-top: 5px; border-radius: 8px; }
+  .rule-diagnostic-heading { align-items: flex-start; flex-direction: row; gap: 5px 8px; padding: 6px 8px; }
+  .rule-diagnostic-title, .rule-diagnostic-summary { gap: 5px; }
+  .rule-diagnostic-title { font-size: 11px; }
+  .rule-diagnostic-title-icon { width: 15px; height: 15px; border-radius: 4px; font-size: 10px; }
+  .rule-diagnostic-total { font-size: 10px; }
+  .diagnostic-count { padding: 2px 5px; font-size: 9px; }
+  .rule-diagnostic-list { max-height: 150px; gap: 1px; padding: 3px; }
+  .rule-diagnostic-item { grid-template-columns: auto minmax(0, 1fr) auto; gap: 5px; padding: 4px 5px; border-radius: 5px; font-size: 11px; line-height: 1.35; }
+  .rule-diagnostic-line { min-height: 18px; padding: 1px 5px; border-radius: 4px; font-size: 9px; }
+  .rule-diagnostic-message { grid-row: auto; grid-column: auto; }
+  .rule-diagnostic-jump { grid-row: auto; grid-column: auto; align-self: center; padding-top: 0; font-size: 9px; }
+  .rule-diagnostic-footer { padding: 5px 8px; font-size: 10px; line-height: 1.35; }
 }
 .ph {
   position: absolute;
