@@ -172,8 +172,8 @@ export function buildRemoteListPac(
   const remoteDirectObj = remoteDirectHosts
     .map((h) => `"${escapeJsString(h)}":1`)
     .join(compress ? "," : ",\n  ");
-  const blockJs = toJsArray(userBlockList, compress);
-  const directJs = toJsArray(userDirectList, compress);
+  const blockJs = toJsArray(userBlockList, false);
+  const directJs = toJsArray(userDirectList, false);
 
   const body = `// genpac-runner 生成的 PAC（远程规则列表与自定义规则）
 // 远程代理域名：${proxyHosts.length} 条；远程例外直连：${remoteDirectHosts.length} 条
@@ -183,10 +183,10 @@ var PROXY = ${JSON.stringify(pacProxy)};
 var DIRECT = "DIRECT";
 var BLOCK = "PROXY 0.0.0.0:0";
 
-var USER_BLOCK = [${compress ? blockJs : `\n    ${blockJs}\n`}];
-var USER_DIRECT = [${compress ? directJs : `\n    ${directJs}\n`}];
-var proxyHosts = {${compress ? proxyObj : `\n  ${proxyObj}\n`}};
-var remoteDirect = {${compress ? remoteDirectObj : `\n  ${remoteDirectObj}\n`}};
+var USER_BLOCK = [\n    ${blockJs}\n];
+var USER_DIRECT = [\n    ${directJs}\n];
+var proxyHosts = {\n  ${proxyObj}\n};
+var remoteDirect = {\n  ${remoteDirectObj}\n};
 
 function isMatch(host, list) {
   host = String(host).toLowerCase().replace(/\.$/, "");
@@ -236,10 +236,5 @@ function FindProxyForURL(url, host) {
 }
 `;
 
-  if (!compress) return body;
-  return body
-    .split("\n")
-    .map((l) => l.replace(/^\s+/, ""))
-    .filter((l) => l && !l.startsWith("//"))
-    .join("\n");
+  return body;
 }
