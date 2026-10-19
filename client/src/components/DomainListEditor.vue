@@ -8,7 +8,7 @@ import {
   Decoration,
   WidgetType,
 } from "@codemirror/view";
-import { EditorState, StateEffect, StateField, RangeSetBuilder } from "@codemirror/state";
+import { EditorState, StateEffect, StateField } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { oneDark } from "@codemirror/theme-one-dark";
 import type { RuleDiagnostic } from "../utils/domain-rules";
@@ -107,24 +107,6 @@ const ruleDecorationField = StateField.define({
 });
 
 const host = ref<HTMLDivElement | null>(null);
-const activeDiagnostic = ref<RuleDiagnostic | null>(null);
-function syncLineNumberTitles(editor: EditorView) {
-  const byLine = new Map<number, string[]>();
-  for (const item of editor.state.field(ruleDiagnosticsField)) byLine.set(item.line, [...(byLine.get(item.line) ?? []), item.message]);
-  editor.dom.querySelectorAll<HTMLElement>(".cm-lineNumbers .cm-gutterElement").forEach((element) => {
-    const lineNumber = Number(element.textContent?.trim());
-    const messages = byLine.get(lineNumber);
-    if (messages?.length) { element.title = messages.join("\n"); element.dataset.ruleDiagnosticLine = String(lineNumber); }
-    else { element.removeAttribute("title"); delete element.dataset.ruleDiagnosticLine; }
-  });
-}
-function handleEditorGutterClick(event: MouseEvent) {
-  const target = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-rule-diagnostic-line]") : null;
-  if (!target) return;
-  const line = Number(target.dataset.ruleDiagnosticLine);
-  const diagnostic = props.diagnostics.find((item) => item.line === line);
-  if (diagnostic) activeDiagnostic.value = diagnostic;
-}
 let view: EditorView | null = null;
 let themeObs: MutationObserver | null = null;
 
@@ -175,24 +157,12 @@ function buildExtensions(dark: boolean) {
     ruleDiagnosticsField,
     jumpHighlightField,
     ruleDecorationField,
-    gutter({ class: "cm-rule-diagnostic-gutter", markers(view) {
-      const grouped = new Map<number, RuleDiagnostic>();
-      for (const item of view.state.field(ruleDiagnosticsField)) {
-        const old = grouped.get(item.line);
-        if (!old || (old.severity !== "error" && item.severity === "error") || (old.severity === "info" && item.severity === "warning")) grouped.set(item.line, item);
-      }
-      const builder = new RangeSetBuilder<GutterMarker>();
-      for (const [lineNumber, item] of [...grouped.entries()].sort((a, b) => a[0] - b[0])) {
-        if (lineNumber <= view.state.doc.lines) { const pos = view.state.doc.line(lineNumber).from; builder.add(pos, pos, new RuleDiagnosticMarker(item)); }
-      }
-      return builder.finish();
-    } }),
     history(),
     keymap.of([...defaultKeymap, ...historyKeymap]),
     EditorView.lineWrapping,
     EditorView.updateListener.of((u) => {
       if (u.docChanged) emit("update:modelValue", u.state.doc.toString());
-      if (u.docChanged || u.viewportChanged || u.transactions.some((transaction) => transaction.effects.some((effect) => effect.is(setRuleDiagnostics)))) syncLineNumberTitles(u.view);
+
     }),
     EditorView.theme({
       "&": {
@@ -286,12 +256,7 @@ watch(
 <template>
   <div class="domain-editor">
     <div class="editor-shell" :class="{ 'is-invalid': invalid }" :style="{ height: height + 'px' }">
-      <div ref="host" class="cm-host" @click="handleEditorGutterClick" />
-      <div v-if="activeDiagnostic" class="inline-diagnostic-popover" role="status">
-        <span class="inline-diagnostic-mark" :class="'is-' + activeDiagnostic.severity">{{ activeDiagnostic.severity === 'error' ? '×' : activeDiagnostic.severity === 'warning' ? '!' : 'i' }}</span>
-        <div class="inline-diagnostic-copy"><strong>第 {{ activeDiagnostic.line }} 行</strong><span>{{ activeDiagnostic.message }}</span></div>
-        <button type="button" class="inline-diagnostic-close" aria-label="关闭规则提示" @click="activeDiagnostic = null">×</button>
-      </div>
+      <div ref="host" class="cm-host" />
       <div v-if="!modelValue && placeholder" class="ph">{{ placeholder }}</div>
     </div>
     <section v-if="diagnostics.length" class="rule-diagnostic-panel" aria-label="规则检查结果" aria-live="polite">
@@ -322,7 +287,7 @@ watch(
           <span class="rule-diagnostic-jump" aria-hidden="true">定位 ↗</span>
         </button>
       </div>
-      <p class="rule-diagnostic-footer">点击任意提示可跳转到编辑器对应行；行号旁的标记也可查看问题。</p>
+      <p class="rule-diagnostic-footer">点击任意提示可跳转到对应行；将光标放在有问题的行上，也会在代码末尾显示提示。</p>
     </section>
   </div>
 </template>
@@ -371,17 +336,6 @@ watch(
   background-clip: padding-box;
 }
 
-.cm-host :deep(.cm-rule-diagnostic-gutter) { min-width: 16px; }
-.cm-host :deep(.cm-lineNumbers .cm-gutterElement[data-rule-diagnostic-line]) { cursor: help; border-radius: 4px; }
-.cm-host :deep(.cm-lineNumbers .cm-gutterElement[data-rule-diagnostic-line]:hover) { color: var(--accent); background: var(--accent-soft); }
-.inline-diagnostic-popover { position: absolute; z-index: 5; right: 8px; bottom: 8px; display: flex; align-items: flex-start; gap: 8px; width: min(420px, calc(100% - 16px)); padding: 9px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); box-shadow: 0 6px 24px rgba(0,0,0,.16); color: var(--text); }
-.inline-diagnostic-mark { display: inline-grid; place-items: center; flex: 0 0 auto; width: 18px; height: 18px; border-radius: 50%; font-size: 12px; font-weight: 800; }
-.inline-diagnostic-mark.is-error { color: var(--red); background: var(--red-soft); }
-.inline-diagnostic-mark.is-warning { color: var(--warn); background: var(--warn-soft); }
-.inline-diagnostic-mark.is-info { color: var(--accent); background: var(--accent-soft); }
-.inline-diagnostic-copy { display: grid; gap: 3px; min-width: 0; font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
-.inline-diagnostic-copy strong { font-size: 10px; color: var(--muted); }
-.inline-diagnostic-close { flex: 0 0 auto; border: 0; padding: 0 2px; background: transparent; color: var(--muted); font: inherit; font-size: 18px; line-height: 1; cursor: pointer; }
 .cm-host :deep(.cm-scroller::-webkit-scrollbar-thumb:hover) {
   background: var(--scrollbar-thumb-hover);
 }
@@ -421,7 +375,6 @@ watch(
   .rule-diagnostic-heading { align-items: flex-start; flex-direction: column; padding: 9px 10px; }
   .rule-diagnostic-summary { gap: 5px; }
   .rule-diagnostic-list { max-height: 160px; padding: 4px; }
-  .inline-diagnostic-popover { right: 5px; bottom: 5px; width: calc(100% - 10px); padding: 8px; }
   .rule-diagnostic-item { grid-template-columns: auto minmax(0, 1fr); gap: 6px; padding: 7px 6px; font-size: 11px; }
   .rule-diagnostic-line { grid-row: 1; grid-column: 1; }
   .rule-diagnostic-message { grid-row: 1; grid-column: 2; }
