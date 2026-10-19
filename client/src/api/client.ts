@@ -54,7 +54,6 @@ export interface AppSettings {
   mode: "custom" | "remote";
   pacProxy: string;
   pacCompress: boolean;
-  pacPrecise: boolean;
   listUrl: string;
   blockList: string[];
   directList: string[];
