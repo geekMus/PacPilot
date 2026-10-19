@@ -130,10 +130,22 @@ select {
   box-shadow: none;
 }
 
+/* 所有真正禁用的按钮都使用统一的禁用配色，而不只是改变鼠标光标。 */
 :root :is(button, [role="button"], [role="tab"], summary):disabled {
+  color: var(--control-disabled-text);
+  -webkit-text-fill-color: var(--control-disabled-text);
+  background-color: var(--control-disabled-bg);
+  border-color: var(--control-disabled-border);
+  opacity: 1;
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
+  filter: none;
+}
+
+:root :is(input, textarea, select):disabled::placeholder {
+  color: var(--control-disabled-text);
+  opacity: 1;
 }
 
 /* 桌面点击与触屏按下都提供轻微反馈；颜色仍由组件的主题状态决定。 */
