@@ -79,6 +79,11 @@ export interface GenerateResult {
   message: string;
   pacPath: string;
 }
+
+export interface SaveAndGenerateResult {
+  settings: AppSettings;
+  generation: GenerateResult;
+}
 export interface GenpacProbe {
   available: boolean;
   command?: string | null;
@@ -191,6 +196,9 @@ export const api = {
   settings: () => request<AppSettings>("/api/admin/settings"),
   saveSettings: (body: AppSettings) => request<AppSettings>("/api/admin/settings", {
     method: "PUT", body: JSON.stringify(body),
+  }),
+  saveAndGenerate: (body: AppSettings) => request<SaveAndGenerateResult>("/api/admin/settings/save-and-generate", {
+    method: "POST", body: JSON.stringify(body),
   }),
   testWebhook: (body: { config: WebhookConfig }) =>
     request<WebhookTestResult>("/api/admin/webhook-test", {
