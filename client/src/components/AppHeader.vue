@@ -2,12 +2,12 @@
 import ThemeSwitcher from "./ThemeSwitcher.vue";
 import AppIcon from "./AppIcon.vue";
 
-defineProps<{ brand?: string; sub?: string; homeTo?: string }>();
+defineProps<{ brand?: string; sub?: string }>();
 </script>
 
 <template>
   <header class="topbar">
-    <RouterLink class="brand" :to="homeTo || '/'" aria-label="genpac-runner 首页">
+    <RouterLink class="brand" to="/" aria-label="genpac-runner 首页">
       <span class="brand-mark" aria-hidden="true"><AppIcon name="network" :size="18" :stroke-width="1.8" /></span>
       <span class="brand-copy">
         <span class="name">{{ brand || "genpac-runner" }}</span>
