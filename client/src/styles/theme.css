@@ -95,6 +95,13 @@ select {
   outline-offset: 2px;
 }
 
+button:disabled,
+input:disabled,
+textarea:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
 code {
   font-family: var(--font-mono);
   font-size: 0.9em;
@@ -172,9 +179,12 @@ code {
   color: var(--accent-contrast);
 }
 
-.nav-btn.primary:hover {
-  filter: brightness(1.05);
+.nav-btn.primary:hover,
+.nav-btn.primary:active {
+  background: color-mix(in srgb, var(--accent) 90%, var(--text));
+  border-color: color-mix(in srgb, var(--accent) 90%, var(--text));
   color: var(--accent-contrast);
+  filter: none;
 }
 
 .nav-btn.ghost {

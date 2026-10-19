@@ -490,7 +490,13 @@ const activeRuleCount = computed(() => {
 .source-actions a,.source-actions button { display:inline-flex; align-items:center; justify-content:center; min-height:30px; padding:0 9px; border:1px solid transparent; border-radius:7px; background:transparent; color:var(--accent); font:inherit; text-decoration:none; white-space:nowrap; cursor:pointer; transition:background .15s,border-color .15s,color .15s; }
 .source-actions a:hover,.source-actions button:hover:not(:disabled) { background:var(--surface-2); border-color:var(--line); color:var(--text); text-decoration:none; }
 .source-actions a:focus-visible,.source-actions button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-.source-actions button:disabled { opacity:.55; cursor:wait; }
+.source-actions button:disabled {
+  background:var(--surface-2);
+  border-color:var(--line);
+  color:var(--muted);
+  opacity:1;
+  cursor:wait;
+}
 .state-card { display:flex; align-items:flex-start; gap:14px; padding:18px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
 .state-card strong { font-size:14px; }
 .state-card p { margin:5px 0 12px; color:var(--muted); font-size:13px; }
@@ -502,7 +508,20 @@ const activeRuleCount = computed(() => {
 .empty-hero p { max-width:36em; margin:10px auto 18px; color:var(--muted); font-size:13px; }
 .action-button { display:inline-flex; align-items:center; justify-content:center; min-height:38px; padding:0 14px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--text); font-size:12px; font-weight:650; text-decoration:none; cursor:pointer; }
 .action-button.primary { color:var(--accent-contrast); background:var(--accent); border-color:var(--accent); }
-.action-button:disabled { opacity:.5; cursor:not-allowed; }
+.action-button.primary:hover:not(:disabled),
+.action-button.primary:active:not(:disabled) {
+  color:var(--accent-contrast);
+  background:color-mix(in srgb,var(--accent) 90%,var(--text));
+  border-color:color-mix(in srgb,var(--accent) 90%,var(--text));
+}
+.action-button:disabled {
+  color:var(--muted);
+  background:var(--surface-2);
+  border-color:var(--line);
+  -webkit-text-fill-color:var(--muted);
+  opacity:1;
+  cursor:not-allowed;
+}
 .spinner { width:18px; height:18px; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; flex:0 0 auto; }
 .state-copy { min-width:0; }
 @keyframes spin { to { transform:rotate(360deg); } }

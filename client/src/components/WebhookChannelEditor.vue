@@ -209,7 +209,13 @@ const channelStatusText = computed(() => {
   background: var(--surface); color: var(--text); font-size: 11px; font-weight: 700; cursor: pointer;
 }
 .test-button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
-.test-button:disabled { opacity: .55; cursor: wait; }
+.test-button:disabled {
+  background:var(--surface-2);
+  border-color:var(--line);
+  color:var(--muted);
+  opacity:1;
+  cursor:wait;
+}
 .provider-picker {
   box-sizing: border-box; margin: 0; padding: 12px; border: 1px solid var(--line);
   border-radius: 9px; background: var(--surface);

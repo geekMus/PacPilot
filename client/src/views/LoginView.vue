@@ -90,7 +90,20 @@ async function onSubmit() {
 .login-card input { box-sizing:border-box; width:100%; min-height:44px; margin-bottom:13px; padding:10px 12px; border:1px solid var(--line); border-radius:9px; color:var(--text); background:var(--bg); }
 .login-card input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
 .login-submit { display:flex; align-items:center; justify-content:space-between; width:100%; min-height:44px; padding:0 14px; border:1px solid var(--accent); border-radius:9px; background:var(--accent); color:var(--accent-contrast); font-size:13px; font-weight:650; cursor:pointer; }
-.login-submit:disabled { opacity:.5; cursor:not-allowed; }
+.login-submit:hover:not(:disabled),
+.login-submit:active:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 90%, var(--text));
+  border-color: color-mix(in srgb, var(--accent) 90%, var(--text));
+  color: var(--accent-contrast);
+}
+.login-submit:disabled {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--muted);
+  -webkit-text-fill-color: var(--muted);
+  opacity: 1;
+  cursor: not-allowed;
+}
 .login-footnote { margin:14px 0 0; color:var(--muted); font-size:11px; }
 .alert { padding:10px 12px; border:1px solid color-mix(in srgb,var(--red) 35%,var(--line)); border-radius:9px; background:var(--red-soft); margin-bottom:14px; font-size:12px; line-height:1.5; }
 .alert.warning { border-color:color-mix(in srgb,var(--warn) 35%,var(--line)); background:var(--warn-soft); }
