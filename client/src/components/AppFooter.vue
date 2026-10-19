@@ -39,7 +39,6 @@ onMounted(() => { void loadVersionInfo(true); });
         <span>v{{ currentVersion }}</span><span v-if="hasUpdate" class="new-badge">New</span>
       </button>
     </div>
-    <p class="footer-caption">genpac-runner · 项目与版本信息</p>
     <Transition name="version-dialog">
       <div v-if="dialogOpen" class="dialog-backdrop" @click.self="dialogOpen = false" tabindex="-1">
         <section class="version-dialog" role="dialog" aria-modal="true" aria-labelledby="version-dialog-title">
@@ -58,7 +57,7 @@ onMounted(() => { void loadVersionInfo(true); });
   </footer>
 </template>
 <style scoped>
-.app-footer { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-top:36px; padding:17px 2px 5px; border-top:1px solid var(--line); color:var(--muted); font-size:12px; }
+.app-footer { display:flex; justify-content:flex-start; align-items:center; gap:14px; margin-top:36px; padding:17px 2px 5px; border-top:1px solid var(--line); color:var(--muted); font-size:12px; }
 .footer-project { display:flex; align-items:center; gap:12px; }
 .github-project-link { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:34px; padding:0 11px; border:1px solid var(--line); border-radius:999px; color:var(--text); background:var(--surface); text-decoration:none; font-weight:650; transition:color .15s,border-color .15s,transform .15s; }
 .github-project-link:hover { color:var(--accent); border-color:var(--accent); transform:translateY(-1px); }
@@ -66,7 +65,6 @@ onMounted(() => { void loadVersionInfo(true); });
 .version-badge:hover { transform:translateY(-1px); box-shadow:0 3px 10px rgba(30,64,175,.12); }
 .version-badge.is-update { border-color:#fdba74; background:#fff7ed; color:#c2410c; }
 .new-badge { position:absolute; top:-8px; right:-10px; padding:2px 5px; border:2px solid var(--surface); border-radius:999px; background:#f97316; color:white; font-size:9px; font-weight:800; line-height:1.15; letter-spacing:.02em; }
-.footer-caption { margin:0; text-align:right; color:var(--muted); font-size:11px; }
 .dialog-backdrop { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; overflow-y:auto; padding:20px; background:rgba(15,23,42,.48); backdrop-filter:blur(3px); }
 .version-dialog { width:min(100%,440px); padding:22px; border:1px solid var(--line); border-radius:18px; background:var(--surface); color:var(--text); box-shadow:0 24px 80px rgba(0,0,0,.24); }
 .dialog-header { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:19px; }
@@ -97,5 +95,5 @@ onMounted(() => { void loadVersionInfo(true); });
 .version-dialog-enter-active .version-dialog,.version-dialog-leave-active .version-dialog { transition:transform .16s ease; }
 .version-dialog-enter-from,.version-dialog-leave-to { opacity:0; }
 .version-dialog-enter-from .version-dialog,.version-dialog-leave-to .version-dialog { transform:translateY(7px) scale(.99); }
-@media(max-width:560px) { .app-footer { align-items:flex-start; flex-direction:column; } .footer-caption { text-align:left; } .version-dialog { padding:18px; } }
+@media(max-width:560px) { .app-footer { align-items:flex-start; flex-direction:column; } .version-dialog { padding:18px; } }
 </style>
