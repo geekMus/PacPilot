@@ -333,7 +333,7 @@ onUnmounted(() => {
                 <td><span class="category-pill">{{ categoryLabel(event.category) }}</span></td>
                 <td class="path-cell">
                   <span class="method-label">{{ event.method }}</span>
-                  <TextDetail :text="event.path" label="请求路径" />
+                  <TextDetail :text="event.path" label="请求路径"><code>{{ event.path }}</code></TextDetail>
                 </td>
                 <td><span class="status-pill" :class="statusTone(event.status_code)">{{ event.status_code }} {{ statusLabel(event.status_code) }}</span></td>
                 <td class="nowrap">{{ formatDuration(event.duration_ms) }}</td>
