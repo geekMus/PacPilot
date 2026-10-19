@@ -69,7 +69,7 @@ onBeforeUnmount(detachListeners);
 <template>
   <div ref="root" class="confirm-anchor" @click.stop>
     <slot name="trigger" :toggle="toggle" :open="props.open" />
-    <div v-if="props.open" class="confirm-popover" :class="'confirm-' + props.tone" role="group" aria-label="确认操作" @click.stop>
+    <div v-if="props.open" class="confirm-popover" :class="['tone-' + props.tone, 'align-' + props.align, 'placement-' + placement]" role="group" aria-label="确认操作" @click.stop>
       <strong>{{ props.title }}</strong>
       <span>{{ props.description }}</span>
       <div class="confirm-actions">
@@ -86,6 +86,7 @@ onBeforeUnmount(detachListeners);
 .confirm-anchor{position:relative;display:inline-block;max-width:100%}
 .confirm-popover{position:absolute;z-index:40;right:0;top:calc(100% + 7px);width:min(285px,calc(100vw - 40px));padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:0 10px 30px rgba(0,0,0,.14);text-align:left}
 .confirm-popover.align-start{left:0;right:auto}
+.confirm-popover.tone-warning{border-color:color-mix(in srgb,var(--amber,#d97706) 35%,var(--line))}
 .confirm-popover.placement-top{top:auto;bottom:calc(100% + 7px)}
 .confirm-popover strong,.confirm-popover span{display:block}
 .confirm-popover strong{color:var(--text);font-size:12px;line-height:1.5}
@@ -95,8 +96,8 @@ onBeforeUnmount(detachListeners);
 .confirm-actions button:disabled{opacity:.5;cursor:not-allowed}
 .confirm-actions .confirm-danger{background:var(--red);border-color:var(--red);color:white}
 .confirm-actions .confirm-warning{background:var(--amber-soft,#fff3dc);border-color:color-mix(in srgb,var(--amber,#d97706) 40%,var(--line));color:var(--amber,#b45309)}
-.confirm-warning:hover:not(:disabled){filter:brightness(.98)}
-.confirm-danger:hover:not(:disabled){filter:brightness(.96)}
+.confirm-actions .confirm-warning:hover:not(:disabled){filter:brightness(.98)}
+.confirm-actions .confirm-danger:hover:not(:disabled){filter:brightness(.96)}
 .confirm-cancel:focus-visible,.confirm-danger:focus-visible,.confirm-warning:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(max-width:480px){.confirm-popover{width:min(285px,calc(100vw - 36px))}}
 </style>
