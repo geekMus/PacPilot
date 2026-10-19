@@ -7,7 +7,6 @@ import {
   type AppSettings,
   type GenerationLog,
   type GenpacProbe,
-  type Meta,
   type MonitorSummary,
   type PacStatus,
 } from "../api/client";
@@ -25,7 +24,6 @@ const session = ref<AdminSession | null>(null);
 const settings = ref<AppSettings | null>(null);
 const status = ref<PacStatus | null>(null);
 const logs = ref<GenerationLog[]>([]);
-const meta = ref<Meta | null>(null);
 const monitor = ref<MonitorSummary | null>(null);
 const engine = ref<GenpacProbe | null>(null);
 
@@ -83,18 +81,16 @@ async function loadOverview(): Promise<void> {
       return;
     }
 
-    const [nextSettings, nextStatus, nextLogs, nextMeta, nextMonitor, nextEngine] = await Promise.all([
+    const [nextSettings, nextStatus, nextLogs, nextMonitor, nextEngine] = await Promise.all([
       api.settings(),
       api.status(),
       api.logs(),
-      api.meta(),
       api.monitorSummary().catch(() => null),
       api.genpacStatus().catch(() => null),
     ]);
     settings.value = nextSettings;
     status.value = nextStatus;
     logs.value = nextLogs.slice(0, 6);
-    meta.value = nextMeta;
     monitor.value = nextMonitor;
     engine.value = nextEngine;
   } catch (caught) {
@@ -135,7 +131,6 @@ onMounted(() => { void loadOverview(); });
 <template>
   <AdminLayout active="dashboard" title="系统总览" subtitle="查看 PAC 配置、生成状态、访问情况与常用管理入口。">
     <template #actions>
-      <span v-if="meta" class="version-chip">版本 {{ meta.version }}</span>
       <button class="dash-button secondary" type="button" :disabled="refreshing" @click="loadOverview">
         {{ refreshing ? "刷新中…" : "刷新数据" }}
       </button>
@@ -145,9 +140,7 @@ onMounted(() => { void loadOverview(); });
     <div class="dashboard-view">
       <div class="welcome-row">
         <div>
-          <p class="section-eyebrow">工作台 / OVERVIEW</p>
-          <h2>管理概览</h2>
-          <p class="welcome-copy">集中查看当前 PAC 的工作状态，并快速进入配置、监控或文件查看页面。</p>
+          <h2>常用操作</h2>
         </div>
         <div class="quick-actions">
           <RouterLink to="/admin" class="dash-button secondary">打开配置</RouterLink>
@@ -269,16 +262,13 @@ onMounted(() => { void loadOverview(); });
 <style scoped>
 .dashboard-view { min-width: 0; }
 .welcome-row { display:flex; align-items:flex-end; justify-content:space-between; gap:22px; margin-bottom:22px; }
-.section-eyebrow { margin:0 0 7px; color:var(--accent); font-size:10px; font-weight:800; letter-spacing:.13em; }
 .welcome-row h2 { margin:0; font-size:clamp(22px,2.5vw,28px); line-height:1.2; letter-spacing:-.04em; }
-.welcome-copy { margin:8px 0 0; color:var(--muted); font-size:12px; line-height:1.55; }
 .quick-actions { display:flex; flex-wrap:wrap; gap:8px; }
 .dash-button { display:inline-flex; align-items:center; justify-content:center; min-height:36px; padding:0 12px; border:1px solid var(--line); border-radius:8px; font:inherit; font-size:11px; font-weight:700; text-decoration:none; cursor:pointer; white-space:nowrap; transition:filter .15s,background .15s; }
 .dash-button.secondary,.dash-button.logout-button { color:var(--text); background:var(--surface); }
 .dash-button.primary { color:var(--accent-contrast); background:var(--accent); border-color:var(--accent); }
 .dash-button:disabled { opacity:.55; cursor:wait; }
 .dash-button:hover:not(:disabled) { filter:brightness(1.04); }
-.version-chip { display:inline-flex; align-items:center; min-height:28px; padding:0 9px; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--muted); font-size:10px; font-weight:700; white-space:nowrap; }
 .dashboard-alert { display:flex; align-items:center; flex-wrap:wrap; gap:9px; padding:11px 13px; margin-bottom:14px; border:1px solid var(--line); border-radius:9px; background:var(--surface); font-size:12px; line-height:1.5; }
 .dashboard-alert strong { font-weight:800; }
 .dashboard-alert a { color:var(--accent); font-weight:700; text-decoration:none; }
