@@ -17,6 +17,29 @@ import { DEFAULT_PROXY_TEST_URL, parseProxyTestUrl, testConfiguredProxies } from
 function parseList(raw:unknown):string[]{if(Array.isArray(raw))return raw.map(String).map(s=>s.trim()).filter(Boolean);if(typeof raw!=="string")return[];return raw.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);}
 function validTimeZone(v:string):boolean{try{new Intl.DateTimeFormat("en-US",{timeZone:v}).format(new Date());return true;}catch{return false;}}
 function bodyToSettings(b:Record<string,unknown>,fallbackProxyTestUrl=DEFAULT_SETTINGS.proxyTestUrl):AppSettings{const m=String(b.mode??"");const mode:GenerationMode=m==="remote"||m==="genpac"?"remote":"custom";return{mode,pacProxy:String(b.pacProxy??""),pacCompress:Boolean(b.pacCompress),listUrl:String(b.listUrl??b.gfwlistUrl??""),blockList:parseList(b.blockList),directList:parseList(b.directList),cronSchedule:String(b.cronSchedule??""),timezone:String(b.timezone??"Asia/Shanghai").trim(),proxyTestUrl:String(b.proxyTestUrl??fallbackProxyTestUrl).trim(),webhookSuccessUrl:String(b.webhookSuccessUrl??""),webhookSuccessBody:String(b.webhookSuccessBody??""),webhookFailureUrl:String(b.webhookFailureUrl??""),webhookFailureBody:String(b.webhookFailureBody??""),webhookSuccessConfig:normalizeWebhookConfig(b.webhookSuccessConfig,String(b.webhookSuccessUrl??""),String(b.webhookSuccessBody??"")),webhookFailureConfig:normalizeWebhookConfig(b.webhookFailureConfig,String(b.webhookFailureUrl??""),String(b.webhookFailureBody??""))};}
+function persistSettings(body:Record<string,unknown>,env:EnvConfig,database:AppDatabase):{settings:AppSettings}|{error:string}{
+ const p=bodyToSettings(body,getSettings(database).proxyTestUrl);
+ if(p.mode==="remote"){
+  let listUrl:URL;
+  try{listUrl=new URL(p.listUrl);}catch{return {error:"规则列表 URL 无效，请使用完整的 HTTP(S) 地址。"};}
+  if((listUrl.protocol!=="http:"&&listUrl.protocol!=="https:")||!listUrl.hostname||listUrl.username||listUrl.password)return {error:"规则列表 URL 必须使用有效的 HTTP(S) 地址，且不能包含 URL 用户名或密码。"};
+ }
+ if(!p.timezone||!validTimeZone(p.timezone))return {error:"时区无效。请从建议列表选择，或输入有效 IANA 时区，例如 Asia/Shanghai。"};
+ try{p.proxyTestUrl=parseProxyTestUrl(p.proxyTestUrl).toString();}catch(e){return {error:e instanceof Error?e.message:"代理测试地址无效。"};}
+ const proxyError=validatePacProxyString(p.pacProxy);
+ if(proxyError)return {error:proxyError};
+ const expr=p.cronSchedule.trim();
+ if(expr&&(expr.split(/\s+/).length!==5||!cron.validate(expr)))return {error:"Cron 表达式无效；请使用 5 段格式（分 时 日 月 周）。"};
+ for(const c of [p.webhookSuccessConfig,p.webhookFailureConfig]){
+  if(c.url.trim()){
+   const errors=validateWebhookConfig(c);
+   if(errors.length)return {error:errors.join("\n")};
+  }
+ }
+ const settings=updateSettings(database,p);
+ reschedule(database,env.dataDir);
+ return {settings};
+}
 export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
  const router=Router();
  let monitorProbeInProgress = false;
@@ -25,7 +48,8 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
  router.post("/api/admin/logout",(_req,res)=>{clearSessionCookie(res);res.json({ok:true});});
  router.post("/api/admin/password",requireAdmin(database,true),(req,res)=>{try{changeAdminPassword(database,String(req.body?.currentPassword??""),String(req.body?.newPassword??""));clearSessionCookie(res);res.json({ok:true});}catch(e){res.status(400).json({error:e instanceof Error?e.message:String(e)});}});
  router.get("/api/admin/settings",requireAdmin(database),(_req,res)=>res.json(getSettings(database)));
- router.put("/api/admin/settings",requireAdmin(database),(req,res)=>{const p=bodyToSettings((req.body||{}) as Record<string,unknown>,getSettings(database).proxyTestUrl);if(p.mode==="remote"){let listUrl:URL;try{listUrl=new URL(p.listUrl);}catch{res.status(400).json({error:"规则列表 URL 无效，请使用完整的 HTTP(S) 地址。"});return;}if((listUrl.protocol!=="http:"&&listUrl.protocol!=="https:")||!listUrl.hostname||listUrl.username||listUrl.password){res.status(400).json({error:"规则列表 URL 必须使用有效的 HTTP(S) 地址，且不能包含 URL 用户名或密码。"});return;}}if(!p.timezone||!validTimeZone(p.timezone)){res.status(400).json({error:"时区无效。请从建议列表选择，或输入有效 IANA 时区，例如 Asia/Shanghai。"});return;}try{p.proxyTestUrl=parseProxyTestUrl(p.proxyTestUrl).toString();}catch(e){res.status(400).json({error:e instanceof Error?e.message:"代理测试地址无效。"});return;}const proxyError=validatePacProxyString(p.pacProxy);if(proxyError){res.status(400).json({error:proxyError});return;}const expr=p.cronSchedule.trim();if(expr&&(expr.split(/\s+/).length!==5||!cron.validate(expr))){res.status(400).json({error:"Cron 表达式无效；请使用 5 段格式（分 时 日 月 周）。"});return;}for(const c of [p.webhookSuccessConfig,p.webhookFailureConfig]){if(c.url.trim()){const errors=validateWebhookConfig(c);if(errors.length){res.status(400).json({error:errors.join("\n")});return;}}}const next=updateSettings(database,p);reschedule(database,env.dataDir);res.json(next);});
+ router.put("/api/admin/settings",requireAdmin(database),(req,res)=>{const result=persistSettings((req.body||{}) as Record<string,unknown>,env,database);if("error" in result){res.status(400).json({error:result.error});return;}res.json(result.settings);});
+ router.post("/api/admin/settings/save-and-generate",requireAdmin(database),async(req,res)=>{const saved=persistSettings((req.body||{}) as Record<string,unknown>,env,database);if("error" in saved){res.status(400).json({error:saved.error});return;}const generation=await generatePac(database,env.dataDir);res.status(200).json({settings:saved.settings,generation});});
  router.post("/api/admin/webhook-test",requireAdmin(database),async(req,res)=>{const c=normalizeWebhookConfig(req.body?.config??req.body),errors=validateWebhookConfig(c);if(errors.length){res.status(400).json({error:errors.join("\n")});return;}res.json(await sendWebhookTest(c,getSettings(database).timezone));});
  router.post("/api/admin/generate",requireAdmin(database),async(_req,res)=>{const result=await generatePac(database,env.dataDir);res.status(200).json(result);});
  router.get("/api/admin/logs",requireAdmin(database),(_req,res)=>res.json(recentLogs(database,50,getSettings(database).timezone)));
