@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import packageJson from "../../../package.json";
 import { api, type UpdateInfo } from "../api/client";
+import AppIcon from "./AppIcon.vue";
 const projectUrl = "https://github.com/geekMus/genpac-runner";
 const currentVersion = ref(String(packageJson.version));
 const updateInfo = ref<UpdateInfo | null>(null);
@@ -33,7 +34,7 @@ onMounted(() => { void loadVersionInfo(true); });
   <footer class="app-footer" @keydown.esc.stop.prevent="dialogOpen = false">
     <div class="footer-project">
       <a class="github-project-link" :href="projectUrl" target="_blank" rel="noopener noreferrer" aria-label="打开 genpac-runner 的 GitHub 项目" title="GitHub 项目地址">
-        <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path fill="currentColor" d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.55.1.76-.24.76-.53v-2.04c-3.1.68-3.76-1.32-3.76-1.32-.5-1.3-1.24-1.65-1.24-1.65-1.01-.69.08-.68.08-.68 1.12.08 1.71 1.15 1.71 1.15.99 1.7 2.6 1.21 3.23.93.1-.72.39-1.21.7-1.49-2.47-.28-5.07-1.24-5.07-5.5 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.05 1.15a10.6 10.6 0 0 1 5.55 0c2.11-1.45 3.05-1.15 3.05-1.15.61 1.54.23 2.68.11 2.96.72.78 1.15 1.78 1.15 3.01 0 4.27-2.6 5.21-5.08 5.49.4.35.75 1.02.75 2.06V22c0 .29.2.64.76.53A11.1 11.1 0 0 0 12 .9Z"/></svg><span>GitHub</span>
+        <AppIcon name="github" :size="19" :stroke-width="1.8" /><span>GitHub</span>
       </a>
       <button type="button" class="version-badge" :class="{ 'is-update': hasUpdate }" @click="dialogOpen = true" :aria-label="hasUpdate ? '查看新版本详情' : '查看当前版本信息'">
         <span>v{{ currentVersion }}</span><span v-if="hasUpdate" class="new-badge">New</span>
@@ -42,7 +43,7 @@ onMounted(() => { void loadVersionInfo(true); });
     <Transition name="version-dialog">
       <div v-if="dialogOpen" class="dialog-backdrop" @click.self="dialogOpen = false" tabindex="-1">
         <section class="version-dialog" role="dialog" aria-modal="true" aria-labelledby="version-dialog-title">
-          <header class="dialog-header"><h2 id="version-dialog-title">项目与版本</h2><button type="button" class="dialog-close" aria-label="关闭弹窗" @click="dialogOpen = false" autofocus>×</button></header>
+          <header class="dialog-header"><h2 id="version-dialog-title">项目与版本</h2><button type="button" class="dialog-close" aria-label="关闭弹窗" @click="dialogOpen = false" autofocus><AppIcon name="x" :size="17" /></button></header>
           <div class="version-grid"><div class="version-item"><span>当前版本</span><strong>v{{ currentVersion }}</strong></div><button type="button" class="version-item latest-version-item" :class="{ 'version-new': hasUpdate }" @click="loadVersionInfo(true)" :disabled="isCheckingVersion" :aria-label="isCheckingVersion ? '正在获取最新版本' : '点击获取最新版本'"><span>最新版本 <small>{{ isCheckingVersion ? "获取中…" : "点击刷新" }}</small></span><strong>{{ latestVersion === "暂时未知" ? latestVersion : "v" + latestVersion }}</strong></button></div>
           <div v-if="hasUpdate" class="dialog-update-note" role="status"><span class="dialog-update-dot"></span><div><strong>发现新版本 {{ updateInfo?.latestVersion }}</strong><p>当前运行版本较旧，可前往项目仓库查看最新代码与更新说明。</p></div></div>
           <p v-else-if="isCheckingVersion" class="dialog-status" role="status">正在获取最新版本…</p>
@@ -50,7 +51,7 @@ onMounted(() => { void loadVersionInfo(true); });
           <p v-else-if="updateInfo?.checked" class="dialog-status">你当前使用的已经是最新版本。</p>
           <p v-else class="dialog-status">暂时无法获取远程版本信息；这不会影响 PAC 和管理功能。</p>
           <div class="dialog-actions"><a class="dialog-project-button" :href="updateInfo?.repositoryUrl || projectUrl" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.55.1.76-.24.76-.53v-2.04c-3.1.68-3.76-1.32-3.76-1.32-.5-1.3-1.24-1.65-1.24-1.65-1.01-.69.08-.68.08-.68 1.12.08 1.71 1.15 1.71 1.15.99 1.7 2.6 1.21 3.23.93.1-.72.39-1.21.7-1.49-2.47-.28-5.07-1.24-5.07-5.5 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.05 1.15a10.6 10.6 0 0 1 5.55 0c2.11-1.45 3.05-1.15 3.05-1.15.61 1.54.23 2.68.11 2.96.72.78 1.15 1.78 1.15 3.01 0 4.27-2.6 5.21-5.08 5.49.4.35.75 1.02.75 2.06V22c0 .29.2.64.76.53A11.1 11.1 0 0 0 12 .9Z"/></svg>访问 GitHub 项目</a><button type="button" class="dialog-secondary-button" @click="dialogOpen = false">关闭</button></div>
+            <AppIcon name="github" :size="17" :stroke-width="1.8" />访问 GitHub 项目</a><button type="button" class="dialog-secondary-button" @click="dialogOpen = false">关闭</button></div>
         </section>
       </div>
     </Transition>
@@ -69,7 +70,7 @@ onMounted(() => { void loadVersionInfo(true); });
 .version-dialog { width:min(100%,440px); padding:22px; border:1px solid var(--line); border-radius:18px; background:var(--surface); color:var(--text); box-shadow:0 24px 80px rgba(0,0,0,.24); }
 .dialog-header { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:19px; }
 .dialog-header h2 { margin:0; font-size:20px; letter-spacing:-.02em; }
-.dialog-close { display:grid; place-items:center; width:32px; height:32px; border:1px solid var(--line); border-radius:9px; background:var(--surface-2); color:var(--muted); font-size:22px; cursor:pointer; }
+.dialog-close { display:grid; place-items:center; flex:0 0 32px; width:32px; height:32px; border:1px solid var(--line); border-radius:9px; background:var(--surface-2); color:var(--muted); font-size:22px; cursor:pointer; }
 .version-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 .version-item { display:flex; flex-direction:column; gap:7px; min-width:0; padding:14px; border:1px solid var(--line); border-radius:12px; background:var(--surface-2); }
 .version-item span { color:var(--muted); font-size:11px; }
