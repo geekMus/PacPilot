@@ -260,6 +260,11 @@ onMounted(() => { void loadOverview(); });
   border-color:var(--accent-active);
   color:var(--accent-contrast);
 }
+.dash-button.secondary:active:not(:disabled),.dash-button.logout-button:active:not(:disabled) {
+  background:var(--accent-soft);
+  border-color:var(--accent);
+  color:var(--accent);
+}
 .dashboard-alert { display:flex; align-items:center; flex-wrap:wrap; gap:9px; padding:11px 13px; margin-bottom:14px; border:1px solid var(--line); border-radius:9px; background:var(--surface); font-size:12px; line-height:1.5; }
 .dashboard-alert strong { font-weight:800; }
 .dashboard-alert a { color:var(--accent); font-weight:700; text-decoration:none; }
