@@ -256,6 +256,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
         <div class="empty-icon" aria-hidden="true"><AppIcon name="file-cog" :size="26" :stroke-width="1.7" /></div>
         <h2>还没有生成 PAC</h2>
         <p>先进入后台管理，在配置页面设置启动模式和规则，然后点击「保存并生成 PAC」。生成后，这里会显示可识别的规则摘要。</p>
+        <p class="empty-pac-note">注意：尚未生成时，<code>/proxy.pac</code> 仍会暂时返回“所有请求直连”的回退脚本；这不是已经生成的规则文件。</p>
         <RouterLink class="action-button primary"  :to="adminEntry">进入后台管理</RouterLink>
       </section>
 
@@ -598,6 +599,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
 .empty-icon { width:48px; height:48px; margin:0 auto 14px; color:var(--accent); font-size:24px; }
 .empty-hero h2 { margin:0; font-size:19px; }
 .empty-hero p { max-width:36em; margin:10px auto 18px; color:var(--muted); font-size:13px; }
+.empty-hero .empty-pac-note { margin-top:-8px; font-size:11px; line-height:1.6; }
 .action-button { display:inline-flex; align-items:center; justify-content:center; min-height:38px; padding:0 14px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--text); font-size:12px; font-weight:650; text-decoration:none; cursor:pointer; }
 .action-button.primary { color:var(--accent-contrast); background:var(--accent); border-color:var(--accent); }
 .action-button:not(.primary):hover:not(:disabled) { background:var(--surface-2); border-color:color-mix(in srgb,var(--accent) 32%,var(--line)); color:var(--text); }
