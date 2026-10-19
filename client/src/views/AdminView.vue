@@ -565,20 +565,15 @@ async function saveAndGenerate() {
   const submittedSnapshot = JSON.stringify(payload);
   saving.value = true;
   try {
-    // 保存与生成由服务端在同一个请求中串行完成，页面切换不会跳过 PAC 生成。
+    // 服务端先持久化配置，再启动独立工作流并立即返回任务 ID。
     const workflow = await api.saveAndGenerate(payload);
     savedSettingsSnapshot.value = submittedSnapshot;
-    const result = workflow.generation;
-    showFlash(
-      result.success
-        ? "配置已保存，PAC 生成成功"
-        : `配置已保存，但生成失败：\n${result.message}`,
-      result.success
-    );
-    // 辅助面板刷新失败不能反过来把已经完成的保存/生成显示为失败。
+    showFlash(`配置已保存，工作流 #${workflow.workflowId} 已启动；可在侧边栏“工作流”中查看实时进度。`);
+    // 日志/状态刷新只是辅助操作，不能反过来影响已经成功启动的任务。
     const [latestLogs, latestProbe] = await Promise.all([
       api.logs().catch(() => null),
       api.genpacStatus().catch(() => null),
+      refreshStorage(),
     ]);
     if (latestLogs) logs.value = latestLogs;
     if (latestProbe) genpacProbe.value = latestProbe;
