@@ -162,7 +162,101 @@ watch(() => route.fullPath, () => {
 .topbar-title h1 { margin:0; color:var(--text); font-size:21px; line-height:1.2; letter-spacing:-.035em; font-weight:800; }
 .topbar-title p { margin:5px 0 0; color:var(--muted); font-size:11px; line-height:1.45; }
 .topbar-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; flex:0 0 auto; min-width:0; }
-.admin-content { width:100%; max-width:1680px; margin:0 auto; padding:25px clamp(20px,3vw,42px) 40px; }
+.admin-content {
+  --radius: 12px;
+  --admin-panel-padding: 20px;
+  --admin-section-gap: 20px;
+  width:100%;
+  max-width:1680px;
+  margin:0 auto;
+  padding:25px clamp(20px,3vw,42px) 40px;
+}
+
+/* 管理区共享尺寸规范：三个工作页面共用同一组卡片、指标、标题和控件比例。 */
+.admin-content :deep(.card.card),
+.admin-content :deep(.dashboard-panel.dashboard-panel),
+.admin-content :deep(.monitor-panel.monitor-panel) {
+  padding: var(--admin-panel-padding);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+.admin-content :deep(.stack.stack) {
+  gap: var(--admin-section-gap);
+}
+.admin-content :deep(.dashboard-panel.dashboard-panel),
+.admin-content :deep(.monitor-panel.monitor-panel) {
+  margin-bottom: var(--admin-section-gap);
+}
+.admin-content :deep(.overview-metrics),
+.admin-content :deep(.metric-grid) {
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.admin-content :deep(.overview-metric.overview-metric),
+.admin-content :deep(.metric-card.metric-card) {
+  gap: 7px;
+  padding: 16px;
+  border-radius: 12px;
+}
+.admin-content :deep(.metric-label.metric-label) {
+  font-size: 12px;
+  line-height: 1.45;
+}
+.admin-content :deep(.metric-value.metric-value) {
+  font-size: clamp(22px, 2.1vw, 28px);
+  line-height: 1.2;
+}
+.admin-content :deep(.metric-note.metric-note) {
+  min-height: 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.admin-content :deep(.panel-header h3),
+.admin-content :deep(.panel-heading h2) {
+  font-size: 15px;
+  line-height: 1.35;
+}
+.admin-content :deep(.panel-header p),
+.admin-content :deep(.panel-heading p) {
+  font-size: 11px;
+  line-height: 1.55;
+}
+.admin-content :deep(.config-detail > span) {
+  font-size: 11px;
+}
+.admin-content :deep(.config-detail strong),
+.admin-content :deep(.config-detail code) {
+  font-size: 12px;
+}
+.admin-content :deep(.recent-table),
+.admin-content :deep(.table-wrap table) {
+  font-size: 12px;
+}
+.admin-content :deep(.recent-table th),
+.admin-content :deep(.recent-table td),
+.admin-content :deep(.table-wrap th),
+.admin-content :deep(.table-wrap td) {
+  padding: 10px 12px;
+}
+.admin-content :deep(.dash-button.dash-button),
+.admin-content :deep(.monitor-button.monitor-button),
+.admin-content :deep(.admin-logout-button.admin-logout-button) {
+  min-height: 40px;
+  padding-right: 14px;
+  padding-left: 14px;
+  font-size: 12px;
+}
+.admin-content :deep(.btn.btn) {
+  min-height: 40px;
+  font-size: 13px;
+}
+.admin-content :deep(.chip.chip) {
+  min-height: 36px;
+}
+.admin-content :deep(.webhook-test-button.webhook-test-button) {
+  min-height: 34px;
+}
+
 .mobile-menu-toggle { display:none; }
 .sidebar-backdrop { display:none; }
 @media (max-width:1050px) { .admin-layout { --sidebar-width:238px; } .admin-topbar { gap:16px; } .admin-topbar :deep(.monitor-top-updated) { display:none; } .admin-content { padding-right:24px; padding-left:24px; } }
@@ -186,9 +280,16 @@ watch(() => route.fullPath, () => {
   .topbar-title h1 { font-size:16px; line-height:1.25; }
   .topbar-actions { grid-column:1 / -1; grid-row:2; width:100%; gap:5px; flex-wrap:nowrap; justify-content:flex-end; }
   .topbar-actions :deep(.monitor-top-updated) { display:none; }
-  .topbar-actions :deep(.dash-button),.topbar-actions :deep(.monitor-button) { min-height:30px; padding:0 9px; border-radius:8px; font-size:10px; }
+  .topbar-actions :deep(.dash-button),.topbar-actions :deep(.monitor-button),.topbar-actions :deep(.admin-logout-button) { min-height:36px; padding:0 9px; border-radius:8px; font-size:11px; }
   .topbar-actions :deep(.theme-switch) { gap:0; padding:2px; border-radius:8px; }
-  .topbar-actions :deep(.theme-btn) { min-height:26px; padding:0 6px; font-size:9px; }
+  .topbar-actions :deep(.theme-btn) { min-height:30px; padding:0 6px; font-size:10px; }
+  .admin-content { --admin-panel-padding:14px; --admin-section-gap:16px; padding:16px 16px 28px; }
+  .admin-content :deep(.overview-metrics),.admin-content :deep(.metric-grid) { gap:10px; margin-bottom:18px; }
+  .admin-content :deep(.overview-metric.overview-metric),.admin-content :deep(.metric-card.metric-card) { padding:13px 12px; }
+  .admin-content :deep(.metric-value.metric-value) { font-size:22px; }
+  .admin-content :deep(.admin-page input:not([type="checkbox"]):not([type="radio"])),
+  .admin-content :deep(.admin-page select),
+  .admin-content :deep(.admin-page textarea:not(.CodeMirror)) { min-height:44px; font-size:16px; }
   .admin-content { padding:16px 13px 28px; }
 }
 @media (max-width:360px) {
