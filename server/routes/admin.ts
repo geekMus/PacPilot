@@ -1,12 +1,15 @@
 import { Router } from "express";
+import fs from "node:fs";
+import path from "node:path";
 import type { AppDatabase } from "../db/sqlite";
 import type { EnvConfig } from "../config/env";
-import { getSettings, recentLogs, updateSettings } from "../db/sqlite";
+import { cleanupOperationalLogs, getCurrentWorkflow, getSettings, listWorkflowRuns, operationalLogStorageBytes, recentLogs, setSettings, updateSettings } from "../db/sqlite";
 import type { AppSettings, GenerationMode } from "../db/settings";
 import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../db/settings";
 import { clearSessionCookie, createSessionToken, isLoggedIn, requireAdmin, setSessionCookie } from "../middleware/auth";
 import { changeAdminPassword, getAdminSecurityStatus, getAdminSessionSecret, verifyAdminPassword } from "../services/admin-credentials";
-import { generatePac, probeGenpac, validatePacProxyString } from "../services/pac-generator";
+import { probeGenpac, validatePacProxyString } from "../services/pac-generator";
+import { hasActivePacWorkflow, runPacWorkflow, type WorkflowSource } from "../services/workflow";
 import { reschedule } from "../services/scheduler";
 import { sendWebhookTest, validateWebhookConfig } from "../services/webhook";
 import cron from "node-cron";
@@ -49,9 +52,32 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
  router.post("/api/admin/password",requireAdmin(database,true),(req,res)=>{try{changeAdminPassword(database,String(req.body?.currentPassword??""),String(req.body?.newPassword??""));clearSessionCookie(res);res.json({ok:true});}catch(e){res.status(400).json({error:e instanceof Error?e.message:String(e)});}});
  router.get("/api/admin/settings",requireAdmin(database),(_req,res)=>res.json(getSettings(database)));
  router.put("/api/admin/settings",requireAdmin(database),(req,res)=>{const result=persistSettings((req.body||{}) as Record<string,unknown>,env,database);if("error" in result){res.status(400).json({error:result.error});return;}res.json(result.settings);});
- router.post("/api/admin/settings/save-and-generate",requireAdmin(database),async(req,res)=>{const saved=persistSettings((req.body||{}) as Record<string,unknown>,env,database);if("error" in saved){res.status(400).json({error:saved.error});return;}const generation=await generatePac(database,env.dataDir);res.status(200).json({settings:saved.settings,generation});});
+ router.post("/api/admin/settings/save-and-generate",requireAdmin(database),async(req,res)=>{const saved=persistSettings((req.body||{}) as Record<string,unknown>,env,database);if("error" in saved){res.status(400).json({error:saved.error});return;}try{const workflow=await runPacWorkflow(database,env.dataDir,"save-and-generate");res.status(200).json({settings:saved.settings,generation:workflow.generation,workflowId:workflow.workflowId});}catch(e){res.status(409).json({error:e instanceof Error?e.message:String(e)});}});
  router.post("/api/admin/webhook-test",requireAdmin(database),async(req,res)=>{const c=normalizeWebhookConfig(req.body?.config??req.body),errors=validateWebhookConfig(c);if(errors.length){res.status(400).json({error:errors.join("\n")});return;}res.json(await sendWebhookTest(c,getSettings(database).timezone));});
- router.post("/api/admin/generate",requireAdmin(database),async(_req,res)=>{const result=await generatePac(database,env.dataDir);res.status(200).json(result);});
+ router.post("/api/admin/generate",requireAdmin(database),async(_req,res)=>{try{const workflow=await runPacWorkflow(database,env.dataDir,"manual");res.status(200).json({...workflow.generation,workflowId:workflow.workflowId});}catch(e){res.status(409).json({error:e instanceof Error?e.message:String(e)});}});
+ router.get("/api/admin/workflows",requireAdmin(database),(req,res)=>{res.setHeader("Cache-Control","no-store");const limit=Math.min(200,Math.max(1,Number.parseInt(String(req.query.limit??"50"),10)||50));res.json({current:getCurrentWorkflow(database),runs:listWorkflowRuns(database,limit)});});
+ router.get("/api/admin/storage",requireAdmin(database),(_req,res)=>{
+  res.setHeader("Cache-Control","no-store");
+  let dataBytes=0;
+  const walk=(dir:string):void=>{try{for(const entry of fs.readdirSync(dir,{withFileTypes:true})){const full=path.join(dir,entry.name);if(entry.isSymbolicLink())continue;if(entry.isDirectory())walk(full);else if(entry.isFile())dataBytes+=fs.statSync(full).size;}}catch{/* missing or inaccessible data directory */}};
+  walk(env.dataDir);
+  const dbBytes=["genpac.db","genpac.db-wal","genpac.db-shm"].reduce((sum,name)=>{try{return sum+fs.statSync(path.join(env.dataDir,name)).size;}catch{return sum;}},0);
+  const counts=database.query("SELECT (SELECT COUNT(*) FROM generation_log) AS generationLogs,(SELECT COUNT(*) FROM access_events) AS accessEvents,(SELECT COUNT(*) FROM proxy_probe_runs) AS proxyProbeRuns,(SELECT COUNT(*) FROM workflow_runs) AS workflows").get();
+  res.json({dataBytes,dbBytes,logBytes:operationalLogStorageBytes(database),retentionDays:getSettings(database).logRetentionDays,counts});
+ });
+ router.post("/api/admin/logs/cleanup",requireAdmin(database),(_req,res)=>{res.json({deleted:cleanupOperationalLogs(database),retentionDays:getSettings(database).logRetentionDays});});
+ router.post("/api/admin/factory-reset",requireAdmin(database),(_req,res)=>{
+  if(hasActivePacWorkflow(database)){res.status(409).json({error:"工作流正在执行，请等待完成后再恢复出厂设置。"});return;}
+  try{
+   database.exec("BEGIN IMMEDIATE");
+   database.exec("DELETE FROM generation_log; DELETE FROM access_events; DELETE FROM proxy_probe_runs; DELETE FROM workflow_runs;");
+   setSettings(database,DEFAULT_SETTINGS);
+   database.exec("COMMIT");
+   for(const name of ["proxy.pac","proxy.source.pac"]){try{fs.unlinkSync(path.join(env.dataDir,name));}catch{/* already absent */}}
+   reschedule(database,env.dataDir);
+   res.json({ok:true,message:"已恢复默认配置并清理运行记录。管理员密码保持不变。"});
+  }catch(e){try{database.exec("ROLLBACK");}catch{/* transaction already closed */}res.status(500).json({error:e instanceof Error?e.message:String(e)});}
+ });
  router.get("/api/admin/logs",requireAdmin(database),(_req,res)=>res.json(recentLogs(database,50,getSettings(database).timezone)));
  router.get("/api/admin/genpac-status",requireAdmin(database),async(_req,res)=>res.json(await probeGenpac()));
  router.get("/api/admin/monitor/summary",requireAdmin(database),(_req,res)=>{
