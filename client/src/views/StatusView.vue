@@ -564,6 +564,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
 .action-button:not(.primary):hover:not(:disabled) { background:var(--surface-2); border-color:color-mix(in srgb,var(--accent) 32%,var(--line)); color:var(--text); }
 .action-button.primary:hover:not(:disabled) { background:var(--accent-hover); border-color:var(--accent-hover); color:var(--accent-contrast); }
 .action-button.primary:active:not(:disabled) { background:var(--accent-active); border-color:var(--accent-active); color:var(--accent-contrast); }
+.action-button:not(.primary):active:not(:disabled) { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
 .action-button:disabled {
   opacity:1;
   color:var(--control-disabled-text);
