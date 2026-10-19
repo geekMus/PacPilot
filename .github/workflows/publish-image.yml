@@ -115,11 +115,13 @@ jobs:
           echo "发布判断：$REASON"
 
       - name: 启用 ARM64 构建支持
+        if: github.event_name == 'workflow_dispatch' || steps.version.outputs.publish == 'true'
         uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
 
       - name: 设置 Docker Buildx
+        if: github.event_name == 'workflow_dispatch' || steps.version.outputs.publish == 'true'
         uses: docker/setup-buildx-action@v4
 
       - name: 登录 GitHub 容器镜像仓库
@@ -131,6 +133,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 生成版本化镜像标签和 OCI 元数据
+        if: github.event_name == 'workflow_dispatch' || steps.version.outputs.publish == 'true'
         id: meta
         uses: docker/metadata-action@v6
         with:
@@ -204,6 +207,7 @@ jobs:
           fi
 
       - name: 构建并按条件推送 ARM64 镜像
+        if: github.event_name == 'workflow_dispatch' || steps.version.outputs.publish == 'true'
         uses: docker/build-push-action@v7
         with:
           context: .
