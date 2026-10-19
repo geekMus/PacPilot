@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 
 const props = withDefaults(defineProps<{
   text?: string | null;
@@ -11,11 +11,14 @@ const props = withDefaults(defineProps<{
 
 const dialog = ref<HTMLDialogElement | null>(null);
 const trigger = ref<HTMLButtonElement | null>(null);
+const dialogMounted = ref(false);
 const copyState = ref("");
 const fullText = computed(() => props.text ?? "");
 
-function openDetails(): void {
+async function openDetails(): Promise<void> {
   copyState.value = "";
+  dialogMounted.value = true;
+  await nextTick();
   if (dialog.value && !dialog.value.open) dialog.value.showModal();
 }
 
@@ -29,6 +32,11 @@ function handleDialogClick(event: MouseEvent): void {
 
 function restoreFocus(): void {
   trigger.value?.focus();
+}
+
+function onDialogClose(): void {
+  restoreFocus();
+  dialogMounted.value = false;
 }
 
 async function copyContent(): Promise<void> {
@@ -54,11 +62,12 @@ async function copyContent(): Promise<void> {
   </button>
 
   <dialog
+    v-if="dialogMounted"
     ref="dialog"
     class="text-detail-dialog"
     :aria-label="`${label}详情`"
     @click="handleDialogClick"
-    @close="restoreFocus"
+    @close="onDialogClose"
   >
     <header class="text-detail-header">
       <div class="text-detail-heading">
