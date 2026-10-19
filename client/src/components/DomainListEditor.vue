@@ -86,6 +86,14 @@ let view: EditorView | null = null;
 let themeObs: MutationObserver | null = null;
 
 let jumpHighlightTimer: number | null = null;
+function handleDiagnosticClick(event: MouseEvent, lineNumber: number) {
+  jumpToLine(lineNumber);
+
+  // 鼠标/触屏点击只需要瞬时按压反馈，不应把行按钮留在焦点高亮状态；
+  // 键盘触发的 click detail 为 0，保留键盘可见焦点。
+  if (event.detail > 0) (event.currentTarget as HTMLButtonElement | null)?.blur();
+}
+
 function jumpToLine(lineNumber: number) {
   if (!view || lineNumber < 1 || lineNumber > view.state.doc.lines) return;
   const editor = view;
@@ -271,7 +279,7 @@ watch(
           class="rule-diagnostic-item"
           :class="'is-' + item.severity"
           :title="'定位到第 ' + item.line + ' 行'"
-          @click="jumpToLine(item.line)"
+          @click="handleDiagnosticClick($event, item.line)"
         >
           <span class="rule-diagnostic-line">第 {{ item.line }} 行</span>
           <span class="rule-diagnostic-message">{{ item.message }}</span>
@@ -350,11 +358,15 @@ watch(
 .diagnostic-count.is-info { color: var(--accent); background: var(--accent-soft); }
 .rule-diagnostic-list { display: flex; flex-direction: column; gap: 1px; max-height: 220px; overflow: auto; padding: 4px; overscroll-behavior: contain; }
 .rule-diagnostic-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 6px; width: 100%; padding: 5px 6px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text); font: inherit; font-size: 12px; line-height: 1.45; text-align: left; overflow-wrap: anywhere; cursor: pointer; transition: background-color 100ms ease, border-color 100ms ease; }
-.rule-diagnostic-item:hover, .rule-diagnostic-item:focus-visible { border-color: var(--line); background: var(--surface-2); }
-.rule-diagnostic-item:active { border-color: var(--line); background: var(--accent-soft); }
-.rule-diagnostic-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-@media (hover: none) {
-  .rule-diagnostic-item:focus:not(:focus-visible) { border-color: transparent; background: transparent; }
+.rule-diagnostic-item { -webkit-tap-highlight-color: transparent; }
+.rule-diagnostic-item:focus-visible { border-color: var(--line); background: var(--surface-2); outline: 2px solid var(--accent); outline-offset: -2px; }
+/* 仅在真正支持鼠标悬停的设备上显示 hover，避免触屏点击后 hover 状态残留。 */
+@media (hover: hover) and (pointer: fine) {
+  .rule-diagnostic-item:hover { border-color: var(--line); background: var(--surface-2); }
+}
+/* 触屏上点击结束后不保留焦点外观；按压期间仍由 :active 提供即时反馈。 */
+@media (hover: none), (pointer: coarse) {
+  .rule-diagnostic-item:focus:not(:focus-visible) { border-color: transparent; background: transparent; box-shadow: none; }
   .rule-diagnostic-item:active { border-color: var(--line); background: var(--accent-soft); }
 }
 .rule-diagnostic-line { display: inline-flex; align-items: center; justify-content: center; min-height: 22px; padding: 2px 7px; border-radius: 5px; background: var(--surface-2); color: var(--muted); font-size: 10px; font-weight: 750; white-space: nowrap; }
