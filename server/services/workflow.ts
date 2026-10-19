@@ -27,7 +27,7 @@ function beginPacWorkflow(database: AppDatabase, dataDir: string, source: Workfl
     throw new Error("已有 PAC 工作流正在执行，请等待当前任务完成后再试。");
   }
   active = true;
-  let workflowId: number;
+  let workflowId: number | null = null;
   const startedAt = new Date();
   try {
     workflowId = createWorkflowRun(database, source, getSettings(database).mode);
@@ -38,15 +38,27 @@ function beginPacWorkflow(database: AppDatabase, dataDir: string, source: Workfl
       started_at: startedAt.toISOString(),
     });
   } catch (error) {
+    if (workflowId !== null) {
+      try {
+        updateWorkflowRun(database, workflowId, {
+          status: "failed",
+          stage: "初始化失败",
+          message: "工作流初始化失败",
+          error: error instanceof Error ? error.message : String(error),
+          finished_at: new Date().toISOString(),
+        });
+      } catch { /* database may be unavailable */ }
+    }
     active = false;
     throw error;
   }
 
+  const id = workflowId;
   const promise = (async (): Promise<GenerateResult> => {
     try {
       const generation = await generatePac(database, dataDir);
       const finishedAt = new Date();
-      updateWorkflowRun(database, workflowId, {
+      updateWorkflowRun(database, id, {
         status: generation.success ? "succeeded" : "failed",
         stage: generation.success ? "已完成" : "生成失败",
         message: generation.message,
@@ -59,7 +71,7 @@ function beginPacWorkflow(database: AppDatabase, dataDir: string, source: Workfl
       const finishedAt = new Date();
       const message = error instanceof Error ? error.message : String(error);
       try {
-        updateWorkflowRun(database, workflowId, {
+        updateWorkflowRun(database, id, {
           status: "failed",
           stage: "执行异常",
           message: "工作流执行异常",
@@ -75,7 +87,7 @@ function beginPacWorkflow(database: AppDatabase, dataDir: string, source: Workfl
       active = false;
     }
   })();
-  return { workflowId, promise };
+  return { workflowId: id, promise };
 }
 
 /** Start a server-owned task and return its ID immediately; browser lifetime is irrelevant. */
