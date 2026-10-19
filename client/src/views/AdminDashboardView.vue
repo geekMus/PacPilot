@@ -9,6 +9,7 @@ import {
   type GenpacProbe,
   type MonitorSummary,
   type PacStatus,
+  type WorkflowRun,
 } from "../api/client";
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
@@ -29,6 +30,7 @@ const status = ref<PacStatus | null>(null);
 const logs = ref<GenerationLog[]>([]);
 const monitor = ref<MonitorSummary | null>(null);
 const engine = ref<GenpacProbe | null>(null);
+const currentWorkflow = ref<WorkflowRun | null>(null);
 
 const modeLabel = computed(() => settings.value?.mode === "remote" ? "远程规则列表" : "自定义规则");
 const customRuleCount = computed(() => (settings.value?.directList.length ?? 0) + (settings.value?.blockList.length ?? 0));
@@ -54,18 +56,20 @@ async function loadOverview(): Promise<void> {
       return;
     }
 
-    const [nextSettings, nextStatus, nextLogs, nextMonitor, nextEngine] = await Promise.all([
+    const [nextSettings, nextStatus, nextLogs, nextMonitor, nextEngine, nextWorkflows] = await Promise.all([
       api.settings(),
       api.status(),
       api.logs(),
       api.monitorSummary().catch(() => null),
       api.genpacStatus().catch(() => null),
+      api.workflows(6).catch(() => null),
     ]);
     settings.value = nextSettings;
     status.value = nextStatus;
     logs.value = nextLogs.slice(0, 6);
     monitor.value = nextMonitor;
     engine.value = nextEngine;
+    currentWorkflow.value = nextWorkflows?.current ?? null;
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : String(caught);
   } finally {
@@ -111,6 +115,7 @@ onMounted(() => { void loadOverview(); });
         <div class="quick-actions">
           <RouterLink to="/admin/settings" class="dash-button secondary"><AppIcon name="settings" :size="16" />打开配置</RouterLink>
           <RouterLink to="/admin/monitor" class="dash-button secondary"><AppIcon name="activity" :size="16" />查看网络监控</RouterLink>
+          <RouterLink to="/admin/workflows" class="dash-button secondary"><AppIcon name="workflow" :size="16" />查看工作流</RouterLink>
           <button type="button" class="dash-button primary" :class="{ 'is-loading': generating || loading }" :disabled="generating || loading" @click="generateNow">
             <AppIcon :name="generating || loading ? 'loader-circle' : 'zap'" :class="{ 'icon-spinning': generating || loading }" :size="16" />
             {{ generating ? "正在生成…" : loading ? "正在读取…" : "立即生成 PAC" }}
@@ -123,6 +128,10 @@ onMounted(() => { void loadOverview(); });
         <button type="button" @click="loadOverview">重新加载</button>
       </div>
       <div v-if="notice" class="dashboard-alert" :class="noticeOkay ? 'is-success' : 'is-error'" role="status">{{ notice }}</div>
+      <RouterLink v-if="currentWorkflow" to="/admin/workflows" class="dashboard-alert workflow-running">
+        <AppIcon name="workflow" :size="18" />
+        <span><strong>工作流正在执行：{{ currentWorkflow.stage || "准备中" }}</strong><small>{{ currentWorkflow.message }} · 点击查看实时进度</small></span>
+      </RouterLink>
       <div v-if="session?.isDefaultPassword" class="dashboard-alert is-warning" role="alert">
         <strong>安全提醒</strong><span>当前仍使用默认管理密码 password。</span>
         <RouterLink to="/admin/settings#security">立即修改</RouterLink>
@@ -319,4 +328,8 @@ onMounted(() => { void loadOverview(); });
 @media (max-width:1050px) { .overview-grid { grid-template-columns:1fr; } .overview-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:760px) { .welcome-row { flex-direction:column; align-items:flex-start; gap:12px; } .quick-actions { width:100%; } .quick-actions .dash-button { flex:1; } .config-details { gap:0 11px; } }
 @media (max-width:500px) { .overview-metrics { gap:8px; } .overview-metric { padding:12px; } .metric-value { font-size:18px; } .metric-note { font-size:9px; } .dashboard-panel { padding:13px; } .recent-table { min-width:560px; } .quick-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; } .quick-actions .dash-button { min-width:0; width:100%; padding:0 7px; white-space:normal; line-height:1.25; } .quick-actions .dash-button:last-child { grid-column:1 / -1; } .trend-note { margin-left:0; flex-basis:100%; } .panel-header { align-items:flex-start; } }
+.workflow-running { display:flex; align-items:center; gap:12px; color:var(--accent); text-decoration:none; border-color:color-mix(in srgb,var(--accent) 35%,var(--line)); }
+.workflow-running span { display:grid; gap:4px; min-width:0; }
+.workflow-running strong { font-size:12px; }
+.workflow-running small { color:var(--muted); font-size:11px; overflow-wrap:anywhere; }
 </style>
