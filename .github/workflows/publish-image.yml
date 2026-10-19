@@ -78,18 +78,13 @@ jobs:
               [[ "$VERSION" == *-r* ]] && CURRENT_REVISION="${VERSION##*-r}"
               [[ "$PREVIOUS_VERSION" == *-r* ]] && PREVIOUS_REVISION="${PREVIOUS_VERSION##*-r}"
 
-              if [[ "$CURRENT_DATE" < "$PREVIOUS_DATE" ]]; then
-                # 允许纠正误提交的“未来日期”版本：当前版本日期必须是今天或昨天，
-                # 且错误版本日期必须恰好晚一天，避免常规版本倒退被放行。
-                TODAY_DATE="$(TZ=Asia/Shanghai date +%Y.%m.%d)"
-                YESTERDAY_DATE="$(TZ=Asia/Shanghai date -d 'yesterday' +%Y.%m.%d)"
-                NEXT_DAY_OF_CURRENT="$(date -u -d "${CURRENT_DATE//./-} + 1 day" +%Y.%m.%d 2>/dev/null || true)"
-                if [[ "$PREVIOUS_DATE" != "$NEXT_DAY_OF_CURRENT" || ( "$CURRENT_DATE" != "$TODAY_DATE" && "$CURRENT_DATE" != "$YESTERDAY_DATE" ) ]]; then
-                  echo "::error::日历版本不能倒退：上一版本为 $PREVIOUS_VERSION，本次为 $VERSION。"
-                  exit 1
-                fi
-                REASON="更正误提交的未来日期版本 $PREVIOUS_VERSION，恢复到有效日历版本 $VERSION。"
-              elif [[ "$CURRENT_DATE" == "$PREVIOUS_DATE" ]] && (( 10#$CURRENT_REVISION <= 10#$PREVIOUS_REVISION )); then
+              TODAY_DATE="$(TZ=Asia/Shanghai date +%Y.%m.%d)"
+              if [[ "$CURRENT_DATE" != "$TODAY_DATE" ]]; then
+                echo "::error::只能发布当天日期的版本：今天是 $TODAY_DATE，本次版本为 $VERSION。"
+                exit 1
+              fi
+
+              if [[ "$CURRENT_DATE" == "$PREVIOUS_DATE" ]] && (( 10#$CURRENT_REVISION <= 10#$PREVIOUS_REVISION )); then
                 echo "::error::同一天的修订序号必须递增：上一版本为 $PREVIOUS_VERSION，本次为 $VERSION。"
                 exit 1
               fi
