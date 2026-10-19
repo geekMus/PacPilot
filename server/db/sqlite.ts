@@ -264,7 +264,7 @@ export function updateWorkflowRun(
   const fields = allowed.filter((key) => patch[key] !== undefined);
   if (!fields.length) return;
   database.query("UPDATE workflow_runs SET " + fields.map((key) => key + " = ?").join(", ") + " WHERE id = ?")
-    .run(...fields.map((key) => patch[key]), id);
+    .run(...fields.map((key) => patch[key] as string | number | null), id);
 }
 export function listWorkflowRuns(database: AppDatabase, limit = 50): WorkflowRun[] {
   return database.query("SELECT * FROM workflow_runs ORDER BY id DESC LIMIT ?")
