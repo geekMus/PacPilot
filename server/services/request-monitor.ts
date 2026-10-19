@@ -42,7 +42,7 @@ export function requestMonitoringMiddleware(database: AppDatabase) {
       const remoteAddress = normalizeAddress(req.socket.remoteAddress || "");
       const agent = String(req.headers["user-agent"] || "")
         .replace(/[\r\n\t]/g, " ")
-        .slice(0, 240);
+        .slice(0, 512);
       const statusCode = aborted && !res.writableFinished ? 499 : res.statusCode;
 
       try {
@@ -85,8 +85,8 @@ function categorize(path: string): string {
 }
 
 function safePath(path: string): string {
-  // req.path 不包含 query string；再限制长度，避免把任意超长路径写进数据库。
-  return path.slice(0, 240) || "/";
+  // req.path 不包含 query string；保留较长路径，同时限制长度避免异常请求放大数据库。
+  return path.slice(0, 1024) || "/";
 }
 
 function normalizeAddress(address: string): string {
