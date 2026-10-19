@@ -32,10 +32,10 @@ defineProps<{ brand?: string; sub?: string; homeTo?: string }>();
 .brand-copy small { display:block; margin-top:1px; color:var(--muted); font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
 .header-tools { display:flex; align-items:center; justify-content:flex-end; gap:10px; min-width:0; }
 .nav { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:6px; }
-.nav :deep(a),.nav :deep(button.linkish) { display:inline-flex; align-items:center; justify-content:center; min-height:35px; padding:0 12px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--text); font-size:12px; font-weight:650; text-decoration:none; white-space:nowrap; cursor:pointer; }
+.nav :deep(a),.nav :deep(button.linkish) { display:inline-flex; align-items:center; justify-content:center; min-height:36px; padding:0 12px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--text); font-size:12px; font-weight:650; text-decoration:none; white-space:nowrap; cursor:pointer; }
 .nav :deep(a:hover),.nav :deep(button.linkish:hover) { border-color:color-mix(in srgb,var(--accent) 40%,var(--line)); color:var(--accent); }
 .nav :deep(a.primary) { background:var(--accent); border-color:var(--accent); color:var(--accent-contrast); }
 .nav :deep(a.primary:hover) { filter:brightness(1.05); color:var(--accent-contrast); }
 @media(max-width:720px) { .topbar { align-items:flex-start; flex-direction:column; gap:12px; } .header-tools { width:100%; justify-content:space-between; align-items:center; flex-wrap:wrap; } .nav { justify-content:flex-start; } }
-@media(max-width:400px) { .nav :deep(a),.nav :deep(button.linkish) { min-height:32px; padding:0 9px; font-size:11px; } }
+@media(max-width:400px) { .nav :deep(a),.nav :deep(button.linkish) { min-height:36px; padding:0 9px; font-size:11px; } }
 </style>
