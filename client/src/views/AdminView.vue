@@ -22,6 +22,7 @@ const router = useRouter();
 const route = useRoute();
 const loading = ref(true);
 const saving = ref(false);
+const savedSettingsSnapshot = ref("");
 const flash = ref("");
 const flashOk = ref(true);
 const error = ref("");
@@ -311,6 +312,14 @@ function toPayload(): AppSettings {
   };
 }
 
+function settingsSnapshot(): string {
+  return JSON.stringify(toPayload());
+}
+
+const hasUnsavedSettings = computed(
+  () => savedSettingsSnapshot.value !== "" && settingsSnapshot() !== savedSettingsSnapshot.value
+);
+
 async function load() {
   loading.value = true;
   error.value = "";
@@ -337,6 +346,7 @@ async function load() {
       ),
     ]);
     applySettings(settings);
+    savedSettingsSnapshot.value = settingsSnapshot();
     logs.value = logList;
     genpacProbe.value = probe;
   } catch (e) {
@@ -364,12 +374,17 @@ async function saveAndGenerate() {
   error.value = "";
   if (formErrors.value.length) {
     showFlash(formErrors.value.join("\n"), false);
+    await nextTick();
+    window.scrollTo({ top: 0, behavior: "smooth" });
     return;
   }
+  const payload = toPayload();
+  const submittedSnapshot = JSON.stringify(payload);
   saving.value = true;
   try {
-    await api.saveSettings(toPayload());
+    await api.saveSettings(payload);
     const result = await api.generate();
+    if (result.success) savedSettingsSnapshot.value = submittedSnapshot;
     showFlash(
       result.success
         ? "配置已保存，PAC 生成成功"
@@ -782,8 +797,8 @@ async function logout() {
             </ul>
           </div>
           <p class="actions-hint">
-          使用页面右侧（窄屏时固定在底部）的快捷操作即可保存配置并重新生成 PAC。
-        </p>
+            修改配置后，右下角会出现快捷保存按钮；成功生成 PAC 后按钮会自动隐藏。
+          </p>
         </div>
       </form>
 
@@ -828,34 +843,19 @@ async function logout() {
         </div>
       </section>
 
-      <aside v-if="!securityStatus.mustChangePassword" class="floating-save-panel" aria-label="配置保存快捷操作">
-        <div class="floating-save-copy">
-          <div class="floating-save-heading">
-            <AppIcon name="save" :size="15" />
-            <span>配置操作</span>
-          </div>
-          <strong>保存并生成 PAC</strong>
-          <p v-if="saving" class="floating-save-status" role="status" aria-live="polite">正在保存设置并重新生成 PAC…</p>
-          <p v-else-if="formErrors.length" class="floating-save-status is-warning">
-            有 {{ formErrors.length }} 项校验问题需要修正
-          </p>
-          <p v-else class="floating-save-status">保存当前设置并立即更新 PAC 文件。</p>
-          <ul v-if="!saving && formErrors.length" class="floating-save-errors" aria-label="需要修正的问题">
-            <li v-for="(item, index) in formErrors.slice(0, 2)" :key="index">{{ item }}</li>
-            <li v-if="formErrors.length > 2">以及另外 {{ formErrors.length - 2 }} 项…</li>
-          </ul>
-        </div>
-        <button
-          form="settings-form"
-          type="submit"
-          class="btn primary btn-save floating-save-button"
-          :class="{ 'is-loading': saving }"
-          :disabled="!canSubmit"
-        >
-          <AppIcon :name="saving ? 'loader-circle' : formErrors.length ? 'circle-alert' : 'save'" :size="17" :class="{ 'save-spinner': saving }" />
-          <span>{{ saving ? "保存并生成中…" : formErrors.length ? "请先修正问题" : "保存并生成 PAC" }}</span>
-        </button>
-      </aside>
+      <button
+        v-if="!securityStatus.mustChangePassword && hasUnsavedSettings"
+        form="settings-form"
+        type="submit"
+        class="floating-save-button"
+        :class="{ 'is-loading': saving, 'has-errors': formErrors.length > 0 && !saving }"
+        :disabled="saving"
+        :aria-busy="saving"
+        :aria-label="saving ? '正在保存并生成 PAC' : formErrors.length ? '配置存在校验问题，点击查看详情' : '保存并生成 PAC'"
+        :title="saving ? '正在保存并生成 PAC' : formErrors.length ? '配置存在校验问题，点击查看详情' : '保存并生成 PAC'"
+      >
+        <AppIcon :name="saving ? 'loader-circle' : formErrors.length ? 'circle-alert' : 'save'" :size="21" :class="{ 'save-spinner': saving }" />
+      </button>
     </template>
     <AppFooter />
     </div>
@@ -865,83 +865,66 @@ async function logout() {
 <style scoped>
 .admin-page {
   min-width: 0;
-  padding-bottom: 190px;
+  padding-bottom: 90px;
 }
 
-.floating-save-panel {
+.floating-save-button {
   position: fixed;
   z-index: 40;
   right: 24px;
-  bottom: 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: min(310px, calc(100vw - 32px));
-  padding: 15px;
-  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line));
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  box-shadow: 0 12px 34px color-mix(in srgb, var(--text) 13%, transparent), 0 3px 10px color-mix(in srgb, var(--accent) 8%, transparent);
-  backdrop-filter: blur(18px);
+  bottom: 24px;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 1px solid var(--accent);
+  border-radius: 18px;
+  background: var(--accent);
+  color: var(--accent-contrast) !important;
+  -webkit-text-fill-color: var(--accent-contrast);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 28%, transparent);
+  cursor: pointer;
+  transition: background .15s, border-color .15s, box-shadow .15s, transform .15s;
 }
-
-.floating-save-copy { min-width: 0; }
-.floating-save-heading { display:flex; align-items:center; gap:7px; color:var(--accent); font-size:11px; font-weight:800; letter-spacing:.03em; }
-.floating-save-copy > strong { display:block; margin-top:7px; color:var(--text); font-size:14px; letter-spacing:-.015em; }
-.floating-save-status { margin:5px 0 0; color:var(--muted); font-size:11px; line-height:1.5; }
-.floating-save-status.is-warning { color:var(--warn); font-weight:700; }
-.floating-save-errors { display:grid; gap:4px; max-height:92px; overflow:auto; margin:8px 0 0; padding-left:17px; color:var(--red); font-size:11px; line-height:1.45; }
-.admin-page .floating-save-panel .floating-save-button {
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:9px;
-  width:100%;
-  min-width:0;
-  min-height:46px;
-  padding:10px 14px;
-  border:1px solid var(--accent);
-  border-radius:10px;
-  background:var(--accent);
-  color:var(--accent-contrast) !important;
-  -webkit-text-fill-color:var(--accent-contrast);
-  font-weight:750;
-  box-shadow:0 4px 12px color-mix(in srgb,var(--accent) 20%,transparent);
-  transition:background .15s, border-color .15s, box-shadow .15s, transform .15s;
+.floating-save-button svg { flex: 0 0 auto; }
+.floating-save-button:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--accent-contrast) !important;
+  -webkit-text-fill-color: var(--accent-contrast);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--accent) 34%, transparent);
+  transform: translateY(-2px);
 }
-.admin-page .floating-save-panel .floating-save-button:hover:not(:disabled) {
-  background:var(--accent-hover);
-  border-color:var(--accent-hover);
-  color:var(--accent-contrast) !important;
-  -webkit-text-fill-color:var(--accent-contrast);
-  box-shadow:0 7px 18px color-mix(in srgb,var(--accent) 25%,transparent);
-  transform:translateY(-1px);
+.floating-save-button:active:not(:disabled) {
+  background: var(--accent-active);
+  border-color: var(--accent-active);
+  color: var(--accent-contrast) !important;
+  -webkit-text-fill-color: var(--accent-contrast);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 24%, transparent);
+  transform: translateY(0);
 }
-.admin-page .floating-save-panel .floating-save-button:active:not(:disabled) {
-  background:var(--accent-active);
-  border-color:var(--accent-active);
-  color:var(--accent-contrast) !important;
-  -webkit-text-fill-color:var(--accent-contrast);
-  transform:translateY(0);
+.floating-save-button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 42%, transparent);
+  outline-offset: 4px;
 }
-.admin-page .floating-save-panel .floating-save-button:disabled {
-  opacity:1;
-  cursor:not-allowed;
-  background:var(--surface-2);
-  border-color:var(--line);
-  color:var(--muted) !important;
-  -webkit-text-fill-color:var(--muted);
-  box-shadow:none;
-  transform:none;
+.floating-save-button.has-errors:not(:disabled) {
+  background: var(--warn-soft);
+  border-color: var(--warn);
+  color: var(--warn) !important;
+  -webkit-text-fill-color: var(--warn);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--warn) 18%, transparent);
 }
-.admin-page .floating-save-panel .floating-save-button.is-loading:disabled {
-  cursor:progress;
-  background:var(--accent);
-  border-color:var(--accent);
-  color:var(--accent-contrast) !important;
-  -webkit-text-fill-color:var(--accent-contrast);
+.floating-save-button.is-loading:disabled {
+  opacity: 1;
+  cursor: progress;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast) !important;
+  -webkit-text-fill-color: var(--accent-contrast);
+  box-shadow: none;
+  transform: none;
 }
-.admin-page .floating-save-panel .floating-save-button svg { flex:0 0 auto; }
 .admin-logout-button {
   display:inline-flex;
   align-items:center;
@@ -1410,24 +1393,14 @@ tr:last-child td {
   color: var(--red);
 }
 @media (max-width: 720px) {
-  .admin-page { padding-bottom: 150px; }
-  .floating-save-panel {
-    right: 12px;
-    bottom: max(10px, env(safe-area-inset-bottom));
-    left: 12px;
-    width: auto;
-    flex-direction: row;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: 13px;
+  .admin-page { padding-bottom: 100px; }
+  .floating-save-button {
+    right: 16px;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
   }
-  .floating-save-copy { flex:1; min-width:0; }
-  .floating-save-copy > strong { margin-top:3px; font-size:12px; }
-  .floating-save-heading { font-size:10px; }
-  .floating-save-status { font-size:10px; }
-  .floating-save-errors { display:none; }
-  .admin-page .floating-save-panel .floating-save-button { flex:0 0 auto; width:auto; min-width:154px; min-height:42px; padding:9px 12px; font-size:12px; }
   .mode-grid,
   .split {
     grid-template-columns: 1fr;
