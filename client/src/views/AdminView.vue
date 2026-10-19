@@ -635,11 +635,12 @@ async function logout() {
           </div>
           <div class="field">
             <label for="listUrl">规则列表 URL <span class="lab-hint">GFWList / 域名型 AutoProxy、ABP / 明文域名</span></label>
-            <input id="listUrl" v-model="form.listUrl" :disabled="form.mode !== 'remote'" placeholder="https://example.com/list.txt" />
-            <p class="field-hint">按提取出的域名进行匹配；URL 路径、资源类型等复杂过滤条件不会保留。</p>
+            <input id="listUrl" v-model="form.listUrl" :disabled="form.mode !== 'remote'" :aria-describedby="form.mode !== 'remote' ? 'list-url-disabled-hint' : undefined" placeholder="https://example.com/list.txt" />
+            <p v-if="form.mode !== 'remote'" id="list-url-disabled-hint" class="field-hint">当前为自定义规则模式；切换到「远程规则列表」后才能编辑此项。</p>
+            <p v-else class="field-hint">按提取出的域名进行匹配；URL 路径、资源类型等复杂过滤条件不会保留。</p>
           </div>
           <div class="checks">
-            <label class="check">
+            <label class="check" :class="{ disabled: form.mode !== 'remote' }" :aria-disabled="form.mode !== 'remote'">
               <input v-model="form.pacCompress" type="checkbox" :disabled="form.mode !== 'remote'" />
               <span>压缩远程 PAC</span>
             </label>
@@ -1009,6 +1010,15 @@ h2 {
 .field:last-child {
   margin-bottom: 0;
 }
+.field input:disabled:not([type="checkbox"]),
+.field textarea:disabled {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--muted);
+  -webkit-text-fill-color: var(--muted);
+  opacity: 1;
+  cursor: not-allowed;
+}
 .field label {
   display: block;
   font-size: 13px;
@@ -1060,7 +1070,16 @@ textarea {
   font-size: 14px;
   cursor: pointer;
   user-select: none;
+  transition: background .15s, border-color .15s, color .15s;
 }
+.check.disabled {
+  background: var(--bg);
+  border-color: var(--line);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+.check.disabled span { color: var(--muted); }
+.check.disabled input { opacity: .55; cursor: not-allowed; }
 .check input {
   width: 18px;
   height: 18px;
@@ -1102,8 +1121,12 @@ textarea {
   border-color: var(--accent);
   color: var(--accent-contrast);
 }
-.btn.primary:hover:not(:disabled) {
-  filter: brightness(1.05);
+.btn.primary:hover:not(:disabled),
+.btn.primary:active:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 90%, var(--text));
+  border-color: color-mix(in srgb, var(--accent) 90%, var(--text));
+  color: var(--accent-contrast);
+  filter: none;
 }
 .admin-page .actions .btn-save {
   display: inline-flex;
@@ -1302,8 +1325,10 @@ tr:last-child td {
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.chip:hover {
+.chip:hover:not(:disabled),
+.chip:active:not(:disabled) {
   border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  background: var(--accent-soft);
   color: var(--accent);
 }
 .chip.active {
