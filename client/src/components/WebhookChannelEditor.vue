@@ -207,9 +207,11 @@ const channelStatusText = computed(() => {
 .channel-heading h3 { margin: 0; font-size: 13px; font-weight: 750; }
 .channel-heading p { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
 .test-button {
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
   box-sizing: border-box; flex: 0 0 auto; appearance: none; border: 1px solid var(--line);
   border-radius: 8px; padding: 0 12px; min-height: 36px;
   background: var(--surface); color: var(--text); font-size: 11px; font-weight: 700; cursor: pointer;
+  transition:background .15s,border-color .15s,color .15s;
 }
 .test-button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background:var(--surface-2); }
 .test-button:active:not(:disabled) { border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
