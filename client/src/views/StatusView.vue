@@ -51,7 +51,7 @@ const directEntries = computed<RuleEntry[]>(() => {
   if (!current) return [];
   const entries = new Map<string, RuleEntry>();
   for (const domain of current.remoteDirectList) {
-    entries.set(domain.toLowerCase(), { domain, source: "远程例外" });
+    entries.set(domain.toLowerCase(), { domain, source: "远程例外直连" });
   }
   for (const domain of current.directList) {
     entries.set(domain.toLowerCase(), { domain, source: "自定义直连" });
@@ -59,10 +59,10 @@ const directEntries = computed<RuleEntry[]>(() => {
   return [...entries.values()];
 });
 const proxyEntries = computed<RuleEntry[]>(() =>
-  (status.value?.remoteProxyList ?? []).map((domain) => ({ domain, source: "远程列表" }))
+  (status.value?.remoteProxyList ?? []).map((domain) => ({ domain, source: "远程代理" }))
 );
 const blockEntries = computed<RuleEntry[]>(() =>
-  (status.value?.blockList ?? []).map((domain) => ({ domain, source: "黑名单" }))
+  (status.value?.blockList ?? []).map((domain) => ({ domain, source: "自定义黑名单" }))
 );
 
 watch(domainInput, () => {
@@ -189,11 +189,6 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
   };
 });
 
-const activeRuleCount = computed(() => {
-  if (activeRuleType.value === "direct") return directEntries.value.length;
-  if (activeRuleType.value === "block") return blockEntries.value.length;
-  return status.value?.mode === "remote" ? proxyEntries.value.length : null;
-});
 </script>
 
 <template>
@@ -232,6 +227,24 @@ const activeRuleCount = computed(() => {
       </section>
 
       <template v-else-if="hasRuleSummary">
+        <section class="stats-grid" :class="status.mode === 'remote' ? 'remote-stats' : 'custom-stats'">
+          <article v-if="status.mode === 'remote'" class="stat-card">
+            <span class="stat-label">远程代理域名</span><strong class="stat-number">{{ status.remoteProxyCount }}</strong><span class="stat-caption">命中时走代理</span>
+          </article>
+          <article v-if="status.mode === 'remote'" class="stat-card">
+            <span class="stat-label">远程例外直连</span><strong class="stat-number">{{ status.remoteDirectCount }}</strong><span class="stat-caption">远程列表中的例外规则</span>
+          </article>
+          <article class="stat-card">
+            <span class="stat-label">自定义直连</span><strong class="stat-number">{{ status.directList.length }}</strong><span class="stat-caption">这些域名跳过代理</span>
+          </article>
+          <article class="stat-card">
+            <span class="stat-label">自定义黑名单</span><strong class="stat-number">{{ status.blockList.length }}</strong><span class="stat-caption">命中时拦截请求</span>
+          </article>
+          <article v-if="status.mode === 'custom'" class="stat-card stat-card-wide">
+            <span class="stat-label">默认代理</span><strong class="stat-proxy">{{ status.pacProxy || "未识别" }}</strong><span class="stat-caption">未命中自定义规则时使用</span>
+          </article>
+        </section>
+
         <section class="domain-check section-card">
           <div class="domain-check-head">
             <div>
@@ -270,29 +283,13 @@ const activeRuleCount = computed(() => {
           </div>
         </section>
 
-        <section class="stats-grid" :class="status.mode === 'remote' ? 'remote-stats' : 'custom-stats'">
-          <article v-if="status.mode === 'remote'" class="stat-card">
-            <span class="stat-label">远程代理域名</span><strong class="stat-number">{{ status.remoteProxyCount }}</strong><span class="stat-caption">命中时走代理</span>
-          </article>
-          <article v-if="status.mode === 'remote'" class="stat-card">
-            <span class="stat-label">远程例外直连</span><strong class="stat-number">{{ status.remoteDirectCount }}</strong><span class="stat-caption">远程列表中的例外规则</span>
-          </article>
-          <article class="stat-card">
-            <span class="stat-label">自定义直连</span><strong class="stat-number">{{ status.directList.length }}</strong><span class="stat-caption">这些域名跳过代理</span>
-          </article>
-          <article class="stat-card">
-            <span class="stat-label">自定义黑名单</span><strong class="stat-number">{{ status.blockList.length }}</strong><span class="stat-caption">命中时拦截请求</span>
-          </article>
-          <article v-if="status.mode === 'custom'" class="stat-card stat-card-wide">
-            <span class="stat-label">默认代理</span><strong class="stat-proxy">{{ status.pacProxy || "未识别" }}</strong><span class="stat-caption">未命中自定义规则时使用</span>
-          </article>
-        </section>
+
 
         <section class="rules-section section-card">
           <div class="section-head rules-section-head">
             <div>
               <h2>域名路由明细</h2>
-              <p class="section-description">按类别查看当前 PAC 中的规则，无需搜索；列表较长时可在固定区域内滚动。</p>
+              <p class="section-description">每条规则都标明来源；长域名可点击查看完整内容，列表较长时可在固定区域内滚动。</p>
             </div>
             <RouterLink v-if="meta?.adminEnabled" to="/admin" class="text-link">编辑规则 <span aria-hidden="true">→</span></RouterLink>
           </div>
@@ -314,12 +311,12 @@ const activeRuleCount = computed(() => {
 
           <div class="rule-content" role="tabpanel">
             <template v-if="activeRuleType === 'direct'">
-              <p class="rule-description">自定义直连优先于远程列表；远程例外规则在代理列表之前生效。</p>
+              <p class="rule-description">自定义直连优先于远程列表；蓝色来源标签代表远程规则中的例外直连。</p>
               <RuleVirtualList :items="directEntries" empty-text="没有额外的直连规则。" :height="300" />
             </template>
             <template v-else-if="activeRuleType === 'proxy'">
               <template v-if="status.mode === 'remote'">
-                <p class="rule-description">远程代理列表中的域名。自定义黑名单与直连规则优先于此列表。</p>
+                <p class="rule-description">蓝色来源标签代表远程代理列表；自定义黑名单与直连规则优先于此列表。</p>
                 <RuleVirtualList :items="proxyEntries" empty-text="远程列表中没有代理域名。" :height="300" />
               </template>
               <div v-else class="default-proxy">
@@ -329,7 +326,7 @@ const activeRuleCount = computed(() => {
               </div>
             </template>
             <template v-else>
-              <p class="rule-description">命中后拦截请求；本地与内网优先规则除外。</p>
+              <p class="rule-description">红色来源标签代表自定义黑名单；本地、回环及私网直连规则优先。</p>
               <RuleVirtualList :items="blockEntries" empty-text="没有配置黑名单。" :height="300" />
             </template>
           </div>
@@ -350,31 +347,87 @@ const activeRuleCount = computed(() => {
 </template>
 
 <style scoped>
-.status-page { padding-bottom:52px; }
-.page-hero { margin-bottom:24px; }
-.page-kicker { color:var(--accent); }
-.page-title { margin-bottom:10px; }
-.page-intro { max-width:690px; }
-.hero-meta { display:inline-flex; align-items:center; flex-wrap:wrap; gap:9px; margin-top:18px; padding:8px 12px; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--muted); font-size:12px; }
+.status-page {
+  width: min(1080px, calc(100% - var(--page-pad) * 2));
+  margin: 0 auto;
+  padding-bottom: 56px;
+}
+.page-hero {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 22px;
+  padding: clamp(22px, 3.8vw, 34px) clamp(22px, 4vw, 38px);
+  border: 1px solid color-mix(in srgb, var(--accent) 15%, var(--line));
+  border-radius: 18px;
+  background: linear-gradient(128deg,
+    color-mix(in srgb, var(--accent) 7%, var(--surface)) 0%,
+    var(--surface) 72%);
+  box-shadow: var(--shadow);
+}
+.page-hero::before {
+  position: absolute;
+  inset: 18px auto 18px 0;
+  width: 3px;
+  border-radius: 0 6px 6px 0;
+  background: var(--accent);
+  content: "";
+}
+.status-page .page-kicker {
+  display: inline-flex;
+  align-items: center;
+  min-height: 25px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 10px;
+  letter-spacing: .12em;
+}
+.status-page .page-title {
+  margin: 12px 0 10px;
+  font-size: clamp(1.8rem, 4vw, 2.35rem);
+  line-height: 1.18;
+  letter-spacing: -.045em;
+}
+.status-page .page-intro {
+  max-width: 760px;
+  font-size: 13px;
+  line-height: 1.75;
+}
+.hero-meta {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 20px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--muted);
+  font-size: 11px;
+}
+
 .hero-meta strong { color:var(--text); font-weight:650; }
 .meta-divider { opacity:.6; }
 .status-indicator { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--muted); }
 .status-indicator.online { background:var(--green); box-shadow:0 0 0 3px var(--green-soft); }
 .status-indicator.idle { background:var(--warn); }
-.stats-grid { display:grid; gap:12px; margin-bottom:22px; }
+.stats-grid { display:grid; gap:14px; margin-bottom:22px; }
 .remote-stats { grid-template-columns:repeat(4,minmax(0,1fr)); }
 .custom-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
-.stat-card { min-width:0; min-height:128px; padding:17px 18px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow); }
+.stat-card { position:relative; min-width:0; min-height:120px; padding:19px 20px; border:1px solid var(--line); border-radius:15px; background:var(--surface); box-shadow:var(--shadow); transition:border-color .18s,transform .18s; }
+.stat-card:hover { border-color:color-mix(in srgb,var(--accent) 30%,var(--line)); transform:translateY(-1px); }
 .stat-card-wide { grid-column:1 / -1; }
-.stat-label { display:block; color:var(--muted); font-size:12px; font-weight:600; margin-bottom:10px; }
+.stat-label { display:block; color:var(--muted); font-size:11px; font-weight:700; letter-spacing:.02em; margin-bottom:11px; }
 .stat-number { display:block; font-size:clamp(25px,3vw,32px); line-height:1.1; letter-spacing:-.04em; font-variant-numeric:tabular-nums; }
-.stat-caption { display:block; color:var(--muted); font-size:11px; line-height:1.4; margin-top:8px; }
+.stat-caption { display:block; color:var(--muted); font-size:11px; line-height:1.55; margin-top:9px; }
 .stat-proxy { display:block; overflow-wrap:anywhere; font:600 13px/1.5 var(--font-mono); }
 .section-card,.empty-hero { border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow); }
-.section-card { padding:clamp(16px,2.8vw,24px); margin-bottom:20px; }
+.section-card { padding:clamp(17px,2.8vw,26px); margin-bottom:20px; }
 .section-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; }
-.section-head h2 { margin:0; font-size:18px; letter-spacing:-.02em; }
-.rules-section { margin-top:24px; }
+.section-head h2 { margin:0; font-size:18px; letter-spacing:-.025em; }
+.rules-section { margin-top:0; }
 .rules-section-head { align-items:end; margin-bottom:16px; }
 .section-description { margin:7px 0 0; color:var(--muted); font-size:12px; }
 .text-link { color:var(--accent); font-size:12px; font-weight:650; white-space:nowrap; }
@@ -509,7 +562,12 @@ const activeRuleCount = computed(() => {
 @media(max-width:960px) { .remote-stats,.custom-stats { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:480px) {
   .remote-stats,.custom-stats { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
-  .stat-card { min-height:112px; padding:13px; }
+  .page-hero { padding:22px 18px 22px 22px; border-radius:15px; }
+  .status-page .page-title { font-size:clamp(1.65rem,7vw,2rem); }
+  .status-page .page-intro { font-size:12px; }
+  .hero-meta { align-items:flex-start; gap:7px; border-radius:10px; }
+  .stats-grid { gap:8px; }
+  .stat-card { min-height:108px; padding:13px 12px; border-radius:12px; }
   .stat-number { font-size:25px; }
   .section-head { flex-direction:column; align-items:flex-start; gap:6px; }
   .source-footer { align-items:flex-start; }
