@@ -31,6 +31,18 @@ const emit = defineEmits<{
 }>();
 
 const setRuleDiagnostics = StateEffect.define<RuleDiagnostic[]>();
+const setJumpHighlight = StateEffect.define<number | null>();
+const jumpHighlightField = StateField.define<number | null>({
+  create: () => null,
+  update(value, transaction) {
+    for (const effect of transaction.effects) if (effect.is(setJumpHighlight)) value = effect.value;
+    if (transaction.docChanged && value !== null) {
+      const changedLine = transaction.state.doc.lineAt(Math.min(transaction.changes.mapPos(transaction.startState.doc.line(Math.min(value, transaction.startState.doc.lines)).from), transaction.state.doc.length)).number;
+      value = changedLine;
+    }
+    return value;
+  },
+});
 const ruleDiagnosticsField = StateField.define<RuleDiagnostic[]>({
   create: () => [],
   update(value, transaction) {
@@ -55,16 +67,27 @@ class RuleDiagnosticMarker extends GutterMarker {
 const ruleDecorationField = StateField.define({
   create: () => Decoration.none,
   update(decorations, transaction) {
-    if (!transaction.docChanged && !transaction.effects.some((effect) => effect.is(setRuleDiagnostics))) return decorations.map(transaction.changes);
+    const diagnosticsChanged = transaction.effects.some((effect) => effect.is(setRuleDiagnostics));
+    const highlightChanged = transaction.effects.some((effect) => effect.is(setJumpHighlight));
+    if (!transaction.docChanged && !diagnosticsChanged && !highlightChanged) return decorations.map(transaction.changes);
     const diagnostics = transaction.state.field(ruleDiagnosticsField);
     const byLine = new Map<number, RuleDiagnostic[]>();
     for (const diagnostic of diagnostics) byLine.set(diagnostic.line, [...(byLine.get(diagnostic.line) ?? []), diagnostic]);
+    const highlightLine = transaction.state.field(jumpHighlightField);
+    const lineNumbersToDecorate = new Set([...byLine.keys()]);
+    if (highlightLine !== null) lineNumbersToDecorate.add(highlightLine);
     const ranges = [];
-    for (const [lineNumber, items] of byLine) {
-      if (lineNumber > transaction.state.doc.lines) continue;
-      const line = transaction.state.doc.line(lineNumber);
-      const severity = items.some((item) => item.severity === "error") ? "error" : items.some((item) => item.severity === "warning") ? "warning" : "info";
-      ranges.push(Decoration.line({ attributes: { class: "cm-rule-line-" + severity, title: items.map((item) => item.message).join("\n") } }).range(line.from));
+    for (const lineNumber of lineNumbersToDecorate) {
+      if (lineNumber < 1 || lineNumber > transaction.state.doc.lines) continue;
+      const items = byLine.get(lineNumber) ?? [];
+      const classes: string[] = [];
+      if (items.length) {
+        const severity = items.some((item) => item.severity === "error") ? "error" : items.some((item) => item.severity === "warning") ? "warning" : "info";
+        classes.push("cm-rule-line-" + severity);
+      }
+      if (highlightLine === lineNumber) classes.push("cm-jump-highlight");
+      const title = items.map((item) => item.message).join("\n");
+      ranges.push(Decoration.line({ attributes: { class: classes.join(" "), ...(title ? { title } : {}) } }).range(transaction.state.doc.line(lineNumber).from));
     }
     ranges.sort((a, b) => a.from - b.from);
     return Decoration.set(ranges, true);
@@ -76,11 +99,24 @@ const host = ref<HTMLDivElement | null>(null);
 let view: EditorView | null = null;
 let themeObs: MutationObserver | null = null;
 
+let jumpHighlightTimer: number | null = null;
 function jumpToLine(lineNumber: number) {
   if (!view || lineNumber < 1 || lineNumber > view.state.doc.lines) return;
-  const position = view.state.doc.line(lineNumber).from;
-  view.dispatch({ selection: { anchor: position }, effects: EditorView.scrollIntoView(position, { y: "center" }) });
-  view.focus();
+  const line = view.state.doc.line(lineNumber);
+  if (jumpHighlightTimer !== null) window.clearTimeout(jumpHighlightTimer);
+  view.dispatch({
+    selection: { anchor: line.to },
+    effects: [
+      EditorView.scrollIntoView(line.to, { y: "center", x: "nearest" }),
+      setJumpHighlight.of(lineNumber),
+    ],
+  });
+  // 聚焦编辑器时禁止浏览器滚动整个页面，只让 CodeMirror 内部滚动。
+  view.contentDOM.focus({ preventScroll: true });
+  jumpHighlightTimer = window.setTimeout(() => {
+    if (view) view.dispatch({ effects: setJumpHighlight.of(null) });
+    jumpHighlightTimer = null;
+  }, 1500);
 }
 
 function isDark(): boolean {
@@ -93,6 +129,7 @@ function buildExtensions(dark: boolean) {
     lineNumbers(),
     highlightActiveLine(),
     ruleDiagnosticsField,
+    jumpHighlightField,
     ruleDecorationField,
     gutter({ class: "cm-rule-diagnostic-gutter", markers(view) {
       const grouped = new Map<number, RuleDiagnostic>();
@@ -124,10 +161,10 @@ function buildExtensions(dark: boolean) {
         overflow: "auto",
         fontFamily:
           'ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace',
-        lineHeight: "1.5",
+        lineHeight: "1.65",
       },
       ".cm-content": {
-        padding: "10px 0",
+        padding: "12px 8px",
       },
       "&.cm-focused": { outline: "none" },
       ".cm-rule-diagnostic-gutter": { width: "16px", background: "var(--surface-2)" },
@@ -138,6 +175,12 @@ function buildExtensions(dark: boolean) {
       ".cm-line.cm-rule-line-error": { background: "color-mix(in srgb, var(--red) 10%, transparent)" },
       ".cm-line.cm-rule-line-warning": { background: "color-mix(in srgb, var(--warn) 10%, transparent)" },
       ".cm-line.cm-rule-line-info": { background: "color-mix(in srgb, var(--accent) 7%, transparent)" },
+      ".cm-line.cm-jump-highlight": { animation: "cm-rule-jump-flash 1.5s ease-out both", borderRadius: "3px" },
+      "@keyframes cm-rule-jump-flash": {
+        "0%": { backgroundColor: "color-mix(in srgb, var(--accent) 26%, transparent)" },
+        "35%": { backgroundColor: "color-mix(in srgb, var(--accent) 18%, transparent)" },
+        "100%": { backgroundColor: "transparent" },
+      },
     }),
   ];
   if (dark) base.push(oneDark);
@@ -173,6 +216,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   themeObs?.disconnect();
+  if (jumpHighlightTimer !== null) window.clearTimeout(jumpHighlightTimer);
+  jumpHighlightTimer = null;
   view?.destroy();
   view = null;
 });

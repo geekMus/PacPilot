@@ -481,7 +481,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
 .matched-rule code { padding:3px 6px; border-radius:5px; background:var(--bg); color:var(--text); font-size:11px; overflow-wrap:anywhere; }
 .rule-tabs {
   display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-columns:repeat(2,minmax(0,1fr));
   gap:6px;
   margin-bottom:14px;
   padding:5px;
@@ -627,8 +627,8 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
   .pac-access-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); justify-content:stretch; }
   .pac-access-link,.pac-access-refresh { min-height:44px; padding:0 10px; }
   .pac-access-refresh { grid-column:1 / -1; }
-  .rule-tabs { gap:5px; padding:4px; }
-  .rule-tabs button { gap:4px; padding:0 4px; font-size:11px; }
+  .rule-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px; padding:4px; }
+  .rule-tabs button { gap:6px; padding:0 8px; font-size:12px; }
   .rule-tabs button strong { min-width:20px; min-height:20px; padding:0 4px; }
   .domain-check-form { grid-template-columns:minmax(0,1fr); }
   .domain-check-form input { min-height:44px; font-size:16px; }
