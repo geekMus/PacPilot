@@ -15,18 +15,20 @@ const runs = ref<WorkflowRun[]>([]);
 let pollHandle: ReturnType<typeof setInterval> | undefined;
 
 const active = computed(() => Boolean(current.value));
-const statusLabel = (status: string) => ({
+const statusNames: Record<string, string> = {
   pending: "等待执行",
   running: "执行中",
   succeeded: "成功",
   failed: "失败",
-}[status] ?? status);
-const sourceLabel = (source: string) => ({
+};
+const sourceNames: Record<string, string> = {
   startup: "服务启动",
   scheduled: "定时任务",
   manual: "手动生成",
   "save-and-generate": "保存并生成",
-}[source] ?? source);
+};
+const statusLabel = (status: string) => statusNames[status] ?? status;
+const sourceLabel = (source: string) => sourceNames[source] ?? source;
 const modeLabel = (mode: string) => mode === "remote" ? "远程规则" : mode === "custom" ? "自定义规则" : mode || "—";
 const durationLabel = (run: WorkflowRun) => {
   const ms = run.duration_ms ?? (run.started_at ? Date.now() - new Date(run.started_at).getTime() : null);
