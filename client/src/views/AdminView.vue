@@ -674,7 +674,7 @@ async function logout() {
               <p><strong>黑名单：</strong>命中后返回 <code>PROXY 0.0.0.0:0</code>，让客户端连接不可用的代理地址以阻止访问；具体提示取决于客户端。</p>
               <p><strong>匹配优先级（两种模式相同）：</strong></p>
               <ol>
-                <li>本机 / 内网地址 → 始终直连</li>
+                <li>localhost、无点号主机名、IPv4 回环与 RFC 1918 私网地址 → 直连</li>
                 <li>黑名单 → 拒绝</li>
                 <li>直连列表 → 直连</li>
                 <li>若为远程列表模式：再匹配远程规则（列表中的域名走代理，列表内例外直连）</li>
