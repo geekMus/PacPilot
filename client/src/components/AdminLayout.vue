@@ -83,13 +83,13 @@ watch(() => route.fullPath, () => {
         <section class="nav-group" aria-labelledby="nav-configuration">
           <p id="nav-configuration" class="nav-caption">配置</p>
           <RouterLink
-            to="/admin"
+            to="/admin/settings"
             class="sidebar-link"
             :class="{ active: active === 'settings' }"
             :aria-current="active === 'settings' ? 'page' : undefined"
           >
             <AppIcon name="settings" :size="18" />
-            <span>配置管理</span>
+            <span>配置设置</span>
           </RouterLink>
         </section>
 
