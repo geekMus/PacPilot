@@ -19,9 +19,14 @@ const router = createRouter({
       component: () => import("../views/LoginView.vue"),
     },
     {
-      path: "/admin",
-      name: "admin",
+      path: "/admin/settings",
+      name: "admin-settings",
       component: () => import("../views/AdminView.vue"),
+    },
+    {
+      // 兼容旧地址，并将后台默认入口统一指向总览。
+      path: "/admin",
+      redirect: { name: "admin-dashboard" },
     },
     {
       path: "/admin/monitor",
