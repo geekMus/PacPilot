@@ -166,7 +166,7 @@ function buildExtensions(dark: boolean) {
     EditorView.lineWrapping,
     EditorView.updateListener.of((u) => {
       if (u.docChanged) emit("update:modelValue", u.state.doc.toString());
-      if (u.docChanged || u.transactions.some((transaction) => transaction.effects.some((effect) => effect.is(setRuleDiagnostics)))) syncLineNumberTitles(u.view);
+      if (u.docChanged || u.viewportChanged || u.transactions.some((transaction) => transaction.effects.some((effect) => effect.is(setRuleDiagnostics)))) syncLineNumberTitles(u.view);
     }),
     EditorView.theme({
       "&": {
