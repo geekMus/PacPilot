@@ -32,8 +32,8 @@
     "cronstrue": "^3.32.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "node-cron": "^3.0.3",
     "@lucide/vue": "^1.59.0",
+    "node-cron": "^3.0.3",
     "terser": "^5.44.0"
   },
   "devDependencies": {
