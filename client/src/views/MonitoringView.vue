@@ -535,6 +535,6 @@ onUnmounted(() => {
 .monitor-spinner { width:20px; height:20px; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:monitor-spin .8s linear infinite; flex:0 0 auto; }
 @keyframes monitor-spin { to { transform:rotate(360deg); } }
 .probe-history-error { min-width:220px; max-width:340px; overflow-wrap:anywhere; color:var(--red); }
-@media(max-width:900px) { .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .monitor-panel { padding:16px; } .probe-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:1100px) { .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .monitor-panel { padding:16px; } .probe-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:560px) { .monitor-title-row { flex-direction:column; } .monitor-title-row .monitor-button { align-self:flex-start; } .panel-heading { flex-direction:column; align-items:stretch; gap:8px; margin-bottom:12px; } .panel-actions { align-self:flex-start; } .panel-heading > .monitor-button { align-self:flex-start; } .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:14px 0 20px; } .metric-card { padding:12px 11px; border-radius:11px; } .metric-label { font-size:10px; } .metric-value { font-size:1.32rem; } .monitor-panel { padding:13px; margin-bottom:16px; } .trend-sample-note { margin-left:0; flex-basis:100%; } .probe-run-head { flex-direction:column; align-items:flex-start; } .probe-metrics { gap:7px; } }
 </style>
