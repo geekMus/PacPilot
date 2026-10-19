@@ -44,29 +44,52 @@ watch(() => route.fullPath, () => {
       </RouterLink>
 
       <nav class="sidebar-nav" aria-label="管理导航">
-        <p class="nav-caption">工作台</p>
-        <RouterLink to="/admin/dashboard" class="sidebar-link" :class="{ active: active === 'dashboard' }">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="4" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/></svg>
-          <span>系统总览</span>
-        </RouterLink>
-        <RouterLink to="/admin/monitor" class="sidebar-link" :class="{ active: active === 'monitor' }">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h3l2.2-6 4.1 12 2.4-7 1.5 3H21"/><path d="M4 4h16v16H4z"/></svg>
-          <span>网络监控</span>
-        </RouterLink>
+        <section class="nav-group" aria-labelledby="nav-workbench">
+          <p id="nav-workbench" class="nav-caption">工作台</p>
+          <RouterLink
+            to="/admin/dashboard"
+            class="sidebar-link"
+            :class="{ active: active === 'dashboard' }"
+            :aria-current="active === 'dashboard' ? 'page' : undefined"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="4" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/></svg>
+            <span>系统总览</span>
+          </RouterLink>
+          <RouterLink
+            to="/admin/monitor"
+            class="sidebar-link"
+            :class="{ active: active === 'monitor' }"
+            :aria-current="active === 'monitor' ? 'page' : undefined"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h3l2.2-6 4.1 12 2.4-7 1.5 3H21"/><path d="M4 4h16v16H4z"/></svg>
+            <span>网络监控</span>
+          </RouterLink>
+        </section>
 
-        <p class="nav-caption nav-caption-spaced">快捷入口</p>
-        <RouterLink to="/admin" class="sidebar-link" :class="{ active: active === 'settings' }">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1 1.4 1.1-1.5 2.6-1.7-.6a8 8 0 0 1-1.6.9l-.3 1.8h-3l-.3-1.8a8 8 0 0 1-1.6-.9l-1.7.6-1.5-2.6 1.4-1.1a7 7 0 0 1 0-1.9l-1.4-1.1 1.5-2.6 1.7.6a8 8 0 0 1 1.6-.9l.3-1.8h3l.3 1.8a8 8 0 0 1 1.6.9l1.7-.6 1.5 2.6-1.4 1.1a7 7 0 0 1-.1 1.8Z" transform="translate(-1 -1) scale(1.04)"/></svg>
-          <span>配置管理</span>
-        </RouterLink>
-        <a class="sidebar-link" href="/proxy.pac" target="_blank" rel="noopener noreferrer">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7M21 3 11 13"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-          <span>查看 PAC 文件</span><span class="external-mark" aria-hidden="true">↗</span>
-        </a>
-        <RouterLink to="/" class="sidebar-link">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h18M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z"/><path d="m8 12 2.5 2.5L16 9"/></svg>
-          <span>公共状态页</span>
-        </RouterLink>
+        <section class="nav-group" aria-labelledby="nav-configuration">
+          <p id="nav-configuration" class="nav-caption">配置</p>
+          <RouterLink
+            to="/admin"
+            class="sidebar-link"
+            :class="{ active: active === 'settings' }"
+            :aria-current="active === 'settings' ? 'page' : undefined"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1 1.4 1.1-1.5 2.6-1.7-.6a8 8 0 0 1-1.6.9l-.3 1.8h-3l-.3-1.8a8 8 0 0 1-1.6-.9l-1.7.6-1.5-2.6 1.4-1.1a7 7 0 0 1 0-1.9l-1.4-1.1 1.5-2.6 1.7.6a8 8 0 0 1 1.6-.9l.3-1.8h3l.3 1.8a8 8 0 0 1 1.6.9l1.7-.6 1.5 2.6-1.4 1.1a7 7 0 0 1-.1 1.8Z" transform="translate(-1 -1) scale(1.04)"/></svg>
+            <span>配置管理</span>
+          </RouterLink>
+        </section>
+
+        <section class="nav-group" aria-labelledby="nav-services">
+          <p id="nav-services" class="nav-caption">服务入口</p>
+          <RouterLink to="/" class="sidebar-link">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h18M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z"/><path d="m8 12 2.5 2.5L16 9"/></svg>
+            <span>公共状态页</span>
+          </RouterLink>
+          <a class="sidebar-link" href="/proxy.pac" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7M21 3 11 13"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+            <span>PAC 文件</span><span class="external-mark" aria-hidden="true">↗</span>
+          </a>
+        </section>
       </nav>
 
       <div class="sidebar-bottom">
@@ -121,12 +144,12 @@ watch(() => route.fullPath, () => {
 .brand-copy strong { display:block; font-size:14px; font-weight:800; letter-spacing:-.035em; }
 .brand-copy small { display:block; margin-top:3px; color:var(--muted); font-size:10px; font-weight:700; letter-spacing:.12em; }
 .sidebar-nav { flex:1; min-height:0; overflow-y:auto; padding:0 2px 10px; }
-.nav-caption { margin:0 10px 8px; color:var(--muted); font-size:10px; font-weight:800; letter-spacing:.13em; }
-.nav-caption-spaced { margin-top:25px; }
-.sidebar-link { display:flex; align-items:center; gap:12px; min-height:40px; margin:2px 0; padding:0 11px; border:1px solid transparent; border-radius:9px; color:var(--muted); text-decoration:none; font-size:12px; font-weight:650; transition:background .15s,border-color .15s,color .15s; }
-.sidebar-link svg { flex:0 0 17px; width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
-.sidebar-link:hover { color:var(--text); background:var(--surface-2); }
-.sidebar-link.active { color:var(--accent); background:var(--accent-soft); border-color:color-mix(in srgb,var(--accent) 18%,transparent); }
+.nav-group + .nav-group { margin-top:20px; padding-top:17px; border-top:1px solid var(--line); }
+.nav-caption { margin:0 10px 7px; color:var(--muted); font-size:10px; font-weight:800; letter-spacing:.13em; }
+.sidebar-link { display:flex; align-items:center; gap:12px; min-height:42px; margin:3px 0; padding:0 11px; border:1px solid transparent; border-radius:10px; color:var(--muted); text-decoration:none; font-size:12px; font-weight:650; transition:background .15s,border-color .15s,color .15s; }
+.sidebar-link svg { flex:0 0 18px; width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.sidebar-link:hover { color:var(--text); background:var(--surface-2); text-decoration:none; }
+.sidebar-link.active { color:var(--accent); background:var(--accent-soft); border-color:color-mix(in srgb,var(--accent) 22%,var(--line)); box-shadow:inset 3px 0 0 var(--accent); }
 .external-mark { margin-left:auto; opacity:.65; font-size:13px; }
 .sidebar-bottom { padding:14px 10px 0; border-top:1px solid var(--line); }
 .sidebar-status { display:flex; align-items:center; gap:8px; color:var(--text); font-size:11px; font-weight:700; }
