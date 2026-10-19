@@ -235,7 +235,14 @@ onMounted(() => { void loadOverview(); });
 .dash-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:36px; padding:0 12px; border:1px solid var(--line); border-radius:8px; font:inherit; font-size:11px; font-weight:700; text-decoration:none; cursor:pointer; white-space:nowrap; transition:filter .15s,background .15s; }
 .dash-button.secondary,.dash-button.logout-button { color:var(--text); background:var(--surface); }
 .dash-button.primary { color:var(--accent-contrast); background:var(--accent); border-color:var(--accent); }
-.dash-button:disabled { opacity:.55; cursor:wait; }
+.dash-button:disabled {
+  opacity:1;
+  color:var(--control-disabled-text);
+  background:var(--control-disabled-bg);
+  border-color:var(--control-disabled-border);
+  cursor:wait;
+  filter:none;
+}
 .dash-button.secondary:hover:not(:disabled),.dash-button.logout-button:hover:not(:disabled) {
   color:var(--text);
   background:var(--surface-2);
