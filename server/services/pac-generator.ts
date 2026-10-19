@@ -254,6 +254,15 @@ export function readPacFile(dataDir: string): string {
  * 兼容升级前的数据目录：源文件尚不存在时回退到现有 proxy.pac。
  */
 export function readPacSourceFile(dataDir: string): string {
+  const pacPath = path.join(dataDir, "proxy.pac");
+  // proxy.source.pac is an auxiliary parser input; it must never make the status
+  // page claim a PAC is available when the actual client-facing proxy.pac is absent.
+  try {
+    if (!fs.statSync(pacPath).isFile()) return "";
+  } catch {
+    return "";
+  }
+
   const sourcePath = path.join(dataDir, "proxy.source.pac");
   try {
     return fs.readFileSync(sourcePath, "utf8");
