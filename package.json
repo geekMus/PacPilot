@@ -2,7 +2,7 @@
   "name": "genpac-runner",
   "version": "2026.10.19-r18",
   "private": true,
-  "description": "自动生成 PAC 文件工具，支持自定义规则 / GFWList、Vue3 后台与 Webhook（Bun 运行时）",
+  "description": "自动生成 PAC 文件工具，支持自定义规则 / GFWList、Vue3 后台、Webhook 与跨平台管理员密码重置（Bun 运行时）",
   "type": "module",
   "scripts": {
     "dev": "bun run scripts/dev.ts",
