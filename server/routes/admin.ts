@@ -9,7 +9,7 @@ import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../db/settings";
 import { clearSessionCookie, createSessionToken, isLoggedIn, requireAdmin, setSessionCookie } from "../middleware/auth";
 import { changeAdminPassword, getAdminSecurityStatus, getAdminSessionSecret, verifyAdminPassword } from "../services/admin-credentials";
 import { probeGenpac, validatePacProxyString } from "../services/pac-generator";
-import { hasActivePacWorkflow, runPacWorkflow, type WorkflowSource } from "../services/workflow";
+import { hasActivePacWorkflow, runPacWorkflow } from "../services/workflow";
 import { reschedule } from "../services/scheduler";
 import { sendWebhookTest, validateWebhookConfig } from "../services/webhook";
 import cron from "node-cron";
