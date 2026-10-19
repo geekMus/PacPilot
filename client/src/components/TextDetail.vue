@@ -236,7 +236,7 @@ async function copyContent(): Promise<void> {
 .text-detail-button.primary {
   border-color: var(--accent);
   background: var(--accent);
-  color: var(--on-accent, #fff);
+  color: var(--accent-contrast, #fff);
 }
 
 @media (max-width: 560px) {
