@@ -7,8 +7,13 @@
   --muted: #6b7a90;
   --line: #e4e9f0;
   --accent: #3556d8;
+  --accent-hover: #2b46c4;
+  --accent-active: #2139aa;
   --accent-contrast: #ffffff;
   --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --control-disabled-bg: #e9edf3;
+  --control-disabled-text: #6b7a90;
+  --control-disabled-border: #d8dee8;
   --green: #1a9f6e;
   --green-soft: color-mix(in srgb, var(--green) 12%, transparent);
   --red: #d44a5c;
@@ -45,7 +50,12 @@ html.theme-dark {
   --muted: #93a0b4;
   --line: #2a3342;
   --accent: #7b95ff;
+  --accent-hover: #8fa5ff;
+  --accent-active: #a2b4ff;
   --accent-contrast: #0e1218;
+  --control-disabled-bg: #242c39;
+  --control-disabled-text: #7f8ba0;
+  --control-disabled-border: #333d4c;
   --green: #4ecf9a;
   --red: #f08a98;
   --warn: #e0b35a;
@@ -107,6 +117,28 @@ select {
 :where(button, a, input, textarea, select, summary, [tabindex]):focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* 原生禁用控件采用主题感知的背景、文字和边框；保持可辨识，不只依赖透明度。 */
+:root :is(input, textarea, select):disabled {
+  color: var(--control-disabled-text);
+  -webkit-text-fill-color: var(--control-disabled-text);
+  background-color: var(--control-disabled-bg);
+  border-color: var(--control-disabled-border);
+  cursor: not-allowed;
+  opacity: 1;
+  box-shadow: none;
+}
+
+:root :is(button, [role="button"], [role="tab"], summary):disabled {
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* 桌面点击与触屏按下都提供轻微反馈；颜色仍由组件的主题状态决定。 */
+:where(button, a, [role="button"], [role="tab"], summary):active {
+  transform: translateY(1px);
 }
 
 code {
