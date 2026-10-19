@@ -6,12 +6,17 @@ const router = createRouter({
     {
       path: "/",
       name: "home",
+      component: () => import("../views/StatusView.vue"),
+    },
+    {
+      path: "/admin/dashboard",
+      name: "admin-dashboard",
       component: () => import("../views/AdminDashboardView.vue"),
     },
     {
       path: "/status",
-      name: "public-status",
-      component: () => import("../views/StatusView.vue"),
+      name: "legacy-status",
+      redirect: "/",
     },
     {
       path: "/admin/login",
