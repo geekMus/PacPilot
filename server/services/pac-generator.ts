@@ -95,8 +95,9 @@ function buildCustomPac(settings: AppSettings): string {
   return `// genpac-runner 生成的 PAC（自定义规则模式）
 // 本机和内网地址优先直连；黑名单优先于自定义直连，其余请求使用默认代理
 function isMatch(host, list) {
+    host = String(host).toLowerCase();
     for (var i = 0; i < list.length; i++) {
-        var rule = list[i];
+        var rule = String(list[i]).toLowerCase();
         if (rule.indexOf('*') !== -1) {
             if (shExpMatch(host, rule)) return true;
         } else {
