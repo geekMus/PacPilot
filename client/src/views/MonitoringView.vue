@@ -494,7 +494,14 @@ onUnmounted(() => {
 .panel-actions { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
 .panel-count { flex:0 0 auto; padding:4px 9px; border:1px solid var(--line); border-radius:999px; font-size:11px; color:var(--muted); background:var(--surface-2); }
 .monitor-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:38px; padding:0 14px; border:1px solid var(--line); border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; transition:filter .15s, opacity .15s; }
-.monitor-button:disabled { opacity:.55; cursor:wait; }
+.monitor-button:disabled {
+  opacity:1;
+  color:var(--control-disabled-text);
+  background:var(--control-disabled-bg);
+  border-color:var(--control-disabled-border);
+  cursor:wait;
+  filter:none;
+}
 .monitor-button.primary { background:var(--accent); border-color:var(--accent); color:var(--accent-contrast); }
 .monitor-button.secondary { color:var(--text); background:var(--surface); }
 .monitor-button.secondary:hover:not(:disabled) {
