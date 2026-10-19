@@ -4,6 +4,7 @@ import { api, type Meta, type PacStatus } from "../api/client";
 import AppHeader from "../components/AppHeader.vue";
 import AppFooter from "../components/AppFooter.vue";
 import RuleVirtualList from "../components/RuleVirtualList.vue";
+import AppIcon from "../components/AppIcon.vue";
 
 const status = ref<PacStatus | null>(null);
 const meta = ref<Meta | null>(null);
@@ -214,13 +215,13 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
     </section>
 
     <section v-else-if="error" class="state-card error-card" role="alert">
-      <div class="state-icon">!</div>
+      <div class="state-icon"><AppIcon name="circle-alert" :size="18" /></div>
       <div class="state-copy"><strong>无法读取状态</strong><p>{{ error }}</p><button class="action-button" type="button" @click="loadStatus">重新加载</button></div>
     </section>
 
     <template v-else-if="status">
       <section v-if="status.mode === 'empty'" class="empty-hero">
-        <div class="empty-icon" aria-hidden="true">↗</div>
+        <div class="empty-icon" aria-hidden="true"><AppIcon name="file-cog" :size="26" :stroke-width="1.7" /></div>
         <h2>还没有生成 PAC</h2>
         <p>先进入配置管理，设置启动模式和规则，然后点击「保存并生成 PAC」。生成后，这里会显示可识别的规则摘要。</p>
         <RouterLink class="action-button primary" to="/admin">前往配置管理</RouterLink>
@@ -267,7 +268,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
           <p class="domain-check-note">此工具仅根据 PAC 中可识别的规则摘要进行估算，不查询 DNS，也不会执行 PAC 脚本。部分复杂规则或代理客户端行为可能无法完整反映；localhost、无点号主机名及 IPv4 回环 / RFC 1918 私网地址按本项目的直连规则处理。</p>
           <div v-if="domainRoute" class="domain-check-result" :class="'result-' + domainRoute.kind" role="status" aria-live="polite">
             <span class="result-mark" aria-hidden="true">
-              {{ domainRoute.kind === "direct" ? "✓" : domainRoute.kind === "proxy" ? "↗" : domainRoute.kind === "blocked" ? "×" : "!" }}
+              <AppIcon :name="domainRoute.kind === 'direct' ? 'circle-check' : domainRoute.kind === 'proxy' ? 'route' : domainRoute.kind === 'blocked' ? 'circle-x' : 'circle-alert'" :size="17" />
             </span>
             <div class="result-copy">
               <div class="result-title-row">
@@ -289,7 +290,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               <h2>域名路由明细</h2>
               <p class="section-description">每条规则都标明来源；长域名可点击查看完整内容，列表较长时可在固定区域内滚动。</p>
             </div>
-            <RouterLink v-if="meta?.adminEnabled" to="/admin" class="text-link">编辑规则 <span aria-hidden="true">→</span></RouterLink>
+            <RouterLink v-if="meta?.adminEnabled" to="/admin" class="text-link">编辑规则 <AppIcon name="arrow-right" :size="14" /></RouterLink>
           </div>
 
           <div class="rule-tabs" role="tablist" aria-label="域名规则类型">
@@ -332,12 +333,12 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
       </template>
 
       <section v-else class="state-card warning-card">
-        <div class="state-icon">i</div><div class="state-copy"><strong>{{ status.modeLabel }}</strong><p>{{ status.notice }}</p></div>
+        <div class="state-icon"><AppIcon name="info" :size="18" /></div><div class="state-copy"><strong>{{ status.modeLabel }}</strong><p>{{ status.notice }}</p></div>
       </section>
 
       <section v-if="status.mode !== 'empty'" class="source-footer">
         <div class="source-caption"><span class="source-dot" aria-hidden="true"></span><span>摘要来自当前已生成的 PAC 文件</span></div>
-        <div class="source-actions"><span class="source-updated">文件更新时间：{{ status.updatedAt }}</span><a href="/proxy.pac" target="_blank" rel="noopener noreferrer">查看 PAC</a><a href="/proxy.pac?download=1">下载 PAC</a><button type="button" @click="loadStatus" :disabled="loading">{{ loading ? "刷新中…" : "刷新状态" }}</button></div>
+        <div class="source-actions"><span class="source-updated">文件更新时间：{{ status.updatedAt }}</span><a href="/proxy.pac" target="_blank" rel="noopener noreferrer"><AppIcon name="external-link" :size="14" />查看 PAC</a><a href="/proxy.pac?download=1"><AppIcon name="download" :size="14" />下载 PAC</a><button type="button" @click="loadStatus" :disabled="loading"><AppIcon :name="loading ? 'loader-circle' : 'refresh-cw'" :class="{ 'icon-spinning': loading }" :size="14" />{{ loading ? "刷新中…" : "刷新状态" }}</button></div>
       </section>
     </template>
     <AppFooter />
@@ -428,7 +429,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
 .rules-section { margin-top:0; }
 .rules-section-head { align-items:end; margin-bottom:16px; }
 .section-description { margin:7px 0 0; color:var(--muted); font-size:12px; }
-.text-link { color:var(--accent); font-size:12px; font-weight:650; white-space:nowrap; }
+.text-link { display:inline-flex; align-items:center; gap:5px; color:var(--accent); font-size:12px; font-weight:650; white-space:nowrap; }
 .domain-check { margin-bottom:22px; }
 .domain-check-head h2 { margin:0; font-size:18px; letter-spacing:-.02em; }
 .domain-check-head p { margin:7px 0 0; color:var(--muted); font-size:12px; }
@@ -538,7 +539,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
 .source-actions { gap:6px; }
 .source-updated { margin-right:6px; line-height:1.5; font-variant-numeric:tabular-nums; }
 .source-dot { display:inline-block; flex:0 0 7px; width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px var(--green-soft); }
-.source-actions a,.source-actions button { display:inline-flex; align-items:center; justify-content:center; min-height:30px; padding:0 9px; border:1px solid transparent; border-radius:7px; background:transparent; color:var(--accent); font:inherit; text-decoration:none; white-space:nowrap; cursor:pointer; transition:background .15s,border-color .15s,color .15s; }
+.source-actions a,.source-actions button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:30px; padding:0 9px; border:1px solid transparent; border-radius:7px; background:transparent; color:var(--accent); font:inherit; text-decoration:none; white-space:nowrap; cursor:pointer; transition:background .15s,border-color .15s,color .15s; }
 .source-actions a:hover,.source-actions button:hover:not(:disabled) { background:var(--surface-2); border-color:var(--line); color:var(--text); text-decoration:none; }
 .source-actions a:focus-visible,.source-actions button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .source-actions button:disabled { opacity:.55; cursor:wait; }
@@ -555,7 +556,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
 .action-button.primary { color:var(--accent-contrast); background:var(--accent); border-color:var(--accent); }
 .action-button:disabled { opacity:.5; cursor:not-allowed; }
 .spinner { width:18px; height:18px; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; flex:0 0 auto; }
-.state-copy { min-width:0; }
+.state-copy { min-width:0; }\n.icon-spinning { animation: status-icon-spin .9s linear infinite; }\n@keyframes status-icon-spin { to { transform:rotate(360deg); } }
 @keyframes spin { to { transform:rotate(360deg); } }
 @media(max-width:960px) { .remote-stats,.custom-stats { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:480px) {
