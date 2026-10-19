@@ -13,7 +13,7 @@ function sendPac(
 ) {
   const pac =
     readPacFile(dataDir) ||
-    "// PAC not generated yet\nfunction FindProxyForURL(){return 'DIRECT';}\n";
+    "// 尚未生成 PAC；临时回退策略为所有请求直连\nfunction FindProxyForURL(url, host){return 'DIRECT';}\n";
 
   // 默认在浏览器中查看；?download=1 时才触发下载
   const asDownload =

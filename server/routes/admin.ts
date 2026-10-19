@@ -6,7 +6,7 @@ import type { AppSettings, GenerationMode } from "../db/settings";
 import { normalizeWebhookConfig } from "../db/settings";
 import { clearSessionCookie, createSessionToken, isLoggedIn, requireAdmin, setSessionCookie } from "../middleware/auth";
 import { changeAdminPassword, getAdminSecurityStatus, getAdminSessionSecret, verifyAdminPassword } from "../services/admin-credentials";
-import { generatePac, probeGenpac } from "../services/pac-generator";
+import { generatePac, probeGenpac, validatePacProxyString } from "../services/pac-generator";
 import { reschedule } from "../services/scheduler";
 import { sendWebhookTest, validateWebhookConfig } from "../services/webhook";
 import cron from "node-cron";
@@ -25,7 +25,7 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
  router.post("/api/admin/logout",(_req,res)=>{clearSessionCookie(res);res.json({ok:true});});
  router.post("/api/admin/password",requireAdmin(database,true),(req,res)=>{try{changeAdminPassword(database,String(req.body?.currentPassword??""),String(req.body?.newPassword??""));clearSessionCookie(res);res.json({ok:true});}catch(e){res.status(400).json({error:e instanceof Error?e.message:String(e)});}});
  router.get("/api/admin/settings",requireAdmin(database),(_req,res)=>res.json(getSettings(database)));
- router.put("/api/admin/settings",requireAdmin(database),(req,res)=>{const p=bodyToSettings((req.body||{}) as Record<string,unknown>);if(!p.timezone||!validTimeZone(p.timezone)){res.status(400).json({error:"时区无效。请从建议列表选择，或输入有效 IANA 时区，例如 Asia/Shanghai。"});return;}const expr=p.cronSchedule.trim();if(expr&&(expr.split(/\s+/).length!==5||!cron.validate(expr))){res.status(400).json({error:"Cron 表达式无效；请使用 5 段格式（分 时 日 月 周）。"});return;}for(const c of [p.webhookSuccessConfig,p.webhookFailureConfig]){if(c.url.trim()){const errors=validateWebhookConfig(c);if(errors.length){res.status(400).json({error:errors.join("\n")});return;}}}const next=updateSettings(database,p);reschedule(database,env.dataDir);res.json(next);});
+ router.put("/api/admin/settings",requireAdmin(database),(req,res)=>{const p=bodyToSettings((req.body||{}) as Record<string,unknown>);if(!p.timezone||!validTimeZone(p.timezone)){res.status(400).json({error:"时区无效。请从建议列表选择，或输入有效 IANA 时区，例如 Asia/Shanghai。"});return;}const proxyError=validatePacProxyString(p.pacProxy);if(proxyError){res.status(400).json({error:proxyError});return;}const expr=p.cronSchedule.trim();if(expr&&(expr.split(/\s+/).length!==5||!cron.validate(expr))){res.status(400).json({error:"Cron 表达式无效；请使用 5 段格式（分 时 日 月 周）。"});return;}for(const c of [p.webhookSuccessConfig,p.webhookFailureConfig]){if(c.url.trim()){const errors=validateWebhookConfig(c);if(errors.length){res.status(400).json({error:errors.join("\n")});return;}}}const next=updateSettings(database,p);reschedule(database,env.dataDir);res.json(next);});
  router.post("/api/admin/webhook-test",requireAdmin(database),async(req,res)=>{const c=normalizeWebhookConfig(req.body?.config??req.body),errors=validateWebhookConfig(c);if(errors.length){res.status(400).json({error:errors.join("\n")});return;}res.json(await sendWebhookTest(c,getSettings(database).timezone));});
  router.post("/api/admin/generate",requireAdmin(database),async(_req,res)=>{const result=await generatePac(database,env.dataDir);res.status(result.success?200:500).json(result);});
  router.get("/api/admin/logs",requireAdmin(database),(_req,res)=>res.json(recentLogs(database,50,getSettings(database).timezone)));

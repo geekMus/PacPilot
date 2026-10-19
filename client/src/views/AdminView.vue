@@ -633,6 +633,7 @@ async function logout() {
               v-model="form.pacProxy"
               placeholder="SOCKS5 127.0.0.1:1080; DIRECT"
             />
+            <p class="field-hint">每个代理项用分号分隔。支持 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 和 DIRECT；代理地址必须填写端口，例如 SOCKS5 127.0.0.1:1080; DIRECT。</p>
           </div>
           <div class="field">
             <label for="listUrl">规则列表 URL <span class="lab-hint">GFWList / 域名型 AutoProxy、ABP / 明文域名</span></label>
