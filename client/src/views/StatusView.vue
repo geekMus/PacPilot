@@ -343,13 +343,6 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               <p class="rule-description">自定义直连优先于远程列表；蓝色来源标签代表远程规则中的例外直连。</p>
               <RuleVirtualList :items="directEntries" empty-text="没有额外的直连规则。" :height="300" />
             </template>
-            
-              <div v-else class="default-proxy">
-                <span>默认代理地址</span>
-                <code>{{ status.pacProxy || "未识别" }}</code>
-                <p>自定义模式下，未命中黑名单或直连规则的其他域名都会使用该代理。</p>
-              </div>
-            </template>
             <template v-else>
               <p class="rule-description">红色来源标签代表自定义黑名单；localhost、无点号主机名及 IPv4 回环 / RFC 1918 私网直连规则优先。</p>
               <RuleVirtualList :items="blockEntries" empty-text="没有配置黑名单。" :height="300" />
