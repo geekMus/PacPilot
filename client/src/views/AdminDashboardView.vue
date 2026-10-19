@@ -50,7 +50,7 @@ async function loadOverview(): Promise<void> {
       return;
     }
     if (nextSession.mustChangePassword) {
-      await router.replace("/admin");
+      await router.replace("/admin/settings");
       return;
     }
 
@@ -109,7 +109,7 @@ onMounted(() => { void loadOverview(); });
           <h2>常用操作</h2>
         </div>
         <div class="quick-actions">
-          <RouterLink to="/admin" class="dash-button secondary"><AppIcon name="settings" :size="16" />打开配置</RouterLink>
+          <RouterLink to="/admin/settings" class="dash-button secondary"><AppIcon name="settings" :size="16" />打开配置</RouterLink>
           <RouterLink to="/admin/monitor" class="dash-button secondary"><AppIcon name="activity" :size="16" />查看网络监控</RouterLink>
           <button type="button" class="dash-button primary" :class="{ 'is-loading': generating || loading }" :disabled="generating || loading" @click="generateNow">
             <AppIcon :name="generating || loading ? 'loader-circle' : 'zap'" :class="{ 'icon-spinning': generating || loading }" :size="16" />
@@ -125,7 +125,7 @@ onMounted(() => { void loadOverview(); });
       <div v-if="notice" class="dashboard-alert" :class="noticeOkay ? 'is-success' : 'is-error'" role="status">{{ notice }}</div>
       <div v-if="session?.isDefaultPassword" class="dashboard-alert is-warning" role="alert">
         <strong>安全提醒</strong><span>当前仍使用默认管理密码 password。</span>
-        <RouterLink to="/admin#security">立即修改</RouterLink>
+        <RouterLink to="/admin/settings#security">立即修改</RouterLink>
       </div>
 
       <section class="overview-metrics" aria-label="关键状态">
@@ -155,7 +155,7 @@ onMounted(() => { void loadOverview(); });
         <article class="dashboard-panel">
           <header class="panel-header">
             <div><h3>当前配置</h3><p>系统正在使用的主要设置</p></div>
-            <RouterLink to="/admin">编辑配置 <AppIcon name="arrow-up-right" :size="13" /></RouterLink>
+            <RouterLink to="/admin/settings">编辑配置 <AppIcon name="arrow-up-right" :size="13" /></RouterLink>
           </header>
           <div class="config-details">
             <div class="config-detail"><span>生成模式</span><strong>{{ modeLabel }}</strong></div>
@@ -175,7 +175,7 @@ onMounted(() => { void loadOverview(); });
         <article class="dashboard-panel">
           <header class="panel-header">
             <div><h3>最近生成记录</h3><p>最近 6 条记录，便于快速定位失败原因</p></div>
-            <RouterLink to="/admin#logs">查看记录 <AppIcon name="arrow-up-right" :size="13" /></RouterLink>
+            <RouterLink to="/admin/settings#logs">查看记录 <AppIcon name="arrow-up-right" :size="13" /></RouterLink>
           </header>
           <div v-if="logs.length" class="table-scroll">
             <table class="recent-table">
