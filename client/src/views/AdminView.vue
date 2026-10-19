@@ -1472,8 +1472,13 @@ textarea.body-area {
   color: var(--accent);
 }
 .webhook-test-button:disabled {
-  opacity: 0.55;
-  cursor: wait;
+  opacity: 1;
+  color: var(--control-disabled-text);
+  -webkit-text-fill-color: var(--control-disabled-text);
+  background: var(--control-disabled-bg);
+  border-color: var(--control-disabled-border);
+  box-shadow: none;
+  cursor: not-allowed;
 }
 .webhook-test-result {
   margin: 0 0 10px;
