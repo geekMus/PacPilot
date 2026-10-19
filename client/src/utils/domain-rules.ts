@@ -24,7 +24,7 @@ function validHost(host: string): boolean {
   if (!normalized) return false;
   if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(normalized)) return normalized.split(".").every((part) => /^(0|[1-9]\d{0,2})$/.test(part) && Number(part) <= 255);
   const labels = normalized.split(".");
-  return labels.length >= 2 && labels.every((part) => labelPattern.test(part));
+  return labels.every((part) => labelPattern.test(part));
 }
 export function parseDomainRules(raw: string): { rules: ParsedDomainRule[]; diagnostics: RuleDiagnostic[] } {
   const rules: ParsedDomainRule[] = [];

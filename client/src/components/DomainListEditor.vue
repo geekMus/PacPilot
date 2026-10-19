@@ -66,6 +66,7 @@ const ruleDecorationField = StateField.define({
       const severity = items.some((item) => item.severity === "error") ? "error" : items.some((item) => item.severity === "warning") ? "warning" : "info";
       ranges.push(Decoration.line({ attributes: { class: "cm-rule-line-" + severity, title: items.map((item) => item.message).join("\n") } }).range(line.from));
     }
+    ranges.sort((a, b) => a.from - b.from);
     return Decoration.set(ranges, true);
   },
   provide: (field) => EditorView.decorations.from(field),
