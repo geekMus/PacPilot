@@ -578,7 +578,6 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
 .pac-access-refresh:disabled { color:var(--control-disabled-text); background:var(--control-disabled-bg); border-color:var(--control-disabled-border); cursor:not-allowed; }
 .pac-access-refresh.is-loading:disabled { color:var(--text); background:var(--surface); border-color:var(--line); cursor:progress; }
 .pac-access-link:focus-visible,.pac-access-refresh:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
-.source-footer { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px 20px; padding-top:18px; color:var(--muted); font-size:11px; }
 
 .state-card { display:flex; align-items:flex-start; gap:14px; padding:18px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
 .state-card strong { font-size:14px; }
