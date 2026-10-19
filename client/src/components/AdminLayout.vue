@@ -183,8 +183,14 @@ watch(() => route.fullPath, () => {
 .admin-content :deep(.stack.stack) {
   gap: var(--admin-section-gap);
 }
-.admin-content :deep(.dashboard-panel.dashboard-panel),
+.admin-content :deep(.dashboard-panel.dashboard-panel) {
+  margin-bottom: 0;
+}
 .admin-content :deep(.monitor-panel.monitor-panel) {
+  margin-bottom: var(--admin-section-gap);
+}
+.admin-content :deep(.overview-grid),
+.admin-content :deep(.activity-panel.activity-panel) {
   margin-bottom: var(--admin-section-gap);
 }
 .admin-content :deep(.overview-metrics),
@@ -280,7 +286,7 @@ watch(() => route.fullPath, () => {
   .topbar-title h1 { font-size:16px; line-height:1.25; }
   .topbar-actions { grid-column:1 / -1; grid-row:2; width:100%; gap:5px; flex-wrap:nowrap; justify-content:flex-end; }
   .topbar-actions :deep(.monitor-top-updated) { display:none; }
-  .topbar-actions :deep(.dash-button),.topbar-actions :deep(.monitor-button),.topbar-actions :deep(.admin-logout-button) { min-height:36px; padding:0 9px; border-radius:8px; font-size:11px; }
+  .topbar-actions :deep(.dash-button.dash-button),.topbar-actions :deep(.monitor-button.monitor-button),.topbar-actions :deep(.admin-logout-button.admin-logout-button) { min-height:36px; padding:0 9px; border-radius:8px; font-size:11px; }
   .topbar-actions :deep(.theme-switch) { gap:0; padding:2px; border-radius:8px; }
   .topbar-actions :deep(.theme-btn) { min-height:30px; padding:0 6px; font-size:10px; }
   .admin-content { --admin-panel-padding:14px; --admin-section-gap:16px; padding:16px 16px 28px; }
@@ -290,7 +296,7 @@ watch(() => route.fullPath, () => {
   .admin-content :deep(.admin-page input:not([type="checkbox"]):not([type="radio"])),
   .admin-content :deep(.admin-page select),
   .admin-content :deep(.admin-page textarea:not(.CodeMirror)) { min-height:44px; font-size:16px; }
-  .admin-content { padding:16px 13px 28px; }
+  .admin-content { padding:16px; }
 }
 @media (max-width:360px) {
   .admin-topbar { padding-right:10px; padding-left:10px; }
