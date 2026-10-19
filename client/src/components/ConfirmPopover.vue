@@ -9,6 +9,7 @@ const props = withDefaults(defineProps<{
   cancelText?: string;
   busyText?: string;
   tone?: "danger" | "warning";
+  align?: "start" | "end";
   disabled?: boolean;
   busy?: boolean;
 }>(), {
@@ -16,6 +17,7 @@ const props = withDefaults(defineProps<{
   cancelText: "返回",
   busyText: "处理中…",
   tone: "danger",
+  align: "end",
   disabled: false,
   busy: false,
 });
@@ -25,10 +27,16 @@ const emit = defineEmits<{
   confirm: [];
 }>();
 const root = ref<HTMLElement | null>(null);
+const placement = ref<"top" | "bottom">("bottom");
 
 function toggle() {
   if (props.disabled || props.busy) return;
-  emit("update:open", !props.open);
+  const opening = !props.open;
+  if (opening) {
+    const rect = root.value?.getBoundingClientRect();
+    placement.value = rect && rect.bottom + 190 > window.innerHeight ? "top" : "bottom";
+  }
+  emit("update:open", opening);
 }
 function close() {
   if (!props.busy) emit("update:open", false);
@@ -77,6 +85,8 @@ onBeforeUnmount(detachListeners);
 <style scoped>
 .confirm-anchor{position:relative;display:inline-block;max-width:100%}
 .confirm-popover{position:absolute;z-index:40;right:0;top:calc(100% + 7px);width:min(285px,calc(100vw - 40px));padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:0 10px 30px rgba(0,0,0,.14);text-align:left}
+.confirm-popover.align-start{left:0;right:auto}
+.confirm-popover.placement-top{top:auto;bottom:calc(100% + 7px)}
 .confirm-popover strong,.confirm-popover span{display:block}
 .confirm-popover strong{color:var(--text);font-size:12px;line-height:1.5}
 .confirm-popover span{margin-top:5px;color:var(--muted);font-size:11px;line-height:1.6;overflow-wrap:anywhere}
@@ -85,10 +95,8 @@ onBeforeUnmount(detachListeners);
 .confirm-actions button:disabled{opacity:.5;cursor:not-allowed}
 .confirm-actions .confirm-danger{background:var(--red);border-color:var(--red);color:white}
 .confirm-actions .confirm-warning{background:var(--amber-soft,#fff3dc);border-color:color-mix(in srgb,var(--amber,#d97706) 40%,var(--line));color:var(--amber,#b45309)}
-.confirm-warning.confirm-warning{background:var(--amber-soft,#fff3dc)}
-.confirm-warning.confirm-warning:hover:not(:disabled){filter:brightness(.98)}
+.confirm-warning:hover:not(:disabled){filter:brightness(.98)}
 .confirm-danger:hover:not(:disabled){filter:brightness(.96)}
-.confirm-warning{color:var(--amber,#b45309)}
 .confirm-cancel:focus-visible,.confirm-danger:focus-visible,.confirm-warning:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(max-width:480px){.confirm-popover{width:min(285px,calc(100vw - 36px))}}
 </style>
