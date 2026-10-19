@@ -1147,6 +1147,11 @@ textarea {
   border-color: var(--accent-active);
   color: var(--accent-contrast);
 }
+.btn:not(.primary):active:not(:disabled) {
+  background:var(--accent-soft);
+  border-color:var(--accent);
+  color:var(--accent);
+}
 .admin-logout-button:active:not(:disabled),
 .chip:active:not(:disabled),
 .webhook-test-button:active:not(:disabled),
@@ -1226,7 +1231,7 @@ textarea {
   cursor: not-allowed;
 }
 .check.is-disabled span { color: var(--control-disabled-text); }
-.check.is-disabled input { cursor: not-allowed; }
+.check.is-disabled input { cursor: not-allowed; accent-color:var(--control-disabled-text); }
 .linkish {
   background: transparent;
   border: 0;
