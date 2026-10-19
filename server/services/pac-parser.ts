@@ -75,15 +75,14 @@ function readInitializer(source: string, name: string): string | null {
 
 function parseJsArray(source: string, name: string): string[] | null {
   const raw = readInitializer(source, name);
-  if (raw === null) return null;
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.every((item) => typeof item === "string")
-      ? parsed
-      : null;
-  } catch {
-    return null;
-  }
+  if (raw === null || !raw.startsWith("[") || !raw.endsWith("]")) return null;
+  const body = raw.slice(1, -1).trim();
+  if (!body) return [];
+  // 域名规则均为已校验的简单字符串；兼容 Terser 选择单引号或双引号。
+  const literals = [...body.matchAll(/(["'])([^"'\\]*)\1/g)];
+  const remainder = body.replace(/(["'])([^"'\\]*)\1/g, "").replace(/[\s,]/g, "");
+  if (remainder) return null;
+  return literals.map((item) => item[2]);
 }
 
 function parseJsString(source: string, name: string): string | null {
@@ -103,16 +102,13 @@ function parseJsString(source: string, name: string): string | null {
 
 function parseJsMap(source: string, name: string): string[] | null {
   const raw = readInitializer(source, name);
-  if (raw === null) return null;
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
-    const entries = Object.entries(parsed as Record<string, unknown>);
-    if (entries.some(([key, value]) => !key || value !== 1)) return null;
-    return [...new Set(entries.map(([key]) => key))];
-  } catch {
-    return null;
-  }
+  if (raw === null || !raw.startsWith("{") || !raw.endsWith("}")) return null;
+  const body = raw.slice(1, -1).trim();
+  if (!body) return [];
+  const entries = [...body.matchAll(/(["'])([^"'\\]+)\1\s*:\s*1\b/g)];
+  const remainder = body.replace(/(["'])([^"'\\]+)\1\s*:\s*1\b/g, "").replace(/[\s,]/g, "");
+  if (remainder) return null;
+  return [...new Set(entries.map((entry) => entry[2]))];
 }
 
 function basePayload(
