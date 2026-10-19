@@ -6,6 +6,11 @@ const router = createRouter({
     {
       path: "/",
       name: "home",
+      component: () => import("../views/AdminDashboardView.vue"),
+    },
+    {
+      path: "/status",
+      name: "public-status",
       component: () => import("../views/StatusView.vue"),
     },
     {
@@ -29,7 +34,8 @@ const router = createRouter({
       component: () => import("../views/NotFoundView.vue"),
     },
   ],
-  scrollBehavior() {
+  scrollBehavior(to) {
+    if (to.hash) return { el: to.hash, top: 14, behavior: "smooth" };
     return { top: 0 };
   },
 });
