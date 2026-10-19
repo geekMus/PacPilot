@@ -1223,7 +1223,20 @@ textarea {
   cursor: not-allowed;
 }
 .field.is-disabled label { color: var(--control-disabled-text); }
-.field.is-disabled .field-hint,.disabled-hint { color: var(--control-disabled-text); }
+.field.is-disabled .field-hint,
+.field.is-disabled .disabled-hint,
+.field.is-disabled .lab-hint { color: var(--control-disabled-text); }
+.admin-page .field.is-disabled input:disabled,
+.admin-page .field.is-disabled select:disabled,
+.admin-page .field.is-disabled textarea:disabled {
+  color: var(--control-disabled-text);
+  -webkit-text-fill-color: var(--control-disabled-text);
+  background: var(--control-disabled-bg);
+  border-color: var(--control-disabled-border);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 1;
+}
 .check.is-disabled {
   color: var(--control-disabled-text);
   border-color: var(--control-disabled-border);
