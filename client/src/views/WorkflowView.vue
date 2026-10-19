@@ -95,7 +95,7 @@ async function load(silent = false, resetHistory = false) {
       for (const run of result.runs) {
         const previous = previousStatuses.get(run.id);
         if ((previous === "running" || previous === "pending") && ["succeeded", "failed", "cancelled"].includes(run.status)) {
-          const message = run.status === "succeeded" ? `工作流 #${run.id} 已执行完成` : run.status === "failed" ? `工作流 #${run.id} 执行失败：${run.error || run.message || "请查看执行详情"}` : `工作流 #${run.id} 已取消`;
+          const message = run.status === "succeeded" ? `工作流 #${run.id} 已执行完成` : run.status === "failed" ? `工作流 #${run.id} 执行失败：${run.error || run.message || "请查看执行详情"}` : `工作流 #${run.id} 已取消排队`;
           notify(message, run.status === "succeeded" ? "success" : run.status === "failed" ? "error" : "warning", 6500);
         }
       }
