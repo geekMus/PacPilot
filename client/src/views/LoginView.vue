@@ -42,7 +42,7 @@ async function onSubmit() {
 
 <template>
   <main class="page auth-page">
-    <AppHeader brand="genpac-runner" sub="安全登录" home-to="/">
+    <AppHeader brand="genpac-runner" sub="安全登录">
       <RouterLink to="/">公共状态页</RouterLink>
     </AppHeader>
     <section class="auth-layout">
@@ -126,11 +126,28 @@ async function onSubmit() {
 .alert { padding:10px 12px; border:1px solid color-mix(in srgb,var(--red) 35%,var(--line)); border-radius:9px; background:var(--red-soft); margin-bottom:14px; font-size:12px; line-height:1.5; }
 .alert.warning { border-color:color-mix(in srgb,var(--warn) 35%,var(--line)); background:var(--warn-soft); }
 @media(max-width:680px) {
-  .auth-layout { grid-template-columns:1fr; align-content:start; gap:24px; padding-top:12px; }
-  .auth-intro .page-title { max-width:13em; font-size:32px; }
-  .security-note { margin-top:16px; }
-  .login-card { justify-self:stretch; max-width:none; }
-  .login-card input { min-height:44px; font-size:16px; }
+  .auth-page { padding:0 18px; background:linear-gradient(180deg,var(--accent-soft) 0, var(--bg) 230px); }
+  .auth-page :deep(.topbar) { gap:10px; margin:0; padding:18px 0 14px; }
+  .auth-page :deep(.brand-mark) { width:40px; height:40px; border-radius:13px; }
+  .auth-page :deep(.brand-copy .name) { font-size:15px; }
+  .auth-page :deep(.brand-copy small) { font-size:9px; letter-spacing:.1em; }
+  .auth-layout { display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start; gap:0; flex:1; padding:clamp(26px,8vh,64px) 0 28px; }
+  .auth-intro { display:none; }
+  .login-card { width:100%; max-width:440px; align-self:center; justify-self:stretch; padding:26px 22px 22px; border:1px solid color-mix(in srgb,var(--accent) 13%,var(--line)); border-radius:20px; box-shadow:0 16px 44px color-mix(in srgb,var(--text) 8%,transparent); }
+  .login-mark { width:52px; height:52px; margin:0 auto 18px; border-radius:16px; }
+  .login-card h2 { text-align:center; font-size:22px; letter-spacing:-.025em; }
+  .login-subtitle { margin:7px 0 24px; text-align:center; font-size:13px; }
+  .login-card label { margin-bottom:9px; font-size:13px; }
+  .login-card input { min-height:50px; margin-bottom:16px; padding:12px 14px; border-radius:11px; font-size:16px; }
+  .login-submit { min-height:50px; padding:0 16px; border-radius:11px; font-size:14px; }
+  .login-footnote { margin-top:15px; font-size:11px; line-height:1.65; }
+  .login-footnote + .login-footnote { text-align:center; }
+  .auth-page :deep(.app-footer) { margin-top:20px; padding:14px 0 18px; }
+}
+@media(max-width:380px) {
+  .auth-page { padding:0 13px; }
+  .login-card { padding:23px 17px 19px; border-radius:17px; }
+  .auth-layout { padding-top:clamp(20px,5vh,38px); }
 }
 .success-alert { border-color: var(--green); background: var(--green-soft); color: var(--green); }
 </style>
