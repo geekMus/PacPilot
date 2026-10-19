@@ -5,7 +5,7 @@ import { api } from "../api/client";
 import AppIcon from "./AppIcon.vue";
 import ThemeSwitcher from "./ThemeSwitcher.vue";
 
-type AdminSection = "dashboard" | "settings" | "monitor";
+type AdminSection = "dashboard" | "settings" | "monitor" | "workflow";
 
 defineProps<{
   active: AdminSection;
@@ -68,6 +68,15 @@ watch(() => route.fullPath, () => {
           >
             <AppIcon name="layout-dashboard" :size="18" />
             <span>系统总览</span>
+          </RouterLink>
+          <RouterLink
+            to="/admin/workflows"
+            class="sidebar-link"
+            :class="{ active: active === 'workflow' }"
+            :aria-current="active === 'workflow' ? 'page' : undefined"
+          >
+            <AppIcon name="workflow" :size="18" />
+            <span>工作流</span>
           </RouterLink>
           <RouterLink
             to="/admin/monitor"
