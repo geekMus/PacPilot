@@ -9,7 +9,7 @@ import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../db/settings";
 import { clearSessionCookie, createSessionToken, isLoggedIn, requireAdmin, setSessionCookie } from "../middleware/auth";
 import { changeAdminPassword, getAdminSecurityStatus, getAdminSessionSecret, verifyAdminPassword } from "../services/admin-credentials";
 import { probeGenpac, validatePacProxyString } from "../services/pac-generator";
-import { hasActivePacWorkflow, runPacWorkflow } from "../services/workflow";
+import { hasActivePacWorkflow, runPacWorkflow, startPacWorkflow } from "../services/workflow";
 import { reschedule } from "../services/scheduler";
 import { sendWebhookTest, validateWebhookConfig } from "../services/webhook";
 import cron from "node-cron";
@@ -52,9 +52,9 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
  router.post("/api/admin/password",requireAdmin(database,true),(req,res)=>{try{changeAdminPassword(database,String(req.body?.currentPassword??""),String(req.body?.newPassword??""));clearSessionCookie(res);res.json({ok:true});}catch(e){res.status(400).json({error:e instanceof Error?e.message:String(e)});}});
  router.get("/api/admin/settings",requireAdmin(database),(_req,res)=>res.json(getSettings(database)));
  router.put("/api/admin/settings",requireAdmin(database),(req,res)=>{const result=persistSettings((req.body||{}) as Record<string,unknown>,env,database);if("error" in result){res.status(400).json({error:result.error});return;}res.json(result.settings);});
- router.post("/api/admin/settings/save-and-generate",requireAdmin(database),async(req,res)=>{if(hasActivePacWorkflow(database)){res.status(409).json({error:"已有 PAC 工作流正在执行，请等待当前任务完成后再试。"});return;}const saved=persistSettings((req.body||{}) as Record<string,unknown>,env,database);if("error" in saved){res.status(400).json({error:saved.error});return;}try{const workflow=await runPacWorkflow(database,env.dataDir,"save-and-generate");res.status(200).json({settings:saved.settings,generation:workflow.generation,workflowId:workflow.workflowId});}catch(e){res.status(409).json({error:e instanceof Error?e.message:String(e)});}});
+ router.post("/api/admin/settings/save-and-generate",requireAdmin(database),(req,res)=>{if(hasActivePacWorkflow(database)){res.status(409).json({error:"已有 PAC 工作流正在执行，请等待当前任务完成后再试。"});return;}const saved=persistSettings((req.body||{}) as Record<string,unknown>,env,database);if("error" in saved){res.status(400).json({error:saved.error});return;}try{const workflowId=startPacWorkflow(database,env.dataDir,"save-and-generate");res.status(202).json({settings:saved.settings,workflowId});}catch(e){res.status(409).json({error:e instanceof Error?e.message:String(e)});}});
  router.post("/api/admin/webhook-test",requireAdmin(database),async(req,res)=>{const c=normalizeWebhookConfig(req.body?.config??req.body),errors=validateWebhookConfig(c);if(errors.length){res.status(400).json({error:errors.join("\n")});return;}res.json(await sendWebhookTest(c,getSettings(database).timezone));});
- router.post("/api/admin/generate",requireAdmin(database),async(_req,res)=>{try{const workflow=await runPacWorkflow(database,env.dataDir,"manual");res.status(200).json({...workflow.generation,workflowId:workflow.workflowId});}catch(e){res.status(409).json({error:e instanceof Error?e.message:String(e)});}});
+ router.post("/api/admin/generate",requireAdmin(database),(_req,res)=>{try{const workflowId=startPacWorkflow(database,env.dataDir,"manual");res.status(202).json({workflowId,status:"running"});}catch(e){res.status(409).json({error:e instanceof Error?e.message:String(e)});}});
  router.get("/api/admin/workflows",requireAdmin(database),(req,res)=>{res.setHeader("Cache-Control","no-store");const limit=Math.min(200,Math.max(1,Number.parseInt(String(req.query.limit??"50"),10)||50));res.json({current:getCurrentWorkflow(database),runs:listWorkflowRuns(database,limit)});});
  router.get("/api/admin/storage",requireAdmin(database),(_req,res)=>{
   res.setHeader("Cache-Control","no-store");
