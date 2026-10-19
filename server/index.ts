@@ -12,8 +12,14 @@ async function main(): Promise<void> {
   const database = getDb(env.dataDir);
   const adminSecurity = ensureAdminAuth(database);
   markInterruptedWorkflows(database);
-  cleanupOperationalLogs(database);
-  const logCleanupTimer = setInterval(() => cleanupOperationalLogs(database), 24 * 60 * 60 * 1000);
+  const cleanupLogs = (): void => {
+    const deleted = cleanupOperationalLogs(database);
+    if (deleted.generationLogs + deleted.accessEvents + deleted.proxyProbeRuns > 0) {
+      database.exec("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
+    }
+  };
+  cleanupLogs();
+  const logCleanupTimer = setInterval(cleanupLogs, 24 * 60 * 60 * 1000);
   logCleanupTimer.unref();
 
   console.log("[boot] genpac-runner starting...");
