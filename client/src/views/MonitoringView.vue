@@ -315,7 +315,7 @@ onUnmounted(() => {
 
         <div class="pac-latest">
           <div class="pac-latest-heading">
-            <strong><AppIcon name="history" :size="15" />最近一次 PAC 请求</strong>
+            <strong><AppIcon name="clock" :size="15" />最近一次 PAC 请求</strong>
             <span v-if="latestPacRequest" class="status-pill" :class="statusTone(latestPacRequest.status_code)">
               <AppIcon :name="statusTone(latestPacRequest.status_code) === 'good' ? 'circle-check' : statusTone(latestPacRequest.status_code) === 'bad' ? 'circle-x' : 'circle-alert'" :size="12" />
               {{ latestPacRequest.status_code }} {{ statusLabel(latestPacRequest.status_code) }}
@@ -356,7 +356,7 @@ onUnmounted(() => {
         <div v-if="(summary?.pacRequestsLast24h ?? 0) > 0" class="pac-latency-chart" role="img" aria-label="最近 24 小时 PAC 文件每小时平均响应耗时">
           <div v-for="point in summary!.pacRequestTrend" :key="point.hour" class="pac-latency-column" :title="formatTrendHour(point.hour) + ' · 平均 ' + formatDuration(point.averageResponseMs) + ' · ' + point.requests + ' 次请求'">
             <div class="pac-latency-track">
-              <div class="pac-latency-bar" :style="{ height: (point.averageResponseMs / maxPacLatency * 100) + '%' }"></div>
+              <div v-if="point.averageResponseMs > 0" class="pac-latency-bar" :style="{ height: (point.averageResponseMs / maxPacLatency * 100) + '%' }"></div>
             </div>
             <span>{{ formatTrendHour(point.hour) }}</span>
           </div>
