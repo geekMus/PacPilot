@@ -124,8 +124,10 @@ function jumpToLine(lineNumber: number) {
   const line = editor.state.doc.line(lineNumber);
   const scroller = editor.scrollDOM;
   const block = editor.lineBlockAt(line.from);
-  const lineVisible = block.top >= scroller.scrollTop &&
-    block.bottom <= scroller.scrollTop + scroller.clientHeight;
+  const viewportTop = scroller.scrollTop;
+  const viewportBottom = viewportTop + scroller.clientHeight;
+  // 只要目标行有任意部分可见，就不滚动；完全位于视口外才调整内部滚动条。
+  const lineVisible = block.bottom > viewportTop && block.top < viewportBottom;
 
   if (jumpHighlightTimer !== null) window.clearTimeout(jumpHighlightTimer);
 
