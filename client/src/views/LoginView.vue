@@ -50,7 +50,7 @@ async function onSubmit() {
         <div class="page-kicker">ADMINISTRATION</div>
         <h1 class="page-title">管理你的 PAC 配置</h1>
         <p>登录后可以切换生成模式、维护直连和黑名单、设置定时生成，并管理 Webhook 通知。</p>
-        <div class="security-note"><span class="security-note-icon" aria-hidden="true"><AppIcon name="shield-check" :size="17" /></span><span>首次启动默认管理密码为 <code>password</code>；登录后请立即修改。忘记密码可在容器内运行密码重置命令。</span></div>
+        <div class="security-note"><span class="security-note-icon" aria-hidden="true"><AppIcon name="shield-check" :size="17" /></span><span>首次启动默认管理密码为 <code>password</code>；登录后请立即修改。忘记密码时，可根据 Docker、本机开发或 Linux、macOS、Windows 的生产部署方式执行对应的重置命令。</span></div>
       </div>
       <section class="login-card">
         <div class="login-mark" aria-hidden="true">
@@ -67,8 +67,8 @@ async function onSubmit() {
             {{ loading ? "正在验证…" : "登录控制台" }}<AppIcon :name="loading ? 'loader-circle' : 'arrow-right'" :class="{ 'icon-spinning': loading }" :size="16" />
           </button>
         </form>
-        <p class="login-footnote">请勿在公共设备上保存管理密码。忘记密码时执行：</p>
-        <p class="login-footnote"><code>docker exec -it genpac-runner bun run /app/scripts/reset-admin-password.ts</code></p>
+        <p class="login-footnote">请勿在公共设备上保存管理密码。密码重置会生成一次性临时密码，登录后需立即设置新密码。</p>
+        <p class="login-footnote"><a href="https://github.com/geekMus/genpac-runner#常见问题" target="_blank" rel="noopener noreferrer">查看跨平台密码重置说明 ↗</a></p>
       </section>
     </section>
     <AppFooter />
@@ -120,7 +120,9 @@ async function onSubmit() {
 }
 .icon-spinning { animation: login-icon-spin .9s linear infinite; }
 @keyframes login-icon-spin { to { transform:rotate(360deg); } }
-.login-footnote { margin:14px 0 0; color:var(--muted); font-size:11px; }
+.login-footnote { margin:14px 0 0; color:var(--muted); font-size:11px; line-height:1.55; overflow-wrap:anywhere; }
+.login-footnote a { color:var(--accent); font-weight:700; text-decoration:none; }
+.login-footnote a:hover { text-decoration:underline; }
 .alert { padding:10px 12px; border:1px solid color-mix(in srgb,var(--red) 35%,var(--line)); border-radius:9px; background:var(--red-soft); margin-bottom:14px; font-size:12px; line-height:1.5; }
 .alert.warning { border-color:color-mix(in srgb,var(--warn) 35%,var(--line)); background:var(--warn-soft); }
 @media(max-width:680px) {

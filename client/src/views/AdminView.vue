@@ -638,7 +638,7 @@ async function changeAdminPassword() {
             </button>
           </div>
         </form>
-        <p class="field-hint">忘记密码时，可在宿主机执行 <code>docker exec -it genpac-runner bun run /app/scripts/reset-admin-password.ts</code>，然后使用命令输出的一次性密码登录。</p>
+        <p class="field-hint">忘记密码时，可根据部署方式重置：本机开发运行 <code>bun run reset:admin-password:development</code>；Linux、macOS、Windows 的非容器生产部署运行 <code>bun run reset:admin-password:production</code>；Docker 部署仍可在容器内运行原重置命令。脚本会显示实际数据库路径，且不会在数据库不存在时创建空库。<a href="https://github.com/geekMus/genpac-runner#常见问题" target="_blank" rel="noopener noreferrer">查看完整重置说明 ↗</a></p>
       </section>
 
       <form id="settings-form" v-if="!securityStatus.mustChangePassword" class="stack" :inert="saving" :aria-busy="saving" @submit.prevent="saveAndGenerate">

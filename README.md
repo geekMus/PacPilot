@@ -71,7 +71,7 @@ docker compose up -d
 
 每次运行会在 GitHub Actions 的 **Summary（摘要）** 中列出项目版本、发布判断、上一版本提交、提交记录和完整差异链接。镜像包含标准 OCI 标签，例如源码仓库地址、版本和提交 SHA，便于追溯镜像对应的代码。
 
-网页底部会显示 GitHub 项目入口和圆角版本标签。点击版本标签可在弹窗中查看当前版本和最新版本；若检测到更新，标签会变为橙色并显示 `New` 标识。服务端通过代码中内置的版本查询地址获取 `main` 分支中的 `package.json`，并为每次实际远程请求添加唯一查询参数、发送禁用缓存的请求指令，以降低代理或 CDN 返回旧内容的概率。若该地址不可达或返回内容无效，最新版本会显示为暂时未知，不影响 PAC 和后台功能。打开 `proxy.pac` 时，可以在文件头看到中文版本标记，便于确认该 PAC 文件对应的程序版本。PAC 生成前会校验代理字符串的 PAC 指令、主机地址与端口，支持 `PROXY`、`HTTP`、`HTTPS`、`SOCKS`、`SOCKS4`、`SOCKS5` 和 `DIRECT`。生成文件中的说明注释尽量使用中文；协议规定的函数名、变量名和代理指令保留标准写法。启用远程 PAC 压缩时，为减小体积会移除正文注释，但文件头仍保留中文版本标记。
+网页底部会显示 GitHub 项目入口和圆角版本标签。点击版本标签可打开“项目与版本”弹窗；若检测到更新，标签会变为橙色并显示 `New` 标识。最新版本信息由用户浏览器直接请求 `https://github.mus.pp.ua/https://raw.githubusercontent.com/geekMus/genpac-runner/refs/heads/main/package.json` 获取，不再由部署该服务的主机代为请求。每次进入包含页脚的页面时会请求一次；主动点击版本标签打开弹窗时会再请求一次；在弹窗中手动点击“最新版本”时也会重新请求。每次请求使用唯一查询参数并禁用浏览器缓存，降低代理或 CDN 返回旧内容的概率。若代理地址不可达、浏览器跨域请求被拒绝或返回的版本号无效，最新版本会显示为暂时未知，不影响 PAC 和后台功能。打开 `proxy.pac` 时，可以在文件头看到中文版本标记，便于确认该 PAC 文件对应的程序版本。PAC 生成前会校验代理字符串的 PAC 指令、主机地址与端口，支持 `PROXY`、`HTTP`、`HTTPS`、`SOCKS`、`SOCKS4`、`SOCKS5` 和 `DIRECT`。生成文件中的说明注释尽量使用中文；协议规定的函数名、变量名和代理指令保留标准写法。启用远程 PAC 压缩时，为减小体积会移除正文注释，但文件头仍保留中文版本标记。
 
 未涉及 `package.json` 的普通提交或合并不会自动触发镜像工作流；`main` 分支上的 `package.json` 发生变更时会运行版本检查。只有版本号发生符合规则的有效变化才会推送镜像；如果只是修改依赖或其他字段、但没有改变 `version`，仍会执行构建验证，但不会发布镜像。发布新版本时请将 `version` 更新为当天的 `YYYY.MM.DD`，同日后续修订使用递增的 `-rN` 后缀。其他分支的普通提交不会自动触发；手动运行仅验证构建，不会推送镜像。
 
@@ -152,17 +152,39 @@ Docker 部署时，建议在 `docker-compose.yml` 中启用一种 `/data` 持久
 
 **忘记管理密码**
 
-在宿主机上执行下面的命令。程序会生成随机的一次性临时密码，命令输出只显示一次：
+重置脚本适用于 Docker、本机开发，以及 Linux、Unix、macOS、Windows 等非容器部署。项目使用 Bun 运行时，所以下列命令需要在项目根目录执行，并且需要对实际数据库文件有读写权限。脚本会生成随机的一次性临时密码，命令输出只显示一次；请使用临时密码登录后，在后台「管理密码」卡片中立即设置新密码。完成修改前，其他管理操作会被锁定。
 
-```bash
-docker exec -it genpac-runner bun run /app/scripts/reset-admin-password.ts
-```
+- **Docker 容器：** 在宿主机执行下面的命令；脚本会使用容器内的 `/data` 目录：
 
-使用临时密码登录后，在后台「管理密码」卡片中设置新密码。为避免临时密码长期有效，其他管理操作会在完成修改前保持锁定。重置只更新管理员凭据，不会删除代理规则、直连/黑名单、时区、Webhook 或生成记录。
+  ```bash
+  docker exec -it genpac-runner bun run /app/scripts/reset-admin-password.ts
+  ```
+
+- **本机开发：** 读取项目根目录的开发环境 `.env`；未另行设置时，数据库位于项目的 `./data/genpac.db`：
+
+  ```bash
+  bun run reset:admin-password:development
+  ```
+
+- **Linux / Unix / macOS / Windows 的非容器生产部署：** 使用与服务相同的生产数据目录规则（优先采用系统环境中的 `DATA_DIR`）。默认目录为 Linux/Unix 的 `$XDG_DATA_HOME/genpac-runner` 或 `~/.local/share/genpac-runner`、macOS 的 `~/Library/Application Support/genpac-runner`、Windows 的 `%LOCALAPPDATA%\genpac-runner`：
+
+  ```bash
+  bun run reset:admin-password:production
+  ```
+
+- **自定义数据库目录：** 当服务由 systemd、Windows 服务管理器等启动，且其环境变量或工作目录与当前终端不同时，可显式指定服务实际使用的数据目录（目录内必须已有 `genpac.db`）：
+
+  ```bash
+  bun run scripts/reset-admin-password.ts --production --data-dir "/absolute/path/to/data"
+  ```
+
+  Windows PowerShell 示例：`bun run scripts/reset-admin-password.ts --production --data-dir "C:\genpac\data"`。若服务通过环境变量设置了 `DATA_DIR`，请确保重置命令继承同一个值，或通过 `--data-dir` 指定同一路径。
+
+脚本会打印实际使用的数据目录和数据库文件。若找不到已有的 `genpac.db`，它会停止并报错，不会新建空数据库，以免把密码重置到了错误的位置。重置只更新管理员凭据，不会删除代理规则、直连/黑名单、时区、Webhook 或生成记录。
 
 **旧版环境变量密码迁移**
 
-旧版部署若曾通过 `ADMIN_PASSWORD` 设置自定义密码：如果旧版本已经把该密码初始化并保存到数据库，升级后数据库中已有的密码会继续有效；程序不再读取该环境变量。如果是全新数据库，初始密码为 `password`。若无法登录，请使用上方的一次性密码重置命令。此后只通过后台管理页面修改密码。
+旧版部署若曾通过 `ADMIN_PASSWORD` 设置自定义密码：如果旧版本已经把该密码初始化并保存到数据库，升级后数据库中已有的密码会继续有效；程序不再读取该环境变量。如果是全新数据库，初始密码为 `password`。若无法登录，请使用上方与当前部署方式对应的一次性密码重置命令。此后只通过后台管理页面修改密码。
 
 **远程列表生成失败**
 
