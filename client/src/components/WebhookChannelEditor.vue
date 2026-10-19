@@ -5,6 +5,7 @@ import AppIcon from "./AppIcon.vue";
 import WebhookBodyEditor from "./WebhookBodyEditor.vue";
 import CodeMirrorField from "./CodeMirrorField.vue";
 
+type WebhookValidationErrors = Partial<Record<"url" | "headers" | "body" | "testBody" | "secret", string>>;
 const props = defineProps<{
   title: string;
   kind: "success" | "failure";
@@ -12,7 +13,7 @@ const props = defineProps<{
   pending?: boolean;
   resultMessage?: string;
   resultOk?: boolean | null;
-  validationErrors?: string[];
+  validationErrors?: WebhookValidationErrors;
 }>();
 const emit = defineEmits<{
   "update:modelValue": [value: WebhookConfig];
@@ -84,11 +85,13 @@ const channelStatusText = computed(() => {
     </div>
 
     <template v-if="config.provider === 'custom'">
-      <div class="field">
+      <div class="field" :data-validation-target="kind + '-url'">
         <label>Webhook URL</label>
         <CodeMirrorField :model-value="config.url" single-line :height="40" language="text"
+          :invalid="Boolean(validationErrors?.url)"
           aria-label="Webhook URL" placeholder="https://example.com/hooks/pac"
           @update:model-value="update('url', $event)" />
+        <p v-if="validationErrors?.url" class="field-error" role="alert">{{ validationErrors.url }}</p>
       </div>
       <div class="two-fields">
         <div class="field">
@@ -102,42 +105,51 @@ const channelStatusText = computed(() => {
           <div class="field-static">application/json</div>
         </div>
       </div>
-      <div class="field">
+      <div class="field" :data-validation-target="kind + '-headers'">
         <label>额外请求头 <span class="label-hint">可选 JSON 对象</span></label>
         <CodeMirrorField :model-value="config.headers" language="json" :height="126"
+          :invalid="Boolean(validationErrors?.headers)"
           aria-label="额外请求头 JSON" placeholder='{"Authorization":"Bearer …"}'
           @update:model-value="update('headers', $event)" />
+        <p v-if="validationErrors?.headers" class="field-error" role="alert">{{ validationErrors.headers }}</p>
         <p class="field-hint">用于 Authorization、X-API-Key 等请求头。Content-Type 固定为 application/json；不要覆盖 Host、Content-Length、Connection 等传输字段。</p>
       </div>
-      <div class="field">
+      <div class="field" :data-validation-target="kind + '-body'">
         <label>请求 Body <span class="label-hint">JSON，可留空</span></label>
         <WebhookBodyEditor :model-value="config.body" :height="190" :sample="bodySample" empty-hint="留空时使用默认 JSON 请求体。"
+          :invalid="Boolean(validationErrors?.body)"
           placeholder="输入 JSON 对象或数组…"
           @update:model-value="update('body', $event)" />
+        <p v-if="validationErrors?.body" class="field-error" role="alert">{{ validationErrors.body }}</p>
         <p class="field-hint">支持模板变量：<code v-pre>{{event}}</code>、<code v-pre>{{status}}</code>、<code v-pre>{{message}}</code>、<code v-pre>{{timestamp}}</code>、<code v-pre>{{ok}}</code>。变量必须放在 JSON 字符串值中；留空时使用默认 JSON 请求体。</p>
       </div>
-      <div class="field">
+      <div class="field" :data-validation-target="kind + '-test-body'">
         <label>测试请求 Body <span class="label-hint">仅用于「发送测试」</span></label>
         <WebhookBodyEditor :model-value="config.testBody" :height="150" :sample="testBodySample" :empty-hint="testBodyEmptyHint"
+          :invalid="Boolean(validationErrors?.testBody)"
           placeholder="配置测试发送使用的 JSON 对象或数组…"
           @update:model-value="update('testBody', $event)" />
+        <p v-if="validationErrors?.testBody" class="field-error" role="alert">{{ validationErrors.testBody }}</p>
         <p class="field-hint">仅「发送测试」使用此请求体；留空时回退到任务请求体，任务请求体也留空时使用默认 JSON 请求体。模板变量必须放在 JSON 字符串值中。</p>
       </div>
     </template>
 
     <template v-else-if="config.provider === 'dingtalk'">
-      <div class="field">
+      <div class="field" :data-validation-target="kind + '-url'">
         <label>机器人 Webhook 地址</label>
         <CodeMirrorField :model-value="config.url" single-line :height="40" language="text"
+          :invalid="Boolean(validationErrors?.url)"
           aria-label="钉钉机器人 Webhook 地址"
           placeholder="https://oapi.dingtalk.com/robot/send?access_token=…"
           @update:model-value="update('url', $event)" />
+        <p v-if="validationErrors?.url" class="field-error" role="alert">{{ validationErrors.url }}</p>
         <p class="field-hint">在钉钉群机器人设置中复制完整的 Webhook 地址，URL 包含 access_token。</p>
       </div>
-      <div class="field">
+      <div class="field" :data-validation-target="kind + '-secret'">
         <label>Secret 加签密钥 <span class="label-hint">必填</span></label>
         <div class="secret-field">
           <input :value="config.dingTalkSecret" :type="showDingTalkSecret ? 'text' : 'password'"
+            :aria-invalid="Boolean(validationErrors?.secret)"
             autocomplete="new-password" placeholder="SEC 开头的密钥"
             @input="update('dingTalkSecret', inputValue($event))" />
           <button type="button" class="reveal-button" :aria-label="showDingTalkSecret ? '隐藏 Secret' : '显示 Secret'" :aria-pressed="showDingTalkSecret" @click="showDingTalkSecret = !showDingTalkSecret">
@@ -145,6 +157,7 @@ const channelStatusText = computed(() => {
             {{ showDingTalkSecret ? "隐藏" : "显示" }}
           </button>
         </div>
+        <p v-if="validationErrors?.secret" class="field-error" role="alert">{{ validationErrors.secret }}</p>
         <p class="field-hint">本项目仅支持 Secret 加签方式。发送时自动按钉钉规范计算 HMAC-SHA256，并添加 timestamp 与 sign 参数。<a href="https://open.dingtalk.com/document/robots/customize-robot-security-settings" target="_blank" rel="noopener noreferrer">查看官方安全设置文档 ↗</a></p>
       </div>
       <div class="field">
@@ -173,13 +186,6 @@ const channelStatusText = computed(() => {
     </template>
 
 
-
-    <div v-if="validationErrors?.length" class="validation-issues" role="alert">
-      <strong><AppIcon name="alert-triangle" :size="14" /> 保存前需要修正</strong>
-      <ul>
-        <li v-for="(item, index) in validationErrors" :key="index">{{ item }}</li>
-      </ul>
-    </div>
 
     <div class="channel-footer">
       <span class="configured-dot" :class="{ ready: channelReady }"></span>
@@ -256,6 +262,8 @@ const channelStatusText = computed(() => {
 }
 .field { display: flex; flex-direction: column; gap: 0; margin: 0; min-width: 0; }
 .field-hint { margin: 7px 0 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.field-error { margin: 6px 0 0; color: var(--red); font-size: 11px; font-weight: 650; line-height: 1.5; overflow-wrap: anywhere; }
+
 .field-hint a { display: inline-block; margin-top: 4px; color: var(--accent); font-weight: 650; text-decoration: none; }
 .field-hint a:hover { text-decoration: underline; }
 .label-hint { color: var(--muted); font-weight: 500; }
@@ -274,6 +282,10 @@ const channelStatusText = computed(() => {
 }
 .secret-field input:focus {
   outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.secret-field input[aria-invalid="true"] {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px var(--red-soft);
 }
 .reveal-button {
   display:inline-flex; align-items:center; justify-content:center; gap:6px;
@@ -298,19 +310,6 @@ const channelStatusText = computed(() => {
 .segmented button:disabled { color:var(--control-disabled-text); background:var(--control-disabled-bg); cursor:not-allowed; }
 .icon-spinning { animation: webhook-icon-spin .9s linear infinite; }
 @keyframes webhook-icon-spin { to { transform: rotate(360deg); } }
-.validation-issues {
-  padding: 10px 11px;
-  border: 1px solid color-mix(in srgb, var(--warn) 42%, var(--line));
-  border-radius: 8px;
-  background: var(--warn-soft);
-  color: var(--warn);
-  font-size: 11px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-.validation-issues strong { display:flex; align-items:center; gap:6px; margin-bottom:5px; }
-.validation-issues ul { margin:0; padding-left:20px; }
-.validation-issues li + li { margin-top:3px; }
 .channel-footer {
   display: flex; align-items: center; gap: 7px; margin-top: auto; padding-top: 12px;
   border-top: 1px solid var(--line); color: var(--muted); font-size: 10px;

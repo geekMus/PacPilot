@@ -14,10 +14,11 @@ const props = withDefaults(
   defineProps<{
     modelValue: string;
     placeholder?: string;
+    invalid?: boolean;
     /** 固定高度（px），内容超出时在编辑器内滚动 */
     height?: number;
   }>(),
-  { placeholder: "", height: 320 }
+  { placeholder: "", height: 320, invalid: false }
 );
 
 const emit = defineEmits<{
@@ -114,7 +115,7 @@ watch(
 </script>
 
 <template>
-  <div class="editor-shell" :style="{ height: height + 'px' }">
+  <div class="editor-shell" :class="{ 'is-invalid': invalid }" :style="{ height: height + 'px' }">
     <div ref="host" class="cm-host" />
     <div v-if="!modelValue && placeholder" class="ph">{{ placeholder }}</div>
   </div>
@@ -130,6 +131,11 @@ watch(
   /* 固定高度，不随内容增高 */
   flex-shrink: 0;
 }
+.editor-shell.is-invalid {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px var(--red-soft);
+}
+
 
 .cm-host {
   height: 100%;

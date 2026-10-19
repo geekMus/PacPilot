@@ -201,58 +201,52 @@ function jsonBodyError(raw: string): string {
   }
 }
 
-function validateWebhookDraft(config: WebhookConfig, label: string): string[] {
-  const errors: string[] = [];
+type WebhookFieldErrors = { url: string; headers: string; body: string; testBody: string; secret: string };
+
+function validateWebhookDraft(config: WebhookConfig, label: string): WebhookFieldErrors {
+  const errors: WebhookFieldErrors = { url: "", headers: "", body: "", testBody: "", secret: "" };
   if (config.provider === "custom") {
     const url = config.url.trim();
     const rawHeaders = config.headers.trim();
     const hasCustomRequest = Boolean(url || config.body.trim() || (rawHeaders && rawHeaders !== "{}"));
-
-    if (url && !looksLikeUrl(url)) {
-      errors.push(label + "需要有效的 HTTP(S) URL。");
-    } else if (!url && hasCustomRequest) {
-      errors.push(label + "配置了请求 Body 或额外请求头，需要填写 Webhook URL。");
-    }
-
+    if (url && !looksLikeUrl(url)) errors.url = label + "需要有效的 HTTP(S) URL。";
+    else if (!url && hasCustomRequest) errors.url = label + "配置了请求 Body 或额外请求头，需要填写 Webhook URL。";
     const bodyError = jsonBodyError(config.body);
-    if (bodyError) errors.push(label + "请求 Body：" + bodyError);
+    if (bodyError) errors.body = label + "请求 Body：" + bodyError;
     const testBodyError = jsonBodyError(config.testBody);
-    if (testBodyError) errors.push(label + "测试请求 Body：" + testBodyError);
-
+    if (testBodyError) errors.testBody = label + "测试请求 Body：" + testBodyError;
     if (rawHeaders) {
       try {
         const headers: unknown = JSON.parse(rawHeaders);
-        if (!headers || typeof headers !== "object" || Array.isArray(headers)) {
-          errors.push(label + "额外请求头必须是 JSON 对象。");
-        } else {
+        if (!headers || typeof headers !== "object" || Array.isArray(headers)) errors.headers = label + "额外请求头必须是 JSON 对象。";
+        else {
           for (const [name, value] of Object.entries(headers as Record<string, unknown>)) {
             if (!name.trim() || typeof value !== "string") {
-              errors.push(label + "请求头必须是名称和值均为字符串的 JSON 对象。");
+              errors.headers = label + "请求头必须是名称和值均为字符串的 JSON 对象。";
               break;
             }
             if (/^(host|content-length|connection|transfer-encoding|content-type)$/i.test(name) || /[\r\n]/.test(value)) {
-              errors.push(label + "请求头包含不允许覆盖的传输字段或换行字符；Content-Type 固定为 application/json。");
+              errors.headers = label + "请求头包含不允许覆盖的传输字段或换行字符；Content-Type 固定为 application/json。";
               break;
             }
           }
         }
       } catch {
-        errors.push(label + "额外请求头 JSON 语法错误，请检查括号、引号和逗号。");
+        errors.headers = label + "额外请求头 JSON 语法错误，请检查括号、引号和逗号。";
       }
     }
   } else if (config.provider === "dingtalk") {
     if (config.url.trim()) {
-      if (!looksLikeUrl(config.url.trim())) {
-        errors.push(label + "钉钉 URL 必须是有效的 HTTP(S) 地址。");
-      } else if (!new URL(config.url.trim()).searchParams.has("access_token")) {
-        errors.push(label + "钉钉 URL 缺少 access_token。");
-      }
-      if (!config.dingTalkSecret.trim()) errors.push(label + "钉钉机器人必须填写 Secret 加签密钥。");
-    } else if (config.dingTalkSecret.trim()) {
-      errors.push(label + "填写 Secret 前，请先填写机器人 Webhook URL。");
-    }
+      if (!looksLikeUrl(config.url.trim())) errors.url = label + "钉钉 URL 必须是有效的 HTTP(S) 地址。";
+      else if (!new URL(config.url.trim()).searchParams.has("access_token")) errors.url = label + "钉钉 URL 缺少 access_token。";
+      if (!config.dingTalkSecret.trim()) errors.secret = label + "钉钉机器人必须填写 Secret 加签密钥。";
+    } else if (config.dingTalkSecret.trim()) errors.url = label + "填写 Secret 前，请先填写机器人 Webhook URL。";
   }
   return errors;
+}
+
+function webhookErrorMessages(errors: WebhookFieldErrors): string[] {
+  return [errors.url, errors.headers, errors.body, errors.testBody, errors.secret].filter(Boolean);
 }
 
 function validDomainOrIPv4(host: string): boolean {
@@ -347,7 +341,8 @@ const listUrlError = computed(() => {
 });
 const directListError = computed(() => validateDomainRules(form.directListText, "直连列表"));
 const blockListError = computed(() => validateDomainRules(form.blockListText, "黑名单"));
-const proxyTestUrlError = computed(() => validateProxyTestUrl(form.proxyTestUrl));
+const timezoneError = computed(() => isValidTimeZone(form.timezone) ? "" : "时区无效，请使用有效的 IANA 时区名称，例如 Asia/Tokyo。");
+const cronError = computed(() => form.cronSchedule.trim() ? cronParse.value.error : "");
 const webhookValidation = computed(() => ({
   success: validateWebhookDraft(form.webhookSuccessConfig, "成功通知"),
   failure: validateWebhookDraft(form.webhookFailureConfig, "失败通知"),
@@ -356,18 +351,53 @@ const webhookValidation = computed(() => ({
 /** 保存前统一校验；错误列表为空才允许保存和生成 PAC。 */
 const formErrors = computed(() => {
   const errs: string[] = [];
+  if (timezoneError.value) errs.push(timezoneError.value);
   if (pacProxyError.value) errs.push(pacProxyError.value);
   if (listUrlError.value) errs.push(listUrlError.value);
   if (directListError.value) errs.push(directListError.value);
   if (blockListError.value) errs.push(blockListError.value);
-  if (proxyTestUrlError.value) errs.push(proxyTestUrlError.value);
-  const cron = form.cronSchedule.trim();
-  if (cron && cronParse.value.error) errs.push("Cron 表达式无效，请检查五段格式与字段取值。");
-  if (!isValidTimeZone(form.timezone)) errs.push("时区无效，请从建议列表选择，或输入有效的 IANA 时区名称。");
-  errs.push(...webhookValidation.value.success);
-  errs.push(...webhookValidation.value.failure);
+  if (cronError.value) errs.push("Cron 表达式无效：" + cronError.value);
+  errs.push(...webhookErrorMessages(webhookValidation.value.success));
+  errs.push(...webhookErrorMessages(webhookValidation.value.failure));
   return errs;
 });
+
+type ValidationTarget = { key: string; message: string };
+const validationTargets = computed<ValidationTarget[]>(() => {
+  const targets: ValidationTarget[] = [];
+  if (timezoneError.value) targets.push({ key: "timezone", message: timezoneError.value });
+  if (pacProxyError.value) targets.push({ key: "pac-proxy", message: pacProxyError.value });
+  if (listUrlError.value) targets.push({ key: "list-url", message: listUrlError.value });
+  if (directListError.value) targets.push({ key: "direct-list", message: directListError.value });
+  if (blockListError.value) targets.push({ key: "block-list", message: blockListError.value });
+  if (cronError.value) targets.push({ key: "cron", message: cronError.value });
+  const channels = [
+    { key: "success", errors: webhookValidation.value.success },
+    { key: "failure", errors: webhookValidation.value.failure },
+  ];
+  for (const channel of channels) {
+    for (const field of ["url", "headers", "body", "testBody", "secret"] as const) {
+      const message = channel.errors[field];
+      if (message) targets.push({ key: channel.key + "-" + (field === "testBody" ? "test-body" : field), message });
+    }
+  }
+  return targets;
+});
+
+async function jumpToFirstError(): Promise<void> {
+  const first = validationTargets.value[0];
+  if (!first) return;
+  await nextTick();
+  const element = document.querySelector<HTMLElement>('[data-validation-target="' + first.key + '"]');
+  if (!element) return;
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  const control = element.querySelector<HTMLElement>('input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [contenteditable="true"]');
+  control?.focus({ preventScroll: true });
+}
+
+function handleFloatingSaveClick(): void {
+  if (formErrors.value.length) void jumpToFirstError();
+}
 
 const canSubmit = computed(() => formErrors.value.length === 0 && !saving.value);
 
@@ -477,9 +507,7 @@ async function saveAndGenerate() {
   flash.value = "";
   error.value = "";
   if (formErrors.value.length) {
-    showFlash(formErrors.value.join("\n"), false);
-    await nextTick();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    await jumpToFirstError();
     return;
   }
   const payload = toPayload();
@@ -516,7 +544,7 @@ async function testWebhook(kind: "success" | "failure") {
     state.message = "请先填写通知目标 URL。";
     return;
   }
-  const validationErrors = validateWebhookDraft(config, kind === "success" ? "成功通知" : "失败通知");
+  const validationErrors = webhookErrorMessages(validateWebhookDraft(config, kind === "success" ? "成功通知" : "失败通知"));
   if (validationErrors.length) {
     state.ok = false;
     state.message = validationErrors.join("\n");
@@ -632,12 +660,12 @@ async function logout() {
               </div>
             </div>
           </div>
-          <div class="field">
+          <div class="field" data-validation-target="timezone">
             <label for="timezone">时区</label>
             <div class="timezone-picker desktop-timezone-picker">
               <input id="timezone" v-model="form.timezone" autocomplete="off" spellcheck="false"
                 placeholder="搜索时区名称或代码，例如中国标准时间、Asia/Tokyo"
-                :aria-invalid="!isValidTimeZone(form.timezone)"
+                :aria-invalid="Boolean(timezoneError)"
                 @focus="timezoneMenuOpen = true; timezoneQuery = ''"
                 @input="timezoneQuery = form.timezone"
                 @blur="closeTimezoneMenu"
@@ -656,7 +684,7 @@ async function logout() {
               <span class="mobile-timezone-trigger-icon" aria-hidden="true"><AppIcon name="chevron-down" :size="17" /></span>
             </button>
             <p class="field-hint">可按地区名称或 IANA 时区代码搜索，也可直接输入有效的时区代码。该设置统一用于定时任务、运行记录和 Webhook 通知的时间显示。</p>
-            <p v-if="!isValidTimeZone(form.timezone)" class="field-warn" role="alert">时区无效，请使用有效的 IANA 时区名称，例如 Asia/Tokyo。</p>
+            <p v-if="timezoneError" class="field-error" role="alert">{{ timezoneError }}</p>
           </div>
 
           <div v-if="mobileTimezoneOpen" class="timezone-sheet-backdrop" @click.self="mobileTimezoneOpen = false">
@@ -755,7 +783,7 @@ async function logout() {
             </div>
           </div>
 
-          <div class="field">
+          <div class="field" data-validation-target="pac-proxy">
             <label for="pacProxy">PAC 代理字符串</label>
             <input
               id="pacProxy"
@@ -764,13 +792,13 @@ async function logout() {
               placeholder="SOCKS5 127.0.0.1:1080; DIRECT"
             />
             <p class="field-hint">每个代理项用分号分隔。支持 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 和 DIRECT；代理地址必须填写端口，例如 SOCKS5 127.0.0.1:1080; DIRECT。</p>
-            <p v-if="pacProxyError" class="field-warn" role="alert">{{ pacProxyError }}</p>
+            <p v-if="pacProxyError" class="field-error" role="alert">{{ pacProxyError }}</p>
           </div>
-          <div class="field" :class="{ 'is-disabled': form.mode !== 'remote' }">
+          <div class="field" :class="{ 'is-disabled': form.mode !== 'remote' }" data-validation-target="list-url">
             <label for="listUrl">规则列表 URL <span class="lab-hint">GFWList / 域名型 AutoProxy、ABP / 明文域名</span></label>
             <input id="listUrl" v-model="form.listUrl" :disabled="form.mode !== 'remote'" :aria-disabled="form.mode !== 'remote'" :aria-invalid="Boolean(listUrlError)" placeholder="https://example.com/list.txt" />
             <p class="field-hint">按提取出的域名进行匹配；URL 路径、资源类型等复杂过滤条件不会保留。<span v-if="form.mode !== 'remote'" class="disabled-hint">切换到远程规则列表模式后可编辑。</span></p>
-            <p v-if="listUrlError" class="field-warn" role="alert">{{ listUrlError }}</p>
+            <p v-if="listUrlError" class="field-error" role="alert">{{ listUrlError }}</p>
           </div>
           <div class="checks">
             <label class="check" :class="{ 'is-disabled': form.mode !== 'remote' }" :aria-disabled="form.mode !== 'remote'">
@@ -813,23 +841,25 @@ async function logout() {
           </details>
 
           <div class="split editors">
-            <div class="field">
+            <div class="field" data-validation-target="direct-list">
               <label>直连列表</label>
               <DomainListEditor
                 v-model="form.directListText"
                 :height="320"
+                :invalid="Boolean(directListError)"
                 placeholder="baidu.com&#10;*.cn"
               />
-              <p v-if="directListError" class="field-warn" role="alert">{{ directListError }}</p>
+              <p v-if="directListError" class="field-error" role="alert">{{ directListError }}</p>
             </div>
-            <div class="field">
+            <div class="field" data-validation-target="block-list">
               <label>黑名单</label>
               <DomainListEditor
                 v-model="form.blockListText"
                 :height="320"
+                :invalid="Boolean(blockListError)"
                 placeholder="ads.example.com"
               />
-              <p v-if="blockListError" class="field-warn" role="alert">{{ blockListError }}</p>
+              <p v-if="blockListError" class="field-error" role="alert">{{ blockListError }}</p>
             </div>
           </div>
         </section>
@@ -862,17 +892,18 @@ async function logout() {
                 {{ p.label }}
               </button>
             </div>
-            <div class="field">
+            <div class="field" data-validation-target="cron">
               <label for="cron">Cron 表达式 <span class="lab-hint">5 段 · 分 时 日 月 周</span></label>
               <input
                 id="cron"
                 v-model="form.cronSchedule"
                 class="mono"
+                :aria-invalid="Boolean(cronError)"
                 spellcheck="false"
                 autocomplete="off"
                 placeholder="例如 0 */3 * * *"
               />
-              <p class="field-hint" :class="{ 'field-warn': Boolean(cronParse.error) }" :aria-live="cronParse.error ? 'polite' : undefined">{{ cronHint }}</p>
+              <p class="field-hint" :class="{ 'field-error': Boolean(cronError) }" :aria-live="cronError ? 'polite' : undefined">{{ cronHint }}</p>
             </div>
           </div>
 
@@ -959,14 +990,15 @@ async function logout() {
       <button
         v-if="!securityStatus.mustChangePassword && hasUnsavedSettings"
         form="settings-form"
-        type="submit"
+        :type="canSubmit ? 'submit' : 'button'"
         class="floating-save-button"
         :class="{ 'is-loading': saving, 'has-errors': formErrors.length > 0 && !saving }"
-        :disabled="saving || formErrors.length > 0"
+        :disabled="saving"
         :aria-busy="saving"
         :aria-invalid="formErrors.length > 0 ? 'true' : undefined"
-        :aria-label="saving ? '正在保存并生成 PAC' : formErrors.length ? '配置存在校验问题，修正后才能保存' : '保存并生成 PAC'"
-        :title="saving ? '正在保存并生成 PAC' : formErrors.length ? '配置存在校验问题，修正后才能保存' : '保存并生成 PAC'"
+        :aria-label="saving ? '正在保存并生成 PAC' : formErrors.length ? '配置存在校验问题，点击定位到错误' : '保存并生成 PAC'"
+        :title="saving ? '正在保存并生成 PAC' : formErrors.length ? '配置存在校验问题，点击定位到错误' : '保存并生成 PAC'"
+        @click="handleFloatingSaveClick"
       >
         <AppIcon :name="saving ? 'loader-circle' : formErrors.length ? 'circle-alert' : 'save'" :size="21" :class="{ 'save-spinner': saving }" />
       </button>
@@ -1030,7 +1062,14 @@ async function logout() {
   color: var(--warn) !important;
   -webkit-text-fill-color: var(--warn);
   box-shadow: 0 8px 22px color-mix(in srgb, var(--warn) 18%, transparent);
-  cursor: not-allowed;
+  cursor: pointer;
+}
+.floating-save-button.has-errors:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--warn) 20%, var(--surface));
+  border-color: var(--warn);
+  color: var(--warn) !important;
+  -webkit-text-fill-color: var(--warn);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--warn) 24%, transparent);
 }
 .floating-save-button.is-loading:disabled {
   opacity: 1;
@@ -1628,6 +1667,20 @@ tr:last-child td {
   color: var(--warn);
   line-height: 1.45;
 }
+.field-error {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--red);
+  line-height: 1.45;
+  font-weight: 600;
+}
+.admin-page input[aria-invalid="true"],
+.admin-page textarea[aria-invalid="true"],
+.admin-page select[aria-invalid="true"] {
+  border-color: var(--red) !important;
+  box-shadow: 0 0 0 3px var(--red-soft) !important;
+}
+
 input.mono,
 textarea.mono {
   font-family: var(--font-mono);

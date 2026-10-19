@@ -7,8 +7,8 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import { json } from "@codemirror/lang-json";
 
 const props = withDefaults(
-  defineProps<{ modelValue: string; placeholder?: string; sample?: string; height?: number; emptyHint?: string }>(),
-  { placeholder: "", sample: "", height: 220, emptyHint: "留空时使用默认 JSON 请求体。" }
+  defineProps<{ modelValue: string; placeholder?: string; sample?: string; height?: number; emptyHint?: string; invalid?: boolean }>(),
+  { placeholder: "", sample: "", height: 220, emptyHint: "留空时使用默认 JSON 请求体。", invalid: false }
 );
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 const host = ref<HTMLDivElement | null>(null);
@@ -104,7 +104,7 @@ watch(() => props.modelValue, (value) => {
 </script>
 
 <template>
-  <div class="json-editor">
+  <div class="json-editor" :class="{ invalid: invalid || jsonStatus.kind === 'invalid' }">
     <div class="json-editor-toolbar">
       <div class="json-editor-language"><span class="language-dot" aria-hidden="true"></span><span>JSON</span></div>
       <div class="json-editor-actions">
@@ -123,7 +123,8 @@ watch(() => props.modelValue, (value) => {
 </template>
 
 <style scoped>
-.json-editor { border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg); }
+.json-editor { border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg); transition: border-color .15s, box-shadow .15s; }
+.json-editor.invalid { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-soft); }
 .json-editor-toolbar {
   min-height: 40px; display: flex; align-items: center; justify-content: space-between;
   gap: 10px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--surface-2);

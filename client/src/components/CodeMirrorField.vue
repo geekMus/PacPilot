@@ -13,12 +13,14 @@ const props = withDefaults(defineProps<{
   singleLine?: boolean;
   language?: "json" | "text";
   ariaLabel?: string;
+  invalid?: boolean;
 }>(), {
   placeholder: "",
   height: 160,
   singleLine: false,
   language: "text",
   ariaLabel: "文本编辑器",
+  invalid: false,
 });
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 const host = ref<HTMLDivElement | null>(null);
@@ -105,7 +107,7 @@ watch(() => props.modelValue, (value) => {
 </script>
 
 <template>
-  <div class="cm-field-frame" :class="{ 'single-line': singleLine }">
+  <div class="cm-field-frame" :class="{ 'single-line': singleLine, invalid }">
     <div ref="host" class="cm-field-host"></div>
   </div>
 </template>
@@ -124,6 +126,11 @@ watch(() => props.modelValue, (value) => {
 .cm-field-frame:focus-within {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.cm-field-frame.invalid,
+.cm-field-frame.invalid:focus-within {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px var(--red-soft);
 }
 .cm-field-frame.single-line { height: 40px; }
 .cm-field-host { width: 100%; }
