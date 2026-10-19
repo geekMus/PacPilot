@@ -135,8 +135,23 @@ watch(() => props.modelValue, (value) => {
   appearance: none; border: 1px solid var(--line); border-radius: 6px; background: var(--surface);
   color: var(--text); min-height: 28px; padding: 3px 9px; font-size: 11px; font-weight: 600; cursor: pointer;
 }
-.editor-action:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
-.editor-action:disabled { opacity: 0.45; cursor: not-allowed; }
+.editor-action:hover:not(:disabled) {
+  border-color:var(--accent);
+  color:var(--accent);
+  background:var(--surface-2);
+}
+.editor-action:active:not(:disabled) {
+  border-color:var(--accent);
+  color:var(--accent);
+  background:var(--accent-soft);
+}
+.editor-action:disabled {
+  opacity:1;
+  color:var(--control-disabled-text);
+  background:var(--control-disabled-bg);
+  border-color:var(--control-disabled-border);
+  cursor:not-allowed;
+}
 .json-editor-frame { position: relative; overflow: hidden; }
 .cm-host, .cm-host :deep(.cm-editor) { height: 100%; background: transparent; }
 .cm-host :deep(.cm-scroller) { overflow: auto !important; scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
