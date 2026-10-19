@@ -12,6 +12,7 @@ import {
 import AdminLayout from "../components/AdminLayout.vue";
 import AppFooter from "../components/AppFooter.vue";
 import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
+import TextDetail from "../components/TextDetail.vue";
 
 const router = useRouter();
 const summary = ref<MonitorSummary | null>(null);
@@ -332,12 +333,14 @@ onUnmounted(() => {
                 <td><span class="category-pill">{{ categoryLabel(event.category) }}</span></td>
                 <td class="path-cell">
                   <span class="method-label">{{ event.method }}</span>
-                  <code>{{ event.path }}</code>
+                  <TextDetail :text="event.path" label="请求路径" />
                 </td>
                 <td><span class="status-pill" :class="statusTone(event.status_code)">{{ event.status_code }} {{ statusLabel(event.status_code) }}</span></td>
                 <td class="nowrap">{{ formatDuration(event.duration_ms) }}</td>
                 <td class="nowrap">{{ formatBytes(event.response_bytes) }}</td>
-                <td class="ua-cell" :title="event.user_agent || '未知客户端'">{{ event.user_agent || "—" }}</td>
+                <td class="ua-cell">
+                  <TextDetail :text="event.user_agent || ''" label="客户端信息" />
+                </td>
               </tr>
             </tbody>
           </table>
@@ -437,7 +440,12 @@ onUnmounted(() => {
                 <td class="nowrap">{{ formatDuration(item.tcp_ms) }}</td>
                 <td class="nowrap">{{ formatDuration(item.handshake_ms) }}</td>
                 <td class="nowrap">{{ formatDuration(item.target_ms) }}</td>
-                <td class="probe-history-error" :title="item.error">{{ item.success ? "—" : probePhaseLabel(item.phase) + "：" + item.error }}</td>
+                <td class="probe-history-error">
+                  <TextDetail
+                    :text="item.success ? '—' : probePhaseLabel(item.phase) + '：' + item.error"
+                    label="检测失败原因"
+                  />
+                </td>
               </tr>
             </tbody>
           </table>
@@ -495,7 +503,7 @@ onUnmounted(() => {
 .monitor-table code { max-width:330px; display:inline-block; overflow-wrap:anywhere; white-space:normal; }
 .nowrap { white-space:nowrap; }
 .path-cell { min-width:180px; max-width:300px; }
-.ua-cell { max-width:220px; min-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--muted); }
+.ua-cell { max-width:220px; min-width:160px; color:var(--muted); }
 .path-cell code { word-break:break-all; }
 .method-label { display:inline-block; color:var(--muted); font-size:10px; font-weight:750; margin-right:6px; }
 .category-pill,.status-pill { display:inline-flex; align-items:center; border-radius:999px; padding:3px 7px; font-size:10px; font-weight:700; white-space:nowrap; border:1px solid var(--line); background:var(--surface-2); color:var(--muted); }
