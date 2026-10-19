@@ -12,6 +12,7 @@ const props = defineProps<{
   pending?: boolean;
   resultMessage?: string;
   resultOk?: boolean | null;
+  validationErrors?: string[];
 }>();
 const emit = defineEmits<{
   "update:modelValue": [value: WebhookConfig];
@@ -173,6 +174,13 @@ const channelStatusText = computed(() => {
 
 
 
+    <div v-if="validationErrors?.length" class="validation-issues" role="alert">
+      <strong><AppIcon name="alert-triangle" :size="14" /> 保存前需要修正</strong>
+      <ul>
+        <li v-for="(item, index) in validationErrors" :key="index">{{ item }}</li>
+      </ul>
+    </div>
+
     <div class="channel-footer">
       <span class="configured-dot" :class="{ ready: channelReady }"></span>
       <span>{{ channelStatusText }}</span>
@@ -290,6 +298,19 @@ const channelStatusText = computed(() => {
 .segmented button:disabled { color:var(--control-disabled-text); background:var(--control-disabled-bg); cursor:not-allowed; }
 .icon-spinning { animation: webhook-icon-spin .9s linear infinite; }
 @keyframes webhook-icon-spin { to { transform: rotate(360deg); } }
+.validation-issues {
+  padding: 10px 11px;
+  border: 1px solid color-mix(in srgb, var(--warn) 42%, var(--line));
+  border-radius: 8px;
+  background: var(--warn-soft);
+  color: var(--warn);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.validation-issues strong { display:flex; align-items:center; gap:6px; margin-bottom:5px; }
+.validation-issues ul { margin:0; padding-left:20px; }
+.validation-issues li + li { margin-top:3px; }
 .channel-footer {
   display: flex; align-items: center; gap: 7px; margin-top: auto; padding-top: 12px;
   border-top: 1px solid var(--line); color: var(--muted); font-size: 10px;

@@ -204,32 +204,128 @@ function jsonBodyError(raw: string): string {
 function validateWebhookDraft(config: WebhookConfig, label: string): string[] {
   const errors: string[] = [];
   if (config.provider === "custom") {
-    const active = Boolean(config.url.trim() || config.body.trim() || config.headers.trim() !== "{}");
-    if (!active) return errors;
-    if (!config.url.trim() || !looksLikeUrl(config.url.trim())) errors.push(`${label}需要有效的 HTTP(S) URL。`);
-    if (config.body.trim() && jsonBodyError(config.body)) errors.push(`${label}请求 Body 必须是合法 JSON 对象或数组。`);
-    if (config.testBody.trim() && jsonBodyError(config.testBody)) errors.push(`${label}测试请求 Body 必须是合法 JSON 对象或数组。`);
-    if (config.headers.trim()) {
+    const url = config.url.trim();
+    const rawHeaders = config.headers.trim();
+    const hasCustomRequest = Boolean(url || config.body.trim() || (rawHeaders && rawHeaders !== "{}"));
+
+    if (url && !looksLikeUrl(url)) {
+      errors.push(label + "需要有效的 HTTP(S) URL。");
+    } else if (!url && hasCustomRequest) {
+      errors.push(label + "配置了请求 Body 或额外请求头，需要填写 Webhook URL。");
+    }
+
+    const bodyError = jsonBodyError(config.body);
+    if (bodyError) errors.push(label + "请求 Body：" + bodyError);
+    const testBodyError = jsonBodyError(config.testBody);
+    if (testBodyError) errors.push(label + "测试请求 Body：" + testBodyError);
+
+    if (rawHeaders) {
       try {
-        const headers: unknown = JSON.parse(config.headers);
-        if (!headers || typeof headers !== "object" || Array.isArray(headers) ||
-            Object.values(headers as Record<string, unknown>).some((value) => typeof value !== "string")) {
-          errors.push(`${label}请求头必须是名称和值均为字符串的 JSON 对象。`);
+        const headers: unknown = JSON.parse(rawHeaders);
+        if (!headers || typeof headers !== "object" || Array.isArray(headers)) {
+          errors.push(label + "额外请求头必须是 JSON 对象。");
+        } else {
+          for (const [name, value] of Object.entries(headers as Record<string, unknown>)) {
+            if (!name.trim() || typeof value !== "string") {
+              errors.push(label + "请求头必须是名称和值均为字符串的 JSON 对象。");
+              break;
+            }
+            if (/^(host|content-length|connection|transfer-encoding|content-type)$/i.test(name) || /[\r\n]/.test(value)) {
+              errors.push(label + "请求头包含不允许覆盖的传输字段或换行字符；Content-Type 固定为 application/json。");
+              break;
+            }
+          }
         }
       } catch {
-        errors.push(`${label}请求头不是合法 JSON。`);
+        errors.push(label + "额外请求头 JSON 语法错误，请检查括号、引号和逗号。");
       }
     }
   } else if (config.provider === "dingtalk") {
     if (config.url.trim()) {
-      if (!looksLikeUrl(config.url.trim())) errors.push(label + "钉钉 URL 必须是有效的 HTTP(S) 地址。");
-      else if (!new URL(config.url.trim()).searchParams.has("access_token")) errors.push(label + "钉钉 URL 缺少 access_token。");
+      if (!looksLikeUrl(config.url.trim())) {
+        errors.push(label + "钉钉 URL 必须是有效的 HTTP(S) 地址。");
+      } else if (!new URL(config.url.trim()).searchParams.has("access_token")) {
+        errors.push(label + "钉钉 URL 缺少 access_token。");
+      }
       if (!config.dingTalkSecret.trim()) errors.push(label + "钉钉机器人必须填写 Secret 加签密钥。");
     } else if (config.dingTalkSecret.trim()) {
       errors.push(label + "填写 Secret 前，请先填写机器人 Webhook URL。");
     }
   }
   return errors;
+}
+
+function validDomainOrIPv4(host: string): boolean {
+  if (!host || host.length > 253) return false;
+  const ipv4Like = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host);
+  if (ipv4Like) {
+    return host.split(".").every((part) => /^(0|[1-9]\d{0,2})$/.test(part) && Number(part) <= 255);
+  }
+  const labelPattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i;
+  return host.replace(/\.$/, "").split(".").every((part) => labelPattern.test(part));
+}
+
+function validatePacProxyString(rawValue: string): string | null {
+  const raw = rawValue.trim();
+  if (!raw) return "请填写 PAC 代理字符串。";
+  const entries = raw.split(";").map((entry) => entry.trim());
+  while (entries.length > 0 && entries[entries.length - 1] === "") entries.pop();
+  if (entries.length === 0 || entries.some((entry) => !entry)) {
+    return "代理项之间请使用分号分隔，不能包含空代理项。";
+  }
+  for (const [index, entry] of entries.entries()) {
+    if (/^DIRECT$/i.test(entry)) continue;
+    const match = entry.match(/^(PROXY|HTTP|HTTPS|SOCKS|SOCKS4|SOCKS5)\s+(\S+)$/i);
+    if (!match) {
+      return "第 " + (index + 1) + " 项“" + entry.slice(0, 80) + "”格式无效。请使用 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 或 DIRECT 指令。";
+    }
+    const endpointMatch = match[2].match(/^(?:\[([^\]]+)\]|([^:\[\]\s]+)):(\d{1,5})$/);
+    if (!endpointMatch) {
+      return "第 " + (index + 1) + " 项代理地址格式无效，请使用 host:port；IPv6 地址请写成 [IPv6]:port。";
+    }
+    const host = endpointMatch[1] ?? endpointMatch[2] ?? "";
+    const port = Number(endpointMatch[3]);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      return "第 " + (index + 1) + " 项端口无效，端口范围必须是 1–65535。";
+    }
+    if (endpointMatch[1]) {
+      try { new URL("http://[" + host + "]:" + port + "/"); }
+      catch { return "第 " + (index + 1) + " 项的 IPv6 地址无效。"; }
+    } else if (!validDomainOrIPv4(host)) {
+      return "第 " + (index + 1) + " 项的代理主机名或 IP 地址无效。";
+    }
+  }
+  return null;
+}
+
+function validateDomainRules(rawValue: string, label: string): string | null {
+  const entries = rawValue.split(/[\n,]+/).map((entry) => entry.trim()).filter(Boolean);
+  for (const [index, entry] of entries.entries()) {
+    const wildcard = entry.startsWith("*.");
+    const host = wildcard ? entry.slice(2) : entry;
+    if (entry.includes("*") && !wildcard) {
+      return label + "第 " + (index + 1) + " 条规则格式无效：" + entry + "。仅支持完整域名或 *.example.com 形式的通配符。";
+    }
+    if (host.includes("*") || !validDomainOrIPv4(host)) {
+      return label + "第 " + (index + 1) + " 条规则格式无效：" + entry + "。请填写完整域名（example.com）或通配符域名（*.example.com）。";
+    }
+  }
+  return null;
+}
+
+function validateProxyTestUrl(rawValue: string): string | null {
+  const value = rawValue.trim();
+  if (!value) return "代理测试地址不能为空，请到「网络监控」页设置。";
+  if (/[\u0000-\u0020\u007f]/.test(value)) return "代理测试地址不能包含空白或控制字符，请检查 URL 编码。";
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" || !url.hostname || url.username || url.password || url.hash) {
+      return "代理测试地址必须是完整的 HTTPS URL，且不能包含用户名、密码或 # 片段。";
+    }
+    return null;
+  } catch {
+    return "代理测试地址格式无效，请到「网络监控」页设置完整的 HTTPS URL。";
+  }
 }
 
 function looksLikeUrl(s: string): boolean {
@@ -242,26 +338,34 @@ function looksLikeUrl(s: string): boolean {
   }
 }
 
-/** 保存前校验；返回可读错误列表（空表示可提交） */
+const pacProxyError = computed(() => validatePacProxyString(form.pacProxy));
+const listUrlError = computed(() => {
+  if (form.mode !== "remote") return "";
+  if (!form.listUrl.trim()) return "远程列表模式需要填写规则列表 URL。";
+  if (!looksLikeUrl(form.listUrl.trim())) return "规则列表 URL 格式无效，请使用完整的 HTTP(S) 地址，且不要嵌入用户名或密码。";
+  return "";
+});
+const directListError = computed(() => validateDomainRules(form.directListText, "直连列表"));
+const blockListError = computed(() => validateDomainRules(form.blockListText, "黑名单"));
+const proxyTestUrlError = computed(() => validateProxyTestUrl(form.proxyTestUrl));
+const webhookValidation = computed(() => ({
+  success: validateWebhookDraft(form.webhookSuccessConfig, "成功通知"),
+  failure: validateWebhookDraft(form.webhookFailureConfig, "失败通知"),
+}));
+
+/** 保存前统一校验；错误列表为空才允许保存和生成 PAC。 */
 const formErrors = computed(() => {
   const errs: string[] = [];
-  if (!form.pacProxy.trim()) {
-    errs.push("请填写 PAC 代理字符串。");
-  }
-  if (form.mode === "remote") {
-    if (!form.listUrl.trim()) {
-      errs.push("远程列表模式需要填写规则列表 URL。");
-    } else if (!looksLikeUrl(form.listUrl.trim())) {
-      errs.push("规则列表 URL 格式无效，请使用 http(s):// 开头的地址。");
-    }
-  }
+  if (pacProxyError.value) errs.push(pacProxyError.value);
+  if (listUrlError.value) errs.push(listUrlError.value);
+  if (directListError.value) errs.push(directListError.value);
+  if (blockListError.value) errs.push(blockListError.value);
+  if (proxyTestUrlError.value) errs.push(proxyTestUrlError.value);
   const cron = form.cronSchedule.trim();
-  if (cron && cronParse.value.error) {
-    errs.push("Cron 表达式无效，请检查五段格式与字段取值。");
-  }
+  if (cron && cronParse.value.error) errs.push("Cron 表达式无效，请检查五段格式与字段取值。");
   if (!isValidTimeZone(form.timezone)) errs.push("时区无效，请从建议列表选择，或输入有效的 IANA 时区名称。");
-  errs.push(...validateWebhookDraft(form.webhookSuccessConfig, "成功通知"));
-  errs.push(...validateWebhookDraft(form.webhookFailureConfig, "失败通知"));
+  errs.push(...webhookValidation.value.success);
+  errs.push(...webhookValidation.value.failure);
   return errs;
 });
 
@@ -533,6 +637,7 @@ async function logout() {
             <div class="timezone-picker desktop-timezone-picker">
               <input id="timezone" v-model="form.timezone" autocomplete="off" spellcheck="false"
                 placeholder="搜索时区名称或代码，例如中国标准时间、Asia/Tokyo"
+                :aria-invalid="!isValidTimeZone(form.timezone)"
                 @focus="timezoneMenuOpen = true; timezoneQuery = ''"
                 @input="timezoneQuery = form.timezone"
                 @blur="closeTimezoneMenu"
@@ -551,6 +656,7 @@ async function logout() {
               <span class="mobile-timezone-trigger-icon" aria-hidden="true"><AppIcon name="chevron-down" :size="17" /></span>
             </button>
             <p class="field-hint">可按地区名称或 IANA 时区代码搜索，也可直接输入有效的时区代码。该设置统一用于定时任务、运行记录和 Webhook 通知的时间显示。</p>
+            <p v-if="!isValidTimeZone(form.timezone)" class="field-warn" role="alert">时区无效，请使用有效的 IANA 时区名称，例如 Asia/Tokyo。</p>
           </div>
 
           <div v-if="mobileTimezoneOpen" class="timezone-sheet-backdrop" @click.self="mobileTimezoneOpen = false">
@@ -654,14 +760,17 @@ async function logout() {
             <input
               id="pacProxy"
               v-model="form.pacProxy"
+              :aria-invalid="Boolean(pacProxyError)"
               placeholder="SOCKS5 127.0.0.1:1080; DIRECT"
             />
             <p class="field-hint">每个代理项用分号分隔。支持 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 和 DIRECT；代理地址必须填写端口，例如 SOCKS5 127.0.0.1:1080; DIRECT。</p>
+            <p v-if="pacProxyError" class="field-warn" role="alert">{{ pacProxyError }}</p>
           </div>
           <div class="field" :class="{ 'is-disabled': form.mode !== 'remote' }">
             <label for="listUrl">规则列表 URL <span class="lab-hint">GFWList / 域名型 AutoProxy、ABP / 明文域名</span></label>
-            <input id="listUrl" v-model="form.listUrl" :disabled="form.mode !== 'remote'" :aria-disabled="form.mode !== 'remote'" placeholder="https://example.com/list.txt" />
+            <input id="listUrl" v-model="form.listUrl" :disabled="form.mode !== 'remote'" :aria-disabled="form.mode !== 'remote'" :aria-invalid="Boolean(listUrlError)" placeholder="https://example.com/list.txt" />
             <p class="field-hint">按提取出的域名进行匹配；URL 路径、资源类型等复杂过滤条件不会保留。<span v-if="form.mode !== 'remote'" class="disabled-hint">切换到远程规则列表模式后可编辑。</span></p>
+            <p v-if="listUrlError" class="field-warn" role="alert">{{ listUrlError }}</p>
           </div>
           <div class="checks">
             <label class="check" :class="{ 'is-disabled': form.mode !== 'remote' }" :aria-disabled="form.mode !== 'remote'">
@@ -711,6 +820,7 @@ async function logout() {
                 :height="320"
                 placeholder="baidu.com&#10;*.cn"
               />
+              <p v-if="directListError" class="field-warn" role="alert">{{ directListError }}</p>
             </div>
             <div class="field">
               <label>黑名单</label>
@@ -719,6 +829,7 @@ async function logout() {
                 :height="320"
                 placeholder="ads.example.com"
               />
+              <p v-if="blockListError" class="field-warn" role="alert">{{ blockListError }}</p>
             </div>
           </div>
         </section>
@@ -761,7 +872,7 @@ async function logout() {
                 autocomplete="off"
                 placeholder="例如 0 */3 * * *"
               />
-              <p class="field-hint">{{ cronHint }}</p>
+              <p class="field-hint" :class="{ 'field-warn': Boolean(cronParse.error) }" :aria-live="cronParse.error ? 'polite' : undefined">{{ cronHint }}</p>
             </div>
           </div>
 
@@ -773,6 +884,7 @@ async function logout() {
               :pending="webhookTestState.success.pending"
               :result-message="webhookTestState.success.message"
               :result-ok="webhookTestState.success.ok"
+              :validation-errors="webhookValidation.success"
               @update:model-value="form.webhookSuccessConfig = $event"
               @test="testWebhook('success')"
             />
@@ -783,6 +895,7 @@ async function logout() {
               :pending="webhookTestState.failure.pending"
               :result-message="webhookTestState.failure.message"
               :result-ok="webhookTestState.failure.ok"
+              :validation-errors="webhookValidation.failure"
               @update:model-value="form.webhookFailureConfig = $event"
               @test="testWebhook('failure')"
             />
@@ -849,10 +962,11 @@ async function logout() {
         type="submit"
         class="floating-save-button"
         :class="{ 'is-loading': saving, 'has-errors': formErrors.length > 0 && !saving }"
-        :disabled="saving"
+        :disabled="saving || formErrors.length > 0"
         :aria-busy="saving"
-        :aria-label="saving ? '正在保存并生成 PAC' : formErrors.length ? '配置存在校验问题，点击查看详情' : '保存并生成 PAC'"
-        :title="saving ? '正在保存并生成 PAC' : formErrors.length ? '配置存在校验问题，点击查看详情' : '保存并生成 PAC'"
+        :aria-invalid="formErrors.length > 0 ? 'true' : undefined"
+        :aria-label="saving ? '正在保存并生成 PAC' : formErrors.length ? '配置存在校验问题，修正后才能保存' : '保存并生成 PAC'"
+        :title="saving ? '正在保存并生成 PAC' : formErrors.length ? '配置存在校验问题，修正后才能保存' : '保存并生成 PAC'"
       >
         <AppIcon :name="saving ? 'loader-circle' : formErrors.length ? 'circle-alert' : 'save'" :size="21" :class="{ 'save-spinner': saving }" />
       </button>
@@ -908,12 +1022,15 @@ async function logout() {
   outline: 3px solid color-mix(in srgb, var(--accent) 42%, transparent);
   outline-offset: 4px;
 }
-.floating-save-button.has-errors:not(:disabled) {
+.floating-save-button.has-errors,
+.floating-save-button.has-errors:disabled {
   background: var(--warn-soft);
+  background-color: var(--warn-soft);
   border-color: var(--warn);
   color: var(--warn) !important;
   -webkit-text-fill-color: var(--warn);
   box-shadow: 0 8px 22px color-mix(in srgb, var(--warn) 18%, transparent);
+  cursor: not-allowed;
 }
 .floating-save-button.is-loading:disabled {
   opacity: 1;
