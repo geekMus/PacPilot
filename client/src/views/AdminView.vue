@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, computed } from "vue";
+import { onMounted, reactive, ref, computed, nextTick, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
   api,
@@ -17,6 +17,7 @@ import { CronExpressionParser } from "cron-parser";
 import "cronstrue/locales/zh_CN";
 
 const router = useRouter();
+const route = useRoute();
 const loading = ref(true);
 const saving = ref(false);
 const flash = ref("");
@@ -124,6 +125,17 @@ function openMobileTimezonePicker() {
   timezoneQuery.value = "";
   mobileTimezoneOpen.value = true;
 }
+
+async function scrollToCurrentSection(): Promise<void> {
+  await nextTick();
+  const hash = route.hash;
+  if (!hash || !/^#[a-z-]+$/.test(hash)) return;
+  document.querySelector(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+watch(() => route.hash, (hash) => {
+  if (hash) void scrollToCurrentSection();
+});
 
 const modeHint = computed(() =>
   form.mode === "custom"
@@ -332,6 +344,8 @@ async function load() {
     }
   } finally {
     loading.value = false;
+    await nextTick();
+    if (route.hash) void scrollToCurrentSection();
   }
 }
 
