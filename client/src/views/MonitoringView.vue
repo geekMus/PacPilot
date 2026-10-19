@@ -30,6 +30,7 @@ const probeError = ref("");
 const proxyTestUrl = ref("https://www.google.com/generate_204");
 const savedProxyTestUrl = ref("https://www.google.com/generate_204");
 const proxyTestTargetLoaded = ref(false);
+const loadingProxyTestTarget = ref(false);
 const savingProxyTestTarget = ref(false);
 const proxyTestTargetMessage = ref("");
 const proxyTestTargetMessageOk = ref<boolean | null>(null);
@@ -91,14 +92,21 @@ async function loadProbeHistory(): Promise<void> {
 }
 
 async function loadProxyTestTarget(): Promise<void> {
+  if (loadingProxyTestTarget.value) return;
+  loadingProxyTestTarget.value = true;
+  proxyTestTargetMessage.value = "";
+  proxyTestTargetMessageOk.value = null;
   try {
     const result = await api.proxyProbeTarget();
     proxyTestUrl.value = result.url;
     savedProxyTestUrl.value = result.url;
     proxyTestTargetLoaded.value = true;
   } catch (caught) {
+    proxyTestTargetLoaded.value = false;
     proxyTestTargetMessageOk.value = false;
     proxyTestTargetMessage.value = caught instanceof Error ? caught.message : String(caught);
+  } finally {
+    loadingProxyTestTarget.value = false;
   }
 }
 
@@ -420,13 +428,44 @@ onUnmounted(() => {
                 autocomplete="url"
                 spellcheck="false"
                 placeholder="https://www.google.com/generate_204"
-                :disabled="!proxyTestTargetLoaded || savingProxyTestTarget || probing"
+                :disabled="!proxyTestTargetLoaded || loadingProxyTestTarget || savingProxyTestTarget || probing"
                 @input="proxyTestTargetMessage = ''; proxyTestTargetMessageOk = null"
               />
-              <button class="monitor-button secondary" :class="{ 'is-loading': savingProxyTestTarget }" type="button" :disabled="!proxyTestTargetLoaded || savingProxyTestTarget || probing || !proxyTestTargetValid || !proxyTestTargetChanged" @click="saveProxyTestTarget">
+              <button
+                v-if="!proxyTestTargetLoaded && loadingProxyTestTarget"
+                class="monitor-button secondary is-loading"
+                type="button"
+                disabled
+                aria-live="polite"
+              >
+                <AppIcon name="loader-circle" class="icon-spinning" :size="14" />
+                正在读取地址…
+              </button>
+              <button
+                v-else-if="!proxyTestTargetLoaded"
+                class="monitor-button secondary"
+                type="button"
+                :disabled="savingProxyTestTarget || probing"
+                @click="loadProxyTestTarget"
+              >
+                <AppIcon name="refresh-cw" :size="14" />
+                重新读取
+              </button>
+              <button
+                v-else-if="proxyTestTargetChanged"
+                class="monitor-button secondary"
+                :class="{ 'is-loading': savingProxyTestTarget }"
+                type="button"
+                :disabled="savingProxyTestTarget || probing || !proxyTestTargetValid"
+                @click="saveProxyTestTarget"
+              >
                 <AppIcon :name="savingProxyTestTarget ? 'loader-circle' : 'save'" :class="{ 'icon-spinning': savingProxyTestTarget }" :size="14" />
                 {{ savingProxyTestTarget ? "保存中…" : "保存地址" }}
               </button>
+              <span v-else class="monitor-saved-state" role="status">
+                <AppIcon name="check-circle" :size="14" />
+                已保存
+              </span>
             </div>
             <p>默认使用 Google 的 <code>https://www.google.com/generate_204</code>。可以更换为其他 HTTPS 地址，支持自定义路径和查询参数；检测请求会经过正在测试的代理。</p>
             <p v-if="!proxyTestTargetValid" class="probe-target-hint is-warning">请填写完整有效的 HTTPS URL，不要包含用户名、密码或 # 片段。</p>
@@ -627,6 +666,7 @@ onUnmounted(() => {
 .probe-target-content { flex:1; min-width:0; }
 .probe-target-content > label { display:block; margin-bottom:7px; color:var(--text); font-weight:700; }
 .probe-target-controls { display:flex; align-items:stretch; gap:9px; }
+.monitor-saved-state { display:inline-flex; flex:0 0 auto; align-items:center; justify-content:center; gap:6px; min-height:38px; padding:0 5px; color:var(--green); font-size:12px; font-weight:700; white-space:nowrap; }
 .probe-target-input { box-sizing:border-box; flex:1; min-width:0; min-height:40px; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--bg); color:var(--text); font:inherit; font-size:12px; }
 .probe-target-input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
 .probe-target-input:disabled { color:var(--control-disabled-text); background:var(--control-disabled-bg); border-color:var(--control-disabled-border); cursor:not-allowed; opacity:1; }
