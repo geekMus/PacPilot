@@ -62,6 +62,38 @@ function formatTrendHour(value: string): string {
 const maxPacLatency = computed(() => Math.max(1, ...(summary.value?.pacRequestTrend ?? []).map((point) => point.averageResponseMs)));
 const latestPacRequest = computed(() => summary.value?.latestPacRequest ?? null);
 
+// 访问表格筛选仅作用于当前加载的最近 N 条记录，不改变服务端日志。
+const accessLimit = ref(50);
+const accessKeyword = ref("");
+const accessCategory = ref("all");
+const accessStatus = ref("all");
+const filteredAccesses = computed(() => {
+  const keyword = accessKeyword.value.trim().toLocaleLowerCase();
+  return accesses.value.filter((event) => {
+    if (accessCategory.value !== "all" && event.category !== accessCategory.value) return false;
+    if (accessStatus.value === "success" && (event.status_code < 200 || event.status_code >= 300)) return false;
+    if (accessStatus.value === "redirect" && (event.status_code < 300 || event.status_code >= 400)) return false;
+    if (accessStatus.value === "client-error" && (event.status_code < 400 || event.status_code >= 500)) return false;
+    if (accessStatus.value === "server-error" && event.status_code < 500) return false;
+    if (keyword) {
+      const haystack = [
+        event.source_ip, event.method, event.path, event.user_agent,
+        categoryLabel(event.category), String(event.status_code),
+      ].join(" ").toLocaleLowerCase();
+      if (!haystack.includes(keyword)) return false;
+    }
+    return true;
+  });
+});
+const hasAccessFilters = computed(() =>
+  Boolean(accessKeyword.value.trim()) || accessCategory.value !== "all" || accessStatus.value !== "all"
+);
+function resetAccessFilters(): void {
+  accessKeyword.value = "";
+  accessCategory.value = "all";
+  accessStatus.value = "all";
+}
+
 async function refreshDashboard(silent = false): Promise<void> {
   if (refreshing.value) return;
   refreshing.value = true;
@@ -439,19 +471,60 @@ onUnmounted(() => {
         <div class="panel-heading">
           <div>
             <h2>最近访问记录</h2>
-            <p>最近 50 条有效请求。查询参数、Cookie 和请求正文不会被保存。</p>
+            <p>显示最近加载的 {{ accessLimit }} 条请求；查询参数、Cookie 和请求正文不会被保存。</p>
           </div>
           <div class="panel-actions">
-            <span class="panel-count">{{ accesses.length }} 条</span>
+            <span class="panel-count">匹配 {{ filteredAccesses.length }} / {{ accesses.length }} 条</span>
           </div>
         </div>
 
         <div class="monitor-notice">
-          <strong>来源地址说明：</strong>记录的是与应用建立 TCP 连接的对端地址。若使用 Cloudflare Tunnel、Lucky、Nginx 等反向代理，这里可能显示代理节点地址；当前版本不会盲目信任转发头，以免被伪造。
+          <strong>来源地址说明：</strong>始终显示完整 TCP 连接对端 IP。若使用 Cloudflare Tunnel、Lucky、Nginx 等反向代理，这里可能显示代理节点地址；为避免伪造，不会盲目信任转发头。
+        </div>
+
+        <div class="access-filters" aria-label="访问记录筛选">
+          <label class="access-filter search-filter">
+            <span>搜索</span>
+            <input v-model="accessKeyword" type="search" placeholder="搜索 IP、请求路径、客户端…" autocomplete="off" />
+          </label>
+          <label class="access-filter">
+            <span>请求类型</span>
+            <select v-model="accessCategory">
+              <option value="all">全部类型</option>
+              <option value="pac">PAC 文件</option>
+              <option value="page">网页</option>
+              <option value="public-api">公开 API</option>
+              <option value="admin-api">管理 API</option>
+            </select>
+          </label>
+          <label class="access-filter">
+            <span>HTTP 状态</span>
+            <select v-model="accessStatus">
+              <option value="all">全部状态</option>
+              <option value="success">成功（2xx）</option>
+              <option value="redirect">3xx（重定向 / 缓存）</option>
+              <option value="client-error">客户端错误（4xx）</option>
+              <option value="server-error">服务端错误（5xx）</option>
+            </select>
+          </label>
+          <label class="access-filter">
+            <span>加载条数</span>
+            <select v-model.number="accessLimit" @change="refreshDashboard()">
+              <option :value="50">最近 50 条</option>
+              <option :value="100">最近 100 条</option>
+              <option :value="200">最近 200 条</option>
+            </select>
+          </label>
+          <button class="monitor-button secondary access-filter-reset" type="button" :disabled="!hasAccessFilters" @click="resetAccessFilters">
+            <AppIcon name="x" :size="14" />清除筛选
+          </button>
         </div>
 
         <div v-if="accesses.length === 0" class="monitor-empty">
           暂无访问记录。页面访问、PAC 文件请求和相关 API 请求会在本版本启用后开始记录。
+        </div>
+        <div v-else-if="filteredAccesses.length === 0" class="monitor-empty">
+          没有符合当前筛选条件的记录，请调整筛选条件或清除筛选。
         </div>
         <div v-else class="table-scroll">
           <table class="monitor-table">
@@ -468,7 +541,7 @@ onUnmounted(() => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="event in accesses" :key="event.id">
+              <tr v-for="event in filteredAccesses" :key="event.id">
                 <td class="nowrap">{{ formatDate(event.created_at) }}</td>
                 <td><code>{{ event.source_ip || "unknown" }}</code></td>
                 <td><span class="category-pill">{{ categoryLabel(event.category) }}</span></td>
@@ -752,6 +825,11 @@ onUnmounted(() => {
 @keyframes icon-spin { to { transform:rotate(360deg); } }
 .monitor-notice,.probe-target { padding:12px 14px; border-radius:10px; background:var(--surface-2); border:1px solid var(--line); font-size:12px; color:var(--muted); line-height:1.65; margin-bottom:14px; }
 .monitor-notice strong { color:var(--text); }
+.access-filters { display:grid; grid-template-columns:minmax(220px,2fr) repeat(3,minmax(140px,1fr)) auto; gap:10px; align-items:end; margin:0 0 14px; }
+.access-filter { display:flex; flex-direction:column; gap:6px; min-width:0; color:var(--muted); font-size:11px; font-weight:700; }
+.access-filter input,.access-filter select { box-sizing:border-box; width:100%; min-width:0; min-height:38px; padding:8px 10px; border:1px solid var(--line); border-radius:9px; background:var(--bg); color:var(--text); font:inherit; font-size:12px; font-weight:400; }
+.access-filter input:focus,.access-filter select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+.access-filter-reset { min-height:38px; }
 .table-scroll { width:100%; overflow:auto; border:1px solid var(--line); border-radius:10px; }
 .monitor-table { width:100%; border-collapse:collapse; font-size:12px; min-width:850px; }
 .monitor-table th { padding:11px 12px; color:var(--muted); background:var(--surface-2); text-align:left; font-weight:700; white-space:nowrap; border-bottom:1px solid var(--line); }
@@ -812,6 +890,6 @@ onUnmounted(() => {
 .monitor-spinner { width:20px; height:20px; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:monitor-spin .8s linear infinite; flex:0 0 auto; }
 @keyframes monitor-spin { to { transform:rotate(360deg); } }
 .probe-history-error { min-width:220px; max-width:340px; overflow-wrap:anywhere; color:var(--red); }
-@media(max-width:1100px) { .metric-grid,.pac-metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .monitor-panel { padding:16px; } .probe-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .pac-latest-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .pac-latency-chart { gap:2px; } }
-@media(max-width:560px) { .pac-metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; } .pac-latest-grid { grid-template-columns:1fr; gap:10px; } .pac-latest-heading,.pac-latency-heading { align-items:flex-start; flex-direction:column; } .pac-latency-chart { grid-template-columns:repeat(12,minmax(0,1fr)); } .pac-latency-column:nth-child(odd) > span { visibility:visible; } .pac-latency-column:nth-child(even) > span { visibility:hidden; } .probe-target-controls { flex-direction:column; } .probe-target-controls .monitor-button { align-self:flex-start; } .monitor-title-row { flex-direction:column; } .monitor-title-row .monitor-button { align-self:flex-start; } .panel-heading { flex-direction:column; align-items:stretch; gap:8px; margin-bottom:12px; } .panel-actions { align-self:flex-start; } .panel-heading > .monitor-button { align-self:flex-start; } .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:14px 0 20px; } .metric-card { padding:12px 11px; border-radius:11px; } .metric-label { font-size:10px; } .metric-value { font-size:1.32rem; } .monitor-panel { padding:13px; margin-bottom:16px; } .trend-sample-note { margin-left:0; flex-basis:100%; } .probe-run-head { flex-direction:column; align-items:flex-start; } .probe-metrics { gap:7px; } }
+@media(max-width:1100px) { .metric-grid,.pac-metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .monitor-panel { padding:16px; } .probe-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .pac-latest-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .pac-latency-chart { gap:2px; } .access-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .search-filter { grid-column:1 / -1; } .access-filter-reset { justify-self:start; } }
+@media(max-width:560px) { .access-filters { grid-template-columns:1fr; } .search-filter { grid-column:auto; } .pac-metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; } .pac-latest-grid { grid-template-columns:1fr; gap:10px; } .pac-latest-heading,.pac-latency-heading { align-items:flex-start; flex-direction:column; } .pac-latency-chart { grid-template-columns:repeat(12,minmax(0,1fr)); } .pac-latency-column:nth-child(odd) > span { visibility:visible; } .pac-latency-column:nth-child(even) > span { visibility:hidden; } .probe-target-controls { flex-direction:column; } .probe-target-controls .monitor-button { align-self:flex-start; } .monitor-title-row { flex-direction:column; } .monitor-title-row .monitor-button { align-self:flex-start; } .panel-heading { flex-direction:column; align-items:stretch; gap:8px; margin-bottom:12px; } .panel-actions { align-self:flex-start; } .panel-heading > .monitor-button { align-self:flex-start; } .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:14px 0 20px; } .metric-card { padding:12px 11px; border-radius:11px; } .metric-label { font-size:10px; } .metric-value { font-size:1.32rem; } .monitor-panel { padding:13px; margin-bottom:16px; } .trend-sample-note { margin-left:0; flex-basis:100%; } .probe-run-head { flex-direction:column; align-items:flex-start; } .probe-metrics { gap:7px; } }
 </style>
