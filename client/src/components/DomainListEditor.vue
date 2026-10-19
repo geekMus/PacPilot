@@ -120,17 +120,31 @@ let themeObs: MutationObserver | null = null;
 let jumpHighlightTimer: number | null = null;
 function jumpToLine(lineNumber: number) {
   if (!view || lineNumber < 1 || lineNumber > view.state.doc.lines) return;
-  const line = view.state.doc.line(lineNumber);
+  const editor = view;
+  const line = editor.state.doc.line(lineNumber);
+  const scroller = editor.scrollDOM;
+  const lineCoords = editor.coordsAtPos(line.from);
+  const scrollRect = scroller.getBoundingClientRect();
+  const lineVisible = lineCoords !== null &&
+    lineCoords.top >= scrollRect.top &&
+    lineCoords.bottom <= scrollRect.bottom;
+
   if (jumpHighlightTimer !== null) window.clearTimeout(jumpHighlightTimer);
-  view.dispatch({
+
+  // 仅当目标行不可见时修改 CodeMirror 自身的 scrollTop，绝不触发页面/祖先容器滚动。
+  if (!lineVisible && lineCoords !== null) {
+    const lineHeight = Math.max(1, lineCoords.bottom - lineCoords.top);
+    const lineOffset = lineCoords.top - scrollRect.top;
+    const targetOffset = Math.max(0, (scroller.clientHeight - lineHeight) / 2);
+    scroller.scrollTop += lineOffset - targetOffset;
+  }
+
+  // 只更新选区与高亮，不使用 scrollIntoView，也不主动 focus，避免浏览器滚动外层页面。
+  editor.dispatch({
     selection: { anchor: line.to },
-    effects: [
-      EditorView.scrollIntoView(line.to, { y: "center", x: "nearest" }),
-      setJumpHighlight.of(lineNumber),
-    ],
+    effects: setJumpHighlight.of(lineNumber),
   });
-  // 聚焦编辑器时禁止浏览器滚动整个页面，只让 CodeMirror 内部滚动。
-  view.contentDOM.focus({ preventScroll: true });
+
   jumpHighlightTimer = window.setTimeout(() => {
     if (view) view.dispatch({ effects: setJumpHighlight.of(null) });
     jumpHighlightTimer = null;
