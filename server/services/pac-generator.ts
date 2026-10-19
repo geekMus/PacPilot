@@ -81,7 +81,7 @@ export function validatePacProxyString(value: string): string | null {
 function withPacVersionHeader(content: string): string {
   // 兼容旧版英文头部，读写时统一为中文版本标记。
   const body = content.replace(/^\/\/ genpac-runner (?:version:|版本[:：]).*(?:\r?\n|$)/i, "");
-  return "// genpac-runner 版本：" + APP_VERSION + "\\n" + body.replace(/^\\n+/, "");
+  return "// genpac-runner 版本：" + APP_VERSION + "\n" + body.replace(/^\n+/, "");
 }
 
 function toJsArray(list: string[]): string {
