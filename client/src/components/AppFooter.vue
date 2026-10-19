@@ -49,9 +49,9 @@ function isNewerVersion(candidate: string, current: string): boolean {
 }
 
 function openVersionDialog(): void {
+  // 版本信息只在页面挂载时自动查询；打开弹窗仅展示已有结果。
+  // 后续只有用户点击“最新版本”时才会再次请求。
   dialogOpen.value = true;
-  // 打开弹窗是独立的主动刷新动作，即使进入页面时的请求仍在进行，也会再发起一次。
-  void loadVersionInfo();
 }
 
 async function loadVersionInfo(): Promise<void> {
