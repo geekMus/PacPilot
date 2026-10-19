@@ -545,7 +545,8 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
 .source-updated { margin-right:6px; line-height:1.5; font-variant-numeric:tabular-nums; }
 .source-dot { display:inline-block; flex:0 0 7px; width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px var(--green-soft); }
 .source-actions a,.source-actions button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:30px; padding:0 9px; border:1px solid transparent; border-radius:7px; background:transparent; color:var(--accent); font:inherit; text-decoration:none; white-space:nowrap; cursor:pointer; transition:background .15s,border-color .15s,color .15s; }
-.source-actions a:hover,.source-actions button:hover:not(:disabled) { background:var(--surface-2); border-color:var(--line); color:var(--text); text-decoration:none; }
+.source-actions a:hover,.source-actions button:hover:not(:disabled) { background:var(--surface-2); border-color:color-mix(in srgb,var(--accent) 35%,var(--line)); color:var(--text); text-decoration:none; }
+.source-actions a:active,.source-actions button:active:not(:disabled) { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); text-decoration:none; }
 .source-actions a:focus-visible,.source-actions button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .source-actions button:disabled {
   opacity:1;
