@@ -143,6 +143,8 @@ function jumpToLine(lineNumber: number) {
     selection: { anchor: line.to },
     effects: setJumpHighlight.of(lineNumber),
   });
+  // 保留行末光标，便于立即编辑；preventScroll 禁止浏览器为聚焦而滚动页面。
+  editor.contentDOM.focus({ preventScroll: true });
 
   jumpHighlightTimer = window.setTimeout(() => {
     if (view) view.dispatch({ effects: setJumpHighlight.of(null) });
