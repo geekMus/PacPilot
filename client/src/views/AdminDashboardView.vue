@@ -13,6 +13,7 @@ import {
 import AdminLayout from "../components/AdminLayout.vue";
 import AppFooter from "../components/AppFooter.vue";
 import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
+import TextDetail from "../components/TextDetail.vue";
 
 const router = useRouter();
 const loading = ref(true);
@@ -208,7 +209,7 @@ onMounted(() => { void loadOverview(); });
                   <td class="nowrap">{{ formatDate(entry.created_at) }}</td>
                   <td><span class="result-pill" :class="entry.success ? 'good' : 'bad'">{{ entry.success ? "成功" : "失败" }}</span></td>
                   <td>{{ modeForLog(entry.mode) }}</td>
-                  <td class="log-message" :title="entry.message || ''">{{ entry.message || "—" }}</td>
+                  <td class="log-message"><TextDetail :text="entry.message || ''" label="生成记录信息" /></td>
                 </tr>
               </tbody>
             </table>
@@ -287,7 +288,7 @@ onMounted(() => { void loadOverview(); });
 .recent-table tr:last-child td { border-bottom:0; }
 .recent-table tbody tr:hover { background:color-mix(in srgb,var(--accent) 4%,transparent); }
 .nowrap { white-space:nowrap; }
-.log-message { min-width:135px; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); }
+.log-message { min-width:135px; max-width:220px; color:var(--muted); }
 .result-pill { display:inline-flex; border:1px solid var(--line); border-radius:999px; padding:3px 7px; font-size:9px; font-weight:800; white-space:nowrap; }
 .result-pill.good { color:var(--green); background:var(--green-soft); border-color:color-mix(in srgb,var(--green) 24%,var(--line)); }
 .result-pill.bad { color:var(--red); background:var(--red-soft); border-color:color-mix(in srgb,var(--red) 24%,var(--line)); }
