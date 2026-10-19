@@ -359,6 +359,7 @@ function showFlash(msg: string, ok = true) {
 }
 
 async function saveAndGenerate() {
+  if (saving.value) return;
   flash.value = "";
   error.value = "";
   if (formErrors.value.length) {
@@ -500,7 +501,7 @@ async function logout() {
         <p class="field-hint">忘记密码时，可在宿主机执行 <code>docker exec -it genpac-runner bun run /app/scripts/reset-admin-password.ts</code>，然后使用命令输出的一次性密码登录。</p>
       </section>
 
-      <form id="settings-form" v-if="!securityStatus.mustChangePassword" class="stack" @submit.prevent="saveAndGenerate">
+      <form id="settings-form" v-if="!securityStatus.mustChangePassword" class="stack" :inert="saving" :aria-busy="saving" @submit.prevent="saveAndGenerate">
         <!-- 常规设置 -->
         <section id="general" class="card">
           <div class="card-head">
@@ -851,8 +852,8 @@ async function logout() {
           :class="{ 'is-loading': saving }"
           :disabled="!canSubmit"
         >
-          <AppIcon :name="saving ? 'loader-circle' : 'save'" :size="17" :class="{ 'save-spinner': saving }" />
-          <span>{{ saving ? "保存并生成中…" : "保存并生成 PAC" }}</span>
+          <AppIcon :name="saving ? 'loader-circle' : formErrors.length ? 'circle-alert' : 'save'" :size="17" :class="{ 'save-spinner': saving }" />
+          <span>{{ saving ? "保存并生成中…" : formErrors.length ? "请先修正问题" : "保存并生成 PAC" }}</span>
         </button>
       </aside>
     </template>
