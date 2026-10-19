@@ -542,7 +542,14 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
 .source-actions a,.source-actions button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:30px; padding:0 9px; border:1px solid transparent; border-radius:7px; background:transparent; color:var(--accent); font:inherit; text-decoration:none; white-space:nowrap; cursor:pointer; transition:background .15s,border-color .15s,color .15s; }
 .source-actions a:hover,.source-actions button:hover:not(:disabled) { background:var(--surface-2); border-color:var(--line); color:var(--text); text-decoration:none; }
 .source-actions a:focus-visible,.source-actions button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-.source-actions button:disabled { opacity:.55; cursor:wait; }
+.source-actions button:disabled {
+  opacity:1;
+  color:var(--control-disabled-text);
+  background:var(--control-disabled-bg);
+  border-color:var(--control-disabled-border);
+  cursor:wait;
+}
+
 .state-card { display:flex; align-items:flex-start; gap:14px; padding:18px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
 .state-card strong { font-size:14px; }
 .state-card p { margin:5px 0 12px; color:var(--muted); font-size:13px; }
@@ -557,7 +564,13 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
 .action-button:not(.primary):hover:not(:disabled) { background:var(--surface-2); border-color:color-mix(in srgb,var(--accent) 32%,var(--line)); color:var(--text); }
 .action-button.primary:hover:not(:disabled) { background:var(--accent-hover); border-color:var(--accent-hover); color:var(--accent-contrast); }
 .action-button.primary:active:not(:disabled) { background:var(--accent-active); border-color:var(--accent-active); color:var(--accent-contrast); }
-.action-button:disabled { opacity:.5; cursor:not-allowed; }
+.action-button:disabled {
+  opacity:1;
+  color:var(--control-disabled-text);
+  background:var(--control-disabled-bg);
+  border-color:var(--control-disabled-border);
+  cursor:not-allowed;
+}
 .spinner { width:18px; height:18px; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; flex:0 0 auto; }
 .state-copy { min-width:0; }
 .icon-spinning { animation: status-icon-spin .9s linear infinite; }
