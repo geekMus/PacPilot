@@ -157,6 +157,18 @@ export interface MonitorSummary {
   p95ResponseMs: number;
   errorRate: number;
   requestTrend: Array<{ hour: string; requests: number; errors: number }>;
+  pacRequestsLastHour: number;
+  pacRequestsLast24h: number;
+  pacSuccessRate: number;
+  pacFailureRequestsLast24h: number;
+  pacAverageResponseMs: number;
+  latestPacRequest: {
+    created_at: string;
+    source_ip: string;
+    status_code: number;
+    duration_ms: number;
+  } | null;
+  pacRequestTrend: Array<{ hour: string; requests: number; errors: number; averageResponseMs: number }>;
 }
 
 export interface ProxyProbeResult {
