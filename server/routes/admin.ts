@@ -73,7 +73,7 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
   const walk=(dir:string):void=>{try{for(const entry of fs.readdirSync(dir,{withFileTypes:true})){const full=path.join(dir,entry.name);if(entry.isSymbolicLink())continue;if(entry.isDirectory())walk(full);else if(entry.isFile())dataBytes+=fs.statSync(full).size;}}catch{/* missing or inaccessible data directory */}};
   walk(env.dataDir);
   const dbBytes=["genpac.db","genpac.db-wal","genpac.db-shm"].reduce((sum,name)=>{try{return sum+fs.statSync(path.join(env.dataDir,name)).size;}catch{return sum;}},0);
-  const counts=database.query("SELECT (SELECT COUNT(*) FROM generation_log) AS generationLogs,(SELECT COUNT(*) FROM access_events) AS accessEvents,(SELECT COUNT(*) FROM proxy_probe_runs) AS proxyProbeRuns,(SELECT COUNT(*) FROM workflow_runs) AS workflows").get();
+  const counts=database.query("SELECT (SELECT COUNT(*) FROM generation_log) AS generationLogs,(SELECT COUNT(*) FROM access_events) AS accessEvents,(SELECT COUNT(*) FROM proxy_probe_runs) AS proxyProbeRuns,(SELECT COUNT(*) FROM workflow_runs) AS workflows,(SELECT COUNT(*) FROM workflow_runs WHERE status IN ('pending','running')) AS activeWorkflows").get();
   const pacFileInfo=(name:string)=>{
    try{const stat=fs.statSync(path.join(env.dataDir,name));if(!stat.isFile())return{exists:false,sizeBytes:0,modifiedAt:null};return{exists:true,sizeBytes:stat.size,modifiedAt:stat.mtime.toISOString()};}
    catch{return{exists:false,sizeBytes:0,modifiedAt:null};}
