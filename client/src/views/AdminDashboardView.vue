@@ -298,7 +298,8 @@ onMounted(() => { void loadOverview(); });
 .trend-swatch { width:8px; height:8px; border-radius:3px; background:var(--accent); }
 .trend-swatch.errors { background:var(--red); }
 .trend-note { margin-left:auto; }
-@media (max-width:1240px) { .overview-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .overview-grid { grid-template-columns:1fr; } }
+@media (max-width:1240px) { .overview-grid { grid-template-columns:1fr; } }
+@media (max-width:1050px) { .overview-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:760px) { .welcome-row { flex-direction:column; align-items:flex-start; gap:12px; } .quick-actions { width:100%; } .quick-actions .dash-button { flex:1; } .config-details { gap:0 11px; } }
 @media (max-width:500px) { .overview-metrics { gap:8px; } .overview-metric { padding:12px; } .metric-value { font-size:18px; } .metric-note { font-size:9px; } .dashboard-panel { padding:13px; } .recent-table { min-width:560px; } .quick-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; } .quick-actions .dash-button { min-width:0; width:100%; padding:0 7px; white-space:normal; line-height:1.25; } .quick-actions .dash-button:last-child { grid-column:1 / -1; } .trend-note { margin-left:0; flex-basis:100%; } .panel-header { align-items:flex-start; } }
 </style>
