@@ -544,7 +544,7 @@ onUnmounted(() => {
           </label>
           <label class="access-filter">
             <span>请求类型</span>
-            <SelectField><select v-model="accessCategory">
+            <SelectField block><select v-model="accessCategory">
               <option value="all">全部类型</option>
               <option value="pac">PAC 文件</option>
               <option value="page">网页</option>
@@ -554,7 +554,7 @@ onUnmounted(() => {
           </label>
           <label class="access-filter">
             <span>HTTP 状态</span>
-            <SelectField><select v-model="accessStatus">
+            <SelectField block><select v-model="accessStatus">
               <option value="all">全部状态</option>
               <option value="success">成功（2xx）</option>
               <option value="redirect">3xx（重定向 / 缓存）</option>
