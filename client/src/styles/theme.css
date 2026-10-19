@@ -60,6 +60,20 @@ html.theme-dark {
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* 移除移动浏览器点击元素时默认出现的蓝色/半透明点击闪烁。 */
+  -webkit-tap-highlight-color: transparent;
+}
+
+a,
+button,
+input,
+textarea,
+select,
+summary,
+[role="tab"],
+[role="button"],
+[tabindex] {
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
