@@ -283,7 +283,7 @@ watch(
           :key="item.line + '-' + item.severity + '-' + item.message + '-' + index"
           type="button"
           class="rule-diagnostic-item"
-          :class="['is-' + item.severity, { 'is-active': selectedDiagnosticKey === String(item.line) + '-' + item.severity + '-' + item.message + '-' + index && activeLine === item.line }]
+          :class="['is-' + item.severity, { 'is-active': selectedDiagnosticKey === String(item.line) + '-' + item.severity + '-' + item.message + '-' + index && activeLine === item.line }]"
           :title="'定位到第 ' + item.line + ' 行'"
           @click="jumpToLine(item.line, String(item.line) + '-' + item.severity + '-' + item.message + '-' + index)"
         >
