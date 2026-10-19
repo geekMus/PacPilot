@@ -113,7 +113,15 @@ watch(() => props.items, () => {
 .virtual-row:last-child { border-bottom: 0; }
 .virtual-row > .domain-detail {
   flex: 1 1 auto;
-  font-size: 11px;
+  font-size: 12px;
+}
+.virtual-row > .domain-detail :deep(code) {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
 }
 .row-source {
   display: inline-flex;
