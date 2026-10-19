@@ -78,7 +78,12 @@ onMounted(() => { void loadVersionInfo(true); });
 .latest-version-item { width:100%; border-color:var(--line); color:var(--text); font:inherit; text-align:left; cursor:pointer; transition:border-color .15s,background .15s; }
 .latest-version-item:hover:not(:disabled) { border-color:var(--accent); }
 .latest-version-item:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-.latest-version-item:disabled { cursor:wait; }
+.latest-version-item:disabled {
+  cursor:wait;
+  color:var(--control-disabled-text);
+  border-color:var(--control-disabled-border);
+  background:var(--control-disabled-bg);
+}
 .latest-version-item span small { margin-left:4px; color:var(--accent); font-size:10px; font-weight:650; }
 .version-item.version-new { border-color:color-mix(in srgb,var(--warn) 55%,var(--line)); background:var(--warn-soft); color:var(--text); }
 .dialog-update-note { display:flex; align-items:flex-start; gap:10px; margin-top:15px; padding:12px; border:1px solid color-mix(in srgb,var(--warn) 55%,var(--line)); border-radius:12px; background:var(--warn-soft); color:var(--text); }
