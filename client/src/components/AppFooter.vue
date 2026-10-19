@@ -63,7 +63,7 @@ onMounted(() => { void loadVersionInfo(true); });
 .github-project-link:hover { color:var(--accent); border-color:var(--accent); transform:translateY(-1px); }
 .version-badge { position:relative; display:inline-flex; align-items:center; min-height:31px; padding:0 12px; border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line)); border-radius:999px; background:var(--accent-soft); color:var(--accent); font:inherit; font-size:12px; font-weight:750; font-variant-numeric:tabular-nums; cursor:pointer; transition:transform .15s,box-shadow .15s; }
 .version-badge:hover { transform:translateY(-1px); box-shadow:0 3px 10px rgba(30,64,175,.12); }
-.version-badge.is-update { border-color:#fdba74; background:#fff7ed; color:#c2410c; }
+.version-badge.is-update { border-color:color-mix(in srgb,var(--warn) 55%,var(--line)); background:var(--warn-soft); color:var(--text); }
 .new-badge { position:absolute; top:-8px; right:-10px; padding:2px 5px; border:2px solid var(--surface); border-radius:999px; background:#f97316; color:white; font-size:9px; font-weight:800; line-height:1.15; letter-spacing:.02em; }
 .dialog-backdrop { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; overflow-y:auto; padding:20px; background:rgba(15,23,42,.48); backdrop-filter:blur(3px); }
 .version-dialog { width:min(100%,440px); padding:22px; border:1px solid var(--line); border-radius:18px; background:var(--surface); color:var(--text); box-shadow:0 24px 80px rgba(0,0,0,.24); }
@@ -80,11 +80,11 @@ onMounted(() => { void loadVersionInfo(true); });
 .latest-version-item:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .latest-version-item:disabled { cursor:wait; }
 .latest-version-item span small { margin-left:4px; color:var(--accent); font-size:10px; font-weight:650; }
-.version-item.version-new { border-color:#fdba74; background:#fff7ed; color:#9a3412; }
-.dialog-update-note { display:flex; align-items:flex-start; gap:10px; margin-top:15px; padding:12px; border:1px solid #fdba74; border-radius:12px; background:#fff7ed; color:#9a3412; }
-.dialog-update-dot { flex:0 0 8px; width:8px; height:8px; margin-top:5px; border-radius:50%; background:#f97316; }
+.version-item.version-new { border-color:color-mix(in srgb,var(--warn) 55%,var(--line)); background:var(--warn-soft); color:var(--text); }
+.dialog-update-note { display:flex; align-items:flex-start; gap:10px; margin-top:15px; padding:12px; border:1px solid color-mix(in srgb,var(--warn) 55%,var(--line)); border-radius:12px; background:var(--warn-soft); color:var(--text); }
+.dialog-update-dot { flex:0 0 8px; width:8px; height:8px; margin-top:5px; border-radius:50%; background:var(--warn); }
 .dialog-update-note strong { font-size:13px; }
-.dialog-update-note p { margin:4px 0 0; color:#9a3412; font-size:12px; line-height:1.55; }
+.dialog-update-note p { margin:4px 0 0; color:var(--muted); font-size:12px; line-height:1.55; }
 .dialog-status { margin:15px 0 0; color:var(--muted); font-size:12px; line-height:1.55; }
 .dialog-actions { display:flex; flex-wrap:wrap; gap:9px; margin-top:20px; }
 .dialog-project-button,.dialog-secondary-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:39px; padding:0 14px; border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--text); font:inherit; font-size:12px; font-weight:650; text-decoration:none; cursor:pointer; }
