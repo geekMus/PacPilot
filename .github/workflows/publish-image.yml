@@ -1,12 +1,15 @@
 name: 构建并发布 Docker 镜像
 
 on:
-  # 仅 main 分支修改 package.json 时检查版本；只有版本变化才会发布镜像。
+  # 版本或镜像构建配置变化时检查发布条件；只有版本变化才会发布镜像。
   push:
     branches:
       - main
     paths:
       - package.json
+      - Dockerfile
+      - .dockerignore
+      - .github/workflows/publish-image.yml
   # 其他分支只能手动触发；手动运行仅验证构建，绝不推送镜像。
   workflow_dispatch:
 
@@ -19,13 +22,18 @@ permissions:
   contents: read
 
 jobs:
-  publish:
-    name: 检查版本并构建 ARM64 镜像
+  prepare:
+    name: 判断镜像发布条件
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 15
     permissions:
       contents: read
-      packages: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      previous_version: ${{ steps.version.outputs.previous_version }}
+      publish: ${{ steps.version.outputs.publish }}
+      publish_latest: ${{ steps.version.outputs.publish_latest }}
+      reason: ${{ steps.version.outputs.reason }}
     steps:
       - name: 检出完整提交历史
         uses: actions/checkout@v7
@@ -121,40 +129,6 @@ jobs:
           echo "项目版本：$VERSION"
           echo "发布判断：$REASON"
 
-      - name: 启用 ARM64 构建支持
-        if: github.event_name == 'workflow_dispatch' || steps.version.outputs.publish == 'true'
-        uses: docker/setup-qemu-action@v4
-        with:
-          platforms: arm64
-
-      - name: 设置 Docker Buildx
-        if: github.event_name == 'workflow_dispatch' || steps.version.outputs.publish == 'true'
-        uses: docker/setup-buildx-action@v4
-
-      - name: 登录 GitHub 容器镜像仓库
-        if: steps.version.outputs.publish == 'true'
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 生成版本化镜像标签和 OCI 元数据
-        if: github.event_name == 'workflow_dispatch' || steps.version.outputs.publish == 'true'
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ghcr.io/geekmus/genpac-runner
-          tags: |
-            type=raw,value=${{ steps.version.outputs.version }},enable=${{ steps.version.outputs.publish == 'true' }}
-            type=raw,value=latest,enable=${{ steps.version.outputs.publish_latest == 'true' }}
-          labels: |
-            org.opencontainers.image.title=genpac-runner
-            org.opencontainers.image.description=自动生成 PAC 文件的工具
-            org.opencontainers.image.source=https://github.com/geekMus/genpac-runner
-            org.opencontainers.image.version=${{ steps.version.outputs.version }}
-            org.opencontainers.image.revision=${{ github.sha }}
-
       - name: 生成版本和提交变更摘要
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -162,6 +136,7 @@ jobs:
           PUBLISH: ${{ steps.version.outputs.publish }}
           PUBLISH_LATEST: ${{ steps.version.outputs.publish_latest }}
           REASON: ${{ steps.version.outputs.reason }}
+          EVENT_NAME: ${{ github.event_name }}
         shell: bash
         run: |
           set -euo pipefail
@@ -191,8 +166,10 @@ jobs:
             if [[ "$PUBLISH" == "true" ]]; then
               printf -- '- 版本镜像：ghcr.io/geekmus/genpac-runner:%s\n' "$VERSION"
               printf -- '- 稳定版别名：ghcr.io/geekmus/genpac-runner:latest\n'
+            elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+              printf '\n本次仅验证构建，不会推送镜像。\n'
             else
-              printf '\n本次只执行构建验证，不会推送镜像。\n'
+              printf '\n版本未变化，已跳过镜像构建和推送。\n'
             fi
           } >> "$SUMMARY"
 
@@ -213,12 +190,59 @@ jobs:
             git log -10 --first-parent --no-decorate --format="- [%h](https://github.com/${GITHUB_REPOSITORY}/commit/%H) %s" "$GITHUB_SHA" >> "$SUMMARY"
           fi
 
+  publish:
+    name: 构建并发布 ARM64 镜像
+    needs: prepare
+    if: needs.prepare.outputs.publish == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: 检出源代码
+        uses: actions/checkout@v7
+
+      - name: 启用 ARM64 构建支持
+        if: github.event_name == 'workflow_dispatch' || needs.prepare.outputs.publish == 'true'
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: arm64
+
+      - name: 设置 Docker Buildx
+        if: github.event_name == 'workflow_dispatch' || needs.prepare.outputs.publish == 'true'
+        uses: docker/setup-buildx-action@v4
+
+      - name: 登录 GitHub 容器镜像仓库
+        if: needs.prepare.outputs.publish == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 生成版本化镜像标签和 OCI 元数据
+        if: github.event_name == 'workflow_dispatch' || needs.prepare.outputs.publish == 'true'
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/geekmus/genpac-runner
+          tags: |
+            type=raw,value=${{ needs.prepare.outputs.version }},enable=${{ needs.prepare.outputs.publish == 'true' }}
+            type=raw,value=latest,enable=${{ needs.prepare.outputs.publish_latest == 'true' }}
+          labels: |
+            org.opencontainers.image.title=genpac-runner
+            org.opencontainers.image.description=自动生成 PAC 文件的工具
+            org.opencontainers.image.source=https://github.com/geekMus/genpac-runner
+            org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
       - name: 构建并按条件推送 ARM64 镜像
-        if: github.event_name == 'workflow_dispatch' || steps.version.outputs.publish == 'true'
+        if: github.event_name == 'workflow_dispatch' || needs.prepare.outputs.publish == 'true'
         uses: docker/build-push-action@v7
         with:
           context: .
-          push: ${{ steps.version.outputs.publish == 'true' }}
+          push: ${{ needs.prepare.outputs.publish == 'true' }}
           platforms: linux/arm64
           # 关闭 BuildKit 自动生成的 provenance / SBOM 附属清单，避免 GHCR 出现无标签的关联镜像版本。
           provenance: false
@@ -230,8 +254,8 @@ jobs:
 
       - name: 输出构建结果
         env:
-          PUBLISH: ${{ steps.version.outputs.publish }}
-          VERSION: ${{ steps.version.outputs.version }}
+          PUBLISH: ${{ needs.prepare.outputs.publish }}
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           if [[ "$PUBLISH" == "true" ]]; then
             echo "ARM64 镜像已发布：ghcr.io/geekmus/genpac-runner:$VERSION"

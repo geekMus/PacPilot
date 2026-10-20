@@ -1,0 +1,11 @@
+.git
+.idea
+.vscode
+coverage
+data
+dist
+node_modules
+.env
+.env.*
+*.log
+bun.lock

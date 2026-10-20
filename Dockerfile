@@ -8,9 +8,11 @@ COPY package.json bunfig.toml ./
 RUN echo "正在安装构建阶段依赖并生成本次构建锁文件……" \
  && bun install
 
+COPY tsconfig.json ./
 COPY server ./server
 COPY client ./client
 COPY scripts ./scripts
+COPY shared ./shared
 
 RUN echo "正在检查 TypeScript 类型并编译前端资源……" && bun run typecheck && bun run build:client
 
