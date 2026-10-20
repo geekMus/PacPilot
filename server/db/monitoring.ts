@@ -1,4 +1,5 @@
 import type { AppDatabase } from "./sqlite";
+import type { LocalizedParams } from "./sqlite";
 
 export interface AccessEventInput {
   created_at: string;
@@ -39,11 +40,14 @@ export interface ProxyProbeInput {
   http_status: number | null;
   phase: string;
   error: string;
+  error_key?: string;
+  error_params?: LocalizedParams;
 }
 
 export interface ProxyProbeRecord extends Omit<ProxyProbeInput, "success"> {
   id: number;
   success: boolean;
+  error_params: LocalizedParams;
 }
 
 export interface MonitorSummary {
@@ -296,8 +300,8 @@ export function recordProxyProbe(database: AppDatabase, item: ProxyProbeInput): 
   database
     .query(
       "INSERT INTO proxy_probe_runs " +
-        "(tested_at, proxy_label, proxy_host, proxy_port, target_host, success, tcp_ms, handshake_ms, target_ms, http_status, phase, error) " +
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        "(tested_at, proxy_label, proxy_host, proxy_port, target_host, success, tcp_ms, handshake_ms, target_ms, http_status, phase, error, error_key, error_params) " +
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     )
     .run(
       item.tested_at,
@@ -311,7 +315,9 @@ export function recordProxyProbe(database: AppDatabase, item: ProxyProbeInput): 
       item.target_ms,
       item.http_status,
       item.phase,
-      item.error.slice(0, 500)
+      item.error.slice(0, 500),
+      item.error_key ?? "",
+      JSON.stringify(item.error_params ?? {})
     );
 
   maybePruneMonitoringData(database);
@@ -327,14 +333,118 @@ export function listProxyProbeRuns(
   const cursor = Math.max(0, Math.trunc(beforeId) || 0);
   const where = cursor > 0 ? " WHERE id < ?" : "";
   const query =
-    "SELECT id, tested_at, proxy_label, proxy_host, proxy_port, target_host, success, tcp_ms, handshake_ms, target_ms, http_status, phase, error " +
+    "SELECT id, tested_at, proxy_label, proxy_host, proxy_port, target_host, success, tcp_ms, handshake_ms, target_ms, http_status, phase, error, error_key, error_params " +
     "FROM proxy_probe_runs" +
     where +
     " ORDER BY id DESC LIMIT ?";
   const rows = (
     cursor > 0 ? database.query(query).all(cursor, limit) : database.query(query).all(limit)
-  ) as Array<Omit<ProxyProbeRecord, "success"> & { success: number }>;
-  return rows.map((row) => ({ ...row, success: Boolean(row.success) }));
+  ) as Array<Omit<ProxyProbeRecord, "success" | "error_params"> & { success: number; error_params: string }>;
+  return rows.map((row) => {
+    let errorParams: LocalizedParams = {};
+    try {
+      const parsed: unknown = JSON.parse(row.error_params);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        errorParams = Object.fromEntries(
+          Object.entries(parsed).filter(
+            ([, value]) => typeof value === "string" || typeof value === "number"
+          )
+        ) as LocalizedParams;
+      }
+    } catch {
+      errorParams = {};
+    }
+    const legacyIssue = row.error_key ? null : legacyProxyProbeError(row.error);
+    return {
+      ...row,
+      success: Boolean(row.success),
+      error_key: row.error_key || legacyIssue?.key || "",
+      error_params: row.error_key ? errorParams : (legacyIssue?.params ?? errorParams),
+    };
+  });
+}
+
+function legacyProxyProbeError(
+  message: string
+): { key: string; params: LocalizedParams } | null {
+  const exact: Record<string, string> = {
+    "代理测试地址不能为空。": "urlRequired",
+    "代理测试地址不能包含空白字符或控制字符；请检查 URL 编码。": "urlWhitespace",
+    "代理测试地址格式无效，请填写完整的 HTTPS URL，例如 https://www.google.com/generate_204。":
+      "urlInvalid",
+    "代理测试地址目前只支持 HTTPS URL。": "urlHttpsOnly",
+    "代理测试地址必须包含主机名，且不能包含用户名或密码。": "urlCredentials",
+    "代理测试地址不能包含 URL 片段（# 后的内容）。": "urlFragment",
+    "代理认证信息格式无效，请使用 username:password@host:port。": "proxyAuthFormat",
+    "IPv6 代理地址必须使用 [地址]:端口 格式。": "proxyIpv6Format",
+    "目标站点返回了无法识别的 HTTP 响应。": "targetHttpInvalid",
+    "单个代理的检测总耗时超过 12 秒，已终止。": "totalTimeout",
+    "代理未返回有效的 HTTP CONNECT 状态行。": "connectStatusInvalid",
+    "SOCKS5 握手版本不正确。": "socks5VersionInvalid",
+    "SOCKS5 用户名或密码过长。": "socks5CredentialsTooLong",
+    "SOCKS5 用户名或密码认证失败。": "socks5AuthFailed",
+    "SOCKS5 代理要求用户名/密码，但配置中未提供认证信息。": "socks5AuthRequired",
+    "测试目标域名过长。": "targetDomainTooLong",
+    "SOCKS5 代理返回了无效响应。": "socks5ResponseInvalid",
+    "SOCKS5 响应使用了未知地址类型。": "socks5AddressTypeUnknown",
+    "检测环境无法将目标域名解析为 IPv4，无法进行 SOCKS4 测试。": "socks4DnsFailed",
+    "目标 DNS 未返回有效的 IPv4 地址，无法进行 SOCKS4 测试。": "socks4DnsInvalid",
+    "SOCKS4 代理返回了无效响应。": "socks4ResponseInvalid",
+    "SOCKS4a 代理返回了无效响应。": "socks4aResponseInvalid",
+    "PAC 代理字符串为空。": "proxyStringEmpty",
+    "PAC 代理字符串中只有 DIRECT，没有可测试的代理节点。": "onlyDirect",
+    "连接代理端口超时。": "tcpTimeout",
+    "TLS 握手超时。": "tlsTimeout",
+    "等待 SOCKS5 目标连接响应超时。": "socks5ResponseTimeout",
+    "SOCKS5 代理在返回完整响应前关闭了连接。": "socks5ConnectionClosed",
+    "等待代理响应超时。": "proxyResponseTimeout",
+    "代理在返回完整响应前关闭了连接。": "proxyConnectionClosed",
+    "等待 HTTP 响应头超时。": "httpHeaderTimeout",
+    "HTTP 响应头超过 16 KiB，已终止检测。": "httpHeaderTooLarge",
+    "连接在返回 HTTP 响应头前关闭。": "httpHeaderConnectionClosed",
+  };
+  const key = exact[message];
+  if (key) return { key: `monitor.probeErrors.${key}`, params: {} };
+  const patterns: Array<[RegExp, string, (match: RegExpExecArray) => LocalizedParams]> = [
+    [/^代理地址缺少端口：(.*)$/, "proxyPortMissing", (m) => ({ address: m[1] })],
+    [/^代理地址或端口无效：(.*)$/, "proxyAddressInvalid", (m) => ({ address: m[1] })],
+    [/^无法连接代理端口：(.*)$/, "tcpFailed", (m) => ({ error: m[1] })],
+    [/^TLS 握手失败：(.*)$/, "tlsFailed", (m) => ({ error: m[1] })],
+    [/^SOCKS5 连接中断：(.*)$/, "socks5ConnectionInterrupted", (m) => ({ error: m[1] })],
+    [/^代理连接中断：(.*)$/, "proxyConnectionInterrupted", (m) => ({ error: m[1] })],
+    [/^读取 HTTP 响应失败：(.*)$/, "httpReadFailed", (m) => ({ error: m[1] })],
+    [
+      /^目标站点返回 HTTP (\d+)。代理隧道和 TLS 已建立，但目标请求未成功。$/,
+      "targetHttpStatus",
+      (m) => ({ status: Number(m[1]) }),
+    ],
+    [/^代理 CONNECT 返回 HTTP (\d+)。$/, "connectHttpStatus", (m) => ({ status: Number(m[1]) })],
+    [
+      /^SOCKS5 代理没有接受支持的认证方式（method (\d+)）。$/,
+      "socks5AuthMethodUnsupported",
+      (m) => ({ method: Number(m[1]) }),
+    ],
+    [
+      /^SOCKS5 目标连接失败：.*?(?:错误码 )?(\d+)。$/,
+      "socks5ConnectFailed",
+      (m) => ({ code: Number(m[1]) }),
+    ],
+    [
+      /^SOCKS4 目标连接失败：.*?(?:响应码 )?(\d+)。$/,
+      "socks4ConnectFailed",
+      (m) => ({ code: Number(m[1]) }),
+    ],
+    [
+      /^SOCKS4a 目标连接失败：.*?(?:响应码 )?(\d+)。$/,
+      "socks4aConnectFailed",
+      (m) => ({ code: Number(m[1]) }),
+    ],
+  ];
+  for (const [pattern, patternKey, params] of patterns) {
+    const match = pattern.exec(message);
+    if (match) return { key: `monitor.probeErrors.${patternKey}`, params: params(match) };
+  }
+  return null;
 }
 
 function maybePruneMonitoringData(database: AppDatabase): void {

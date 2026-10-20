@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import {
   api,
+  ApiError,
   type AccessEvent,
   type AdminSession,
   type MonitorSummary,
@@ -74,6 +75,21 @@ const lastUpdated = ref("");
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
 const timeZone = computed(() => summary.value?.timezone || "Asia/Shanghai");
+
+function localizedProbeError(
+  message: string | null | undefined,
+  key: string | null | undefined,
+  params?: Record<string, string | number>
+): string {
+  return key ? t(key, params ?? {}) : message ?? "";
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof ApiError && error.messageKey) {
+    return t(error.messageKey, error.messageParams);
+  }
+  return error instanceof Error ? error.message : String(error);
+}
 
 function formatTrendHour(value: string): string {
   const date = new Date(value);
@@ -294,7 +310,7 @@ async function loadProxyTestTarget(): Promise<void> {
   } catch (caught) {
     proxyTestTargetLoaded.value = false;
     proxyTestTargetMessageOk.value = false;
-    proxyTestTargetMessage.value = caught instanceof Error ? caught.message : String(caught);
+    proxyTestTargetMessage.value = errorMessage(caught);
     notify(proxyTestTargetMessage.value, "error");
   } finally {
     loadingProxyTestTarget.value = false;
@@ -321,7 +337,7 @@ async function saveProxyTestTarget(): Promise<void> {
     notify(t("monitor.k7"), "success");
   } catch (caught) {
     proxyTestTargetMessageOk.value = false;
-    proxyTestTargetMessage.value = caught instanceof Error ? caught.message : String(caught);
+    proxyTestTargetMessage.value = errorMessage(caught);
     notify(proxyTestTargetMessage.value, "error");
   } finally {
     savingProxyTestTarget.value = false;
@@ -339,7 +355,7 @@ async function runProxyTest(): Promise<void> {
     await loadProbeHistory();
     await refreshDashboard(true);
   } catch (caught) {
-    probeError.value = caught instanceof Error ? caught.message : String(caught);
+    probeError.value = errorMessage(caught);
     notify(probeError.value, "error");
     await loadProbeHistory();
   } finally {
@@ -1173,13 +1189,27 @@ onUnmounted(() => {
               <p v-if="result.httpStatus" class="probe-detail">
                 {{ t("monitor.targetStatusCode", { code: result.httpStatus }) }}
               </p>
-              <p v-if="result.error" class="probe-error">{{ result.error }}</p>
+              <p v-if="result.error || result.errorKey" class="probe-error">
+                {{ localizedProbeError(result.error, result.errorKey, result.errorParams) }}
+              </p>
               <p v-if="result.isLoopback" class="monitor-alert is-warning">
                 {{ t("monitor.k160") }}
               </p>
             </div>
             <p v-if="latestProbe.parseWarnings.length" class="probe-warning">
-              {{ t("monitor.uncheckedItems", { items: latestProbe.parseWarnings.join("; ") }) }}
+              {{
+                t("monitor.uncheckedItems", {
+                  items: latestProbe.parseWarnings
+                    .map((warning) =>
+                      localizedProbeError(
+                        warning.message,
+                        warning.messageKey,
+                        warning.messageParams
+                      )
+                    )
+                    .join("; "),
+                })
+              }}
             </p>
             <p v-if="latestProbe.limited" class="probe-warning">
               {{ t("monitor.k161") }}
@@ -1263,7 +1293,12 @@ onUnmounted(() => {
                 <td class="probe-history-error">
                   <TextDetail
                     v-if="!item.success"
-                    :text="probePhaseLabel(item.phase) + ': ' + (item.error || t('monitor.noProbeErrorDetails'))"
+                    :text="
+                      probePhaseLabel(item.phase) +
+                      ': ' +
+                      (localizedProbeError(item.error, item.error_key, item.error_params) ||
+                        t('monitor.noProbeErrorDetails'))
+                    "
                     :label='t("monitor.k60")'
                   /><span v-else>—</span>
                 </td>

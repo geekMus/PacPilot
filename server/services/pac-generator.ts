@@ -103,16 +103,21 @@ async function compressPac(content: string): Promise<string> {
   return result.code;
 }
 
-function formatPacGeneratedAt(date: Date, locale: AppLocale = "zh_CN"): string {
-  const iso = date.toISOString();
-  const local = date.toLocaleString(locale === "en_US" ? "en-US" : "zh-CN", { hour12: false });
-  return locale === "en_US" ? iso + " (local " + local + ")" : iso + "（本地 " + local + "）";
+function formatPacGeneratedAt(
+  date: Date,
+  locale: AppLocale = "zh_CN",
+  timeZone = "Asia/Shanghai"
+): string {
+  return date.toLocaleString(locale === "en_US" ? "en-US" : "zh-CN", {
+    timeZone,
+    hour12: false,
+  });
 }
 
 function stripPacMetaHeaders(content: string): string {
   return content
     .replace(/^\/\/ genpac-runner (?:version:|版本[:：]).*(?:\r?\n|$)/gim, "")
-    .replace(/^\/\/ genpac-runner (?:Generated at:|生成时间[:：]).*(?:\r?\n|$)/gim, "")
+    .replace(/^\/\/ genpac-runner (?:PAC generated at:|Generated at:|PAC 生成时间[:：]|生成时间[:：]).*(?:\r?\n|$)/gim, "")
     .replace(/^\n+/, "");
 }
 
@@ -123,19 +128,24 @@ function stripPacMetaHeaders(content: string): string {
 function withPacVersionHeader(
   content: string,
   generatedAt?: Date | null,
-  locale: AppLocale = "zh_CN"
+  locale: AppLocale = "zh_CN",
+  timeZone = "Asia/Shanghai"
 ): string {
   const existingGenerated =
     content
-      .match(/^\/\/ genpac-runner (?:Generated at:|生成时间[:：])\s*(.+)\s*$/im)?.[1]
+      .match(/^\/\/ genpac-runner (?:PAC generated at:|Generated at:|PAC 生成时间[:：]|生成时间[:：])\s*(.+)\s*$/im)?.[1]
       ?.trim() || "";
   const body = stripPacMetaHeaders(content);
   const versionLabel =
     locale === "en_US" ? "// genpac-runner version: " : "// genpac-runner 版本：";
   const timeLabel =
-    locale === "en_US" ? "// genpac-runner Generated at: " : "// genpac-runner 生成时间：";
+    locale === "en_US"
+      ? "// genpac-runner PAC generated at: "
+      : "// genpac-runner PAC 生成时间：";
   const lines = [versionLabel + APP_VERSION];
-  const stamp = generatedAt ? formatPacGeneratedAt(generatedAt, locale) : existingGenerated;
+  const stamp = generatedAt
+    ? formatPacGeneratedAt(generatedAt, locale, timeZone)
+    : existingGenerated;
   if (stamp) lines.push(timeLabel + stamp);
   return lines.join("\n") + "\n" + body;
 }
@@ -229,9 +239,9 @@ async function runRemoteMode(
     settings.locale === "en_US" ? "en_US" : "zh_CN"
   );
   const generatedAt = new Date();
-  const source = withPacVersionHeader(pac, generatedAt, settings.locale);
+  const source = withPacVersionHeader(pac, generatedAt, settings.locale, settings.timezone);
   const output = settings.pacCompress
-    ? withPacVersionHeader(await compressPac(pac), generatedAt, settings.locale)
+    ? withPacVersionHeader(await compressPac(pac), generatedAt, settings.locale, settings.timezone)
     : source;
   const sourcePath = path.join(path.dirname(outFile), "proxy.source.pac");
   fs.writeFileSync(sourcePath, source, "utf8");
@@ -303,9 +313,9 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
     } else {
       const customPac = buildCustomPac(settings);
       const generatedAt = new Date();
-      const source = withPacVersionHeader(customPac, generatedAt, settings.locale);
+      const source = withPacVersionHeader(customPac, generatedAt, settings.locale, settings.timezone);
       const output = settings.pacCompress
-        ? withPacVersionHeader(await compressPac(customPac), generatedAt, settings.locale)
+        ? withPacVersionHeader(await compressPac(customPac), generatedAt, settings.locale, settings.timezone)
         : source;
       const sourcePath = path.join(dataDir, "proxy.source.pac");
       fs.writeFileSync(sourcePath, source, "utf8");

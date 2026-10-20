@@ -152,6 +152,8 @@ function ensureLocalizedRecordColumns(database: AppDatabase): void {
     ["workflow_stages", "message_params", "TEXT NOT NULL DEFAULT '{}'"],
     ["workflow_stages", "error_key", "TEXT NOT NULL DEFAULT ''"],
     ["workflow_stages", "error_params", "TEXT NOT NULL DEFAULT '{}'"],
+    ["proxy_probe_runs", "error_key", "TEXT NOT NULL DEFAULT ''"],
+    ["proxy_probe_runs", "error_params", "TEXT NOT NULL DEFAULT '{}'"],
   ];
   const existingByTable = new Map<string, Set<string>>();
   for (const [table, column, definition] of columns) {

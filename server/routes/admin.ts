@@ -49,8 +49,10 @@ import { getActiveRequestCount, getTcpConnectionCount } from "../services/reques
 import {
   DEFAULT_PROXY_TEST_URL,
   parseProxyTestUrl,
+  ProxyProbeError,
   testConfiguredProxies,
 } from "../services/proxy-probe";
+import { t as serverT } from "../i18n";
 import { assertSafeHttpUrl } from "../utils/url-safety";
 
 function parseList(raw: unknown): string[] {
@@ -131,7 +133,14 @@ function persistSettings(
   try {
     p.proxyTestUrl = parseProxyTestUrl(p.proxyTestUrl).toString();
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Invalid proxy test URL." };
+    return {
+      error:
+        e instanceof ProxyProbeError
+          ? serverT(p.locale, e.messageKey, e.messageParams)
+          : e instanceof Error
+            ? e.message
+            : "Invalid proxy test URL.",
+    };
   }
   const proxyError = validatePacProxyString(p.pacProxy);
   if (proxyError) return { error: proxyError };
@@ -152,6 +161,17 @@ function persistSettings(
 }
 export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
   const router = Router();
+  const proxyErrorResponse = (error: unknown) => {
+    if (error instanceof ProxyProbeError) {
+      const settings = getSettings(database);
+      return {
+        error: serverT(settings.locale, error.messageKey, error.messageParams),
+        errorKey: error.messageKey,
+        errorParams: error.messageParams,
+      };
+    }
+    return { error: error instanceof Error ? error.message : String(error) };
+  };
   let monitorProbeInProgress = false;
   router.get("/api/admin/session", (req, res) =>
     res.json({ loggedIn: isLoggedIn(req, database), ...getAdminSecurityStatus(database) })
@@ -583,7 +603,7 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
     try {
       target = parseProxyTestUrl(String(req.body?.url ?? ""));
     } catch (e) {
-      res.status(400).json({ error: e instanceof Error ? e.message : "代理测试地址无效。" });
+      res.status(400).json(proxyErrorResponse(e));
       return;
     }
     const next = updateSettings(database, { proxyTestUrl: target.toString() });
@@ -592,7 +612,12 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
   router.post("/api/admin/monitor/probe", requireAdmin(database), async (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     if (monitorProbeInProgress) {
-      res.status(409).json({ error: "已有代理连通性测试正在运行，请稍后再试。" });
+      const settings = getSettings(database);
+      res.status(409).json({
+        error: serverT(settings.locale, "monitor.probeErrors.inProgress"),
+        errorKey: "monitor.probeErrors.inProgress",
+        errorParams: {},
+      });
       return;
     }
     monitorProbeInProgress = true;
@@ -605,7 +630,7 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
       );
       res.json(result);
     } catch (e) {
-      res.status(400).json({ error: e instanceof Error ? e.message : String(e) });
+      res.status(400).json(proxyErrorResponse(e));
     } finally {
       monitorProbeInProgress = false;
     }

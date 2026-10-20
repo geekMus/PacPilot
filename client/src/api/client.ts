@@ -250,6 +250,8 @@ export interface ProxyProbeResult {
   httpStatus: number | null;
   phase: string;
   error: string;
+  errorKey: string;
+  errorParams: Record<string, string | number>;
   isLoopback: boolean;
 }
 
@@ -259,7 +261,11 @@ export interface ProxyProbeBatch {
   targetPort: number;
   results: ProxyProbeResult[];
   ignoredDirectEntries: number;
-  parseWarnings: string[];
+  parseWarnings: Array<{
+    message: string;
+    messageKey: string;
+    messageParams: Record<string, string | number>;
+  }>;
   limited: boolean;
 }
 
@@ -277,6 +283,19 @@ export interface ProxyProbeRecord {
   http_status: number | null;
   phase: string;
   error: string;
+  error_key: string;
+  error_params: Record<string, string | number>;
+}
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly messageKey = "",
+    readonly messageParams: Record<string, string | number> = {}
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
 }
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -287,12 +306,21 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     let msg = res.statusText;
+    let messageKey = "";
+    let messageParams: Record<string, string | number> = {};
     try {
-      const data = (await res.json()) as { error?: string; message?: string };
+      const data = (await res.json()) as {
+        error?: string;
+        message?: string;
+        errorKey?: string;
+        errorParams?: Record<string, string | number>;
+      };
       if (data.error) msg = data.error;
       else if (data.message) msg = data.message;
+      messageKey = data.errorKey ?? "";
+      messageParams = data.errorParams ?? {};
     } catch {
-      /* ignore non-JSON errors */
+      // Non-JSON error responses retain their HTTP status text.
     }
 
     // This endpoint was added with the server-side save-and-generate workflow.
@@ -306,7 +334,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
       msg = "Change the default admin password before continuing.";
     }
 
-    throw new Error(msg);
+    throw new ApiError(msg, messageKey, messageParams);
   }
   return (await res.json()) as T;
 }
