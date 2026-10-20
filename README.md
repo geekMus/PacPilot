@@ -154,7 +154,7 @@ bun run format
 
 ## 版本与镜像
 
-容器镜像发布于 GitHub Container Registry（GHCR），支持 `linux/amd64` 和 `linux/arm64`。版本号以 `package.json` 中的 `version` 为准。新发布的镜像 OCI 标签会包含版本、源码提交和相对上一镜像的简短变更摘要；可用下面的命令查看摘要：
+容器镜像发布于 GitHub Container Registry（GHCR），支持 `linux/amd64` 和 `linux/arm64`。版本号以 `package.json` 中的 `version` 为准。新发布的镜像会在 OCI manifest annotation 中提供包描述（显示在 GHCR 包页面），并在镜像标签中记录版本、源码提交和相对上一镜像的简短变更摘要。可用下面的命令查看摘要：
 
 ```bash
 docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.changelog" }}' ghcr.io/geekmus/genpac-runner:latest

@@ -296,6 +296,12 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          annotations: |
+            manifest:org.opencontainers.image.description=自动生成 PAC 文件的工具
+            manifest:org.opencontainers.image.source=https://github.com/geekMus/genpac-runner
+            manifest:org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
+            manifest:org.opencontainers.image.revision=${{ github.sha }}
+            manifest:org.opencontainers.image.changelog=${{ needs.prepare.outputs.changelog }}
 
       - name: 输出构建结果
         env:
