@@ -5,11 +5,25 @@
 
 import { assertSafeHttpUrl } from "../utils/url-safety";
 
+export interface RemoteListFetchMeta {
+  url: string;
+  method: string;
+  status: number;
+  status_text: string;
+  duration_ms: number;
+  response_bytes: number;
+  content_type: string;
+  attempts: number;
+  request_headers: Record<string, string>;
+  response_headers: Record<string, string>;
+}
+
 export interface RemoteListParseResult {
   proxyHosts: string[];
   directHosts: string[];
   format: "gfwlist-base64" | "abp" | "plain-domains";
   rawLineCount: number;
+  fetch?: RemoteListFetchMeta;
 }
 
 function isLikelyDomain(s: string): boolean {
@@ -136,27 +150,57 @@ export function parseRemoteListText(body: string): RemoteListParseResult {
   return plain;
 }
 
+function collectResponseHeaders(res: Response): Record<string, string> {
+  const out: Record<string, string> = {};
+  res.headers.forEach((value, key) => {
+    out[key.toLowerCase()] = String(value).slice(0, 512);
+  });
+  return out;
+}
+
 export async function fetchAndParseRemoteList(
   url: string
 ): Promise<RemoteListParseResult> {
   const unsafe = assertSafeHttpUrl(url, "规则列表 URL");
   if (unsafe) throw new Error(unsafe);
 
+  const requestHeaders = {
+    "User-Agent": "genpac-runner/2 (bun)",
+    Accept: "text/plain, text/*;q=0.9, */*;q=0.8",
+  };
+
   let lastError: unknown;
   // 远程源偶发断开连接时有限重试；HTTP 错误不重试，避免重复请求无效地址。
   for (let attempt = 0; attempt < 3; attempt++) {
+    const started = Date.now();
     try {
       const res = await fetch(url, {
-        headers: {
-          "User-Agent": "genpac-runner/2 (bun)",
-          "Accept": "text/plain, text/*;q=0.9, */*;q=0.8",
-        },
+        headers: requestHeaders,
         signal: AbortSignal.timeout(90_000),
       });
+      const duration_ms = Math.max(0, Date.now() - started);
+      const text = await res.text();
+      const fetchMeta: RemoteListFetchMeta = {
+        url,
+        method: "GET",
+        status: res.status,
+        status_text: res.statusText || "",
+        duration_ms,
+        response_bytes: Buffer.byteLength(text, "utf8"),
+        content_type: res.headers.get("content-type") || "",
+        attempts: attempt + 1,
+        request_headers: { ...requestHeaders },
+        response_headers: collectResponseHeaders(res),
+      };
       if (!res.ok) {
-        throw new Error(`下载远程列表失败：HTTP ${res.status} ${res.statusText}`);
+        const err = new Error(`下载远程列表失败：HTTP ${res.status} ${res.statusText}`) as Error & {
+          fetchMeta?: RemoteListFetchMeta;
+        };
+        err.fetchMeta = fetchMeta;
+        throw err;
       }
-      return parseRemoteListText(await res.text());
+      const parsed = parseRemoteListText(text);
+      return { ...parsed, fetch: fetchMeta };
     } catch (error) {
       lastError = error;
       // HTTP 响应错误和列表格式错误是确定性错误，不应重试。

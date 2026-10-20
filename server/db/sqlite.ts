@@ -101,6 +101,7 @@ function migrate(database: AppDatabase): void {
       status TEXT NOT NULL,
       message TEXT NOT NULL DEFAULT '',
       error TEXT NOT NULL DEFAULT '',
+      detail TEXT NOT NULL DEFAULT '',
       started_at TEXT,
       finished_at TEXT,
       duration_ms INTEGER
@@ -109,6 +110,7 @@ function migrate(database: AppDatabase): void {
   `);
 
   ensureAccessEventDetailColumns(database);
+  ensureWorkflowStageDetailColumn(database);
 
   const row = database
     .query("SELECT value FROM settings WHERE key = ?")
@@ -116,6 +118,15 @@ function migrate(database: AppDatabase): void {
 
   if (!row) {
     setSettings(database, DEFAULT_SETTINGS);
+  }
+}
+
+function ensureWorkflowStageDetailColumn(database: AppDatabase): void {
+  const existing = new Set(
+    (database.query("PRAGMA table_info(workflow_stages)").all() as Array<{ name: string }>).map((c) => c.name)
+  );
+  if (!existing.has("detail")) {
+    database.exec("ALTER TABLE workflow_stages ADD COLUMN detail TEXT NOT NULL DEFAULT ''");
   }
 }
 
@@ -412,16 +423,36 @@ export function closeDb(): void {
 export interface WorkflowStage {
   id: number; run_id: number; stage_key: string; name: string;
   status: "pending" | "running" | "succeeded" | "failed" | "skipped";
-  message: string; error: string; started_at: string | null; finished_at: string | null; duration_ms: number | null;
+  message: string; error: string; detail: string;
+  started_at: string | null; finished_at: string | null; duration_ms: number | null;
 }
-export function startWorkflowStage(database: AppDatabase, runId: number, stageKey: string, name: string, message: string): number {
+export function startWorkflowStage(database: AppDatabase, runId: number, stageKey: string, name: string, message: string, detail = ""): number {
   const now = new Date().toISOString();
-  const result = database.query("INSERT INTO workflow_stages (run_id,stage_key,name,status,message,started_at) VALUES (?,?,?,'running',?,?)").run(runId, stageKey, name, message, now);
+  const result = database.query(
+    "INSERT INTO workflow_stages (run_id,stage_key,name,status,message,detail,started_at) VALUES (?,?,?,'running',?,?,?)"
+  ).run(runId, stageKey, name, message, detail || "", now);
   return Number(result.lastInsertRowid);
 }
-export function finishWorkflowStage(database: AppDatabase, stageId: number, status: "succeeded" | "failed" | "skipped", message: string, error = ""): void {
+export function finishWorkflowStage(
+  database: AppDatabase,
+  stageId: number,
+  status: "succeeded" | "failed" | "skipped",
+  message: string,
+  error = "",
+  detail = ""
+): void {
   const now = new Date().toISOString();
-  database.query("UPDATE workflow_stages SET status=?,message=?,error=?,finished_at=?,duration_ms=CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0,CAST((julianday(?) - julianday(started_at))*86400000 AS INTEGER)) END WHERE id=?").run(status, message, error, now, now, stageId);
+  database.query(
+    "UPDATE workflow_stages SET status=?,message=?,error=?,detail=CASE WHEN ? <> '' THEN ? ELSE detail END,finished_at=?,duration_ms=CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0,CAST((julianday(?) - julianday(started_at))*86400000 AS INTEGER)) END WHERE id=?"
+  ).run(status, message, error, detail || "", detail || "", now, now, stageId);
+}
+export function encodeWorkflowStageDetail(value: unknown): string {
+  try {
+    const json = JSON.stringify(value ?? {});
+    return json.length > 32000 ? json.slice(0, 32000) : json;
+  } catch {
+    return "";
+  }
 }
 /** Cancel a queued execution only. Running tasks are intentionally not interrupted. */
 export function cancelPendingWorkflow(database: AppDatabase, id: number): "cancelled" | "not-found" | "not-pending" {

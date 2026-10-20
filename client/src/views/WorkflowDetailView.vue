@@ -18,6 +18,45 @@ const statuses:Record<string,string>={pending:"等待执行",running:"执行中"
 const sources:Record<string,string>={startup:"服务启动",scheduled:"定时任务",manual:"手动生成","save-and-generate":"保存并生成"};
 const label=(v:string)=>statuses[v]||v,sourceLabel=(v:string)=>sources[v]||v;
 const dateLabel=(v:string|null)=>v?new Date(v).toLocaleString():"—";
+const selectedStage=ref<WorkflowStage|null>(null);
+const stageDetailDialog=ref<HTMLDialogElement|null>(null);
+const stageDetailCopyState=ref("");
+function formatStageDetail(raw:string|undefined|null):string{
+  if(!raw||!String(raw).trim())return"（无详细记录）";
+  try{
+    return JSON.stringify(JSON.parse(raw),null,2);
+  }catch{
+    return String(raw);
+  }
+}
+async function openStageDetail(stage:WorkflowStage):Promise<void>{
+  selectedStage.value=stage;
+  stageDetailCopyState.value="";
+  await nextTick();
+  if(stageDetailDialog.value&&!stageDetailDialog.value.open)stageDetailDialog.value.showModal();
+}
+function closeStageDetail():void{if(stageDetailDialog.value?.open)stageDetailDialog.value.close();}
+function onStageDetailClose():void{selectedStage.value=null;stageDetailCopyState.value="";}
+function handleStageDetailBackdrop(event:MouseEvent):void{if(event.target===stageDetailDialog.value)closeStageDetail();}
+async function copyStageDetail():Promise<void>{
+  const stage=selectedStage.value;if(!stage)return;
+  const text=[
+    `阶段：${stage.name}`,
+    `键：${stage.stage_key}`,
+    `状态：${label(stage.status)}`,
+    `说明：${stage.message||"—"}`,
+    `错误：${stage.error||"—"}`,
+    `开始：${dateLabel(stage.started_at)}`,
+    `结束：${dateLabel(stage.finished_at)}`,
+    `耗时：${stage.duration_ms==null?"—":stage.duration_ms+" ms"}`,
+    "",
+    "详情：",
+    formatStageDetail(stage.detail),
+  ].join("\n");
+  try{await navigator.clipboard.writeText(text);stageDetailCopyState.value="已复制到剪贴板";}
+  catch{stageDetailCopyState.value="当前环境无法自动复制，请选中文本后手动复制。";}
+}
+
 function durationLabel(s:WorkflowStage){const ms=s.duration_ms??(s.started_at?Date.now()-new Date(s.started_at).getTime():null);if(ms===null)return"—";return ms<1000?ms+" ms":ms<60000?(ms/1000).toFixed(1)+" 秒":Math.floor(ms/60000)+" 分 "+Math.floor(ms%60000/1000)+" 秒";}
 async function load(){if(requestInFlight)return;requestInFlight=true;const requestedId=Number(route.params.id);try{const session=await api.session();if(!session.loggedIn){stopPolling();await router.replace("/admin/login");return;}if(session.mustChangePassword){stopPolling();await router.replace("/admin/settings");return;}const next=await api.workflowDetail(requestedId);if(requestedId!==Number(route.params.id))return;if(previousStatus!==null&&isActiveStatus(previousStatus)&&(next.run.status==="succeeded"||next.run.status==="failed"||next.run.status==="cancelled")){const message=next.run.status==="succeeded"?`工作流 #${next.run.id} 已执行完成`:next.run.status==="failed"?`工作流 #${next.run.id} 执行失败：${next.run.error||next.run.message||"请查看执行详情"}`:`工作流 #${next.run.id} 已取消排队`;notify(message,next.run.status==="succeeded"?"success":next.run.status==="failed"?"error":"warning",6500);}previousStatus=next.run.status;detail.value=next;error.value="";}catch(e){if(requestedId===Number(route.params.id))error.value=e instanceof Error?e.message:String(e);}finally{loading.value=false;requestInFlight=false;if(requestedId!==Number(route.params.id)){void load();return;}syncPolling();}}
 async function deleteRun(){if(!detail.value||deleting.value||!confirmingDelete.value)return;const run=detail.value.run;if(run.status==="running"||run.status==="pending"){notify("等待中或执行中的工作流不能删除。","warning");return;}deleting.value=true;try{await api.deleteWorkflow(run.id);notify(`工作流执行记录 #${run.id} 已删除`,"success");await router.replace("/admin/workflows");}catch(e){notify(e instanceof Error?e.message:String(e),"error");}finally{deleting.value=false;confirmingDelete.value=false;}}
@@ -33,9 +72,24 @@ onMounted(()=>{void load();});onUnmounted(stopPolling);
 <section v-if="detail" class="detail-panel"><div class="panel-heading"><div><p class="eyebrow">EXECUTION #{{detail.run.id}}</p><h2>PAC 生成工作流</h2><p class="muted">固定工作流标识：pac-generation</p></div><span class="status" :class="detail.run.status"><AppIcon v-if="detail.run.status==='running'||detail.run.status==='pending'" :name="detail.run.status==='pending'?'clock':'loader-circle'" :size="13" :class="{spinning:detail.run.status==='running'}"/>{{label(detail.run.status)}}</span></div>
 <div class="meta-grid"><div><span>执行编号</span><strong>#{{detail.run.id}}</strong></div><div><span>触发方式</span><strong>{{sourceLabel(detail.run.source)}}</strong></div><div><span>生成模式</span><strong>{{detail.run.mode==="remote"?"远程规则":"自定义规则"}}</strong></div><div><span>开始时间</span><strong>{{dateLabel(detail.run.started_at||detail.run.created_at)}}</strong></div><div><span>结束时间</span><strong>{{dateLabel(detail.run.finished_at)}}</strong></div><div><span>总耗时</span><strong>{{detail.run.duration_ms==null?(detail.run.status==="running"?"执行中":"—"):detail.run.duration_ms+" ms"}}</strong></div></div>
 <div class="result-message"><strong>执行结果</strong><p>{{detail.run.message||"暂无结果信息"}}</p></div><div v-if="detail.run.error" class="failure-message"><strong><AppIcon name="circle-alert" :size="16"/> 失败原因</strong><pre>{{detail.run.error}}</pre></div></section>
-<section v-if="detail" class="detail-panel"><div class="panel-heading"><div><p class="eyebrow">STAGE TIMELINE</p><h2>阶段执行情况</h2><p class="muted">阶段记录由服务端持久化，刷新页面不会丢失。</p></div><span class="muted">{{detail.stages.length}} 个阶段</span></div>
-<ol class="stage-list"><li v-for="(stage,index) in detail.stages" :key="stage.id" class="stage-item"><span class="stage-marker" :class="stage.status"><AppIcon :name="stage.status==='succeeded'?'circle-check':stage.status==='failed'?'circle-x':stage.status==='running'?'loader-circle':stage.status==='pending'?'clock':stage.status==='skipped'?'circle':'circle-help'" :size="16"  :class="{spinning:stage.status==='running'}"/></span><div class="stage-body"><div class="stage-heading"><div><span class="stage-number">阶段 {{index+1}}</span><h3>{{stage.name}}</h3></div><span class="status" :class="stage.status">{{label(stage.status)}}</span></div><p>{{stage.message||"暂无阶段说明"}}</p><div class="stage-meta"><span>开始：{{dateLabel(stage.started_at)}}</span><span>结束：{{dateLabel(stage.finished_at)}}</span><span>耗时：{{durationLabel(stage)}}</span></div><pre v-if="stage.error" class="stage-error">{{stage.error}}</pre></div></li><li v-if="!detail.stages.length" class="no-stages"><AppIcon name="info" :size="17"/> 此执行记录没有阶段数据（例如升级前创建的历史任务）。</li></ol></section>
-<div v-else-if="loading" class="detail-panel loading" aria-live="polite"><AppIcon name="loader-circle" :size="20" class="spinning"/> 正在加载执行详情…</div><div v-if="detail" class="detail-page-actions">
+<section v-if="detail" class="detail-panel"><div class="panel-heading"><div><p class="eyebrow">STAGE TIMELINE</p><h2>阶段执行情况</h2><p class="muted">阶段记录由服务端持久化，刷新页面不会丢失。点击阶段可查看请求与配置等详细信息。</p></div><span class="muted">{{detail.stages.length}} 个阶段</span></div>
+<ol class="stage-list"><li v-for="(stage,index) in detail.stages" :key="stage.id" class="stage-item is-clickable" title="点击查看阶段详情" @click="openStageDetail(stage)"><span class="stage-marker" :class="stage.status"><AppIcon :name="stage.status==='succeeded'?'circle-check':stage.status==='failed'?'circle-x':stage.status==='running'?'loader-circle':stage.status==='pending'?'clock':stage.status==='skipped'?'circle':'circle-help'" :size="16"  :class="{spinning:stage.status==='running'}"/></span><div class="stage-body"><div class="stage-heading"><div><span class="stage-number">阶段 {{index+1}}</span><h3>{{stage.name}}</h3></div><span class="status" :class="stage.status">{{label(stage.status)}}</span></div><p>{{stage.message||"暂无阶段说明"}}</p><div class="stage-meta"><span>开始：{{dateLabel(stage.started_at)}}</span><span>结束：{{dateLabel(stage.finished_at)}}</span><span>耗时：{{durationLabel(stage)}}</span></div><pre v-if="stage.error" class="stage-error">{{stage.error}}</pre></div></li><li v-if="!detail.stages.length" class="no-stages"><AppIcon name="info" :size="17"/> 此执行记录没有阶段数据（例如升级前创建的历史任务）。</li></ol></section>
+<div v-else-if="loading" class="detail-panel loading" aria-live="polite"><AppIcon name="loader-circle" :size="20" class="spinning"/> 正在加载执行详情…</div>
+<dialog v-if="selectedStage" ref="stageDetailDialog" class="stage-detail-dialog" aria-label="工作流阶段详情" @click="handleStageDetailBackdrop" @close="onStageDetailClose">
+<header class="stage-detail-header"><div><p class="stage-detail-kicker">STAGE · {{selectedStage.stage_key}}</p><h2>{{selectedStage.name}}</h2></div>
+<div class="stage-detail-actions"><button class="stage-detail-btn" type="button" @click="copyStageDetail">复制</button><button class="stage-detail-btn" type="button" @click="closeStageDetail">关闭</button></div></header>
+<p v-if="stageDetailCopyState" class="stage-detail-copy" role="status">{{stageDetailCopyState}}</p>
+<div class="stage-detail-grid">
+<div><span>状态</span><strong>{{label(selectedStage.status)}}</strong></div>
+<div><span>耗时</span><strong>{{selectedStage.duration_ms==null?"—":selectedStage.duration_ms+" ms"}}</strong></div>
+<div><span>开始</span><strong>{{dateLabel(selectedStage.started_at)}}</strong></div>
+<div><span>结束</span><strong>{{dateLabel(selectedStage.finished_at)}}</strong></div>
+</div>
+<div class="stage-detail-block"><span>说明</span><pre>{{selectedStage.message||"（无）"}}</pre></div>
+<div v-if="selectedStage.error" class="stage-detail-block"><span>错误</span><pre>{{selectedStage.error}}</pre></div>
+<div class="stage-detail-block"><span>详细信息</span><pre>{{formatStageDetail(selectedStage.detail)}}</pre></div>
+</dialog>
+<div v-if="detail" class="detail-page-actions">
   <RouterLink class="back-link" to="/admin/workflows"><AppIcon name="arrow-left" :size="16"/> 返回工作流记录</RouterLink>
   <div class="detail-action-group">
     <div v-if="detail.run.status === 'pending'" class="detail-confirm-anchor">

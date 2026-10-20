@@ -109,7 +109,10 @@ export interface WorkflowRun {
 export interface WorkflowStage {
   id: number; run_id: number; stage_key: string; name: string;
   status: "pending" | "running" | "succeeded" | "failed" | "skipped";
-  message: string; error: string; started_at: string | null; finished_at: string | null; duration_ms: number | null;
+  message: string; error: string;
+  /** JSON string with request/config/output diagnostics when available. */
+  detail?: string;
+  started_at: string | null; finished_at: string | null; duration_ms: number | null;
 }
 export interface WorkflowDetail { run: WorkflowRun; stages: WorkflowStage[]; }
 export interface PagedResult<T> {

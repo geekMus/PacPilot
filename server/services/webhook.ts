@@ -8,6 +8,9 @@ export interface WebhookDeliveryResult {
   success: boolean;
   status?: number;
   message: string;
+  provider?: string;
+  url?: string;
+  duration_ms?: number;
 }
 type EventKind = "success" | "failure" | "test";
 interface MessageContext {
@@ -241,16 +244,29 @@ export async function sendWebhookTest(config: WebhookConfig, timeZone = "Asia/Sh
   return sendWebhook(config, "test", undefined, timeZone);
 }
 
-async function notify(config: WebhookConfig, kind: "success" | "failure", message?: string, timeZone = "Asia/Shanghai"): Promise<void> {
-  if (!config.url.trim()) return;
+async function notify(
+  config: WebhookConfig,
+  kind: "success" | "failure",
+  message?: string,
+  timeZone = "Asia/Shanghai"
+): Promise<WebhookDeliveryResult | null> {
+  if (!config.url.trim()) return null;
+  const started = Date.now();
   const result = await sendWebhook(config, kind, message, timeZone);
-  if (!result.success) console.error("[webhook] " + config.provider + ": " + result.message);
-  else console.info("[webhook] " + config.provider + " delivered (HTTP " + result.status + ")");
+  const enriched: WebhookDeliveryResult = {
+    ...result,
+    provider: config.provider,
+    url: config.url.trim(),
+    duration_ms: Math.max(0, Date.now() - started),
+  };
+  if (!enriched.success) console.error("[webhook] " + config.provider + ": " + enriched.message);
+  else console.info("[webhook] " + config.provider + " delivered (HTTP " + enriched.status + ")");
+  return enriched;
 }
 
-export async function notifySuccess(settings: AppSettings): Promise<void> {
-  await notify(getNotificationConfig(settings, "success"), "success", undefined, settings.timezone);
+export async function notifySuccess(settings: AppSettings): Promise<WebhookDeliveryResult | null> {
+  return notify(getNotificationConfig(settings, "success"), "success", undefined, settings.timezone);
 }
-export async function notifyFailure(settings: AppSettings, message?: string): Promise<void> {
-  await notify(getNotificationConfig(settings, "failure"), "failure", message, settings.timezone);
+export async function notifyFailure(settings: AppSettings, message?: string): Promise<WebhookDeliveryResult | null> {
+  return notify(getNotificationConfig(settings, "failure"), "failure", message, settings.timezone);
 }

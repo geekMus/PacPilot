@@ -7,6 +7,7 @@ import {
   updateWorkflowRun,
   startWorkflowStage,
   finishWorkflowStage,
+  encodeWorkflowStageDetail,
 } from "../db/sqlite";
 import { generatePac, type GenerateResult } from "./pac-generator";
 
@@ -43,22 +44,59 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
   const startedAt = new Date();
   let activeStageId: number | null = null;
   try {
+    const settings = getSettings(database);
     updateWorkflowRun(database, id, {
       status: "running",
       stage: "生成 PAC",
       message: "正在读取配置并生成 PAC 文件",
       started_at: startedAt.toISOString(),
     });
-    const prepareStage = startWorkflowStage(database, id, "prepare", "准备工作流", "已读取当前配置并完成任务初始化");
+    const prepareDetail = encodeWorkflowStageDetail({
+      mode: settings.mode,
+      pac_proxy: settings.pacProxy,
+      list_url: settings.listUrl || null,
+      compressed: Boolean(settings.pacCompress),
+      timezone: settings.timezone,
+      cron_schedule: settings.cronSchedule || null,
+      block_list_count: settings.blockList.length,
+      direct_list_count: settings.directList.length,
+      webhook_success_configured: Boolean(settings.webhookSuccessConfig?.url?.trim()),
+      webhook_failure_configured: Boolean(settings.webhookFailureConfig?.url?.trim()),
+      data_dir: item.dataDir,
+    });
+    const prepareStage = startWorkflowStage(
+      database,
+      id,
+      "prepare",
+      "准备工作流",
+      "已读取当前配置并完成任务初始化",
+      prepareDetail
+    );
     activeStageId = prepareStage;
-    finishWorkflowStage(database, prepareStage, "succeeded", "工作流初始化成功");
+    finishWorkflowStage(database, prepareStage, "succeeded", "工作流初始化成功", "", prepareDetail);
     activeStageId = null;
 
-    const generationStage = startWorkflowStage(database, id, "generate-pac", "生成 PAC", "正在根据当前配置生成并写入 PAC 文件");
+    const generationStage = startWorkflowStage(
+      database,
+      id,
+      "generate-pac",
+      "生成 PAC",
+      settings.mode === "remote"
+        ? "正在下载远程规则列表并生成 PAC 文件"
+        : "正在根据自定义规则生成并写入 PAC 文件"
+    );
     activeStageId = generationStage;
     const generation = await generatePac(database, item.dataDir);
     const finishedAt = new Date();
-    finishWorkflowStage(database, generationStage, generation.success ? "succeeded" : "failed", generation.message, generation.success ? "" : generation.message);
+    const generationDetail = encodeWorkflowStageDetail(generation.detail || {});
+    finishWorkflowStage(
+      database,
+      generationStage,
+      generation.success ? "succeeded" : "failed",
+      generation.message,
+      generation.success ? "" : generation.message,
+      generationDetail
+    );
     activeStageId = null;
     updateWorkflowRun(database, id, {
       status: generation.success ? "succeeded" : "failed",
@@ -73,7 +111,16 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
     const finishedAt = new Date();
     const message = error instanceof Error ? error.message : String(error);
     try {
-      if (activeStageId !== null) finishWorkflowStage(database, activeStageId, "failed", "工作流阶段发生异常", message);
+      if (activeStageId !== null) {
+        finishWorkflowStage(
+          database,
+          activeStageId,
+          "failed",
+          "工作流阶段发生异常",
+          message,
+          encodeWorkflowStageDetail({ error: message })
+        );
+      }
       updateWorkflowRun(database, id, {
         status: "failed",
         stage: "执行异常",

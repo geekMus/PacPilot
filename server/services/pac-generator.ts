@@ -17,6 +17,8 @@ export interface GenerateResult {
   mode: string;
   message: string;
   pacPath: string;
+  /** Structured diagnostics for workflow stage detail panels. */
+  detail?: Record<string, unknown>;
 }
 
 export interface EngineProbe {
@@ -193,7 +195,7 @@ export async function probeGenpac(): Promise<EngineProbe> {
 async function runRemoteMode(
   settings: AppSettings,
   outFile: string
-): Promise<string> {
+): Promise<{ message: string; detail: Record<string, unknown> }> {
   if (!settings.listUrl) {
     throw new Error("远程列表模式需要配置列表 URL（listUrl）");
   }
@@ -210,14 +212,41 @@ async function runRemoteMode(
   const generatedAt = new Date();
   const source = withPacVersionHeader(pac, generatedAt);
   const output = settings.pacCompress ? withPacVersionHeader(await compressPac(pac), generatedAt) : source;
-  fs.writeFileSync(path.join(path.dirname(outFile), "proxy.source.pac"), source, "utf8");
+  const sourcePath = path.join(path.dirname(outFile), "proxy.source.pac");
+  fs.writeFileSync(sourcePath, source, "utf8");
   fs.writeFileSync(outFile, output, "utf8");
   const formatLabel = parsed.format === "gfwlist-base64"
     ? "GFWList（Base64）"
     : parsed.format === "abp"
       ? "AutoProxy / ABP"
       : "明文域名列表";
-  return `生成成功（远程规则：${formatLabel}，代理域名 ${parsed.proxyHosts.length} 条，例外直连 ${parsed.directHosts.length} 条）`;
+  const message = `生成成功（远程规则：${formatLabel}，代理域名 ${parsed.proxyHosts.length} 条，例外直连 ${parsed.directHosts.length} 条）`;
+  return {
+    message,
+    detail: {
+      mode: "remote",
+      pac_proxy: settings.pacProxy,
+      list_url: settings.listUrl,
+      compressed: Boolean(settings.pacCompress),
+      fetch: parsed.fetch || null,
+      parse: {
+        format: parsed.format,
+        format_label: formatLabel,
+        proxy_hosts: parsed.proxyHosts.length,
+        direct_hosts: parsed.directHosts.length,
+        raw_line_count: parsed.rawLineCount,
+        custom_block_list: settings.blockList.length,
+        custom_direct_list: settings.directList.length,
+      },
+      output: {
+        pac_path: outFile,
+        source_path: sourcePath,
+        pac_bytes: Buffer.byteLength(output, "utf8"),
+        source_bytes: Buffer.byteLength(source, "utf8"),
+        generated_at: generatedAt.toISOString(),
+      },
+    },
+  };
 }
 
 export async function generatePac(
@@ -233,8 +262,11 @@ export async function generatePac(
     if (proxyError) throw new Error(proxyError);
 
     let message: string;
+    let detail: Record<string, unknown>;
     if (settings.mode === "remote") {
-      message = await runRemoteMode(settings, pacPath);
+      const remote = await runRemoteMode(settings, pacPath);
+      message = remote.message;
+      detail = remote.detail;
     } else {
       const customPac = buildCustomPac(settings);
       const generatedAt = new Date();
@@ -242,21 +274,56 @@ export async function generatePac(
       const output = settings.pacCompress
         ? withPacVersionHeader(await compressPac(customPac), generatedAt)
         : source;
-      fs.writeFileSync(path.join(dataDir, "proxy.source.pac"), source, "utf8");
+      const sourcePath = path.join(dataDir, "proxy.source.pac");
+      fs.writeFileSync(sourcePath, source, "utf8");
       fs.writeFileSync(pacPath, output, "utf8");
       message = "生成成功（自定义规则模式" + (settings.pacCompress ? "，已压缩" : "，未压缩") + "）";
+      detail = {
+        mode: "custom",
+        pac_proxy: settings.pacProxy,
+        compressed: Boolean(settings.pacCompress),
+        parse: {
+          custom_block_list: settings.blockList.length,
+          custom_direct_list: settings.directList.length,
+        },
+        output: {
+          pac_path: pacPath,
+          source_path: sourcePath,
+          pac_bytes: Buffer.byteLength(output, "utf8"),
+          source_bytes: Buffer.byteLength(source, "utf8"),
+          generated_at: generatedAt.toISOString(),
+        },
+      };
     }
 
     appendGenerationLog(database, true, settings.mode, message);
-    await notifySuccess(settings);
+    const webhook = await notifySuccess(settings);
+    if (webhook) detail = { ...detail, webhook };
     console.log(`[PAC] ${message}，文件：${pacPath}`);
-    return { success: true, mode: settings.mode, message, pacPath };
+    return { success: true, mode: settings.mode, message, pacPath, detail };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
+    const fetchMeta =
+      err && typeof err === "object" && "fetchMeta" in err
+        ? (err as { fetchMeta?: unknown }).fetchMeta
+        : undefined;
     appendGenerationLog(database, false, settings.mode, message);
-    await notifyFailure(settings, message);
+    const webhook = await notifyFailure(settings, message);
     console.error(`[PAC] 生成失败：${message}`);
-    return { success: false, mode: settings.mode, message, pacPath };
+    return {
+      success: false,
+      mode: settings.mode,
+      message,
+      pacPath,
+      detail: {
+        mode: settings.mode,
+        list_url: settings.listUrl || null,
+        pac_proxy: settings.pacProxy,
+        error: message,
+        fetch: fetchMeta || null,
+        webhook: webhook || null,
+      },
+    };
   }
 }
 
