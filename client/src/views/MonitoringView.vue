@@ -124,11 +124,11 @@ async function copyAccessDetail(): Promise<void> {
     `响应 Content-Type：${event.response_content_type || "（无）"}`,
     `来源地址：${event.source_ip || "unknown"}`,
     `Host：${event.host || "（无）"}`,
+    `客户端（User-Agent）：${event.user_agent || "（无）"}`,
     `Referer：${event.referer || "（无）"}`,
     `Accept：${event.accept || "（无）"}`,
     `Accept-Language：${event.accept_language || "（无）"}`,
     `请求 Content-Type：${event.content_type || "（无）"}`,
-    `User-Agent：${event.user_agent || "（无）"}`,
     "",
     "请求头：",
     formatAccessHeaders(event.request_headers),
@@ -709,6 +709,10 @@ onUnmounted(() => {
           <div><span>Host</span><strong><code>{{ selectedAccess.host || "—" }}</code></strong></div>
         </div>
         <div class="access-detail-block">
+          <span>客户端（User-Agent）</span>
+          <pre>{{ selectedAccess.user_agent || "（无）" }}</pre>
+        </div>
+        <div class="access-detail-block">
           <span>请求路径</span>
           <pre>{{ selectedAccess.path }}</pre>
         </div>
@@ -732,10 +736,6 @@ onUnmounted(() => {
         <div class="access-detail-block">
           <span>响应 Content-Type</span>
           <pre>{{ selectedAccess.response_content_type || "（无）" }}</pre>
-        </div>
-        <div class="access-detail-block">
-          <span>User-Agent</span>
-          <pre>{{ selectedAccess.user_agent || "（无）" }}</pre>
         </div>
         <div class="access-detail-block">
           <span>请求头</span>
