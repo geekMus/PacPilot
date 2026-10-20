@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import {
+const { t } = useI18n();
   api,
   type AccessEvent,
   type AdminSession,
@@ -115,11 +117,11 @@ function handleAccessDetailBackdrop(event: MouseEvent): void {
   if (event.target === accessDetailDialog.value) closeAccessDetail();
 }
 function formatAccessHeaders(raw: string | undefined): string {
-  if (!raw) return "（无记录）";
+  if (!raw) return t("monitor.k0");
   try {
     const parsed = JSON.parse(raw) as Record<string, string>;
     const keys = Object.keys(parsed).sort();
-    if (!keys.length) return "（无请求头）";
+    if (!keys.length) return t("monitor.k1");
     return keys.map((key) => `${key}: ${parsed[key]}`).join("\n");
   } catch {
     return raw;
@@ -129,31 +131,31 @@ async function copyAccessDetail(): Promise<void> {
   const event = selectedAccess.value;
   if (!event) return;
   const lines = [
-    `时间：${formatDate(event.created_at)}`,
-    `方法：${event.method}`,
-    `路径：${event.path}`,
-    `查询参数：${event.query_string || "（无）"}`,
-    `类型：${categoryLabel(event.category)}`,
-    `状态：${event.status_code} ${statusLabel(event.status_code)}`,
-    `耗时：${formatDuration(event.duration_ms)}`,
-    `响应大小：${formatBytes(event.response_bytes)}`,
-    `响应 Content-Type：${event.response_content_type || "（无）"}`,
-    `来源地址：${event.source_ip || "unknown"}`,
-    `Host：${event.host || "（无）"}`,
-    `客户端（User-Agent）：${event.user_agent || "（无）"}`,
-    `Referer：${event.referer || "（无）"}`,
-    `Accept：${event.accept || "（无）"}`,
-    `Accept-Language：${event.accept_language || "（无）"}`,
-    `请求 Content-Type：${event.content_type || "（无）"}`,
+    `{{ t("monitor.k127") }}：${formatDate(event.created_at)}`,
+    `{{ t("monitor.k137") }}：${event.method}`,
+    t("monitor.pathPrefix", { path: event.path }),
+    `{{ t("monitor.k139") }}：${event.query_string || t("monitor.k2")}`,
+    `{{ t("monitor.k129") }}：${categoryLabel(event.category)}`,
+    `{{ t("monitor.k131") }}：${event.status_code} ${statusLabel(event.status_code)}`,
+    `{{ t("monitor.k132") }}：${formatDuration(event.duration_ms)}`,
+    `{{ t("monitor.k133") }}：${formatBytes(event.response_bytes)}`,
+    `{{ t("monitor.k141") }}：${event.response_content_type || t("monitor.k2")}`,
+    `{{ t("monitor.k128") }}：${event.source_ip || "unknown"}`,
+    `Host：${event.host || t("monitor.k2")}`,
+    `{{ t("monitor.k138") }}：${event.user_agent || t("monitor.k2")}`,
+    `Referer：${event.referer || t("monitor.k2")}`,
+    `Accept：${event.accept || t("monitor.k2")}`,
+    `Accept-Language：${event.accept_language || t("monitor.k2")}`,
+    `{{ t("monitor.k140") }}：${event.content_type || t("monitor.k2")}`,
     "",
-    "请求头：",
+    t("monitor.k3"),
     formatAccessHeaders(event.request_headers),
   ];
   try {
     await navigator.clipboard.writeText(lines.join("\n"));
-    accessDetailCopyState.value = "已复制到剪贴板";
+    accessDetailCopyState.value = t("monitor.k4");
   } catch {
-    accessDetailCopyState.value = "当前环境无法自动复制，请选中文本后手动复制。";
+    accessDetailCopyState.value = t("monitor.k5");
   }
 }
 
@@ -313,8 +315,8 @@ async function saveProxyTestTarget(): Promise<void> {
     proxyTestUrl.value = result.url;
     savedProxyTestUrl.value = result.url;
     proxyTestTargetMessageOk.value = true;
-    proxyTestTargetMessage.value = "测试地址已保存，之后的代理检测都会使用此地址。";
-    notify("测试地址保存成功", "success");
+    proxyTestTargetMessage.value = t("monitor.k6");
+    notify(t("monitor.k7"), "success");
   } catch (caught) {
     proxyTestTargetMessageOk.value = false;
     proxyTestTargetMessage.value = caught instanceof Error ? caught.message : String(caught);
@@ -331,7 +333,7 @@ async function runProxyTest(): Promise<void> {
   latestProbe.value = null;
   try {
     latestProbe.value = await api.testProxies();
-    notify("代理连通性测试已完成", "success");
+    notify(t("monitor.k8"), "success");
     await loadProbeHistory();
     await refreshDashboard(true);
   } catch (caught) {
@@ -377,20 +379,20 @@ function formatBytes(value: number | null | undefined): string {
 
 function categoryLabel(category: string): string {
   const labels: Record<string, string> = {
-    page: "网页",
-    pac: "PAC 文件",
-    "public-api": "公开 API",
-    "admin-api": "管理 API",
+    page: t("monitor.k9"),
+    pac: t("monitor.k10"),
+    "public-api": t("monitor.k11"),
+    "admin-api": t("monitor.k12"),
   };
   return labels[category] || category;
 }
 
 function statusLabel(code: number): string {
-  if (code === 304) return "缓存未修改";
-  if (code >= 500) return "服务端错误";
-  if (code >= 400) return "客户端错误";
-  if (code >= 300) return "重定向";
-  return "成功";
+  if (code === 304) return t("monitor.k13");
+  if (code >= 500) return t("monitor.k14");
+  if (code >= 400) return t("monitor.k15");
+  if (code >= 300) return t("monitor.k16");
+  return t("monitor.k17");
 }
 
 function statusTone(code: number): string {
@@ -401,12 +403,12 @@ function statusTone(code: number): string {
 
 function probePhaseLabel(phase: string): string {
   const labels: Record<string, string> = {
-    TCP: "TCP 连接",
-    PROXY_TLS: "代理 TLS 握手",
-    PROXY_HANDSHAKE: "代理协议握手",
-    TARGET_TLS: "目标 TLS 握手",
-    TARGET_HTTP: "目标 HTTP 请求",
-    complete: "完成",
+    TCP: t("monitor.k18"),
+    PROXY_TLS: t("monitor.k19"),
+    PROXY_HANDSHAKE: t("monitor.k20"),
+    TARGET_TLS: t("monitor.k21"),
+    TARGET_HTTP: t("monitor.k22"),
+    complete: t("monitor.k23"),
   };
   return labels[phase] || phase;
 }
@@ -445,20 +447,20 @@ onUnmounted(() => {
 <template>
   <AdminLayout
     active="monitor"
-    title="网络监控"
-    subtitle="查看访问趋势、请求记录，并手动检测 PAC 代理节点。"
+    title=t("monitor.k24")
+    subtitle=t("monitor.k25")
   >
     <template #actions>
       <span v-if="lastUpdated" class="monitor-top-updated">
         <span class="live-dot" :class="{ busy: refreshing }"></span>
-        更新于 {{ formatDate(lastUpdated) }}
+        {{ t("monitor.updatedAt", { time: formatDate(lastUpdated) }) }}
       </span>
       <button
         class="monitor-button secondary"
         :class="{ 'is-loading': refreshing }"
         type="button"
         :disabled="refreshing"
-        :title="refreshing ? '正在刷新监控数据，请稍候' : '刷新监控数据'"
+        :title=t("monitor.k26")
         @click="refreshDashboard()"
       >
         <AppIcon
@@ -466,61 +468,59 @@ onUnmounted(() => {
           :class="{ 'icon-spinning': refreshing }"
           :size="15"
         />
-        {{ refreshing ? "刷新中…" : "刷新数据" }}
+        {{ refreshing ? t("monitor.k27") : t("monitor.k28") }}
       </button>
     </template>
 
     <div class="monitor-page">
       <div class="monitor-page-note">
-        自动刷新间隔为 15 秒。请求统计仅包含 genpac-runner
-        自身接收的流量，不代表代理服务器的实际转发流量。
+        {{ t("monitor.k61") }}
       </div>
 
       <section v-if="authChecking || loading" class="monitor-state" aria-live="polite">
         <span class="monitor-spinner"></span>
         <div>
-          <strong>正在读取监控数据</strong>
-          <p>正在加载访问统计与代理检测历史。</p>
+          <strong>{{ t("monitor.k62") }}</strong>
+          <p>{{ t("monitor.k63") }}</p>
         </div>
       </section>
 
       <section v-else-if="error && !summary" class="monitor-state is-error" role="alert">
         <div>
-          <strong>无法读取监控数据</strong>
+          <strong>{{ t("monitor.k64") }}</strong>
           <p>{{ error }}</p>
         </div>
         <button class="monitor-button secondary" type="button" @click="refreshDashboard()">
-          重试
+          {{ t("monitor.k65") }}
         </button>
       </section>
 
       <template v-else>
         <div v-if="error" class="monitor-alert is-error" role="alert">{{ error }}</div>
         <div v-if="refreshError" class="monitor-alert is-warning" role="status">
-          后台自动刷新失败：{{ refreshError }}
+          {{ t("monitor.autoRefreshError", { error: refreshError }) }}
         </div>
 
         <section class="monitor-panel pac-overview-panel" aria-labelledby="pac-overview-title">
           <div class="panel-heading">
             <div>
-              <h2 id="pac-overview-title"><AppIcon name="route" :size="17" />PAC 文件服务</h2>
+              <h2 id="pac-overview-title"><AppIcon name="route" :size="17" />{{ t("monitor.k66") }}</h2>
               <p>
-                仅统计对 <code>/proxy.pac</code> 的请求；成功率将 HTTP 2xx 和 3xx（包括 304
-                缓存未修改）视为成功。
+                {{ t("monitor.k67") }} <code>/proxy.pac</code> {{ t("monitor.k68") }}
               </p>
             </div>
-            <span class="panel-count">近 24 小时</span>
+            <span class="panel-count">{{ t("monitor.k69") }}</span>
           </div>
 
           <div class="pac-metric-grid">
             <article class="metric-card pac-metric-primary">
-              <span class="metric-label"><AppIcon name="route" :size="15" />PAC 请求次数</span>
+              <span class="metric-label"><AppIcon name="route" :size="15" />{{ t("monitor.k70") }}</span>
               <strong class="metric-value">{{ summary?.pacRequestsLast24h ?? 0 }}</strong>
-              <span class="metric-note">近 1 小时 {{ summary?.pacRequestsLastHour ?? 0 }} 次</span>
+              <span class="metric-note">{{ t("monitor.lastHourCount", { n: summary?.pacRequestsLastHour ?? 0 }) }}</span>
             </article>
             <article class="metric-card">
               <span class="metric-label"
-                ><AppIcon name="circle-check" :size="15" />PAC 请求成功率</span
+                ><AppIcon name="circle-check" :size="15" />{{ t("monitor.k71") }}</span
               >
               <strong
                 class="metric-value"
@@ -532,33 +532,33 @@ onUnmounted(() => {
                     : "—"
                 }}
               </strong>
-              <span class="metric-note">HTTP 2xx / 3xx 视为成功</span>
+              <span class="metric-note">{{ t("monitor.k72") }}</span>
             </article>
             <article class="metric-card">
               <span class="metric-label"
-                ><AppIcon name="circle-alert" :size="15" />PAC 请求失败</span
+                ><AppIcon name="circle-alert" :size="15" />{{ t("monitor.k73") }}</span
               >
               <strong
                 class="metric-value"
                 :class="(summary?.pacFailureRequestsLast24h ?? 0) > 0 ? 'value-warn' : ''"
                 >{{ summary?.pacFailureRequestsLast24h ?? 0 }}</strong
               >
-              <span class="metric-note">近 24 小时 HTTP 4xx / 5xx</span>
+              <span class="metric-note">{{ t("monitor.k74") }}</span>
             </article>
             <article class="metric-card">
-              <span class="metric-label"><AppIcon name="timer" :size="15" />PAC 平均响应时间</span>
+              <span class="metric-label"><AppIcon name="timer" :size="15" />{{ t("monitor.k75") }}</span>
               <strong class="metric-value">{{
                 (summary?.pacRequestsLast24h ?? 0) > 0
                   ? formatDuration(summary?.pacAverageResponseMs)
                   : "—"
               }}</strong>
-              <span class="metric-note">近 24 小时已记录请求</span>
+              <span class="metric-note">{{ t("monitor.k76") }}</span>
             </article>
           </div>
 
           <div class="pac-latest">
             <div class="pac-latest-heading">
-              <strong><AppIcon name="clock" :size="15" />最近一次 PAC 请求</strong>
+              <strong><AppIcon name="clock" :size="15" />{{ t("monitor.k77") }}</strong>
               <span
                 v-if="latestPacRequest"
                 class="status-pill"
@@ -579,21 +579,21 @@ onUnmounted(() => {
             </div>
             <div v-if="latestPacRequest" class="pac-latest-grid">
               <div>
-                <span>请求时间</span><strong>{{ formatDate(latestPacRequest.created_at) }}</strong>
+                <span>{{ t("monitor.k78") }}</span><strong>{{ formatDate(latestPacRequest.created_at) }}</strong>
               </div>
               <div>
-                <span>来源 IP</span
+                <span>{{ t("monitor.k79") }}</span
                 ><strong
                   ><code>{{ latestPacRequest.source_ip || "unknown" }}</code></strong
                 >
               </div>
               <div>
-                <span>响应耗时</span
+                <span>{{ t("monitor.k80") }}</span
                 ><strong>{{ formatDuration(latestPacRequest.duration_ms) }}</strong>
               </div>
             </div>
             <div v-else class="pac-no-latest">
-              尚无 PAC 文件请求记录。首次访问 <code>/proxy.pac</code> 后，这里会显示最新请求。
+              {{ t("monitor.k81") }} <code>/proxy.pac</code> {{ t("monitor.k82") }}
             </div>
           </div>
         </section>
@@ -601,16 +601,13 @@ onUnmounted(() => {
         <section class="monitor-panel pac-trend-panel">
           <div class="panel-heading">
             <div>
-              <h2><AppIcon name="chart" :size="17" />PAC 请求趋势</h2>
+              <h2><AppIcon name="chart" :size="17" />{{ t("monitor.k83") }}</h2>
               <p>
-                按小时统计近 24 小时的 PAC
-                文件请求（柱形为总量，叠色为失败）；下方折线图展示每小时平均响应耗时。
+                {{ t("monitor.k84") }}
               </p>
             </div>
             <span class="panel-count"
-              >峰值
-              {{ Math.max(0, ...(summary?.pacRequestTrend ?? []).map((item) => item.requests)) }}
-              次/小时</span
+              >{{ t("monitor.peakPerHour", { n: Math.max(0, ...(summary?.pacRequestTrend ?? []).map((item) => item.requests)) }) }}</span
             >
           </div>
           <ResponsiveTrendChart
@@ -618,62 +615,62 @@ onUnmounted(() => {
             mode="count"
             :points="summary!.pacRequestTrend"
             :time-zone="timeZone"
-            aria-label="最近 24 小时 PAC 文件请求量和失败请求量"
+            aria-label=t("monitor.k29")
           />
-          <div v-else class="monitor-empty">近 24 小时暂无 PAC 请求记录。</div>
+          <div v-else class="monitor-empty">{{ t("monitor.k85") }}</div>
           <div class="trend-legend">
-            <span><i class="legend-swatch request-swatch"></i>PAC 请求</span>
-            <span><i class="legend-swatch error-swatch"></i>失败请求（包含在请求总量中）</span>
+            <span><i class="legend-swatch request-swatch"></i>{{ t("monitor.k86") }}</span>
+            <span><i class="legend-swatch error-swatch"></i>{{ t("monitor.k87") }}</span>
           </div>
           <div class="pac-latency-heading">
-            <strong><AppIcon name="timer" :size="15" />每小时平均响应耗时</strong>
-            <span>单位：毫秒 · 近 24 小时</span>
+            <strong><AppIcon name="timer" :size="15" />{{ t("monitor.k88") }}</strong>
+            <span>{{ t("monitor.k89") }}</span>
           </div>
           <ResponsiveTrendChart
             v-if="(summary?.pacRequestsLast24h ?? 0) > 0 && summary?.pacRequestTrend?.length"
             mode="latency"
             :points="summary!.pacRequestTrend"
             :time-zone="timeZone"
-            aria-label="最近 24 小时 PAC 文件每小时平均响应耗时"
+            aria-label=t("monitor.k30")
           />
           <div v-else class="pac-no-latest">
-            暂无足够的 PAC 请求数据，后续会逐步形成响应耗时趋势。
+            {{ t("monitor.k90") }}
           </div>
         </section>
 
         <div class="overall-stats-heading">
-          <h2><AppIcon name="activity" :size="17" />服务整体统计</h2>
-          <p>以下数据包含网页、PAC 文件和 API 请求，用于辅助排查整个管理服务的运行状态。</p>
+          <h2><AppIcon name="activity" :size="17" />{{ t("monitor.k31") }}</h2>
+          <p>{{ t("monitor.k91") }}</p>
         </div>
-        <section class="metric-grid" aria-label="服务整体统计">
+        <section class="metric-grid" aria-label=t("monitor.k31")>
           <article class="metric-card">
-            <span class="metric-label"><AppIcon name="activity" :size="15" />活动 HTTP 请求</span>
+            <span class="metric-label"><AppIcon name="activity" :size="15" />{{ t("monitor.k92") }}</span>
             <strong class="metric-value">{{ summary?.activeRequests ?? 0 }}</strong>
-            <span class="metric-note">当前正在处理的请求</span>
+            <span class="metric-note">{{ t("monitor.k93") }}</span>
           </article>
           <article class="metric-card">
-            <span class="metric-label"><AppIcon name="network" :size="15" />应用端 TCP 连接</span>
+            <span class="metric-label"><AppIcon name="network" :size="15" />{{ t("monitor.k94") }}</span>
             <strong class="metric-value">{{ summary?.tcpConnections ?? 0 }}</strong>
-            <span class="metric-note">包含 Keep-Alive 或反代连接</span>
+            <span class="metric-note">{{ t("monitor.k95") }}</span>
           </article>
           <article class="metric-card">
-            <span class="metric-label"><AppIcon name="clock" :size="15" />近 1 小时请求</span>
+            <span class="metric-label"><AppIcon name="clock" :size="15" />{{ t("monitor.k96") }}</span>
             <strong class="metric-value">{{ summary?.requestsLastHour ?? 0 }}</strong>
-            <span class="metric-note">网页、PAC 与 API 请求</span>
+            <span class="metric-note">{{ t("monitor.k97") }}</span>
           </article>
           <article class="metric-card">
-            <span class="metric-label"><AppIcon name="globe" :size="15" />近 24 小时来源地址</span>
+            <span class="metric-label"><AppIcon name="globe" :size="15" />{{ t("monitor.k98") }}</span>
             <strong class="metric-value">{{ summary?.uniqueSourcesLast24h ?? 0 }}</strong>
-            <span class="metric-note">按连接对端地址去重</span>
+            <span class="metric-note">{{ t("monitor.k99") }}</span>
           </article>
           <article class="metric-card">
-            <span class="metric-label"><AppIcon name="chart" :size="15" />近 24 小时请求量</span>
+            <span class="metric-label"><AppIcon name="chart" :size="15" />{{ t("monitor.k100") }}</span>
             <strong class="metric-value">{{ summary?.requestsLast24h ?? 0 }}</strong>
-            <span class="metric-note">不含监控轮询和静态资源</span>
+            <span class="metric-note">{{ t("monitor.k101") }}</span>
           </article>
           <article class="metric-card">
             <span class="metric-label"
-              ><AppIcon name="circle-alert" :size="15" />近 24 小时错误率</span
+              ><AppIcon name="circle-alert" :size="15" />{{ t("monitor.k102") }}</span
             >
             <strong
               class="metric-value"
@@ -686,30 +683,27 @@ onUnmounted(() => {
             >
           </article>
           <article class="metric-card">
-            <span class="metric-label"><AppIcon name="timer" :size="15" />平均响应时间</span>
+            <span class="metric-label"><AppIcon name="timer" :size="15" />{{ t("monitor.k103") }}</span>
             <strong class="metric-value">{{ formatDuration(summary?.averageResponseMs) }}</strong>
-            <span class="metric-note">近 24 小时已记录请求</span>
+            <span class="metric-note">{{ t("monitor.k76") }}</span>
           </article>
           <article class="metric-card">
-            <span class="metric-label"><AppIcon name="gauge" :size="15" />P95 响应时间</span>
+            <span class="metric-label"><AppIcon name="gauge" :size="15" />{{ t("monitor.k104") }}</span>
             <strong class="metric-value">{{ formatDuration(summary?.p95ResponseMs) }}</strong>
-            <span class="metric-note">近 24 小时样本的第 95 百分位</span>
+            <span class="metric-note">{{ t("monitor.k105") }}</span>
           </article>
         </section>
 
         <section class="monitor-panel trend-panel">
           <div class="panel-heading">
             <div>
-              <h2><AppIcon name="chart" :size="17" />最近 24 小时请求趋势</h2>
+              <h2><AppIcon name="chart" :size="17" />{{ t("monitor.k106") }}</h2>
               <p>
-                按小时汇总网页、PAC 与 API 请求；柱形为请求量，叠色为错误请求（HTTP
-                4xx/5xx）。当前小时尚未结束，计数可能继续增长。
+                {{ t("monitor.k107") }}
               </p>
             </div>
             <span class="panel-count"
-              >峰值
-              {{ Math.max(0, ...(summary?.requestTrend ?? []).map((item) => item.requests)) }}
-              次/小时</span
+              >{{ t("monitor.peakPerHour", { n: Math.max(0, ...(summary?.requestTrend ?? []).map((item) => item.requests)) }) }}</span
             >
           </div>
           <ResponsiveTrendChart
@@ -717,68 +711,66 @@ onUnmounted(() => {
             mode="count"
             :points="summary.requestTrend"
             :time-zone="timeZone"
-            aria-label="最近 24 小时按小时统计的请求量和错误请求量"
+            aria-label=t("monitor.k32")
           />
           <div v-else class="monitor-empty">
-            暂无足够的请求记录；后续会逐步形成按小时统计的趋势。
+            {{ t("monitor.k108") }}
           </div>
           <div class="trend-legend">
-            <span><i class="legend-swatch request-swatch"></i>请求</span>
-            <span><i class="legend-swatch error-swatch"></i>错误请求（包含在请求总量中）</span>
-            <span class="trend-sample-note">响应时间的 P95 最多基于最近 5,000 条请求计算。</span>
+            <span><i class="legend-swatch request-swatch"></i>{{ t("monitor.k109") }}</span>
+            <span><i class="legend-swatch error-swatch"></i>{{ t("monitor.k110") }}</span>
+            <span class="trend-sample-note">{{ t("monitor.k111") }}</span>
           </div>
         </section>
 
         <section class="monitor-panel">
           <div class="panel-heading">
             <div>
-              <h2><AppIcon name="list-checks" :size="17" />最近访问记录</h2>
-              <p>每批加载 50 条请求；查询参数、Cookie 和请求正文不会被保存。</p>
+              <h2><AppIcon name="list-checks" :size="17" />{{ t("monitor.k112") }}</h2>
+              <p>{{ t("monitor.k113") }}</p>
             </div>
             <div class="panel-actions">
               <span class="panel-count"
-                >匹配 {{ filteredAccesses.length }} / {{ accesses.length }} 条</span
+                >{{ t("monitor.matchCount", { filtered: filteredAccesses.length, total: accesses.length }) }}</span
               >
             </div>
           </div>
 
           <div class="monitor-notice">
-            <strong>来源地址说明：</strong>始终显示完整 TCP 连接对端 IP。若使用 Cloudflare
-            Tunnel、Lucky、Nginx
-            等反向代理，这里可能显示代理节点地址；为避免伪造，不会盲目信任转发头。
+            <strong>{{ t("monitor.k114") }}</strong>{{ t("monitor.k115") }}
           </div>
 
-          <div class="access-filters" aria-label="访问记录筛选">
+          <div class="access-filters" aria-label=t("monitor.k33")>
             <label class="access-filter search-filter">
-              <span>搜索</span>
+              <span>{{ t("monitor.k116") }}</span>
               <input
                 v-model="accessKeyword"
                 type="search"
-                placeholder="搜索 IP、请求路径、客户端…"
+                placeholder=t("monitor.k34")
                 autocomplete="off"
               />
             </label>
             <label class="access-filter">
-              <span>请求类型</span>
+              <span>{{ t("monitor.k117") }}</span>
               <SelectField block
                 ><select v-model="accessCategory">
-                  <option value="all">全部类型</option>
-                  <option value="pac">PAC 文件</option>
-                  <option value="page">网页</option>
-                  <option value="public-api">公开 API</option>
-                  <option value="admin-api">管理 API</option>
+                  <option value="all">{{ t("monitor.k118") }}</option>
+                  <option value="pac">{{ t("monitor.k10") }}</option>
+                  <option value="page">{{ t("monitor.k9") }}</option>
+                  <option value="public-api">{{ t("monitor.k11") }}</option>
+                  <option value="admin-api">{{ t("monitor.k12") }}</option>
                 </select></SelectField
               >
             </label>
             <label class="access-filter">
-              <span>HTTP 状态</span>
+              <span>{{ t("monitor.k119") }}</span>
               <SelectField block
                 ><select v-model="accessStatus">
-                  <option value="all">全部状态</option>
-                  <option value="success">成功（2xx）</option>
-                  <option value="redirect">3xx（重定向 / 缓存）</option>
-                  <option value="client-error">客户端错误（4xx）</option>
-                  <option value="server-error">服务端错误（5xx）</option>
+                  <option value="all">{{ t("monitor.k120") }}</option>
+                  <option value="success">{{ t("monitor.k121") }}</option>
+                  <option value="redirect">{{ t("monitor.k122") }}</option>
+                  <option value="client-error">{{ t("monitor.k123") }}</option>
+                  <option value="server-error">{{ t("monitor.k124") }}</option>
                 </select></SelectField
               >
             </label>
@@ -786,8 +778,8 @@ onUnmounted(() => {
               class="access-reset-wrap"
               :title="
                 hasAccessFilters
-                  ? '清除当前搜索关键词、请求类型和 HTTP 状态筛选'
-                  : '当前没有启用任何筛选条件，无需清除'
+                  ? t("monitor.k35")
+                  : t("monitor.k36")
               "
             >
               <button
@@ -796,13 +788,13 @@ onUnmounted(() => {
                 :disabled="!hasAccessFilters"
                 @click="resetAccessFilters"
               >
-                <AppIcon name="x" :size="14" />清除筛选
+                <AppIcon name="x" :size="14" />{{ t("monitor.k125") }}
               </button>
             </div>
           </div>
 
           <div v-if="accesses.length === 0" class="monitor-empty">
-            暂无访问记录。页面访问、PAC 文件请求和相关 API 请求会在本版本启用后开始记录。
+            {{ t("monitor.k126") }}
           </div>
           <VirtualTable
             v-else
@@ -816,7 +808,7 @@ onUnmounted(() => {
             :has-more="accessHasMore"
             :loading="accessLoadingMore"
             :error="accessLoadError"
-            :empty-text="hasAccessFilters ? '当前已加载记录没有匹配项' : '暂无访问记录'"
+            :empty-text=t("monitor.k37")
             :load-more="loadMoreAccesses"
           >
             <template #columns>
@@ -831,18 +823,18 @@ onUnmounted(() => {
             </template>
             <template #header>
               <tr>
-                <th>时间</th>
-                <th>来源地址</th>
-                <th>类型</th>
-                <th>请求路径</th>
-                <th>状态</th>
-                <th>耗时</th>
-                <th>响应大小</th>
-                <th>客户端</th>
+                <th>{{ t("monitor.k127") }}</th>
+                <th>{{ t("monitor.k128") }}</th>
+                <th>{{ t("monitor.k129") }}</th>
+                <th>{{ t("monitor.k130") }}</th>
+                <th>{{ t("monitor.k131") }}</th>
+                <th>{{ t("monitor.k132") }}</th>
+                <th>{{ t("monitor.k133") }}</th>
+                <th>{{ t("monitor.k134") }}</th>
               </tr>
             </template>
             <template #row="{ item: event }">
-              <tr class="access-row" title="点击查看请求详情" @click="openAccessDetail(event)">
+              <tr class="access-row" title=t("monitor.k38") @click="openAccessDetail(event)">
                 <td class="nowrap">{{ formatDate(event.created_at) }}</td>
                 <td>
                   <code>{{ event.source_ip || "unknown" }}</code>
@@ -877,9 +869,7 @@ onUnmounted(() => {
             </template>
           </VirtualTable>
           <p class="panel-footnote">
-            已加载 {{ accesses.length }} /
-            {{ accessTotal }} 条；筛选只作用于已加载记录。访问日志最多保留 7 天且上限为 5,000
-            条。点击行可查看完整请求头等信息。
+            {{ t("monitor.accessLoadedHint", { loaded: accesses.length, total: accessTotal }) }}
           </p>
         </section>
 
@@ -887,23 +877,23 @@ onUnmounted(() => {
           v-if="selectedAccess"
           ref="accessDetailDialog"
           class="access-detail-dialog"
-          aria-label="访问请求详情"
+          aria-label=t("monitor.k39")
           @click="handleAccessDetailBackdrop"
           @close="onAccessDetailClose"
         >
           <header class="access-detail-header">
             <div>
               <p class="access-detail-kicker">ACCESS LOG #{{ selectedAccess.id }}</p>
-              <h2>请求详情</h2>
+              <h2>{{ t("monitor.k135") }}</h2>
             </div>
             <div class="access-detail-actions">
               <button class="monitor-button secondary" type="button" @click="copyAccessDetail">
-                <AppIcon name="copy" :size="14" />复制
+                <AppIcon name="copy" :size="14" />{{ t("monitor.k136") }}
               </button>
               <button
                 class="monitor-button secondary"
                 type="button"
-                aria-label="关闭"
+                aria-label=t("monitor.k40")
                 @click="closeAccessDetail"
               >
                 <AppIcon name="x" :size="14" />
@@ -915,32 +905,32 @@ onUnmounted(() => {
           </p>
           <div class="access-detail-grid">
             <div>
-              <span>时间</span><strong>{{ formatDate(selectedAccess.created_at) }}</strong>
+              <span>{{ t("monitor.k127") }}</span><strong>{{ formatDate(selectedAccess.created_at) }}</strong>
             </div>
             <div>
-              <span>方法</span
+              <span>{{ t("monitor.k137") }}</span
               ><strong
                 ><code>{{ selectedAccess.method }}</code></strong
               >
             </div>
             <div>
-              <span>类型</span><strong>{{ categoryLabel(selectedAccess.category) }}</strong>
+              <span>{{ t("monitor.k129") }}</span><strong>{{ categoryLabel(selectedAccess.category) }}</strong>
             </div>
             <div>
-              <span>状态</span
+              <span>{{ t("monitor.k131") }}</span
               ><strong
                 >{{ selectedAccess.status_code }}
                 {{ statusLabel(selectedAccess.status_code) }}</strong
               >
             </div>
             <div>
-              <span>耗时</span><strong>{{ formatDuration(selectedAccess.duration_ms) }}</strong>
+              <span>{{ t("monitor.k132") }}</span><strong>{{ formatDuration(selectedAccess.duration_ms) }}</strong>
             </div>
             <div>
-              <span>响应大小</span><strong>{{ formatBytes(selectedAccess.response_bytes) }}</strong>
+              <span>{{ t("monitor.k133") }}</span><strong>{{ formatBytes(selectedAccess.response_bytes) }}</strong>
             </div>
             <div>
-              <span>来源地址</span
+              <span>{{ t("monitor.k128") }}</span
               ><strong
                 ><code>{{ selectedAccess.source_ip || "unknown" }}</code></strong
               >
@@ -953,38 +943,38 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="access-detail-block">
-            <span>客户端（User-Agent）</span>
-            <pre>{{ selectedAccess.user_agent || "（无）" }}</pre>
+            <span>{{ t("monitor.k138") }}</span>
+            <pre>{{ selectedAccess.user_agent || t("monitor.k2") }}</pre>
           </div>
           <div class="access-detail-block">
-            <span>请求路径</span>
+            <span>{{ t("monitor.k130") }}</span>
             <pre>{{ selectedAccess.path }}</pre>
           </div>
           <div class="access-detail-block">
-            <span>查询参数</span>
-            <pre>{{ selectedAccess.query_string || "（无）" }}</pre>
+            <span>{{ t("monitor.k139") }}</span>
+            <pre>{{ selectedAccess.query_string || t("monitor.k2") }}</pre>
           </div>
           <div class="access-detail-block">
             <span>Referer</span>
-            <pre>{{ selectedAccess.referer || "（无）" }}</pre>
+            <pre>{{ selectedAccess.referer || t("monitor.k2") }}</pre>
           </div>
           <div class="access-detail-block">
             <span>Accept / Accept-Language</span>
             <pre
-              >{{ selectedAccess.accept || "（无）" }}
-{{ selectedAccess.accept_language || "（无）" }}</pre
+              >{{ selectedAccess.accept || t("monitor.k2") }}
+{{ selectedAccess.accept_language || t("monitor.k2") }}</pre
             >
           </div>
           <div class="access-detail-block">
-            <span>请求 Content-Type</span>
-            <pre>{{ selectedAccess.content_type || "（无）" }}</pre>
+            <span>{{ t("monitor.k140") }}</span>
+            <pre>{{ selectedAccess.content_type || t("monitor.k2") }}</pre>
           </div>
           <div class="access-detail-block">
-            <span>响应 Content-Type</span>
-            <pre>{{ selectedAccess.response_content_type || "（无）" }}</pre>
+            <span>{{ t("monitor.k141") }}</span>
+            <pre>{{ selectedAccess.response_content_type || t("monitor.k2") }}</pre>
           </div>
           <div class="access-detail-block">
-            <span>请求头</span>
+            <span>{{ t("monitor.k142") }}</span>
             <pre>{{ formatAccessHeaders(selectedAccess.request_headers) }}</pre>
           </div>
         </dialog>
@@ -992,10 +982,9 @@ onUnmounted(() => {
         <section class="monitor-panel">
           <div class="panel-heading">
             <div>
-              <h2><AppIcon name="zap" :size="17" />代理连通性测试</h2>
+              <h2><AppIcon name="zap" :size="17" />{{ t("monitor.k143") }}</h2>
               <p>
-                测试当前保存的 PAC 代理指令；每个代理有 12 秒总超时。不会把 PAC 中的 DIRECT
-                项当作代理节点。
+                {{ t("monitor.k144") }}
               </p>
             </div>
             <button
@@ -1007,14 +996,14 @@ onUnmounted(() => {
               "
               :title="
                 probing
-                  ? '代理连通性测试正在执行，请稍候'
+                  ? t("monitor.k41")
                   : savingProxyTestTarget
-                    ? '正在保存测试地址，请稍候'
+                    ? t("monitor.k42")
                     : !proxyTestTargetLoaded
-                      ? '请先读取代理测试地址'
+                      ? t("monitor.k43")
                       : proxyTestTargetChanged
-                        ? '请先保存或撤销已修改的测试地址'
-                        : '立即测试当前保存的代理配置'
+                        ? t("monitor.k44")
+                        : t("monitor.k45")
               "
               @click="runProxyTest"
             >
@@ -1022,7 +1011,7 @@ onUnmounted(() => {
                 :name="probing ? 'loader-circle' : 'zap'"
                 :class="{ 'icon-spinning': probing }"
                 :size="15"
-              />{{ probing ? "正在检测…" : "立即测试代理" }}
+              />{{ probing ? t("monitor.k46") : t("monitor.k47") }}
             </button>
           </div>
 
@@ -1031,7 +1020,7 @@ onUnmounted(() => {
               ><AppIcon name="network" :size="18"
             /></span>
             <div class="probe-target-content">
-              <label for="proxy-test-target">代理测试地址（HTTPS）</label>
+              <label for="proxy-test-target">{{ t("monitor.k145") }}</label>
               <div class="probe-target-controls">
                 <input
                   id="proxy-test-target"
@@ -1057,11 +1046,11 @@ onUnmounted(() => {
                   class="monitor-button secondary is-loading"
                   type="button"
                   disabled
-                  title="正在读取测试地址，请稍候"
+                  title=t("monitor.k48")
                   aria-live="polite"
                 >
                   <AppIcon name="loader-circle" class="icon-spinning" :size="14" />
-                  正在读取地址…
+                  {{ t("monitor.k146") }}
                 </button>
                 <button
                   v-else-if="!proxyTestTargetLoaded"
@@ -1070,15 +1059,15 @@ onUnmounted(() => {
                   :disabled="savingProxyTestTarget || probing"
                   :title="
                     savingProxyTestTarget
-                      ? '正在保存测试地址，请稍候'
+                      ? t("monitor.k42")
                       : probing
-                        ? '代理检测正在执行，请稍候'
-                        : '读取代理测试地址'
+                        ? t("monitor.k49")
+                        : t("monitor.k50")
                   "
                   @click="loadProxyTestTarget"
                 >
                   <AppIcon name="refresh-cw" :size="14" />
-                  重新读取
+                  {{ t("monitor.k147") }}
                 </button>
                 <button
                   v-else-if="proxyTestTargetChanged"
@@ -1088,12 +1077,12 @@ onUnmounted(() => {
                   :disabled="savingProxyTestTarget || probing || !proxyTestTargetValid"
                   :title="
                     savingProxyTestTarget
-                      ? '正在保存测试地址，请稍候'
+                      ? t("monitor.k42")
                       : probing
-                        ? '代理检测正在执行，请稍候'
+                        ? t("monitor.k49")
                         : !proxyTestTargetValid
-                          ? '测试地址无效，请填写完整的 HTTPS URL'
-                          : '保存修改后的测试地址'
+                          ? t("monitor.k51")
+                          : t("monitor.k52")
                   "
                   @click="saveProxyTestTarget"
                 >
@@ -1102,25 +1091,24 @@ onUnmounted(() => {
                     :class="{ 'icon-spinning': savingProxyTestTarget }"
                     :size="14"
                   />
-                  {{ savingProxyTestTarget ? "保存中…" : "保存地址" }}
+                  {{ savingProxyTestTarget ? t("monitor.k53") : t("monitor.k54") }}
                 </button>
                 <span v-else class="monitor-saved-state" role="status">
                   <AppIcon name="check-circle" :size="14" />
-                  已保存
+                  {{ t("monitor.k148") }}
                 </span>
               </div>
               <p>
-                默认使用 Google 的 <code>https://www.google.com/generate_204</code>。可以更换为其他
-                HTTPS 地址，支持自定义路径和查询参数；检测请求会经过正在测试的代理。
+                {{ t("monitor.k149") }} <code>https://www.google.com/generate_204</code>{{ t("monitor.k150") }}
               </p>
               <p v-if="!proxyTestTargetValid" class="probe-target-hint is-warning">
-                请填写完整有效的 HTTPS URL，不要包含用户名、密码或 # 片段。
+                {{ t("monitor.k151") }}
               </p>
               <p v-else-if="proxyTestTargetChanged" class="probe-target-hint is-warning">
-                地址尚未保存；保存后才能使用新地址进行测试。
+                {{ t("monitor.k152") }}
               </p>
               <p v-else class="probe-target-hint">
-                当前生效地址：<code>{{ savedProxyTestUrl }}</code>
+                {{ t("monitor.k153") }}<code>{{ savedProxyTestUrl }}</code>
               </p>
               <p
                 v-if="proxyTestTargetMessage"
@@ -1138,14 +1126,14 @@ onUnmounted(() => {
 
           <div v-if="latestProbe" class="probe-results">
             <div class="probe-run-head">
-              <strong>本次检测结果</strong>
+              <strong>{{ t("monitor.k154") }}</strong>
               <span
-                >{{ latestProbe.results.length }} 个代理节点 ·
+                >{{ t("monitor.nodeCount", { n: latestProbe.results.length }) }} ·
                 {{ formatDate(latestProbe.results[0]?.testedAt) }}</span
               >
             </div>
             <p class="panel-footnote probe-run-target">
-              本次测试地址：<code>{{ latestProbe.targetUrl }}</code>
+              {{ t("monitor.k155") }}<code>{{ latestProbe.targetUrl }}</code>
             </p>
             <div
               v-for="(result, index) in latestProbe.results"
@@ -1162,63 +1150,61 @@ onUnmounted(() => {
                 </div>
                 <span class="status-pill" :class="result.success ? 'good' : 'bad'"
                   ><AppIcon :name="result.success ? 'circle-check' : 'circle-x'" :size="12" />{{
-                    result.success ? "可用" : "不可用"
+                    result.success ? t("monitor.k55") : t("monitor.k56")
                   }}</span
                 >
               </div>
               <div class="probe-metrics">
                 <div>
-                  <span>TCP 建连</span><strong>{{ formatDuration(result.tcpMs) }}</strong>
+                  <span>{{ t("monitor.k156") }}</span><strong>{{ formatDuration(result.tcpMs) }}</strong>
                 </div>
                 <div>
-                  <span>代理握手</span><strong>{{ formatDuration(result.handshakeMs) }}</strong>
+                  <span>{{ t("monitor.k157") }}</span><strong>{{ formatDuration(result.handshakeMs) }}</strong>
                 </div>
                 <div>
-                  <span>目标访问</span><strong>{{ formatDuration(result.targetMs) }}</strong>
+                  <span>{{ t("monitor.k158") }}</span><strong>{{ formatDuration(result.targetMs) }}</strong>
                 </div>
                 <div>
-                  <span>阶段</span><strong>{{ probePhaseLabel(result.phase) }}</strong>
+                  <span>{{ t("monitor.k159") }}</span><strong>{{ probePhaseLabel(result.phase) }}</strong>
                 </div>
               </div>
               <p v-if="result.httpStatus" class="probe-detail">
-                目标 HTTP 状态码：{{ result.httpStatus }}
+                {{ t("monitor.targetStatusCode", { code: result.httpStatus }) }}
               </p>
               <p v-if="result.error" class="probe-error">{{ result.error }}</p>
               <p v-if="result.isLoopback" class="monitor-alert is-warning">
-                该代理使用回环地址。此处测试的是 genpac-runner
-                运行环境内的回环地址，不是浏览器所在设备的 127.0.0.1。
+                {{ t("monitor.k160") }}
               </p>
             </div>
             <p v-if="latestProbe.parseWarnings.length" class="probe-warning">
-              未检测的配置项：{{ latestProbe.parseWarnings.join("；") }}
+              {{ t("monitor.uncheckedItems", { items: latestProbe.parseWarnings.join("; ") }) }}
             </p>
             <p v-if="latestProbe.limited" class="probe-warning">
-              本次最多检测 5 个代理节点，其余条目已跳过。
+              {{ t("monitor.k161") }}
             </p>
             <p v-if="latestProbe.ignoredDirectEntries" class="panel-footnote">
-              已忽略 {{ latestProbe.ignoredDirectEntries }} 个 DIRECT 项，因为直连不是代理服务器。
+              {{ t("monitor.ignoredDirect", { n: latestProbe.ignoredDirectEntries }) }}
             </p>
           </div>
 
           <div v-else-if="!probing" class="monitor-empty">
-            尚无本次检测结果。点击「立即测试代理」后，会对当前 PAC 代理项执行 TCP、代理协议和目标
-            HTTPS 请求测试。
+            {{ t("monitor.k162") }}
           </div>
           <div v-if="probing" class="probe-progress">
             <span class="monitor-spinner"></span>
-            <span>正在并行测试配置中的代理节点，请稍候…</span>
+            <span>{{ t("monitor.k163") }}</span>
           </div>
         </section>
 
         <section class="monitor-panel">
           <div class="panel-heading">
             <div>
-              <h2><AppIcon name="clock" :size="17" />代理检测历史</h2>
-              <p>保存最近检测结果，便于比较可用性与延迟变化。</p>
+              <h2><AppIcon name="clock" :size="17" />{{ t("monitor.k164") }}</h2>
+              <p>{{ t("monitor.k165") }}</p>
             </div>
             <div class="panel-actions">
               <span class="panel-count"
-                >已加载 {{ probeHistory.length }} / {{ probeHistoryTotal }} 条</span
+                >{{ t("monitor.probeLoaded", { loaded: probeHistory.length, total: probeHistoryTotal }) }}</span
               >
             </div>
           </div>
@@ -1233,7 +1219,7 @@ onUnmounted(() => {
             :has-more="probeHistoryHasMore"
             :loading="probeHistoryLoading"
             :error="probeHistoryLoadError"
-            empty-text="暂无代理检测历史"
+            empty-text=t("monitor.k57")
             :load-more="() => loadProbeHistory(false)"
           >
             <template #columns
@@ -1247,13 +1233,13 @@ onUnmounted(() => {
             /></template>
             <template #header
               ><tr>
-                <th>检测时间</th>
-                <th>代理节点</th>
-                <th>结果</th>
+                <th>{{ t("monitor.k166") }}</th>
+                <th>{{ t("monitor.k167") }}</th>
+                <th>{{ t("monitor.k168") }}</th>
                 <th>TCP</th>
-                <th>协议握手</th>
-                <th>目标访问</th>
-                <th>失败阶段/原因</th>
+                <th>{{ t("monitor.k169") }}</th>
+                <th>{{ t("monitor.k158") }}</th>
+                <th>{{ t("monitor.k170") }}</th>
               </tr></template
             >
             <template #row="{ item }">
@@ -1265,7 +1251,7 @@ onUnmounted(() => {
                 <td>
                   <span class="status-pill" :class="item.success ? 'good' : 'bad'"
                     ><AppIcon :name="item.success ? 'circle-check' : 'circle-x'" :size="12" />{{
-                      item.success ? "可用" : "失败"
+                      item.success ? t("monitor.k55") : t("monitor.k58")
                     }}</span
                   >
                 </td>
@@ -1275,16 +1261,15 @@ onUnmounted(() => {
                 <td class="probe-history-error">
                   <TextDetail
                     v-if="!item.success"
-                    :text="probePhaseLabel(item.phase) + '：' + (item.error || '未提供错误详情')"
-                    label="检测失败原因"
+                    :text=t("monitor.k59")
+                    label=t("monitor.k60")
                   /><span v-else>—</span>
                 </td>
               </tr>
             </template>
           </VirtualTable>
           <p class="panel-footnote">
-            检测历史最多保留 7 天且上限为 1,000 条。当前版本只做手动检测，不会自动探测或自动切换 PAC
-            配置。
+            {{ t("monitor.k171") }}
           </p>
         </section>
       </template>

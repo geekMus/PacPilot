@@ -34,27 +34,27 @@ function setConfirmation(key: keyof typeof confirmationOpen, open: boolean) {
 const maintenanceBusy = () =>
   cleaning.value || clearingLogs.value || deletingPacFiles.value || resetting.value;
 const maintenanceDisabledReason = computed(() => {
-  if (loading.value) return "正在读取系统设置，请稍候";
-  if (cleaning.value) return "正在清理过期日志，请稍候";
-  if (clearingLogs.value) return "正在清空运行日志，请稍候";
-  if (deletingPacFiles.value) return "正在删除 PAC 文件，请稍候";
-  if (resetting.value) return "正在恢复出厂设置，请稍候";
+  if (loading.value) return t("systemPage.k0");
+  if (cleaning.value) return t("systemPage.k1");
+  if (clearingLogs.value) return t("systemPage.k2");
+  if (deletingPacFiles.value) return t("systemPage.k3");
+  if (resetting.value) return t("systemPage.k4");
   return "";
 });
 const retentionDisabledReason = computed(() => {
-  if (loading.value) return "正在读取配置，请稍候";
-  if (savingRetention.value) return "正在保存日志保留策略，请稍候";
-  if (!settings.value) return "配置尚未加载，暂时无法保存";
-  if (retention.value === settings.value.logRetentionDays) return "日志保留期限没有变化，无需保存";
-  return "保存日志保留策略";
+  if (loading.value) return t("systemPage.k5");
+  if (savingRetention.value) return t("systemPage.k6");
+  if (!settings.value) return t("systemPage.k7");
+  if (retention.value === settings.value.logRetentionDays) return t("systemPage.k8");
+  return t("systemPage.k9");
 });
 const deletePacFilesDisabledReason = computed(() => {
-  if (loading.value) return "正在读取 PAC 文件状态，请稍候";
-  if (maintenanceBusy()) return maintenanceDisabledReason.value || "另一项维护操作正在执行";
-  if (!storage.value) return "尚未读取 PAC 文件状态";
+  if (loading.value) return t("systemPage.k10");
+  if (maintenanceBusy()) return maintenanceDisabledReason.value || t("systemPage.k11");
+  if (!storage.value) return t("systemPage.k12");
   if (!storage.value.pacFiles.proxyPac.exists && !storage.value.pacFiles.proxySourcePac.exists)
-    return "当前没有 PAC 文件可删除";
-  return "删除 PAC 文件";
+    return t("systemPage.k13");
+  return t("systemPage.k14");
 });
 function fileDateLabel(value: string | null) {
   return value ? new Date(value).toLocaleString() : "—";
@@ -113,7 +113,7 @@ async function saveRetention() {
     const saved = await api.saveSettings({ ...settings.value, logRetentionDays: retention.value });
     settings.value = saved;
     retention.value = saved.logRetentionDays;
-    notify("日志保留时间保存成功", "success");
+    notify(t("systemPage.k15"), "success");
     await refreshStorage();
   } catch (e) {
     notify(e instanceof Error ? e.message : String(e), "error");
@@ -125,7 +125,7 @@ async function refreshStorage() {
   try {
     storage.value = await api.storage();
   } catch (e) {
-    notify("{{ t("common.refresh") }}存储占用失败：" + (e instanceof Error ? e.message : String(e)), "error");
+    notify("{{ t("common.refresht("systemPage.k16") + (e instanceof Error ? e.message : String(e)), "error");
   }
 }
 async function cleanupLogs() {
@@ -134,7 +134,7 @@ async function cleanupLogs() {
   try {
     const r = await api.cleanupLogs();
     notify(
-      `日志清理完成：生成日志 ${r.deleted.generationLogs} 条、访问记录 ${r.deleted.accessEvents} 条、代理测试记录 ${r.deleted.proxyProbeRuns} 条。`,
+      t("systemPage.cleanupDone", { g: r.deleted.generationLogs, a: r.deleted.accessEvents, p: r.deleted.proxyProbeRuns }),
       "success"
     );
     await refreshStorage();
@@ -151,7 +151,7 @@ async function clearAllLogs() {
     const r = await api.clearLogs();
     setConfirmation("clearLogs", false);
     notify(
-      `日志已清空：生成日志 ${r.deleted.generationLogs} 条、访问记录 ${r.deleted.accessEvents} 条、代理测试记录 ${r.deleted.proxyProbeRuns} 条。工作流历史已保留。`,
+      t("systemPage.clearedLogsKeepWorkflow", { g: r.deleted.generationLogs, a: r.deleted.accessEvents, p: r.deleted.proxyProbeRuns }),
       "success"
     );
     await refreshStorage();
@@ -167,8 +167,8 @@ async function deletePacFiles() {
   try {
     const r = await api.deletePacFiles();
     setConfirmation("deletePacFiles", false);
-    if (r.deleted.length) notify("已删除 PAC 文件：" + r.deleted.join("、") + "。", "success");
-    else notify("当前没有可删除的 PAC 文件。", "info");
+    if (r.deleted.length) notify(t("systemPage.k17") + r.deleted.join("、") + "。", "success");
+    else notify(t("systemPage.k18"), "info");
     await refreshStorage();
   } catch (e) {
     notify(e instanceof Error ? e.message : String(e), "error");
@@ -244,10 +244,10 @@ onMounted(() => void load());
           </div>
         </div>
         <div v-if="storage" class="counts">
-          <span>生成日志 {{ storage.counts.generationLogs }} 条</span
-          ><span>访问记录 {{ storage.counts.accessEvents }} 条</span
-          ><span>代理测试 {{ storage.counts.proxyProbeRuns }} 条</span
-          ><span>工作流历史 {{ storage.counts.workflows }} 条</span>
+          <span>{{ t("systemPage.countGen", { n: storage.counts.generationLogs }) }}</span
+          ><span>{{ t("systemPage.countAccess", { n: storage.counts.accessEvents }) }}</span
+          ><span>{{ t("systemPage.countProbe", { n: storage.counts.proxyProbeRuns }) }}</span
+          ><span>{{ t("systemPage.countWorkflow", { n: storage.counts.workflows }) }}</span>
         </div>
       </section>
       <section class="settings-panel">
@@ -279,24 +279,24 @@ onMounted(() => void load());
         <div class="heading">
           <span class="icon-badge"><AppIcon name="calendar-clock" :size="19" /></span>
           <div>
-            <h2>日志保留策略</h2>
-            <p>自动清理超过指定期限的运行日志；工作流执行历史不受此项影响。</p>
+            <h2>{{ t("systemPage.k43") }}</h2>
+            <p>{{ t("systemPage.k44") }}</p>
           </div>
         </div>
         <div class="retention">
-          <label for="retention">自动清理期限</label
+          <label for="retention">{{ t("systemPage.k45") }}</label
           ><SelectField
             ><select
               id="retention"
               v-model.number="retention"
               :disabled="loading || savingRetention"
             >
-              <option :value="0">不自动清理</option>
-              <option :value="7">7 天</option>
-              <option :value="30">30 天</option>
-              <option :value="90">90 天</option>
-              <option :value="180">180 天</option>
-              <option :value="365">365 天</option>
+              <option :value="0">{{ t("systemPage.k46") }}</option>
+              <option :value="7">{{ t("systemPage.k47") }}</option>
+              <option :value="30">{{ t("systemPage.k48") }}</option>
+              <option :value="90">{{ t("systemPage.k49") }}</option>
+              <option :value="180">{{ t("systemPage.k50") }}</option>
+              <option :value="365">{{ t("systemPage.k51") }}</option>
             </select></SelectField
           ><button
             class="primary"
@@ -307,7 +307,7 @@ onMounted(() => void load());
             @click="saveRetention"
           >
             <AppIcon :name="savingRetention ? 'loader-circle' : 'save'" :size="15" />
-            {{ savingRetention ? "保存中…" : "保存保留策略" }}
+            {{ savingRetention ? t("systemPage.k19") : t("systemPage.k20") }}
           </button>
         </div>
         <p
@@ -315,18 +315,17 @@ onMounted(() => void load());
           class="retention-status"
           role="status"
         >
-          保留期限未修改，无需保存。
+          {{ t("systemPage.k52") }}
         </p>
-        <p class="hint">策略保存后会用于服务启动时及运行期间的定期清理。</p>
+        <p class="hint">{{ t("systemPage.k53") }}</p>
       </section>
       <section class="settings-panel">
         <div class="heading">
           <span class="icon-badge"><AppIcon name="file-text" :size="19" /></span>
           <div>
-            <h2>PAC 文件</h2>
+            <h2>{{ t("systemPage.k54") }}</h2>
             <p>
-              proxy.pac 是客户端使用的主文件，proxy.source.pac
-              是供状态页解析的辅助源文件。删除操作会同时清理两者，不会改动规则配置。
+              {{ t("systemPage.k55") }}
             </p>
           </div>
           <button
@@ -336,7 +335,7 @@ onMounted(() => void load());
             :title="loading ? t('system.readingStorage') : t('system.refreshStorage')"
             @click="refreshStorage"
           >
-            <AppIcon name="refresh-cw" :size="14" /> {{ t("common.refresh") }}状态
+            <AppIcon name="refresh-cw" :size="14" /> {{ t("systemPage.refreshStatus") }}
           </button>
         </div>
         <div v-if="storage" class="pac-files">
@@ -346,13 +345,13 @@ onMounted(() => void load());
               ><span
                 class="file-state"
                 :class="storage.pacFiles.proxyPac.exists ? 'file-exists' : 'file-missing'"
-                >{{ storage.pacFiles.proxyPac.exists ? "已存在" : "不存在" }}</span
+                >{{ storage.pacFiles.proxyPac.exists ? t("systemPage.k21") : t("systemPage.k22") }}</span
               >
             </div>
-            <p>客户端实际获取的 PAC 文件</p>
+            <p>{{ t("systemPage.k56") }}</p>
             <div class="pac-file-meta">
-              <span>大小：{{ formatBytes(storage.pacFiles.proxyPac.sizeBytes) }}</span
-              ><span>修改时间：{{ fileDateLabel(storage.pacFiles.proxyPac.modifiedAt) }}</span>
+              <span>{{ t("systemPage.fileSize", { size: formatBytes(storage.pacFiles.proxyPac.sizeBytes) }) }}</span
+              ><span>{{ t("systemPage.fileMtime", { time: fileDateLabel(storage.pacFiles.proxyPac.modifiedAt) }) }}</span>
             </div>
           </div>
           <div class="pac-file">
@@ -361,14 +360,14 @@ onMounted(() => void load());
               ><span
                 class="file-state"
                 :class="storage.pacFiles.proxySourcePac.exists ? 'file-exists' : 'file-missing'"
-                >{{ storage.pacFiles.proxySourcePac.exists ? "已存在" : "不存在" }}</span
+                >{{ storage.pacFiles.proxySourcePac.exists ? t("systemPage.k21") : t("systemPage.k22") }}</span
               >
             </div>
-            <p>规则状态解析使用的未压缩源文件</p>
+            <p>{{ t("systemPage.k57") }}</p>
             <div class="pac-file-meta">
-              <span>大小：{{ formatBytes(storage.pacFiles.proxySourcePac.sizeBytes) }}</span
+              <span>{{ t("systemPage.fileSize", { size: formatBytes(storage.pacFiles.proxySourcePac.sizeBytes) }) }}</span
               ><span
-                >修改时间：{{ fileDateLabel(storage.pacFiles.proxySourcePac.modifiedAt) }}</span
+                >{{ t("systemPage.fileMtime", { time: fileDateLabel(storage.pacFiles.proxySourcePac.modifiedAt) }) }}</span
               >
             </div>
           </div>
@@ -376,16 +375,16 @@ onMounted(() => void load());
         <p v-if="storage && !storage.pacFiles.proxyPac.exists" class="empty-note">
           {{
             storage.pacFiles.proxySourcePac.exists
-              ? "主 PAC 文件 proxy.pac 不存在，当前残留的源文件不能作为客户端 PAC 使用；公共状态页会显示“还没有生成 PAC”。"
-              : "当前没有任何 PAC 文件。公共状态页会显示“还没有生成 PAC”，并提示前往配置管理生成文件。"
+              ? t("systemPage.k23")
+              : t("systemPage.k24")
           }}
         </p>
         <ConfirmPopover
           :open="confirmationOpen.deletePacFiles"
-          title="删除 PAC 文件？"
-          description="将删除 proxy.pac 和 proxy.source.pac（如存在）。规则配置和工作流历史会保留；之后需要重新生成才能恢复文件。"
-          confirm-text="删除文件"
-          busy-text="正在删除…"
+          title=t("systemPage.k25")
+          description=t("systemPage.k26")
+          confirm-text=t("systemPage.k27")
+          busy-text=t("systemPage.k28")
           align="start"
           :disabled="
             loading ||
@@ -412,19 +411,19 @@ onMounted(() => void load());
               @click="toggle"
             >
               <AppIcon :name="deletingPacFiles ? 'loader-circle' : 'trash-2'" :size="15" />
-              {{ deletingPacFiles ? "正在删除…" : "删除 PAC 文件" }}
+              {{ deletingPacFiles ? t("systemPage.k28") : t("systemPage.k14") }}
             </button></template
           ></ConfirmPopover
         >
-        <p class="hint">若有工作流正在等待或执行，服务器会拒绝删除，防止正在生成的文件被误删。</p>
+        <p class="hint">{{ t("systemPage.k58") }}</p>
       </section>
       <section class="settings-panel">
         <div class="heading">
           <span class="icon-badge"><AppIcon name="trash-2" :size="19" /></span>
           <div>
-            <h2>日志清理</h2>
+            <h2>{{ t("systemPage.k59") }}</h2>
             <p>
-              可按当前保留期限清理过期日志，或立即清空全部运行日志。两种操作均不会删除工作流执行历史。
+              {{ t("systemPage.k60") }}
             </p>
           </div>
         </div>
@@ -434,21 +433,21 @@ onMounted(() => void load());
             :disabled="loading || maintenanceBusy()"
             :title="
               loading
-                ? '正在读取系统设置，请稍候'
+                ? t("systemPage.k0")
                 : maintenanceBusy()
                   ? maintenanceDisabledReason
-                  : '清理已过期的运行日志'
+                  : t("systemPage.k29")
             "
             @click="cleanupLogs"
           >
             <AppIcon :name="cleaning ? 'loader-circle' : 'trash-2'" :size="15" />
-            {{ cleaning ? "正在清理…" : "清理过期日志" }}</button
+            {{ cleaning ? t("systemPage.k30") : t("systemPage.k31") }}</button
           ><ConfirmPopover
             :open="confirmationOpen.clearLogs"
-            title="清空所有运行日志？"
-            description="将立即删除生成日志、访问记录和代理测试记录，且无法撤销。工作流执行历史、应用配置和 PAC 文件不会被删除。"
-            confirm-text="清空日志"
-            busy-text="正在清空…"
+            title=t("systemPage.k32")
+            description=t("systemPage.k33")
+            confirm-text=t("systemPage.k34")
+            busy-text=t("systemPage.k35")
             :disabled="loading || maintenanceBusy()"
             :disabled-reason="maintenanceDisabledReason"
             :busy="clearingLogs"
@@ -462,37 +461,37 @@ onMounted(() => void load());
                 :disabled="loading || maintenanceBusy()"
                 :title="
                   loading
-                    ? '正在读取系统设置，请稍候'
+                    ? t("systemPage.k0")
                     : maintenanceBusy()
                       ? maintenanceDisabledReason
-                      : '清空所有运行日志'
+                      : t("systemPage.k36")
                 "
                 @click="toggle"
               >
                 <AppIcon :name="clearingLogs ? 'loader-circle' : 'trash-2'" :size="15" />
-                {{ clearingLogs ? "正在清空…" : "清空所有日志" }}
+                {{ clearingLogs ? t("systemPage.k35") : t("systemPage.k37") }}
               </button></template
             ></ConfirmPopover
           >
         </div>
         <p class="hint">
-          “清理过期日志”遵循上方保留期限；“清空所有日志”会删除三类运行日志并整理数据库空间，操作前会要求确认。
+          {{ t("systemPage.k61") }}
         </p>
       </section>
       <section class="settings-panel danger-panel">
         <div class="heading">
           <span class="icon-badge danger-icon"><AppIcon name="alert-triangle" :size="19" /></span>
           <div>
-            <h2>恢复出厂设置</h2>
-            <p>重置 PAC 配置并删除已生成的 PAC 文件及日志、工作流历史。管理员密码会保留。</p>
+            <h2>{{ t("systemPage.k40") }}</h2>
+            <p>{{ t("systemPage.k62") }}</p>
           </div>
         </div>
         <ConfirmPopover
           :open="confirmationOpen.factoryReset"
-          title="恢复出厂设置？"
-          description="此操作会重置应用配置、删除 PAC 文件以及全部日志和工作流历史，且无法撤销。当前管理员密码会保留。"
-          confirm-text="恢复出厂设置"
-          busy-text="正在恢复…"
+          title=t("systemPage.k38")
+          description=t("systemPage.k39")
+          confirm-text=t("systemPage.k40")
+          busy-text=t("systemPage.k41")
           align="start"
           :disabled="loading || maintenanceBusy()"
           :disabled-reason="maintenanceDisabledReason"
@@ -507,19 +506,19 @@ onMounted(() => void load());
               :disabled="loading || maintenanceBusy()"
               :title="
                 loading
-                  ? '正在读取系统设置，请稍候'
+                  ? t("systemPage.k0")
                   : maintenanceBusy()
                     ? maintenanceDisabledReason
-                    : '恢复默认配置并清理运行记录'
+                    : t("systemPage.k42")
               "
               @click="toggle"
             >
               <AppIcon :name="resetting ? 'loader-circle' : 'rotate-ccw'" :size="15" />
-              {{ resetting ? "正在恢复…" : "恢复出厂设置" }}
+              {{ resetting ? t("systemPage.k41") : t("systemPage.k40") }}
             </button></template
           ></ConfirmPopover
         >
-        <p class="hint">此操作不可撤销，请确认已备份需要保留的数据。</p>
+        <p class="hint">{{ t("systemPage.k63") }}</p>
       </section>
       <AppFooter />
     </div>

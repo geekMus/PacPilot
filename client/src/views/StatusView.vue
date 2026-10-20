@@ -241,10 +241,9 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
       <div class="page-kicker">{{ t("status.kicker") }}</div>
       <h1 class="page-title">{{ t("status.title") }}</h1>
       <p class="page-intro">
-        这里会读取当前生成的
+        {{ t("statusPage.k11") }}
         <code>proxy.pac</code>
-        文件并展示可识别的规则摘要。域名路由判断根据已解析的规则摘要进行估算，供排查参考；它不会执行
-        PAC 脚本，也不等同于代理客户端的完整实际结果。
+        {{ t("statusPage.k12") }}
       </p>
       <div v-if="status" class="hero-meta">
         <span class="status-indicator" :class="status.hasPac ? 'online' : 'idle'"></span>
@@ -281,14 +280,14 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
           :class="{ 'is-loading': loading }"
           @click="loadStatus"
           :disabled="loading"
-          :title="loading ? '正在读取 PAC 状态，请稍候' : '刷新 PAC 状态'"
+          :title=t("statusPage.k0")
         >
           <AppIcon
             :name="loading ? 'loader-circle' : 'refresh-cw'"
             :class="{ 'icon-spinning': loading }"
             :size="15"
           />
-          {{ loading ? "刷新中…" : "刷新状态" }}
+          {{ loading ? t("statusPage.k1") : t("statusPage.k2") }}
         </button>
       </div>
     </section>
@@ -296,17 +295,17 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
     <section v-if="loading" class="state-card" aria-live="polite">
       <span class="spinner" aria-hidden="true"></span>
       <div>
-        <strong>正在读取运行状态</strong>
-        <p>正在检查{{ t("status.currentPac") }}和生成模式。</p>
+        <strong>{{ t("statusPage.k13") }}</strong>
+        <p>{{ t("statusPage.checking") }}</p>
       </div>
     </section>
 
     <section v-else-if="error" class="state-card error-card" role="alert">
       <div class="state-icon"><AppIcon name="circle-alert" :size="18" /></div>
       <div class="state-copy">
-        <strong>无法读取状态</strong>
+        <strong>{{ t("statusPage.k14") }}</strong>
         <p>{{ error }}</p>
-        <button class="action-button" type="button" @click="loadStatus">重新加载</button>
+        <button class="action-button" type="button" @click="loadStatus">{{ t("statusPage.k15") }}</button>
       </div>
     </section>
 
@@ -315,16 +314,15 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
         <div class="empty-icon" aria-hidden="true">
           <AppIcon name="file-cog" :size="26" :stroke-width="1.7" />
         </div>
-        <h2>还没有生成 PAC</h2>
+        <h2>{{ t("statusPage.k16") }}</h2>
         <p>
-          先进入{{ t("nav.admin") }}，在配置页面设置启动模式和规则，然后点击「保存并生成
-          PAC」。生成后，这里会显示可识别的规则摘要。
+          {{ t("statusPage.emptyHint") }}
         </p>
         <p class="empty-pac-note">
-          注意：尚未生成时，<code>/proxy.pac</code>
-          仍会暂时返回“所有请求直连”的回退脚本；这不是已经生成的规则文件。
+          {{ t("statusPage.k17") }}<code>/proxy.pac</code>
+          {{ t("statusPage.k18") }}
         </p>
-        <RouterLink class="action-button primary" :to="adminEntry">进入{{ t("nav.admin") }}</RouterLink>
+        <RouterLink class="action-button primary" :to="adminEntryt("statusPage.k3")nav.admin") }}</RouterLink>
       </section>
 
       <template v-else-if="hasRuleSummary">
@@ -333,40 +331,40 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
           :class="status.mode === 'remote' ? 'remote-stats' : 'custom-stats'"
         >
           <article v-if="status.mode === 'remote'" class="stat-card">
-            <span class="stat-label">远程代理域名</span
+            <span class="stat-label">{{ t("statusPage.k19") }}</span
             ><strong class="stat-number">{{ status.remoteProxyCount }}</strong
-            ><span class="stat-caption">命中时走代理</span>
+            ><span class="stat-caption">{{ t("statusPage.k20") }}</span>
           </article>
           <article v-if="status.mode === 'remote'" class="stat-card">
-            <span class="stat-label">远程例外直连</span
+            <span class="stat-label">{{ t("statusPage.k21") }}</span
             ><strong class="stat-number">{{ status.remoteDirectCount }}</strong
-            ><span class="stat-caption">远程列表中的例外规则</span>
+            ><span class="stat-caption">{{ t("statusPage.k22") }}</span>
           </article>
           <article class="stat-card">
-            <span class="stat-label">自定义直连</span
+            <span class="stat-label">{{ t("statusPage.k23") }}</span
             ><strong class="stat-number">{{ status.directList.length }}</strong
-            ><span class="stat-caption">这些域名跳过代理</span>
+            ><span class="stat-caption">{{ t("statusPage.k24") }}</span>
           </article>
           <article class="stat-card">
-            <span class="stat-label">自定义黑名单</span
+            <span class="stat-label">{{ t("statusPage.k25") }}</span
             ><strong class="stat-number">{{ status.blockList.length }}</strong
-            ><span class="stat-caption">命中时拦截请求</span>
+            ><span class="stat-caption">{{ t("statusPage.k26") }}</span>
           </article>
           <article v-if="status.mode === 'custom'" class="stat-card stat-card-wide stat-proxy-card">
             <div class="proxy-card-heading">
-              <span class="stat-label">默认代理</span>
-              <span class="proxy-card-badge"><AppIcon name="route" :size="13" />默认出口</span>
+              <span class="stat-label">{{ t("statusPage.k27") }}</span>
+              <span class="proxy-card-badge"><AppIcon name="route" :size="13" />{{ t("statusPage.k28") }}</span>
             </div>
-            <strong class="stat-proxy">{{ status.pacProxy || "未识别" }}</strong>
-            <span class="stat-caption">未命中自定义规则时，流量将通过此代理转发</span>
+            <strong class="stat-proxy">{{ status.pacProxy || t("statusPage.k4") }}</strong>
+            <span class="stat-caption">{{ t("statusPage.k29") }}</span>
           </article>
         </section>
 
         <section class="domain-check section-card">
           <div class="domain-check-head">
             <div>
-              <h2>域名路由判断</h2>
-              <p>输入域名或 URL，按当前 PAC 中可识别的规则摘要估算路由结果。</p>
+              <h2>{{ t("statusPage.k30") }}</h2>
+              <p>{{ t("statusPage.k31") }}</p>
             </div>
           </div>
           <form class="domain-check-form" @submit.prevent="checkDomain">
@@ -376,22 +374,20 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               inputmode="url"
               autocomplete="off"
               spellcheck="false"
-              aria-label="需要判断的域名"
-              placeholder="例如 example.com 或 https://example.com/path"
+              aria-label=t("statusPage.k5")
+              placeholder=t("statusPage.k6")
             />
             <button
               type="submit"
               class="action-button primary"
               :disabled="!domainInput.trim()"
-              :title="!domainInput.trim() ? '请输入域名或 URL 后再检查' : '检查域名的 PAC 规则'"
+              :title=t("statusPage.k7")
             >
-              判断路由
+              {{ t("statusPage.k32") }}
             </button>
           </form>
           <p class="domain-check-note">
-            此工具仅根据 PAC 中可识别的规则摘要进行估算，不查询 DNS，也不会执行 PAC
-            脚本。部分复杂规则或代理客户端行为可能无法完整反映；localhost、无点号主机名及 IPv4 回环
-            / RFC 1918 私网地址按本项目的直连规则处理。
+            {{ t("statusPage.k33") }}
           </p>
           <div
             v-if="domainRoute"
@@ -421,7 +417,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               </div>
               <p>{{ domainRoute.detail }}</p>
               <p v-if="domainRoute.matchedRule" class="matched-rule">
-                <span>匹配规则</span><code>{{ domainRoute.matchedRule }}</code
+                <span>{{ t("statusPage.k34") }}</span><code>{{ domainRoute.matchedRule }}</code
                 ><span>· {{ domainRoute.source }}</span>
               </p>
               <p v-else-if="domainRoute.source" class="matched-rule">
@@ -434,17 +430,17 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
         <section class="rules-section section-card">
           <div class="section-head rules-section-head">
             <div>
-              <h2>域名路由明细</h2>
+              <h2>{{ t("statusPage.k35") }}</h2>
               <p class="section-description">
-                展示自定义直连与黑名单规则；默认代理信息已在上方单独展示。长域名可点击查看完整内容，列表较长时可在固定区域内滚动。
+                {{ t("statusPage.k36") }}
               </p>
             </div>
             <RouterLink v-if="meta?.adminEnabled" to="/admin/settings" class="text-link"
-              >编辑规则 <AppIcon name="arrow-right" :size="14"
+              >{{ t("statusPage.k37") }} <AppIcon name="arrow-right" :size="14"
             /></RouterLink>
           </div>
 
-          <div class="rule-tabs" role="tablist" aria-label="域名规则类型">
+          <div class="rule-tabs" role="tablist" aria-label=t("statusPage.k8")>
             <button
               type="button"
               role="tab"
@@ -452,7 +448,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               :class="{ active: activeRuleType === 'direct' }"
               @click="activeRuleType = 'direct'"
             >
-              <span class="rule-dot direct-dot"></span><span>直连</span
+              <span class="rule-dot direct-dot"></span><span>{{ t("statusPage.k38") }}</span
               ><strong>{{ directEntries.length }}</strong>
             </button>
 
@@ -463,7 +459,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               :class="{ active: activeRuleType === 'block' }"
               @click="activeRuleType = 'block'"
             >
-              <span class="rule-dot block-dot"></span><span>黑名单</span
+              <span class="rule-dot block-dot"></span><span>{{ t("statusPage.k39") }}</span
               ><strong>{{ blockEntries.length }}</strong>
             </button>
           </div>
@@ -471,20 +467,19 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
           <div class="rule-content" role="tabpanel">
             <template v-if="activeRuleType === 'direct'">
               <p class="rule-description">
-                自定义直连优先于远程列表；蓝色来源标签代表远程规则中的例外直连。
+                {{ t("statusPage.k40") }}
               </p>
               <RuleVirtualList
                 :items="directEntries"
-                empty-text="没有额外的直连规则。"
+                empty-text=t("statusPage.k9")
                 :height="300"
               />
             </template>
             <template v-else>
               <p class="rule-description">
-                红色来源标签代表自定义黑名单；localhost、无点号主机名及 IPv4 回环 / RFC 1918
-                私网直连规则优先。
+                {{ t("statusPage.k41") }}
               </p>
-              <RuleVirtualList :items="blockEntries" empty-text="没有配置黑名单。" :height="300" />
+              <RuleVirtualList :items="blockEntries" empty-text=t("statusPage.k10") :height="300" />
             </template>
           </div>
         </section>
