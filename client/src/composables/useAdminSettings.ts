@@ -17,7 +17,7 @@ import { CronExpressionParser } from "cron-parser";
 import "cronstrue/locales/zh_CN";
 
 export function useAdminSettings() {
-  const { t, locale } = useI18n();
+  const { t, tm, locale } = useI18n();
 
   const { notify } = useToast();
 
@@ -185,8 +185,8 @@ export function useAdminSettings() {
         null,
         2
       ),
-      messageTemplate: t("settings.defaultMessageTemplate"),
-      testMessageTemplate: t("settings.testMessageTemplate"),
+      messageTemplate: String(tm("settings.defaultMessageTemplate")),
+      testMessageTemplate: String(tm("settings.testMessageTemplate")),
     };
   }
 
