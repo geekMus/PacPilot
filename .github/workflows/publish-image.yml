@@ -31,9 +31,11 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       previous_version: ${{ steps.version.outputs.previous_version }}
+      previous_revision: ${{ steps.version.outputs.previous_revision }}
       publish: ${{ steps.version.outputs.publish }}
       publish_latest: ${{ steps.version.outputs.publish_latest }}
       reason: ${{ steps.version.outputs.reason }}
+      changelog: ${{ steps.version.outputs.changelog }}
     steps:
       - name: 检出完整提交历史
         uses: actions/checkout@v7
@@ -64,6 +66,7 @@ jobs:
             -H "Accept: $MANIFEST_ACCEPT" \
             'https://ghcr.io/v2/geekmus/genpac-runner/manifests/latest')"
           PREVIOUS_VERSION=""
+          PREVIOUS_REVISION=""
           if [[ "$MANIFEST_STATUS" == "200" ]]; then
             if jq -e '.manifests | type == "array"' "$RUNNER_TEMP/latest-manifest.json" >/dev/null; then
               IMAGE_MANIFEST_DIGEST="$(jq -er '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == "arm64")][0].digest' "$RUNNER_TEMP/latest-manifest.json")"
@@ -80,10 +83,12 @@ jobs:
             fi
 
             CONFIG_DIGEST="$(jq -er '.config.digest' "$RUNNER_TEMP/latest-platform-manifest.json")"
-            PREVIOUS_VERSION="$(curl -fsSL \
+            curl -fsSL \
               -H "Authorization: Bearer $REGISTRY_TOKEN" \
               "https://ghcr.io/v2/geekmus/genpac-runner/blobs/$CONFIG_DIGEST" \
-              | jq -r '.config.Labels["org.opencontainers.image.version"] // empty')"
+              -o "$RUNNER_TEMP/latest-config.json"
+            PREVIOUS_VERSION="$(jq -r '.config.Labels["org.opencontainers.image.version"] // empty' "$RUNNER_TEMP/latest-config.json")"
+            PREVIOUS_REVISION="$(jq -r '.config.Labels["org.opencontainers.image.revision"] // empty' "$RUNNER_TEMP/latest-config.json")"
             if [[ -z "$PREVIOUS_VERSION" ]]; then
               echo "::error::GHCR latest 镜像缺少 org.opencontainers.image.version 标签，无法判断是否需要发布。"
               exit 1
@@ -91,6 +96,22 @@ jobs:
           elif [[ "$MANIFEST_STATUS" != "404" ]]; then
             echo "::error::读取 GHCR latest 镜像失败，HTTP 状态码：$MANIFEST_STATUS"
             exit 1
+          fi
+
+          CHANGELOG_RANGE=""
+          CHANGELOG_PREFIX="最近提交"
+          if [[ "$PREVIOUS_REVISION" =~ ^[0-9a-f]{40}$ ]] && git cat-file -e "$PREVIOUS_REVISION^{commit}" 2>/dev/null; then
+            CHANGELOG_RANGE="$PREVIOUS_REVISION..$GITHUB_SHA"
+            CHANGELOG_PREFIX="相对上一镜像的变更"
+          fi
+          if [[ -n "$CHANGELOG_RANGE" ]]; then
+            CHANGELOG_COMMITS="$(git log --first-parent -5 --format='%s' "$CHANGELOG_RANGE")"
+          else
+            CHANGELOG_COMMITS="$(git log --first-parent -5 --format='%s' "$GITHUB_SHA")"
+          fi
+          CHANGELOG="$(printf '%s\n' "$CHANGELOG_COMMITS" | jq -Rrs 'split("\n") | map(select(length > 0)) | join(" | ") | .[:400]')"
+          if [[ -z "$CHANGELOG" ]]; then
+            CHANGELOG="本次提交与上一镜像相同，无新增提交"
           fi
 
           VERSION="$(jq -r '.version // empty' package.json)"
@@ -148,41 +169,35 @@ jobs:
           {
             echo "version=$VERSION"
             echo "previous_version=$PREVIOUS_VERSION"
+            echo "previous_revision=$PREVIOUS_REVISION"
             echo "publish=$PUBLISH"
             echo "publish_latest=$PUBLISH_LATEST"
             echo "reason=$REASON"
+            echo "changelog=$CHANGELOG_PREFIX：$CHANGELOG"
           } >> "$GITHUB_OUTPUT"
 
           echo "项目版本：$VERSION"
           echo "最新已发布镜像版本：${PREVIOUS_VERSION:-（尚无 latest 镜像）}"
+          echo "镜像变更摘要：$CHANGELOG_PREFIX：$CHANGELOG"
           echo "发布判断：$REASON"
 
       - name: 生成版本和提交变更摘要
         env:
           VERSION: ${{ steps.version.outputs.version }}
           PREVIOUS_VERSION: ${{ steps.version.outputs.previous_version }}
+          PREVIOUS_REVISION: ${{ steps.version.outputs.previous_revision }}
           PUBLISH: ${{ steps.version.outputs.publish }}
           PUBLISH_LATEST: ${{ steps.version.outputs.publish_latest }}
           REASON: ${{ steps.version.outputs.reason }}
+          CHANGELOG: ${{ steps.version.outputs.changelog }}
           EVENT_NAME: ${{ github.event_name }}
         shell: bash
         run: |
           set -euo pipefail
           SUMMARY="$GITHUB_STEP_SUMMARY"
-          PREVIOUS_VERSION_SHA=""
-
-          # 找到历史中“将 package.json 更新为上一版本”的 main 第一父提交，
-          # 以此为变更摘要基线；旧版 2.2.0 也能作为第一次日期版本的基线。
-          if [[ -n "$PREVIOUS_VERSION" ]]; then
-            while IFS= read -r candidate; do
-              candidate_version="$(git show "$candidate:package.json" 2>/dev/null | jq -r '.version // empty' 2>/dev/null || true)"
-              [[ "$candidate_version" == "$PREVIOUS_VERSION" ]] || continue
-              parent_version="$(git show "$candidate^:package.json" 2>/dev/null | jq -r '.version // empty' 2>/dev/null || true)"
-              if [[ "$parent_version" != "$PREVIOUS_VERSION" ]]; then
-                PREVIOUS_VERSION_SHA="$candidate"
-                break
-              fi
-            done < <(git log --first-parent --format='%H' "${GITHUB_SHA}^" -- package.json)
+          PREVIOUS_IMAGE_SHA=""
+          if [[ "$PREVIOUS_REVISION" =~ ^[0-9a-f]{40}$ ]] && git cat-file -e "$PREVIOUS_REVISION^{commit}" 2>/dev/null; then
+            PREVIOUS_IMAGE_SHA="$PREVIOUS_REVISION"
           fi
 
           {
@@ -191,6 +206,7 @@ jobs:
             printf -- '- 本次提交：[%s](https://github.com/%s/commit/%s)\n' "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$GITHUB_SHA"
             printf -- '- 构建平台：linux/arm64\n'
             printf -- '- 发布判断：%s\n' "$REASON"
+            printf -- '- 镜像变更摘要：%s\n' "$CHANGELOG"
             if [[ "$PUBLISH" == "true" ]]; then
               printf -- '- 版本镜像：ghcr.io/geekmus/genpac-runner:%s\n' "$VERSION"
               printf -- '- 稳定版别名：ghcr.io/geekmus/genpac-runner:latest\n'
@@ -201,15 +217,15 @@ jobs:
             fi
           } >> "$SUMMARY"
 
-          if [[ -n "$PREVIOUS_VERSION_SHA" ]]; then
+          if [[ -n "$PREVIOUS_IMAGE_SHA" ]]; then
             {
               printf '\n## 相比上一版本的代码变更\n\n'
               printf -- '- 上一版本：%s\n' "$PREVIOUS_VERSION"
-              printf -- '- 上一版本提交：[%s](https://github.com/%s/commit/%s)\n' "$PREVIOUS_VERSION_SHA" "$GITHUB_REPOSITORY" "$PREVIOUS_VERSION_SHA"
-              printf -- '- 完整差异：[查看提交和文件变更](https://github.com/%s/compare/%s...%s)\n' "$GITHUB_REPOSITORY" "$PREVIOUS_VERSION_SHA" "$GITHUB_SHA"
+              printf -- '- 上一镜像提交：[%s](https://github.com/%s/commit/%s)\n' "$PREVIOUS_IMAGE_SHA" "$GITHUB_REPOSITORY" "$PREVIOUS_IMAGE_SHA"
+              printf -- '- 完整差异：[查看提交和文件变更](https://github.com/%s/compare/%s...%s)\n' "$GITHUB_REPOSITORY" "$PREVIOUS_IMAGE_SHA" "$GITHUB_SHA"
               printf '\n### 提交记录（main 第一父历史）\n\n'
             } >> "$SUMMARY"
-            git log --first-parent --no-decorate --format="- [%h](https://github.com/${GITHUB_REPOSITORY}/commit/%H) %s" "$PREVIOUS_VERSION_SHA..$GITHUB_SHA" >> "$SUMMARY"
+            git log --first-parent --no-decorate --format="- [%h](https://github.com/${GITHUB_REPOSITORY}/commit/%H) %s" "$PREVIOUS_IMAGE_SHA..$GITHUB_SHA" >> "$SUMMARY"
           else
             {
               printf '\n## 提交记录\n\n'
@@ -264,6 +280,7 @@ jobs:
             org.opencontainers.image.source=https://github.com/geekMus/genpac-runner
             org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
             org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.changelog=${{ needs.prepare.outputs.changelog }}
 
       - name: 构建并按条件推送 ARM64 镜像
         if: github.event_name == 'workflow_dispatch' || needs.prepare.outputs.publish == 'true'
