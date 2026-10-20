@@ -4,6 +4,7 @@
  */
 
 import { assertSafeHttpUrl } from "../utils/url-safety";
+import { t } from "../i18n";
 
 export interface RemoteListFetchMeta {
   url: string;
@@ -235,7 +236,8 @@ export function buildRemoteListPac(
   remoteDirectHosts: string[],
   userBlockList: string[],
   userDirectList: string[],
-  compress: boolean
+  compress: boolean,
+  locale: "zh" | "en" = "zh"
 ): string {
   const proxyObj = proxyHosts
     .map((h) => `"${escapeJsString(h)}":1`)
@@ -246,9 +248,13 @@ export function buildRemoteListPac(
   const blockJs = toJsArray(userBlockList, false);
   const directJs = toJsArray(userDirectList, false);
 
-  const body = `// genpac-runner 生成的 PAC（远程规则列表与自定义规则）
-// 远程代理域名：${proxyHosts.length} 条；远程例外直连：${remoteDirectHosts.length} 条
-// 自定义黑名单：${userBlockList.length} 条；自定义直连：${userDirectList.length} 条
+  const lang = locale === "en" ? "en" : "zh";
+  const intro = t(lang, "pac.body.remoteIntro");
+  const stats = t(lang, "pac.body.remoteStats", { proxy: proxyHosts.length, direct: remoteDirectHosts.length });
+  const customStats = t(lang, "pac.body.remoteCustomStats", { block: userBlockList.length, direct: userDirectList.length });
+  const body = `${intro}
+${stats}
+${customStats}
 
 var PROXY = ${JSON.stringify(pacProxy)};
 var DIRECT = "DIRECT";

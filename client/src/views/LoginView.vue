@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { useI18n } from "vue-i18n";
 import { ref, onMounted } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter, useRoute } from "vue-router";
 import { api } from "../api/client";
 import AppHeader from "../components/AppHeader.vue";
 import AppFooter from "../components/AppFooter.vue";
 import AppIcon from "../components/AppIcon.vue";
 import { useToast } from "../composables/useToast";
+const { t } = useI18n();
 const { notify } = useToast();
 
 const router = useRouter();
@@ -18,14 +19,14 @@ const loading = ref(false);
 const adminEnabled = ref<boolean | null>(null);
 
 onMounted(async () => {
-  if (route.query.passwordChanged === "1") notice.value = "管理密码已修改，请使用新密码登录。";
+  if (route.query.passwordChanged === "1") notice.value = t("login.passwordChanged");
   try {
     const meta = await api.meta();
     adminEnabled.value = meta.adminEnabled;
     const session = await api.session();
     if (session.loggedIn) await router.replace("/admin/dashboard");
   } catch (e) {
-    error.value = e instanceof Error ? e.message : "暂时无法连接服务，请检查后端状态。";
+    error.value = e instanceof Error ? e.message : t("login.connectFailed");
   }
 });
 async function onSubmit() {
@@ -37,7 +38,7 @@ async function onSubmit() {
     const { invalidateAdminSessionCache, fetchAdminSession } = await import("../composables/useAdminSession");
     invalidateAdminSessionCache();
     const session = await fetchAdminSession(true);
-    notify("登录成功", "success");
+    notify(t("login.success"), "success");
     if (session.mustChangePassword) {
       notify("当前仍使用默认密码，请先修改后再使用其他功能。", "warning", 5500);
       await router.push("/admin/settings");
@@ -73,15 +74,15 @@ async function onSubmit() {
         <div v-if="notice" class="alert success-alert" role="status">{{ notice }}</div>
         <div v-if="error" class="alert" :class="{ warning: adminEnabled === false }" role="alert">{{ error }}</div>
         <form @submit.prevent="onSubmit">
-          <label for="pw">管理密码</label>
+          <label for="pw">{{ t("login.password") }}</label>
           <input id="pw" v-model="password" type="password" required autocomplete="current-password"
-            placeholder="输入管理密码" :disabled="adminEnabled === false" autofocus />
-          <button type="submit" class="login-submit" :class="{ 'is-loading': loading }" :disabled="loading || !password || adminEnabled === false" :title="loading ? '正在验证登录信息，请稍候' : adminEnabled === false ? '后台管理功能未启用' : !password ? '请输入管理员密码后登录' : '登录管理后台'">
-            {{ loading ? "正在验证…" : "登录控制台" }}<AppIcon :name="loading ? 'loader-circle' : 'arrow-right'" :class="{ 'icon-spinning': loading }" :size="16" />
+            :placeholder="t('login.passwordPlaceholder')" :disabled="adminEnabled === false" autofocus />
+          <button type="submit" class="login-submit" :class="{ 'is-loading': loading }" :disabled="loading || !password || adminEnabled === false" :title="loading ? t('login.verifying') : adminEnabled === false ? t('login.adminDisabled') : !password ? t('login.needPassword') : t('login.titleButton')">
+            {{ loading ? t("login.submitting") : t("login.submit") }}<AppIcon :name="loading ? 'loader-circle' : 'arrow-right'" :class="{ 'icon-spinning': loading }" :size="16" />
           </button>
         </form>
-        <p class="login-footnote">请勿在公共设备上保存管理密码。密码重置会生成一次性临时密码，登录后需立即设置新密码。</p>
-        <p class="login-footnote"><a href="https://github.com/geekMus/genpac-runner#常见问题" target="_blank" rel="noopener noreferrer">查看跨平台密码重置说明 ↗</a></p>
+        <p class="login-footnote">{{ t("login.footnote") }}</p>
+        <p class="login-footnote"><a href="https://github.com/geekMus/genpac-runner#常见问题" target="_blank" rel="noopener noreferrer">{{ t("login.resetHelp") }}</a></p>
       </section>
     </section>
     <AppFooter />

@@ -90,7 +90,7 @@ watch(() => route.fullPath, () => {
         </span>
       </div>
 
-      <nav class="sidebar-nav" aria-label="管理导航">
+      <nav class="sidebar-nav" :aria-label="t('layout.adminConsole')">
         <section class="nav-group" aria-labelledby="nav-workbench">
           <p id="nav-workbench" class="nav-caption">{{ t('layout.workbench') }}</p>
           <p v-if="mustChangePassword" class="nav-lock-note" role="status">{{ t('layout.mustChangePassword') }}</p>

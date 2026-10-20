@@ -53,7 +53,7 @@ async function saveLocale(){
     settings.value=saved;
     localeChoice.value=resolveLocale(saved.locale);
     setAppLocale(localeChoice.value);
-    notify(t("common.success"),"success");
+    notify(t("system.localeSaved"),"success");
   }catch(e){notify(e instanceof Error?e.message:String(e),"error");}
   finally{savingLocale.value=false;}
 }
