@@ -433,7 +433,7 @@ onUnmounted(() => {
       <section class="monitor-panel pac-overview-panel" aria-labelledby="pac-overview-title">
         <div class="panel-heading">
           <div>
-            <h2 id="pac-overview-title">PAC 文件服务</h2>
+            <h2 id="pac-overview-title"><AppIcon name="route" :size="17" />PAC 文件服务</h2>
             <p>仅统计对 <code>/proxy.pac</code> 的请求；成功率将 HTTP 2xx 和 3xx（包括 304 缓存未修改）视为成功。</p>
           </div>
           <span class="panel-count">近 24 小时</span>
@@ -441,7 +441,7 @@ onUnmounted(() => {
 
         <div class="pac-metric-grid">
           <article class="metric-card pac-metric-primary">
-            <span class="metric-label"><AppIcon name="file-text" :size="15" />PAC 请求次数</span>
+            <span class="metric-label"><AppIcon name="route" :size="15" />PAC 请求次数</span>
             <strong class="metric-value">{{ summary?.pacRequestsLast24h ?? 0 }}</strong>
             <span class="metric-note">近 1 小时 {{ summary?.pacRequestsLastHour ?? 0 }} 次</span>
           </article>
@@ -484,7 +484,7 @@ onUnmounted(() => {
       <section class="monitor-panel pac-trend-panel">
         <div class="panel-heading">
           <div>
-            <h2>PAC 请求趋势</h2>
+            <h2><AppIcon name="chart" :size="17" />PAC 请求趋势</h2>
             <p>按小时统计近 24 小时的 PAC 文件请求；红色部分表示失败请求。下方展示每小时平均响应耗时。</p>
           </div>
           <span class="panel-count">峰值 {{ Math.max(0, ...(summary?.pacRequestTrend ?? []).map((item) => item.requests)) }} 次/小时</span>
@@ -501,7 +501,7 @@ onUnmounted(() => {
           <span><i class="legend-swatch error-swatch"></i>失败请求（包含在请求总量中）</span>
         </div>
         <div class="pac-latency-heading">
-          <strong>每小时平均响应耗时</strong>
+          <strong><AppIcon name="timer" :size="15" />每小时平均响应耗时</strong>
           <span>单位：毫秒 · 近 24 小时</span>
         </div>
         <div v-if="(summary?.pacRequestsLast24h ?? 0) > 0" class="pac-latency-chart" role="img" aria-label="最近 24 小时 PAC 文件每小时平均响应耗时">
@@ -516,7 +516,7 @@ onUnmounted(() => {
       </section>
 
       <div class="overall-stats-heading">
-        <h2>服务整体统计</h2>
+        <h2><AppIcon name="activity" :size="17" />服务整体统计</h2>
         <p>以下数据包含网页、PAC 文件和 API 请求，用于辅助排查整个管理服务的运行状态。</p>
       </div>
       <section class="metric-grid" aria-label="服务整体统计">
@@ -567,7 +567,7 @@ onUnmounted(() => {
       <section class="monitor-panel trend-panel">
         <div class="panel-heading">
           <div>
-            <h2>最近 24 小时请求趋势</h2>
+            <h2><AppIcon name="chart" :size="17" />最近 24 小时请求趋势</h2>
             <p>按小时汇总网页、PAC 与 API 请求；红色部分代表 HTTP 4xx/5xx。当前小时尚未结束，计数可能继续增长。</p>
           </div>
           <span class="panel-count">峰值 {{ Math.max(0, ...(summary?.requestTrend ?? []).map((item) => item.requests)) }} 次/小时</span>
@@ -589,7 +589,7 @@ onUnmounted(() => {
       <section class="monitor-panel">
         <div class="panel-heading">
           <div>
-            <h2>最近访问记录</h2>
+            <h2><AppIcon name="list-checks" :size="17" />最近访问记录</h2>
             <p>每批加载 50 条请求；查询参数、Cookie 和请求正文不会被保存。</p>
           </div>
           <div class="panel-actions">
@@ -746,7 +746,7 @@ onUnmounted(() => {
       <section class="monitor-panel">
         <div class="panel-heading">
           <div>
-            <h2>代理连通性测试</h2>
+            <h2><AppIcon name="zap" :size="17" />代理连通性测试</h2>
             <p>测试当前保存的 PAC 代理指令；每个代理有 12 秒总超时。不会把 PAC 中的 DIRECT 项当作代理节点。</p>
           </div>
           <button class="monitor-button primary" :class="{ 'is-loading': probing }" type="button" :disabled="probing || savingProxyTestTarget || !proxyTestTargetLoaded || proxyTestTargetChanged" :title="probing ? '代理连通性测试正在执行，请稍候' : savingProxyTestTarget ? '正在保存测试地址，请稍候' : !proxyTestTargetLoaded ? '请先读取代理测试地址' : proxyTestTargetChanged ? '请先保存或撤销已修改的测试地址' : '立即测试当前保存的代理配置'" @click="runProxyTest">
@@ -864,7 +864,7 @@ onUnmounted(() => {
       <section class="monitor-panel">
         <div class="panel-heading">
           <div>
-            <h2>代理检测历史</h2>
+            <h2><AppIcon name="clock" :size="17" />代理检测历史</h2>
             <p>保存最近检测结果，便于比较可用性与延迟变化。</p>
           </div>
           <div class="panel-actions">
@@ -891,7 +891,7 @@ onUnmounted(() => {
             <tr>
               <td class="nowrap">{{ formatDate(item.tested_at) }}</td>
               <td><code>{{ item.proxy_label }}</code></td>
-              <td><span class="status-pill" :class="item.success ? 'good' : 'bad'">{{ item.success ? "可用" : "失败" }}</span></td>
+              <td><span class="status-pill" :class="item.success ? 'good' : 'bad'"><AppIcon :name="item.success ? 'circle-check' : 'circle-x'" :size="12" />{{ item.success ? "可用" : "失败" }}</span></td>
               <td class="nowrap">{{ formatDuration(item.tcp_ms) }}</td>
               <td class="nowrap">{{ formatDuration(item.handshake_ms) }}</td>
               <td class="nowrap">{{ formatDuration(item.target_ms) }}</td>
@@ -1139,4 +1139,36 @@ onUnmounted(() => {
 }
 @media(max-width:1100px) { .metric-grid,.pac-metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .monitor-panel { padding:16px; } .probe-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .pac-latest-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .pac-latency-chart { gap:2px; } .access-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .search-filter { grid-column:1 / -1; } .access-filter-reset { justify-self:start; } }
 @media(max-width:560px) { .access-filters { grid-template-columns:1fr; } .search-filter { grid-column:auto; } .pac-metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; } .pac-latest-grid { grid-template-columns:1fr; gap:10px; } .pac-latest-heading,.pac-latency-heading { align-items:flex-start; flex-direction:column; } .pac-latency-chart { grid-template-columns:repeat(12,minmax(0,1fr)); } .pac-latency-column:nth-child(odd) > span { visibility:visible; } .pac-latency-column:nth-child(even) > span { visibility:hidden; } .probe-target-controls { flex-direction:column; } .probe-target-controls .monitor-button { align-self:flex-start; } .monitor-title-row { flex-direction:column; } .monitor-title-row .monitor-button { align-self:flex-start; } .panel-heading { flex-direction:column; align-items:stretch; gap:8px; margin-bottom:12px; } .panel-actions { align-self:flex-start; } .panel-heading > .monitor-button { align-self:flex-start; } .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:14px 0 20px; } .metric-card { padding:12px 11px; border-radius:11px; } .metric-label { font-size:10px; } .metric-value { font-size:1.32rem; } .monitor-panel { padding:13px; margin-bottom:16px; } .trend-sample-note { margin-left:0; flex-basis:100%; } .probe-run-head { flex-direction:column; align-items:flex-start; } .probe-metrics { gap:7px; } }
+
+.panel-heading h2,
+.overall-stats-heading h2{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+.panel-heading h2 :deep(.app-icon),
+.overall-stats-heading h2 :deep(.app-icon){
+  flex:0 0 auto;
+  color:var(--accent);
+  opacity:.92;
+}
+.metric-label{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.metric-label :deep(.app-icon){
+  flex:0 0 auto;
+  opacity:.85;
+}
+.pac-latest-heading strong{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+}
+.status-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+}
 </style>
