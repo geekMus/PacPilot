@@ -101,18 +101,4 @@ export function assertSafeHttpUrl(
   return null;
 }
 
-/** Mask client addresses shown in the admin UI (full value stays in the DB). */
-export function maskIpAddress(address: string): string {
-  const value = String(address || "").trim();
-  if (!value || value === "unknown") return "unknown";
-  const v4 = parseIpv4(value);
-  if (v4) return `${v4[0]}.${v4[1]}.${v4[2]}.*`;
-  if (value.includes(":")) {
-    const parts = value.split(":");
-    if (parts.length >= 3) {
-      return `${parts.slice(0, 2).join(":")}:*:*:${parts[parts.length - 1]}`;
-    }
-  }
-  if (value.length <= 4) return "***";
-  return value.slice(0, 3) + "***";
-}
+

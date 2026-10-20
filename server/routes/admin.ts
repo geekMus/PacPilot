@@ -26,7 +26,7 @@ import cron from "node-cron";
 import { getMonitorSummary, listAccessEvents, listProxyProbeRuns } from "../db/monitoring";
 import { getActiveRequestCount, getTcpConnectionCount } from "../services/request-monitor";
 import { DEFAULT_PROXY_TEST_URL, parseProxyTestUrl, testConfiguredProxies } from "../services/proxy-probe";
-import { assertSafeHttpUrl, maskIpAddress } from "../utils/url-safety";
+import { assertSafeHttpUrl } from "../utils/url-safety";
 
 function parseList(raw:unknown):string[]{if(Array.isArray(raw))return raw.map(String).map(s=>s.trim()).filter(Boolean);if(typeof raw!=="string")return[];return raw.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);}
 function validTimeZone(v:string):boolean{try{new Intl.DateTimeFormat("en-US",{timeZone:v}).format(new Date());return true;}catch{return false;}}
@@ -167,9 +167,6 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
  router.get("/api/admin/monitor/summary",requireAdmin(database),(_req,res)=>{
   res.setHeader("Cache-Control","no-store");
   const summary=getMonitorSummary(database,getActiveRequestCount(),getTcpConnectionCount());
-  if(summary.latestPacRequest?.source_ip){
-   summary.latestPacRequest={...summary.latestPacRequest,source_ip:maskIpAddress(summary.latestPacRequest.source_ip)};
-  }
   res.json({...summary,timezone:getSettings(database).timezone});
  });
  router.get("/api/admin/monitor/access",requireAdmin(database),(req,res)=>{
@@ -177,7 +174,7 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
   const paged=String(req.query.paged??"") === "1";
   const limit=Math.min(paged?100:200,Math.max(1,Number.parseInt(String(req.query.limit??"50"),10)||50));
   const beforeId=Math.max(0,Number.parseInt(String(req.query.beforeId??"0"),10)||0);
-  const rows=listAccessEvents(database,paged?limit+1:limit,beforeId).map((row)=>({...row,source_ip:maskIpAddress(row.source_ip)}));
+  const rows=listAccessEvents(database,paged?limit+1:limit,beforeId);
   if(!paged){res.json(rows);return;}
   const hasMore=rows.length>limit;
   const total=Number((database.query("SELECT COUNT(*) AS total FROM access_events").get() as {total:number}).total);
