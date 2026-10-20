@@ -89,12 +89,16 @@ function applyDocumentTitle(pageTitle?: unknown): void {
 const PASSWORD_CHANGE_TOAST_KEY = "layout.mustChangePassword";
 
 router.beforeEach(async (to, from) => {
-  if (!isAdminAppRoute(to.path)) return true;
-  if (to.name === "login") return true;
-  if (isPasswordChangeAllowedRoute(to.path)) return true;
+  const isAdminPath = isAdminAppRoute(to.path);
+  if (!isAdminPath && to.path !== "/") return true;
 
   try {
     const session = await fetchAdminSession();
+    if (session.adminCredentialsMissing) {
+      return isAdminPath && to.name !== "login" ? { name: "login" } : true;
+    }
+    if (!isAdminPath) return true;
+    if (to.name === "login" || isPasswordChangeAllowedRoute(to.path)) return true;
     if (!session.loggedIn) {
       return { name: "login", query: { redirect: to.fullPath } };
     }

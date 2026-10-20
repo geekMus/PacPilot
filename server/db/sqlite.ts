@@ -32,9 +32,7 @@ function initializeSchema(database: AppDatabase): void {
     (database.query("PRAGMA user_version").get() as { user_version: number }).user_version
   );
   const hasTables = Boolean(
-    database
-      .query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'settings'")
-      .get()
+    database.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'settings'").get()
   );
   if (hasTables && version !== 1) {
     database.close();
@@ -203,11 +201,7 @@ function parseRecord(value: string): Record<string, string | number | boolean> {
   }
   const result: Record<string, string | number | boolean> = {};
   for (const [key, entry] of Object.entries(parsed)) {
-    if (
-      typeof entry === "string" ||
-      typeof entry === "number" ||
-      typeof entry === "boolean"
-    ) {
+    if (typeof entry === "string" || typeof entry === "number" || typeof entry === "boolean") {
       result[key] = entry;
     }
   }
@@ -271,13 +265,7 @@ function normalizeTimeZone(value: string): string {
     return DEFAULT_SETTINGS.timezone;
   }
 }
-function normalizeLocale(raw: unknown): import("./settings").AppLocale {
-  const value = String(raw || "").trim();
-  return value === "en_US" ? "en_US" : "zh_CN";
-}
-
 function normalizeSettings(s: AppSettings): AppSettings {
-  const locale = normalizeLocale(s.locale);
   return {
     mode: s.mode === "remote" ? "remote" : "custom",
     pacProxy: String(s.pacProxy || DEFAULT_SETTINGS.pacProxy).trim(),
@@ -291,7 +279,6 @@ function normalizeSettings(s: AppSettings): AppSettings {
       : [],
     cronSchedule: String(s.cronSchedule || "").trim(),
     timezone: normalizeTimeZone(String(s.timezone || DEFAULT_SETTINGS.timezone)),
-    locale,
     proxyTestUrl: String(s.proxyTestUrl || DEFAULT_SETTINGS.proxyTestUrl).trim(),
     logRetentionDays: Math.max(
       0,
@@ -300,8 +287,8 @@ function normalizeSettings(s: AppSettings): AppSettings {
         Math.floor(Number(s.logRetentionDays ?? DEFAULT_SETTINGS.logRetentionDays) || 0)
       )
     ),
-    webhookSuccessConfig: normalizeWebhookConfig(s.webhookSuccessConfig, locale),
-    webhookFailureConfig: normalizeWebhookConfig(s.webhookFailureConfig, locale),
+    webhookSuccessConfig: normalizeWebhookConfig(s.webhookSuccessConfig),
+    webhookFailureConfig: normalizeWebhookConfig(s.webhookFailureConfig),
   };
 }
 

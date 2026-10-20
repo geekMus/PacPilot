@@ -104,7 +104,11 @@ const channelStatusText = computed(() => {
         :class="{ 'is-loading': pending }"
         :disabled="pending"
         :title="
-          pending ? t('webhookChannel.k10') : !channelReady ? channelStatusText : t('webhookChannel.k11')
+          pending
+            ? t('webhookChannel.k10')
+            : !channelReady
+              ? channelStatusText
+              : t('webhookChannel.k11')
         "
         @click="emit('test')"
       >
@@ -172,13 +176,16 @@ const channelStatusText = computed(() => {
         </div>
       </div>
       <div class="field" :data-validation-target="kind + '-headers'">
-        <label>{{ t("webhookChannel.k30") }} <span class="label-hint">{{ t("webhookChannel.k31") }}</span></label>
+        <label
+          >{{ t("webhookChannel.k30") }}
+          <span class="label-hint">{{ t("webhookChannel.k31") }}</span></label
+        >
         <CodeMirrorField
           :model-value="config.headers"
           language="json"
           :height="126"
           :invalid="Boolean(validationErrors?.headers)"
-          :aria-label='t("webhookChannel.k14")'
+          :aria-label="t('webhookChannel.k14')"
           placeholder='{"Authorization":"Bearer …"}'
           @update:model-value="update('headers', $event)"
         />
@@ -190,14 +197,17 @@ const channelStatusText = computed(() => {
         </p>
       </div>
       <div class="field" :data-validation-target="kind + '-body'">
-        <label>{{ t("webhookChannel.k33") }} <span class="label-hint">{{ t("webhookChannel.k34") }}</span></label>
+        <label
+          >{{ t("webhookChannel.k33") }}
+          <span class="label-hint">{{ t("webhookChannel.k34") }}</span></label
+        >
         <WebhookBodyEditor
           :model-value="config.body"
           :height="190"
           :sample="bodySample"
-          :empty-hint='t("webhookChannel.k15")'
+          :empty-hint="t('webhookChannel.k15')"
           :invalid="Boolean(validationErrors?.body)"
-          :placeholder='t("webhookChannel.k16")'
+          :placeholder="t('webhookChannel.k16')"
           @update:model-value="update('body', $event)"
         />
         <p v-if="validationErrors?.body" class="field-error" role="alert">
@@ -213,14 +223,17 @@ const channelStatusText = computed(() => {
         </p>
       </div>
       <div class="field" :data-validation-target="kind + '-test-body'">
-        <label>{{ t("webhookChannel.k37") }} <span class="label-hint">{{ t("webhookChannel.k38") }}</span></label>
+        <label
+          >{{ t("webhookChannel.k37") }}
+          <span class="label-hint">{{ t("webhookChannel.k38") }}</span></label
+        >
         <WebhookBodyEditor
           :model-value="config.testBody"
           :height="150"
           :sample="testBodySample"
           :empty-hint="testBodyEmptyHint"
           :invalid="Boolean(validationErrors?.testBody)"
-          :placeholder='t("webhookChannel.k17")'
+          :placeholder="t('webhookChannel.k17')"
           @update:model-value="update('testBody', $event)"
         />
         <p v-if="validationErrors?.testBody" class="field-error" role="alert">
@@ -241,7 +254,7 @@ const channelStatusText = computed(() => {
           :height="40"
           language="text"
           :invalid="Boolean(validationErrors?.url)"
-          :aria-label='t("webhookChannel.k18")'
+          :aria-label="t('webhookChannel.k18')"
           placeholder="https://oapi.dingtalk.com/robot/send?access_token=…"
           @update:model-value="update('url', $event)"
         />
@@ -253,14 +266,17 @@ const channelStatusText = computed(() => {
         </p>
       </div>
       <div class="field" :data-validation-target="kind + '-secret'">
-        <label>{{ t("webhookChannel.k42") }} <span class="label-hint">{{ t("webhookChannel.k43") }}</span></label>
+        <label
+          >{{ t("webhookChannel.k42") }}
+          <span class="label-hint">{{ t("webhookChannel.k43") }}</span></label
+        >
         <div class="secret-field">
           <input
             :value="config.dingTalkSecret"
             :type="showDingTalkSecret ? 'text' : 'password'"
             :aria-invalid="Boolean(validationErrors?.secret)"
             autocomplete="new-password"
-            :placeholder='t("webhookChannel.k19")'
+            :placeholder="t('webhookChannel.k19')"
             @input="update('dingTalkSecret', inputValue($event))"
           />
           <button
@@ -282,7 +298,8 @@ const channelStatusText = computed(() => {
           {{ validationErrors.secret }}
         </p>
         <p class="field-hint">
-          {{ t("webhookChannel.k44") }}<a
+          {{ t("webhookChannel.k44")
+          }}<a
             href="https://open.dingtalk.com/document/robots/customize-robot-security-settings"
             target="_blank"
             rel="noopener noreferrer"
@@ -310,13 +327,16 @@ const channelStatusText = computed(() => {
         </div>
       </div>
       <div class="field">
-        <label>{{ t("webhookChannel.k48") }} <span class="label-hint">{{ t("webhookChannel.k49") }}</span></label>
+        <label
+          >{{ t("webhookChannel.k48") }}
+          <span class="label-hint">{{ t("webhookChannel.k49") }}</span></label
+        >
         <CodeMirrorField
           :model-value="config.messageTemplate"
           language="text"
           :height="148"
-          :aria-label='t("webhookChannel.k23")'
-          :placeholder='t("webhookChannel.k24")'
+          :aria-label="t('webhookChannel.k23')"
+          :placeholder="t('webhookChannel.k24')"
           @update:model-value="update('messageTemplate', $event)"
         />
         <p class="field-hint">
@@ -329,13 +349,16 @@ const channelStatusText = computed(() => {
         </p>
       </div>
       <div class="field">
-        <label>{{ t("webhookChannel.k52") }} <span class="label-hint">{{ t("webhookChannel.k38") }}</span></label>
+        <label
+          >{{ t("webhookChannel.k52") }}
+          <span class="label-hint">{{ t("webhookChannel.k38") }}</span></label
+        >
         <CodeMirrorField
           :model-value="config.testMessageTemplate"
           language="text"
           :height="112"
-          :aria-label='t("webhookChannel.k25")'
-          :placeholder='t("webhookChannel.k26")'
+          :aria-label="t('webhookChannel.k25')"
+          :placeholder="t('webhookChannel.k26')"
           @update:model-value="update('testMessageTemplate', $event)"
         />
         <p class="field-hint">{{ t("webhookChannel.k53") }}</p>

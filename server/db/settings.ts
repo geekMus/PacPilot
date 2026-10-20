@@ -84,8 +84,6 @@ export interface AppSettings {
   cronSchedule: string;
   /** IANA timezone used by scheduled tasks and displayed timestamps. */
   timezone: string;
-  /** Language used by the admin UI and generated PAC comments. */
-  locale: AppLocale;
   /** HTTPS URL requested through each proxy during connectivity checks. */
   proxyTestUrl: string;
   /** Automatically delete operational logs older than this many days; 0 disables automatic cleanup. */
@@ -105,7 +103,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   directList: [],
   cronSchedule: "",
   timezone: "Asia/Shanghai",
-  locale: "zh_CN",
   proxyTestUrl: "https://www.google.com/generate_204",
   logRetentionDays: 30,
   webhookSuccessConfig: { ...DEFAULT_WEBHOOK },

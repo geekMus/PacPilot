@@ -136,7 +136,10 @@ function durationLabel(s: WorkflowStage) {
   if (ms === null) return "—";
   if (ms < 1000) return ms + " ms";
   if (ms < 60000) return t("workflowDetailPage.sec", { n: (ms / 1000).toFixed(1) });
-  return t("workflowDetailPage.minSec", { m: Math.floor(ms / 60000), s: Math.floor((ms % 60000) / 1000) });
+  return t("workflowDetailPage.minSec", {
+    m: Math.floor(ms / 60000),
+    s: Math.floor((ms % 60000) / 1000),
+  });
 }
 
 function stageIconName(status: string): string {
@@ -321,7 +324,9 @@ onUnmounted(() => {
           </div>
           <div>
             <span>{{ t("workflow.generateMode") }}</span>
-            <strong>{{ detail.run.mode === "remote" ? t("workflow.remoteMode") : t("workflow.customMode") }}</strong>
+            <strong>{{
+              detail.run.mode === "remote" ? t("workflow.remoteMode") : t("workflow.customMode")
+            }}</strong>
           </div>
           <div>
             <span>{{ t("workflow.startTime") }}</span>
@@ -347,13 +352,13 @@ onUnmounted(() => {
         <div class="result-message">
           <strong>{{ t("workflow.result") }}</strong>
           <p>
-            {{
-              label(detail.run.status)
-            }}
+            {{ label(detail.run.status) }}
           </p>
         </div>
         <div v-if="detail.run.error" class="failure-message">
-          <strong><AppIcon name="circle-alert" :size="16" /> {{ t("workflowDetailPage.k26") }}</strong>
+          <strong
+            ><AppIcon name="circle-alert" :size="16" /> {{ t("workflowDetailPage.k26") }}</strong
+          >
           <pre>{{ detail.run.error }}</pre>
         </div>
       </section>
@@ -367,7 +372,9 @@ onUnmounted(() => {
               {{ t("workflowDetailPage.k28") }}
             </p>
           </div>
-          <span class="muted">{{ t("workflowDetailPage.stageCount", { n: detail.stages.length }) }}</span>
+          <span class="muted">{{
+            t("workflowDetailPage.stageCount", { n: detail.stages.length })
+          }}</span>
         </div>
         <ol class="stage-list">
           <li v-for="(stage, index) in detail.stages" :key="stage.id" class="stage-item">
@@ -381,11 +388,13 @@ onUnmounted(() => {
             <div class="stage-body">
               <div class="stage-heading">
                 <div class="stage-heading-main">
-                  <span class="stage-number">{{ t("workflowDetailPage.stageIndex", { n: index + 1 }) }}</span>
+                  <span class="stage-number">{{
+                    t("workflowDetailPage.stageIndex", { n: index + 1 })
+                  }}</span>
                   <button
                     type="button"
                     class="stage-name-trigger"
-                    :title='t("workflowDetailPage.k17")'
+                    :title="t('workflowDetailPage.k17')"
                     @click="openStageDetail(stage)"
                   >
                     {{ stageLabel(stage.stage_key) }}
@@ -394,19 +403,18 @@ onUnmounted(() => {
                 <span class="status" :class="stage.status">{{ label(stage.status) }}</span>
               </div>
               <p>
-                {{
-                  label(stage.status)
-                }}
+                {{ label(stage.status) }}
               </p>
               <div class="stage-meta">
-                <span>{{ t("workflowDetailPage.stageStart", { time: dateLabel(stage.started_at) }) }}</span>
-                <span>{{ t("workflowDetailPage.stageEnd", { time: dateLabel(stage.finished_at) }) }}</span>
+                <span>{{
+                  t("workflowDetailPage.stageStart", { time: dateLabel(stage.started_at) })
+                }}</span>
+                <span>{{
+                  t("workflowDetailPage.stageEnd", { time: dateLabel(stage.finished_at) })
+                }}</span>
                 <span>{{ t("workflowDetailPage.k34") }}：{{ durationLabel(stage) }}</span>
               </div>
-              <pre
-                v-if="stage.error"
-                class="stage-error"
-              >{{ stage.error }}</pre>
+              <pre v-if="stage.error" class="stage-error">{{ stage.error }}</pre>
             </div>
           </li>
           <li v-if="!detail.stages.length" class="no-stages">
@@ -425,7 +433,7 @@ onUnmounted(() => {
         v-if="selectedStage"
         ref="stageDetailDialog"
         class="stage-detail-dialog"
-        :aria-label='t("workflowDetailPage.k19")'
+        :aria-label="t('workflowDetailPage.k19')"
         @click="handleStageDetailBackdrop"
         @close="onStageDetailClose"
       >
@@ -434,9 +442,7 @@ onUnmounted(() => {
             <div>
               <p class="stage-detail-kicker">STAGE · {{ selectedStage.stage_key }}</p>
               <h2>
-                {{
-                  stageLabel(selectedStage.stage_key)
-                }}
+                {{ stageLabel(selectedStage.stage_key) }}
               </h2>
             </div>
             <div class="stage-detail-actions">
@@ -446,7 +452,7 @@ onUnmounted(() => {
               <button
                 class="stage-detail-btn"
                 type="button"
-                :aria-label='t("workflowDetailPage.k20")'
+                :aria-label="t('workflowDetailPage.k20')"
                 @click="closeStageDetail"
               >
                 <AppIcon name="x" :size="14" />

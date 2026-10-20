@@ -12,7 +12,12 @@ const iconNames = {
 } as const;
 </script>
 <template>
-  <div class="toast-host" aria-live="polite" aria-relevant="additions text" :aria-label="t('toast.ariaLabel')">
+  <div
+    class="toast-host"
+    aria-live="polite"
+    aria-relevant="additions text"
+    :aria-label="t('toast.ariaLabel')"
+  >
     <TransitionGroup name="toast" tag="div" class="toast-stack">
       <div
         v-for="toast in toasts"

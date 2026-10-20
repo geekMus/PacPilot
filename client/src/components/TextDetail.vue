@@ -11,7 +11,7 @@ const props = withDefaults(
   }>(),
   {
     text: "",
-    label: "",  // resolved via t() below when empty
+    label: "", // resolved via t() below when empty
   }
 );
 
@@ -81,7 +81,12 @@ async function copyContent(): Promise<void> {
         <p>{{ resolvedLabel }}</p>
         <h2>{{ t("common.recordDetail") }}</h2>
       </div>
-      <button class="text-detail-close" type="button" :aria-label="t('common.closeDetail')" @click="closeDetails">
+      <button
+        class="text-detail-close"
+        type="button"
+        :aria-label="t('common.closeDetail')"
+        @click="closeDetails"
+      >
         <AppIcon name="x" :size="16" />
       </button>
     </header>
@@ -94,7 +99,9 @@ async function copyContent(): Promise<void> {
         <button class="text-detail-button secondary" type="button" @click="copyContent">
           <AppIcon name="copy" :size="14" />{{ t("common.copyContent") }}
         </button>
-        <button class="text-detail-button primary" type="button" @click="closeDetails">{{ t("common.close") }}</button>
+        <button class="text-detail-button primary" type="button" @click="closeDetails">
+          {{ t("common.close") }}
+        </button>
       </div>
     </footer>
   </dialog>

@@ -95,10 +95,7 @@ export async function testConfiguredProxies(
   const parsed = parsePacProxy(pacProxy);
   if (parsed.candidates.length === 0) {
     const warning = parsed.warnings[0];
-    throw new ProxyProbeError(
-      warning?.code ?? "monitor.probeErrors.noProxyNodes",
-      warning?.detail
-    );
+    throw new ProxyProbeError(warning?.code ?? "monitor.probeErrors.noProxyNodes", warning?.detail);
   }
 
   const candidates = parsed.candidates.slice(0, MAX_PROXIES_PER_RUN);
@@ -186,7 +183,8 @@ function parsePacProxy(raw: string): {
       } else {
         warnings.push({
           code: "",
-          detail: error instanceof Error ? error.message.slice(0, 200) : String(error).slice(0, 200),
+          detail:
+            error instanceof Error ? error.message.slice(0, 200) : String(error).slice(0, 200),
         });
       }
     }
@@ -217,8 +215,7 @@ function parseProxyAddress(kind: ProxyKind, rawAddress: string): ProxyCandidate 
       const credentials = address.slice(0, at);
       address = address.slice(at + 1);
       const separator = credentials.indexOf(":");
-      if (separator <= 0)
-        throw new ProxyProbeError("monitor.probeErrors.proxyAuthFormat");
+      if (separator <= 0) throw new ProxyProbeError("monitor.probeErrors.proxyAuthFormat");
       username = decodeURIComponent(credentials.slice(0, separator));
       password = decodeURIComponent(credentials.slice(separator + 1));
     }
@@ -595,9 +592,7 @@ function connectTcp(host: string, port: number, timeoutMs: number): Promise<Sock
       if (settled) return;
       settled = true;
       cleanup();
-      reject(
-        new ProxyProbeError("monitor.probeErrors.tcpFailed", error.message)
-      );
+      reject(new ProxyProbeError("monitor.probeErrors.tcpFailed", error.message));
     };
     socket.once("connect", onConnect);
     socket.once("error", onError);
@@ -634,9 +629,7 @@ function connectTls(socket: Duplex, servername: string, timeoutMs: number): Prom
       if (settled) return;
       settled = true;
       cleanup();
-      reject(
-        new ProxyProbeError("monitor.probeErrors.tlsFailed", error.message)
-      );
+      reject(new ProxyProbeError("monitor.probeErrors.tlsFailed", error.message));
     };
     secureSocket.once("secureConnect", onSecure);
     secureSocket.once("error", onError);
@@ -713,7 +706,8 @@ function readExact(socket: Duplex, count: number, timeoutMs: number): Promise<Bu
     };
     const onError = (error: Error): void =>
       finish(new ProxyProbeError("monitor.probeErrors.proxyConnectionInterrupted", error.message));
-    const onClose = (): void => finish(new ProxyProbeError("monitor.probeErrors.proxyConnectionClosed"));
+    const onClose = (): void =>
+      finish(new ProxyProbeError("monitor.probeErrors.proxyConnectionClosed"));
     socket.on("data", onData);
     socket.once("error", onError);
     socket.once("close", onClose);

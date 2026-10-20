@@ -160,7 +160,7 @@ function toJsArray(list: string[], compress: boolean): string {
 function buildCustomPac(settings: AppSettings): string {
   const blockJs = toJsArray(settings.blockList, false);
   const directJs = toJsArray(settings.directList, false);
-  const locale = settings.locale === "en_US" ? "en_US" : "zh_CN";
+  const locale: AppLocale = "zh_CN";
   const intro = t(locale, "pac.body.customIntro");
   const policy = t(locale, "pac.body.customPolicy");
   const listsLabel = t(locale, "pac.body.customLists");
@@ -243,13 +243,12 @@ async function runRemoteMode(
     parsed.directHosts,
     settings.blockList,
     settings.directList,
-    false,
-    settings.locale === "en_US" ? "en_US" : "zh_CN"
+    false
   );
   const generatedAt = new Date();
-  const source = withPacVersionHeader(pac, generatedAt, settings.locale, settings.timezone);
+  const source = withPacVersionHeader(pac, generatedAt, "zh_CN", settings.timezone);
   const output = settings.pacCompress
-    ? withPacVersionHeader(await compressPac(pac), generatedAt, settings.locale, settings.timezone)
+    ? withPacVersionHeader(await compressPac(pac), generatedAt, "zh_CN", settings.timezone)
     : source;
   const sourcePath = path.join(path.dirname(outFile), "proxy.source.pac");
   fs.writeFileSync(sourcePath, source, "utf8");
@@ -267,8 +266,8 @@ async function runRemoteMode(
     proxy: parsed.proxyHosts.length,
     direct: parsed.directHosts.length,
   };
-  const formatLabel = t(settings.locale, formatKey);
-  const message = t(settings.locale, `gen.success.${resultCode}`, resultData);
+  const formatLabel = t("zh_CN", formatKey);
+  const message = t("zh_CN", `gen.success.${resultCode}`, resultData);
   return {
     message,
     resultCode,
@@ -321,17 +320,12 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
     } else {
       const customPac = buildCustomPac(settings);
       const generatedAt = new Date();
-      const source = withPacVersionHeader(
-        customPac,
-        generatedAt,
-        settings.locale,
-        settings.timezone
-      );
+      const source = withPacVersionHeader(customPac, generatedAt, "zh_CN", settings.timezone);
       const output = settings.pacCompress
         ? withPacVersionHeader(
             await compressPac(customPac),
             generatedAt,
-            settings.locale,
+            "zh_CN",
             settings.timezone
           )
         : source;
@@ -340,7 +334,7 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
       fs.writeFileSync(pacPath, output, "utf8");
       resultCode = settings.pacCompress ? "custom.compressed" : "custom.uncompressed";
       resultData = { compressed: Boolean(settings.pacCompress) };
-      message = t(settings.locale, `gen.success.${resultCode}`);
+      message = t("zh_CN", `gen.success.${resultCode}`);
       detail = {
         mode: "custom",
         pac_proxy: settings.pacProxy,

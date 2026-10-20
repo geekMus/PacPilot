@@ -9,6 +9,7 @@ import {
   type WebhookConfig,
 } from "../api/client";
 import { analyzeDomainRules } from "../utils/domain-rules";
+import { commonTimeZones, isValidTimeZone } from "../utils/time-zones";
 import { useToast } from "../composables/useToast";
 import cronstrue from "cronstrue";
 import { CronExpressionParser } from "cron-parser";
@@ -106,7 +107,6 @@ export function useAdminSettings() {
     blockListText: "",
     cronSchedule: "",
     timezone: "Asia/Shanghai",
-    locale: "zh_CN" as "zh_CN" | "en_US",
     proxyTestUrl: "https://www.google.com/generate_204",
     logRetentionDays: 30,
     webhookSuccessConfig: defaultWebhookConfig(),
@@ -162,38 +162,6 @@ export function useAdminSettings() {
         ? value.testMessageTemplate
         : defaultWebhookConfig().testMessageTemplate,
     };
-  }
-
-  const commonTimeZones = [
-    { value: "Asia/Shanghai", labelKey: "settings.tzShanghai" },
-    { value: "Asia/Taipei", labelKey: "settings.tzTaipei" },
-    { value: "Asia/Hong_Kong", labelKey: "settings.tzHongKong" },
-    { value: "Asia/Tokyo", labelKey: "settings.tzTokyo" },
-    { value: "Asia/Seoul", labelKey: "settings.tzSeoul" },
-    { value: "Asia/Singapore", labelKey: "settings.tzSingapore" },
-    { value: "Asia/Bangkok", labelKey: "settings.tzBangkok" },
-    { value: "Asia/Kolkata", labelKey: "settings.tzKolkata" },
-    { value: "Asia/Dubai", labelKey: "settings.tzDubai" },
-    { value: "Europe/London", labelKey: "settings.tzLondon" },
-    { value: "Europe/Paris", labelKey: "settings.tzParis" },
-    { value: "Europe/Berlin", labelKey: "settings.tzBerlin" },
-    { value: "America/New_York", labelKey: "settings.tzNewYork" },
-    { value: "America/Chicago", labelKey: "settings.tzChicago" },
-    { value: "America/Denver", labelKey: "settings.tzDenver" },
-    { value: "America/Los_Angeles", labelKey: "settings.tzLosAngeles" },
-    { value: "America/Toronto", labelKey: "settings.tzToronto" },
-    { value: "Australia/Sydney", labelKey: "settings.tzSydney" },
-    { value: "Pacific/Auckland", labelKey: "settings.tzAuckland" },
-    { value: "Etc/UTC", labelKey: "settings.tzUTC" },
-  ] as const;
-
-  function isValidTimeZone(value: string): boolean {
-    try {
-      new Intl.DateTimeFormat("en-US", { timeZone: value.trim() }).format(new Date());
-      return true;
-    } catch {
-      return false;
-    }
   }
 
   const filteredTimeZones = computed(() => {
@@ -565,7 +533,6 @@ export function useAdminSettings() {
     form.blockListText = s.blockList.join("\n");
     form.cronSchedule = s.cronSchedule;
     form.timezone = s.timezone || "Asia/Shanghai";
-    form.locale = s.locale === "en_US" ? "en_US" : "zh_CN";
     form.proxyTestUrl = s.proxyTestUrl || "https://www.google.com/generate_204";
     form.logRetentionDays = Number.isFinite(s.logRetentionDays) ? s.logRetentionDays : 30;
     form.webhookSuccessConfig = normalizedWebhookConfig(s.webhookSuccessConfig);
@@ -587,7 +554,6 @@ export function useAdminSettings() {
       blockList: split(form.blockListText),
       cronSchedule: form.cronSchedule,
       timezone: form.timezone.trim(),
-      locale: form.locale === "en_US" ? "en_US" : "zh_CN",
       proxyTestUrl: form.proxyTestUrl.trim(),
       logRetentionDays: form.logRetentionDays,
       webhookSuccessConfig: { ...form.webhookSuccessConfig },

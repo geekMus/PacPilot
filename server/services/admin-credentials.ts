@@ -69,34 +69,20 @@ function passwordRecord(password: string, flags: AdminSecurityStatus): AdminAuth
   };
 }
 
-export function ensureAdminAuth(database: AppDatabase): AdminSecurityStatus {
-  const existing = readRecord(database);
-  if (existing) {
-    return {
-      isDefaultPassword: existing.isDefaultPassword,
-      // Always require a change while the well-known default password is in use.
-      mustChangePassword: existing.mustChangePassword || existing.isDefaultPassword,
-    };
-  }
-  const record = passwordRecord(DEFAULT_PASSWORD, {
-    isDefaultPassword: true,
-    mustChangePassword: true,
-  });
-  writeRecord(database, record);
-  return {
-    isDefaultPassword: record.isDefaultPassword,
-    mustChangePassword: record.mustChangePassword,
-  };
+export function isAdminCredentialsMissing(database: AppDatabase): boolean {
+  return readRecord(database) === null;
 }
 
 function getRecord(database: AppDatabase): AdminAuthRecord {
-  ensureAdminAuth(database);
   const record = readRecord(database);
-  if (!record) throw new Error("无法读取管理员凭据");
+  if (!record) throw new Error("Admin credentials are not initialized.");
   return record;
 }
 
 export function getAdminSecurityStatus(database: AppDatabase): AdminSecurityStatus {
+  if (isAdminCredentialsMissing(database)) {
+    return { isDefaultPassword: false, mustChangePassword: false };
+  }
   const record = getRecord(database);
   return {
     isDefaultPassword: record.isDefaultPassword,
@@ -110,7 +96,8 @@ export function getAdminSessionSecret(database: AppDatabase): string {
 
 export function verifyAdminPassword(database: AppDatabase, password: string): boolean {
   if (typeof password !== "string" || password.length === 0) return false;
-  const record = getRecord(database);
+  const record = readRecord(database);
+  if (!record) return false;
   const actual = Buffer.from(hashPassword(password, record.salt), "hex");
   const expected = Buffer.from(record.passwordHash, "hex");
   return expected.length === actual.length && timingSafeEqual(actual, expected);

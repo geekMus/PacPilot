@@ -175,7 +175,9 @@ function buildOption(): Record<string, unknown> {
             "</div>" +
             '<div style="color:' +
             muted +
-            '">' + t("chart.avgResponse") + '</div>' +
+            '">' +
+            t("chart.avgResponse") +
+            "</div>" +
             "<div>" +
             formatDuration(Number(first?.value) || 0) +
             "</div>"
@@ -247,7 +249,10 @@ function buildOption(): Record<string, unknown> {
         if (!point) return "";
         const rows = list
           .map((item) => {
-            const label = item.seriesName === t("chart.error") ? t("chart.errorRequest") : t("chart.totalRequests");
+            const label =
+              item.seriesName === t("chart.error")
+                ? t("chart.errorRequest")
+                : t("chart.totalRequests");
             return (
               '<div style="display:flex;justify-content:space-between;gap:16px;margin-top:4px">' +
               "<span>" +
@@ -366,7 +371,12 @@ watch(
 </script>
 
 <template>
-  <div class="responsive-trend-chart" :class="{ compact }" role="img" :aria-label="resolvedAriaLabel">
+  <div
+    class="responsive-trend-chart"
+    :class="{ compact }"
+    role="img"
+    :aria-label="resolvedAriaLabel"
+  >
     <div ref="host" class="chart-host"></div>
   </div>
 </template>

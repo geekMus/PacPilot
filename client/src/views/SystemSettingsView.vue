@@ -9,12 +9,9 @@ import ConfirmPopover from "../components/ConfirmPopover.vue";
 import SelectField from "../components/SelectField.vue";
 import { useToast } from "../composables/useToast";
 import { useI18n } from "vue-i18n";
-import { setAppLocale, resolveLocale, type AppLocale } from "../i18n";
 const router = useRouter(),
   { notify } = useToast();
 const { t, locale } = useI18n();
-const localeChoice = ref<AppLocale>("zh_CN");
-const savingLocale = ref(false);
 const loading = ref(true),
   savingRetention = ref(false),
   cleaning = ref(false),
@@ -57,9 +54,7 @@ const deletePacFilesDisabledReason = computed(() => {
   return t("systemPage.k14");
 });
 function fileDateLabel(value: string | null) {
-  return value
-    ? new Date(value).toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN")
-    : "—";
+  return value ? new Date(value).toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN") : "—";
 }
 function formatBytes(bytes: number) {
   if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
@@ -83,29 +78,12 @@ async function load() {
     const [s, st] = await Promise.all([api.settings(), api.storage()]);
     settings.value = s;
     retention.value = s.logRetentionDays;
-    localeChoice.value = resolveLocale(s.locale);
-    setAppLocale(localeChoice.value);
     storage.value = st;
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
     notify(error.value, "error");
   } finally {
     loading.value = false;
-  }
-}
-async function saveLocale() {
-  if (!settings.value || savingLocale.value) return;
-  savingLocale.value = true;
-  try {
-    const saved = await api.saveSettings({ ...settings.value, locale: localeChoice.value });
-    settings.value = saved;
-    localeChoice.value = resolveLocale(saved.locale);
-    setAppLocale(localeChoice.value);
-    notify(t("system.localeSaved"), "success");
-  } catch (e) {
-    notify(e instanceof Error ? e.message : String(e), "error");
-  } finally {
-    savingLocale.value = false;
   }
 }
 async function saveRetention() {
@@ -136,7 +114,11 @@ async function cleanupLogs() {
   try {
     const r = await api.cleanupLogs();
     notify(
-      t("systemPage.cleanupDone", { g: r.deleted.generationLogs, a: r.deleted.accessEvents, p: r.deleted.proxyProbeRuns }),
+      t("systemPage.cleanupDone", {
+        g: r.deleted.generationLogs,
+        a: r.deleted.accessEvents,
+        p: r.deleted.proxyProbeRuns,
+      }),
       "success"
     );
     await refreshStorage();
@@ -153,7 +135,11 @@ async function clearAllLogs() {
     const r = await api.clearLogs();
     setConfirmation("clearLogs", false);
     notify(
-      t("systemPage.clearedLogsKeepWorkflow", { g: r.deleted.generationLogs, a: r.deleted.accessEvents, p: r.deleted.proxyProbeRuns }),
+      t("systemPage.clearedLogsKeepWorkflow", {
+        g: r.deleted.generationLogs,
+        a: r.deleted.accessEvents,
+        p: r.deleted.proxyProbeRuns,
+      }),
       "success"
     );
     await refreshStorage();
@@ -233,15 +219,18 @@ onMounted(() => void load());
         </div>
         <div v-else-if="storage" class="metrics">
           <div class="metric">
-            <span>{{ t("system.dataDir") }}</span><strong>{{ formatBytes(storage.dataBytes) }}</strong
+            <span>{{ t("system.dataDir") }}</span
+            ><strong>{{ formatBytes(storage.dataBytes) }}</strong
             ><small>{{ t("system.dataDirHint") }}</small>
           </div>
           <div class="metric">
-            <span>{{ t("system.dbFile") }}</span><strong>{{ formatBytes(storage.dbBytes) }}</strong
+            <span>{{ t("system.dbFile") }}</span
+            ><strong>{{ formatBytes(storage.dbBytes) }}</strong
             ><small>{{ t("system.dbFileHint") }}</small>
           </div>
           <div class="metric">
-            <span>{{ t("system.logEstimate") }}</span><strong>{{ formatBytes(storage.logBytes) }}</strong
+            <span>{{ t("system.logEstimate") }}</span
+            ><strong>{{ formatBytes(storage.logBytes) }}</strong
             ><small>{{ t("system.logEstimateHint") }}</small>
           </div>
         </div>
@@ -250,31 +239,6 @@ onMounted(() => void load());
           ><span>{{ t("systemPage.countAccess", { n: storage.counts.accessEvents }) }}</span
           ><span>{{ t("systemPage.countProbe", { n: storage.counts.proxyProbeRuns }) }}</span
           ><span>{{ t("systemPage.countWorkflow", { n: storage.counts.workflows }) }}</span>
-        </div>
-      </section>
-      <section class="settings-panel">
-        <div class="heading">
-          <span class="icon-badge"><AppIcon name="globe" :size="19" /></span>
-          <div>
-            <h2>{{ t("app.language") }}</h2>
-            <p>{{ t("app.languageHint") }}</p>
-          </div>
-        </div>
-        <div class="retention">
-          <label for="locale">{{ t("system.locale") }}</label
-          ><SelectField
-            ><select id="locale" v-model="localeChoice" :disabled="loading || savingLocale">
-              <option value="zh_CN">{{ t("app.zh") }}</option>
-              <option value="en_US">{{ t("app.en") }}</option>
-            </select></SelectField
-          ><button
-            class="primary"
-            :disabled="loading || savingLocale || !settings || localeChoice === settings.locale"
-            @click="saveLocale"
-          >
-            <AppIcon :name="savingLocale ? 'loader-circle' : 'save'" :size="15" />
-            {{ savingLocale ? t("common.loading") : t("common.save") }}
-          </button>
         </div>
       </section>
       <section class="settings-panel">
@@ -347,13 +311,21 @@ onMounted(() => void load());
               ><span
                 class="file-state"
                 :class="storage.pacFiles.proxyPac.exists ? 'file-exists' : 'file-missing'"
-                >{{ storage.pacFiles.proxyPac.exists ? t("systemPage.k21") : t("systemPage.k22") }}</span
+                >{{
+                  storage.pacFiles.proxyPac.exists ? t("systemPage.k21") : t("systemPage.k22")
+                }}</span
               >
             </div>
             <p>{{ t("systemPage.k56") }}</p>
             <div class="pac-file-meta">
-              <span>{{ t("systemPage.fileSize", { size: formatBytes(storage.pacFiles.proxyPac.sizeBytes) }) }}</span
-              ><span>{{ t("systemPage.fileMtime", { time: fileDateLabel(storage.pacFiles.proxyPac.modifiedAt) }) }}</span>
+              <span>{{
+                t("systemPage.fileSize", { size: formatBytes(storage.pacFiles.proxyPac.sizeBytes) })
+              }}</span
+              ><span>{{
+                t("systemPage.fileMtime", {
+                  time: fileDateLabel(storage.pacFiles.proxyPac.modifiedAt),
+                })
+              }}</span>
             </div>
           </div>
           <div class="pac-file">
@@ -362,31 +334,35 @@ onMounted(() => void load());
               ><span
                 class="file-state"
                 :class="storage.pacFiles.proxySourcePac.exists ? 'file-exists' : 'file-missing'"
-                >{{ storage.pacFiles.proxySourcePac.exists ? t("systemPage.k21") : t("systemPage.k22") }}</span
+                >{{
+                  storage.pacFiles.proxySourcePac.exists ? t("systemPage.k21") : t("systemPage.k22")
+                }}</span
               >
             </div>
             <p>{{ t("systemPage.k57") }}</p>
             <div class="pac-file-meta">
-              <span>{{ t("systemPage.fileSize", { size: formatBytes(storage.pacFiles.proxySourcePac.sizeBytes) }) }}</span
-              ><span
-                >{{ t("systemPage.fileMtime", { time: fileDateLabel(storage.pacFiles.proxySourcePac.modifiedAt) }) }}</span
-              >
+              <span>{{
+                t("systemPage.fileSize", {
+                  size: formatBytes(storage.pacFiles.proxySourcePac.sizeBytes),
+                })
+              }}</span
+              ><span>{{
+                t("systemPage.fileMtime", {
+                  time: fileDateLabel(storage.pacFiles.proxySourcePac.modifiedAt),
+                })
+              }}</span>
             </div>
           </div>
         </div>
         <p v-if="storage && !storage.pacFiles.proxyPac.exists" class="empty-note">
-          {{
-            storage.pacFiles.proxySourcePac.exists
-              ? t("systemPage.k23")
-              : t("systemPage.k24")
-          }}
+          {{ storage.pacFiles.proxySourcePac.exists ? t("systemPage.k23") : t("systemPage.k24") }}
         </p>
         <ConfirmPopover
           :open="confirmationOpen.deletePacFiles"
-          :title='t("systemPage.k25")'
-          :description='t("systemPage.k26")'
-          :confirm-text='t("systemPage.k27")'
-          :busy-text='t("systemPage.k28")'
+          :title="t('systemPage.k25')"
+          :description="t('systemPage.k26')"
+          :confirm-text="t('systemPage.k27')"
+          :busy-text="t('systemPage.k28')"
           align="start"
           :disabled="
             loading ||
@@ -446,10 +422,10 @@ onMounted(() => void load());
             {{ cleaning ? t("systemPage.k30") : t("systemPage.k31") }}</button
           ><ConfirmPopover
             :open="confirmationOpen.clearLogs"
-            :title='t("systemPage.k32")'
-            :description='t("systemPage.k33")'
-            :confirm-text='t("systemPage.k34")'
-            :busy-text='t("systemPage.k35")'
+            :title="t('systemPage.k32')"
+            :description="t('systemPage.k33')"
+            :confirm-text="t('systemPage.k34')"
+            :busy-text="t('systemPage.k35')"
             :disabled="loading || maintenanceBusy()"
             :disabled-reason="maintenanceDisabledReason"
             :busy="clearingLogs"
@@ -490,10 +466,10 @@ onMounted(() => void load());
         </div>
         <ConfirmPopover
           :open="confirmationOpen.factoryReset"
-          :title='t("systemPage.k38")'
-          :description='t("systemPage.k39")'
-          :confirm-text='t("systemPage.k40")'
-          :busy-text='t("systemPage.k41")'
+          :title="t('systemPage.k38')"
+          :description="t('systemPage.k39')"
+          :confirm-text="t('systemPage.k40')"
+          :busy-text="t('systemPage.k41')"
           align="start"
           :disabled="loading || maintenanceBusy()"
           :disabled-reason="maintenanceDisabledReason"
@@ -508,10 +484,10 @@ onMounted(() => void load());
               :disabled="loading || maintenanceBusy()"
               :title="
                 loading
-                    ? t('systemPage.k0')
+                  ? t('systemPage.k0')
                   : maintenanceBusy()
                     ? maintenanceDisabledReason
-                      : t('systemPage.k42')
+                    : t('systemPage.k42')
               "
               @click="toggle"
             >

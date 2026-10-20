@@ -5,18 +5,18 @@ import {
   clearWorkflowHistory,
   deleteWorkflowRun,
   getCurrentWorkflow,
-  getSettings,
   getWorkflowRun,
   listActiveWorkflowRuns,
   listWorkflowRuns,
   listWorkflowStages,
 } from "../db/sqlite";
 import { requireAdmin } from "../middleware/auth";
-import { t } from "../../shared/i18n";
+import { resolveLocale, t } from "../../shared/i18n";
 
 export function adminWorkflowRoutes(database: AppDatabase): Router {
   const router = Router();
-  const errorText = (key: string) => t(getSettings(database).locale, key);
+  const errorText = (req: import("express").Request, key: string) =>
+    t(resolveLocale(req.get("accept-language")), key);
 
   router.get("/api/admin/workflows", requireAdmin(database), (req, res) => {
     res.setHeader("Cache-Control", "no-store");
@@ -43,12 +43,12 @@ export function adminWorkflowRoutes(database: AppDatabase): Router {
     });
   });
 
-  router.delete("/api/admin/workflows", requireAdmin(database), (_req, res) => {
+  router.delete("/api/admin/workflows", requireAdmin(database), (req, res) => {
     try {
       const result = clearWorkflowHistory(database);
       if (result.activeRuns > 0) {
         res.status(409).json({
-          error: errorText("serverErrors.activeWorkflowHistory"),
+          error: errorText(req, "serverErrors.activeWorkflowHistory"),
           activeRuns: result.activeRuns,
         });
         return;
@@ -64,12 +64,12 @@ export function adminWorkflowRoutes(database: AppDatabase): Router {
     res.setHeader("Cache-Control", "no-store");
     const id = Number.parseInt(req.params.id, 10);
     if (!Number.isSafeInteger(id) || id < 1) {
-      res.status(400).json({ error: errorText("serverErrors.invalidWorkflowId") });
+      res.status(400).json({ error: errorText(req, "serverErrors.invalidWorkflowId") });
       return;
     }
     const run = getWorkflowRun(database, id);
     if (!run) {
-      res.status(404).json({ error: errorText("serverErrors.workflowNotFound") });
+      res.status(404).json({ error: errorText(req, "serverErrors.workflowNotFound") });
       return;
     }
     res.json({ run, stages: listWorkflowStages(database, id) });
@@ -79,16 +79,16 @@ export function adminWorkflowRoutes(database: AppDatabase): Router {
     res.setHeader("Cache-Control", "no-store");
     const id = Number.parseInt(req.params.id, 10);
     if (!Number.isSafeInteger(id) || id < 1) {
-      res.status(400).json({ error: errorText("serverErrors.invalidWorkflowId") });
+      res.status(400).json({ error: errorText(req, "serverErrors.invalidWorkflowId") });
       return;
     }
     const result = cancelPendingWorkflow(database, id);
     if (result === "not-found") {
-      res.status(404).json({ error: errorText("serverErrors.workflowNotFound") });
+      res.status(404).json({ error: errorText(req, "serverErrors.workflowNotFound") });
       return;
     }
     if (result === "not-pending") {
-      res.status(409).json({ error: errorText("serverErrors.workflowCannotCancel") });
+      res.status(409).json({ error: errorText(req, "serverErrors.workflowCannotCancel") });
       return;
     }
     res.json({ ok: true, id, status: "cancelled" });
@@ -98,16 +98,16 @@ export function adminWorkflowRoutes(database: AppDatabase): Router {
     res.setHeader("Cache-Control", "no-store");
     const id = Number.parseInt(req.params.id, 10);
     if (!Number.isSafeInteger(id) || id < 1) {
-      res.status(400).json({ error: errorText("serverErrors.invalidWorkflowId") });
+      res.status(400).json({ error: errorText(req, "serverErrors.invalidWorkflowId") });
       return;
     }
     const result = deleteWorkflowRun(database, id);
     if (result === "not-found") {
-      res.status(404).json({ error: errorText("serverErrors.workflowNotFound") });
+      res.status(404).json({ error: errorText(req, "serverErrors.workflowNotFound") });
       return;
     }
     if (result === "active") {
-      res.status(409).json({ error: errorText("serverErrors.workflowCannotDelete") });
+      res.status(409).json({ error: errorText(req, "serverErrors.workflowCannotDelete") });
       return;
     }
     res.json({ ok: true, id });

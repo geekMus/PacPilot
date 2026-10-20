@@ -15,7 +15,9 @@ const { t } = useI18n();
       <p>{{ t("notFound.desc") }}</p>
       <div class="not-found-actions">
         <RouterLink class="action-button primary" to="/">{{ t("notFound.backStatus") }}</RouterLink>
-        <RouterLink class="action-button" to="/admin/dashboard">{{ t("notFound.admin") }}</RouterLink>
+        <RouterLink class="action-button" to="/admin/dashboard">{{
+          t("notFound.admin")
+        }}</RouterLink>
       </div>
     </section>
     <AppFooter />

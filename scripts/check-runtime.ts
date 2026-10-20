@@ -16,8 +16,10 @@ import { createApp } from "../server/app";
 import { COOKIE_NAME, createSessionToken } from "../server/middleware/auth";
 import {
   changeAdminPassword,
-  ensureAdminAuth,
   getAdminSessionSecret,
+  getAdminSecurityStatus,
+  isAdminCredentialsMissing,
+  resetAdminPassword,
 } from "../server/services/admin-credentials";
 import { runPacWorkflow } from "../server/services/workflow";
 import en_US from "../shared/i18n/en_US";
@@ -71,10 +73,36 @@ try {
   const runtimeDataDir = dataDir;
   const runtimeDatabase = database;
 
+  assert(
+    isAdminCredentialsMissing(runtimeDatabase),
+    "Fresh database should require admin bootstrap."
+  );
   const settings = getSettings(runtimeDatabase);
-  settings.locale = "en_US";
   settings.webhookSuccessConfig = normalizeWebhookConfig({}, "en_US");
   setSettings(runtimeDatabase, settings);
+  const savedSettings = JSON.parse(
+    (
+      runtimeDatabase.query("SELECT value FROM settings WHERE key = 'config'").get() as {
+        value: string;
+      }
+    ).value
+  ) as Record<string, unknown>;
+  assert(!("locale" in savedSettings), "The interface language must not be persisted in settings.");
+  assert(
+    getSettings(runtimeDatabase).timezone === "Asia/Shanghai",
+    "Fresh settings should use the default time zone."
+  );
+  const temporaryPassword = resetAdminPassword(runtimeDatabase);
+  assert(
+    getAdminSecurityStatus(runtimeDatabase).mustChangePassword &&
+      !isAdminCredentialsMissing(runtimeDatabase),
+    "The password reset command must bootstrap fresh admin credentials and require password change."
+  );
+  assert(
+    !fs.existsSync(path.join(runtimeDataDir, "proxy.pac")) &&
+      !fs.existsSync(path.join(runtimeDataDir, "proxy.source.pac")),
+    "First-run setup must not generate PAC files automatically."
+  );
   assert(
     getSettings(runtimeDatabase).webhookSuccessConfig.messageTemplate.includes("notification"),
     "English webhook defaults were not loaded."
@@ -94,7 +122,7 @@ try {
   assert(
     fs
       .readFileSync(path.join(runtimeDataDir, "proxy.source.pac"), "utf8")
-      .includes("// genpac-runner PAC generated at:"),
+      .includes("// genpac-runner PAC 生成时间："),
     "Localized PAC metadata was not generated."
   );
 
@@ -119,8 +147,12 @@ try {
     "Operational log storage metrics failed."
   );
 
-  ensureAdminAuth(runtimeDatabase);
-  changeAdminPassword(runtimeDatabase, "password", "Runtime-Check-Password-2026!");
+  changeAdminPassword(runtimeDatabase, temporaryPassword, "Runtime-Check-Password-2026!");
+  assert(
+    !isAdminCredentialsMissing(runtimeDatabase) &&
+      !getAdminSecurityStatus(runtimeDatabase).mustChangePassword,
+    "Admin setup or password initialization did not complete."
+  );
   const token = createSessionToken(getAdminSessionSecret(runtimeDatabase));
   const app = createApp(
     { dataDir: runtimeDataDir, runtimeProfile: "development", port: 0, host: "127.0.0.1" },
@@ -135,7 +167,23 @@ try {
   const address = server.address();
   assert(address && typeof address !== "string", "Runtime check server failed to bind.");
   const baseUrl = `http://127.0.0.1:${address.port}`;
-  const headers = { cookie: `${COOKIE_NAME}=${token}` };
+  const headers = {
+    cookie: `${COOKIE_NAME}=${token}`,
+    "accept-language": "en-US",
+  };
+  const sessionResponse = await fetch(baseUrl + "/api/admin/session", { headers });
+  const session = (await sessionResponse.json()) as {
+    loggedIn: boolean;
+    adminCredentialsMissing: boolean;
+    mustChangePassword: boolean;
+  };
+  assert(
+    sessionResponse.ok &&
+      session.loggedIn &&
+      !session.adminCredentialsMissing &&
+      !session.mustChangePassword,
+    "Admin session did not reflect completed first-run setup."
+  );
   for (const endpoint of [
     "/api/admin/workflows",
     "/api/admin/monitor/summary",
@@ -153,7 +201,7 @@ try {
   );
 
   console.log(
-    "Runtime smoke checks passed (fresh SQLite schema, PAC workflow, monitoring, and admin routes)."
+    "Runtime smoke checks passed (first-run setup, PAC workflow, monitoring, and admin routes)."
   );
 } finally {
   try {

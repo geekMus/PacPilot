@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import ThemeSwitcher from "./ThemeSwitcher.vue";
+import UserPreferencesMenu from "./UserPreferencesMenu.vue";
 import BrandMark from "./BrandMark.vue";
 
 defineProps<{ brand?: string; sub?: string }>();
@@ -18,7 +18,7 @@ const { t } = useI18n();
     </div>
     <div class="header-tools">
       <nav class="nav" :aria-label="t('app.mainNav')"><slot /></nav>
-      <ThemeSwitcher />
+      <UserPreferencesMenu />
     </div>
   </header>
 </template>

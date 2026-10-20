@@ -42,9 +42,7 @@ onMounted(() => {
 const hasRuleSummary = computed(
   () => status.value?.mode === "custom" || status.value?.mode === "remote"
 );
-const statusModeLabel = computed(() =>
-  status.value ? t(`status.mode.${status.value.mode}`) : ""
-);
+const statusModeLabel = computed(() => (status.value ? t(`status.mode.${status.value.mode}`) : ""));
 const statusNotice = computed(() => {
   const current = status.value;
   if (!current) return "";
@@ -107,7 +105,10 @@ const directEntries = computed<RuleEntry[]>(() => {
 });
 
 const blockEntries = computed<RuleEntry[]>(() =>
-  (status.value?.blockList ?? []).map((domain) => ({ domain, source: t("status.sourceCustomBlock") }))
+  (status.value?.blockList ?? []).map((domain) => ({
+    domain,
+    source: t("status.sourceCustomBlock"),
+  }))
 );
 
 watch(domainInput, () => {
@@ -257,7 +258,9 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
     kind: "proxy",
     host,
     title: t("common.viaProxy"),
-    detail: t("status.proxyDefaultDetail", { proxy: current.pacProxy || t("common.notRecognized") }),
+    detail: t("status.proxyDefaultDetail", {
+      proxy: current.pacProxy || t("common.notRecognized"),
+    }),
     matchedRule: null,
     source: current.pacProxy || t("status.sourceDefaultProxy"),
   };
@@ -267,7 +270,9 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
 <template>
   <main class="page status-page">
     <AppHeader brand="genpac-runner" :sub="t('status.sub')">
-      <RouterLink v-if="meta?.adminEnabled" class="primary" :to="adminEntry">{{ t("nav.admin") }}</RouterLink>
+      <RouterLink v-if="meta?.adminEnabled" class="primary" :to="adminEntry">{{
+        t("nav.admin")
+      }}</RouterLink>
     </AppHeader>
 
     <section class="page-hero">
@@ -282,7 +287,9 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
         <span class="status-indicator" :class="status.hasPac ? 'online' : 'idle'"></span>
         <strong>{{ statusModeLabel }}</strong
         ><span class="meta-divider">·</span>
-        <span>{{ status.hasPac ? t("status.generatedAt", { time: formattedUpdatedAt }) : t("status.noFile") }}</span>
+        <span>{{
+          status.hasPac ? t("status.generatedAt", { time: formattedUpdatedAt }) : t("status.noFile")
+        }}</span>
       </div>
     </section>
 
@@ -293,7 +300,9 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
         >
         <h2>{{ t("status.getPac") }}</h2>
         <p>{{ t("status.getPacDesc") }}</p>
-        <span class="pac-access-updated">{{ t("status.lastGenerated", { time: formattedUpdatedAt }) }}</span>
+        <span class="pac-access-updated">{{
+          t("status.lastGenerated", { time: formattedUpdatedAt })
+        }}</span>
       </div>
       <div class="pac-access-actions">
         <a
@@ -338,7 +347,9 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
       <div class="state-copy">
         <strong>{{ t("statusPage.k14") }}</strong>
         <p>{{ error }}</p>
-        <button class="action-button" type="button" @click="loadStatus">{{ t("statusPage.k15") }}</button>
+        <button class="action-button" type="button" @click="loadStatus">
+          {{ t("statusPage.k15") }}
+        </button>
       </div>
     </section>
 
@@ -388,7 +399,9 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
           <article v-if="status.mode === 'custom'" class="stat-card stat-card-wide stat-proxy-card">
             <div class="proxy-card-heading">
               <span class="stat-label">{{ t("statusPage.k27") }}</span>
-              <span class="proxy-card-badge"><AppIcon name="route" :size="13" />{{ t("statusPage.k28") }}</span>
+              <span class="proxy-card-badge"
+                ><AppIcon name="route" :size="13" />{{ t("statusPage.k28") }}</span
+              >
             </div>
             <strong class="stat-proxy">{{ status.pacProxy || t("statusPage.k4") }}</strong>
             <span class="stat-caption">{{ t("statusPage.k29") }}</span>
@@ -409,8 +422,8 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               inputmode="url"
               autocomplete="off"
               spellcheck="false"
-              :aria-label='t("statusPage.k5")'
-              :placeholder='t("statusPage.k6")'
+              :aria-label="t('statusPage.k5')"
+              :placeholder="t('statusPage.k6')"
             />
             <button
               type="submit"
@@ -456,7 +469,8 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               </div>
               <p>{{ domainRoute.detail }}</p>
               <p v-if="domainRoute.matchedRule" class="matched-rule">
-                <span>{{ t("statusPage.k34") }}</span><code>{{ domainRoute.matchedRule }}</code
+                <span>{{ t("statusPage.k34") }}</span
+                ><code>{{ domainRoute.matchedRule }}</code
                 ><span>· {{ domainRoute.source }}</span>
               </p>
               <p v-else-if="domainRoute.source" class="matched-rule">
@@ -479,7 +493,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
             /></RouterLink>
           </div>
 
-          <div class="rule-tabs" role="tablist" :aria-label='t("statusPage.k8")'>
+          <div class="rule-tabs" role="tablist" :aria-label="t('statusPage.k8')">
             <button
               type="button"
               role="tab"
@@ -510,7 +524,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               </p>
               <RuleVirtualList
                 :items="directEntries"
-                :empty-text='t("statusPage.k9")'
+                :empty-text="t('statusPage.k9')"
                 :height="300"
               />
             </template>
@@ -518,7 +532,11 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               <p class="rule-description">
                 {{ t("statusPage.k41") }}
               </p>
-              <RuleVirtualList :items="blockEntries" :empty-text='t("statusPage.k10")' :height="300" />
+              <RuleVirtualList
+                :items="blockEntries"
+                :empty-text="t('statusPage.k10')"
+                :height="300"
+              />
             </template>
           </div>
         </section>

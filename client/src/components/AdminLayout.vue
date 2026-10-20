@@ -7,7 +7,7 @@ import { useToast } from "../composables/useToast";
 import AppIcon from "./AppIcon.vue";
 import { useI18n } from "vue-i18n";
 import BrandMark from "./BrandMark.vue";
-import ThemeSwitcher from "./ThemeSwitcher.vue";
+import UserPreferencesMenu from "./UserPreferencesMenu.vue";
 
 type AdminSection = "dashboard" | "settings" | "system-settings" | "monitor" | "workflow";
 
@@ -206,10 +206,10 @@ watch(
           <span class="status-dot"></span><span>{{ t("layout.adminConnected") }}</span>
         </div>
         <span class="sidebar-note">{{ t("layout.settingsStoredLocal") }}</span>
-        <div class="sidebar-mobile-controls">
-          <div class="sidebar-theme-group">
-            <span class="sidebar-control-label">{{ t("layout.appearanceTheme") }}</span>
-            <ThemeSwitcher />
+        <div class="sidebar-controls">
+          <div class="sidebar-preferences-group">
+            <span class="sidebar-control-label">{{ t("layout.preferences") }}</span>
+            <UserPreferencesMenu placement="top" />
           </div>
           <button
             type="button"
@@ -247,21 +247,6 @@ watch(
         </div>
         <div class="topbar-actions">
           <slot name="actions"></slot>
-          <button
-            type="button"
-            class="admin-logout-button"
-            :disabled="logoutBusy"
-            :title="logoutBusy ? t('layout.loggingOutTitle') : t('layout.logoutTitle')"
-            @click="logout"
-          >
-            <AppIcon
-              :name="logoutBusy ? 'loader-circle' : 'log-out'"
-              :size="15"
-              :class="{ 'icon-spinning': logoutBusy }"
-            />
-            {{ logoutBusy ? t("layout.loggingOut") : t("nav.logout") }}
-          </button>
-          <span class="topbar-theme-switcher"><ThemeSwitcher /></span>
         </div>
       </header>
       <main class="admin-content">
@@ -403,10 +388,15 @@ watch(
   padding: 14px 10px 0;
   border-top: 1px solid var(--line);
 }
-.sidebar-mobile-controls {
-  display: none;
+.sidebar-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+  padding-top: 15px;
+  border-top: 1px solid var(--line);
 }
-.sidebar-theme-group {
+.sidebar-preferences-group {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -417,14 +407,6 @@ watch(
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
-}
-.sidebar-theme-group :deep(.theme-switch) {
-  max-width: 100%;
-}
-.sidebar-theme-group :deep(.theme-btn) {
-  min-height: 34px;
-  padding: 0 11px;
-  font-size: 11px;
 }
 .sidebar-logout-button {
   display: flex;
@@ -452,34 +434,6 @@ watch(
 .sidebar-logout-button:disabled {
   opacity: 0.7;
   cursor: progress;
-}
-.admin-logout-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 38px;
-  padding: 0 13px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--text);
-  background: var(--surface);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.admin-logout-button:hover:not(:disabled) {
-  background: var(--surface-2);
-  border-color: color-mix(in srgb, var(--accent) 36%, var(--line));
-}
-.admin-logout-button:disabled {
-  opacity: 0.7;
-  cursor: progress;
-}
-.topbar-theme-switcher {
-  display: inline-flex;
 }
 .sidebar-status {
   display: flex;
@@ -556,8 +510,7 @@ watch(
   min-width: 0;
 }
 .admin-topbar :deep(.dash-button.dash-button),
-.admin-topbar :deep(.monitor-button.monitor-button),
-.admin-topbar :deep(.admin-logout-button.admin-logout-button) {
+.admin-topbar :deep(.monitor-button.monitor-button) {
   min-height: 38px;
   padding-right: 13px;
   padding-left: 13px;
@@ -647,8 +600,7 @@ watch(
   padding: 10px 12px;
 }
 .admin-content :deep(.dash-button.dash-button),
-.admin-content :deep(.monitor-button.monitor-button),
-.admin-content :deep(.admin-logout-button.admin-logout-button) {
+.admin-content :deep(.monitor-button.monitor-button) {
   min-height: 40px;
   padding-right: 14px;
   padding-left: 14px;
@@ -693,18 +645,6 @@ watch(
     transition:
       transform 0.2s ease,
       box-shadow 0.2s ease;
-  }
-  .sidebar-mobile-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    margin-top: 16px;
-    padding-top: 15px;
-    border-top: 1px solid var(--line);
-  }
-  .topbar-actions :deep(.admin-logout-button),
-  .topbar-theme-switcher {
-    display: none;
   }
   .admin-sidebar.is-open {
     transform: translateX(0);
@@ -798,22 +738,11 @@ watch(
     display: none;
   }
   .topbar-actions :deep(.dash-button.dash-button),
-  .topbar-actions :deep(.monitor-button.monitor-button),
-  .topbar-actions :deep(.admin-logout-button.admin-logout-button) {
+  .topbar-actions :deep(.monitor-button.monitor-button) {
     min-height: 36px;
     padding: 0 9px;
     border-radius: 8px;
     font-size: 11px;
-  }
-  .topbar-actions :deep(.theme-switch) {
-    gap: 0;
-    padding: 2px;
-    border-radius: 8px;
-  }
-  .topbar-actions :deep(.theme-btn) {
-    min-height: 30px;
-    padding: 0 6px;
-    font-size: 10px;
   }
   .admin-content {
     --admin-panel-padding: 14px;
@@ -851,9 +780,6 @@ watch(
   .topbar-actions :deep(.monitor-button) {
     padding: 0 7px;
     font-size: 9px;
-  }
-  .topbar-actions :deep(.theme-btn) {
-    padding: 0 5px;
   }
 }
 </style>

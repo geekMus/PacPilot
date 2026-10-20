@@ -28,7 +28,9 @@ const refreshFailed = ref(false);
 const hasUpdate = computed(() =>
   Boolean(updateInfo.value?.updateAvailable && updateInfo.value.latestVersion)
 );
-const latestVersion = computed(() => updateInfo.value?.latestVersion || t("common.temporarilyUnknown"));
+const latestVersion = computed(
+  () => updateInfo.value?.latestVersion || t("common.temporarilyUnknown")
+);
 let requestSequence = 0;
 
 function parseCalendarVersion(value: string): CalendarVersion | null {
@@ -161,7 +163,8 @@ onMounted(() => {
           </header>
           <div class="version-grid">
             <div class="version-item">
-              <span>{{ t("footer.currentVersion") }}</span><strong>v{{ currentVersion }}</strong>
+              <span>{{ t("footer.currentVersion") }}</span
+              ><strong>v{{ currentVersion }}</strong>
             </div>
             <button
               type="button"
@@ -170,12 +173,19 @@ onMounted(() => {
               @click="loadVersionInfo"
               :disabled="isCheckingVersion"
               :title="isCheckingVersion ? t('footer.checkingVersion') : t('footer.queryLatest')"
-              :aria-label="isCheckingVersion ? t('footer.checkingLatest') : t('footer.clickGetLatest')"
+              :aria-label="
+                isCheckingVersion ? t('footer.checkingLatest') : t('footer.clickGetLatest')
+              "
             >
               <span
-                >{{ t("footer.latestVersion") }} <small>{{ isCheckingVersion ? t("common.getting") : t("common.clickRefresh") }}</small></span
+                >{{ t("footer.latestVersion") }}
+                <small>{{
+                  isCheckingVersion ? t("common.getting") : t("common.clickRefresh")
+                }}</small></span
               ><strong>{{
-                latestVersion === t("common.temporarilyUnknown") ? latestVersion : "v" + latestVersion
+                latestVersion === t("common.temporarilyUnknown")
+                  ? latestVersion
+                  : "v" + latestVersion
               }}</strong>
             </button>
           </div>
@@ -186,11 +196,15 @@ onMounted(() => {
               <p>{{ t("footer.outdated") }}</p>
             </div>
           </div>
-          <p v-else-if="isCheckingVersion" class="dialog-status" role="status">{{ t("footer.checkingStatus") }}</p>
+          <p v-else-if="isCheckingVersion" class="dialog-status" role="status">
+            {{ t("footer.checkingStatus") }}
+          </p>
           <p v-else-if="refreshFailed" class="dialog-status" role="status">
             {{ t("footer.fetchFailed") }}
           </p>
-          <p v-else-if="updateInfo?.checked" class="dialog-status">{{ t("footer.alreadyLatest") }}</p>
+          <p v-else-if="updateInfo?.checked" class="dialog-status">
+            {{ t("footer.alreadyLatest") }}
+          </p>
           <p v-else class="dialog-status">{{ t("footerExtra.k2") }}</p>
           <div class="dialog-actions">
             <a

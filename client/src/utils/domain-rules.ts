@@ -151,7 +151,11 @@ export function analyzeDomainRules(
           line: exact.line,
           severity: "info",
           relatedLine: subdomains.line,
-          message: tr("domainRuleDiag.mergeEquivalent", { exact: exact.line, subdomains: subdomains.line, host }),
+          message: tr("domainRuleDiag.mergeEquivalent", {
+            exact: exact.line,
+            subdomains: subdomains.line,
+            host,
+          }),
         });
         diagnostics.push({
           line: subdomains.line,

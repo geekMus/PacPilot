@@ -1,7 +1,11 @@
 import type { Request, Response, NextFunction } from "express";
 import crypto from "crypto";
 import type { AppDatabase } from "../db/sqlite";
-import { getAdminSecurityStatus, getAdminSessionSecret } from "../services/admin-credentials";
+import {
+  getAdminSecurityStatus,
+  getAdminSessionSecret,
+  isAdminCredentialsMissing,
+} from "../services/admin-credentials";
 
 const COOKIE_NAME = "genpac_admin_session";
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -50,6 +54,10 @@ export function clearSessionCookie(res: Response): void {
 
 export function requireAdmin(database: AppDatabase, allowPasswordChange = false) {
   return (req: Request, res: Response, next: NextFunction): void => {
+    if (isAdminCredentialsMissing(database)) {
+      res.status(401).json({ error: "unauthorized" });
+      return;
+    }
     const token = req.cookies?.[COOKIE_NAME] as string | undefined;
     if (!verifySessionToken(token, getAdminSessionSecret(database))) {
       res.status(401).json({ error: "unauthorized" });
@@ -64,6 +72,7 @@ export function requireAdmin(database: AppDatabase, allowPasswordChange = false)
 }
 
 export function isLoggedIn(req: Request, database: AppDatabase): boolean {
+  if (isAdminCredentialsMissing(database)) return false;
   const token = req.cookies?.[COOKIE_NAME] as string | undefined;
   return verifySessionToken(token, getAdminSessionSecret(database));
 }

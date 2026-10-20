@@ -485,7 +485,7 @@ export function useMonitoringDashboard() {
       await Promise.all([refreshDashboard(), loadProbeHistory(), loadProxyTestTarget()]);
       refreshTimer = setInterval(() => {
         void refreshDashboard(true);
-      }, 15000);
+      }, 10_000);
     } catch (caught) {
       error.value = caught instanceof Error ? caught.message : String(caught);
       loading.value = false;

@@ -44,11 +44,23 @@ const offsetY = computed(() => startIndex.value * props.rowHeight);
 function sourceClass(source?: string): string {
   if (!source) return "source-neutral";
   const s = source.toLowerCase();
-  if (source.includes(t("status.sourceCustomBlock")) || source.includes(t("common.blacklist")) || s.includes("block"))
+  if (
+    source.includes(t("status.sourceCustomBlock")) ||
+    source.includes(t("common.blacklist")) ||
+    s.includes("block")
+  )
     return "source-block";
-  if (source.includes(t("status.sourceCustomDirect")) || source.includes(t("common.custom")) || s.includes("custom"))
+  if (
+    source.includes(t("status.sourceCustomDirect")) ||
+    source.includes(t("common.custom")) ||
+    s.includes("custom")
+  )
     return "source-custom";
-  if (source.includes(t("status.sourceRemoteException")) || source.includes(t("common.remote")) || s.includes("remote"))
+  if (
+    source.includes(t("status.sourceRemoteException")) ||
+    source.includes(t("common.remote")) ||
+    s.includes("remote")
+  )
     return "source-remote";
   return "source-neutral";
 }

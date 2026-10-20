@@ -164,20 +164,10 @@ export function parsePacStatus(
       remoteDirect === null ||
       pacProxy === null
     ) {
-      return basePayload(
-        "custom_parse_error",
-        updatedAt,
-        tz,
-        hasPac
-      );
+      return basePayload("custom_parse_error", updatedAt, tz, hasPac);
     }
     return {
-      ...basePayload(
-        "remote",
-        updatedAt,
-        tz,
-        hasPac
-      ),
+      ...basePayload("remote", updatedAt, tz, hasPac),
       blockList,
       directList,
       pacProxy,
@@ -197,12 +187,7 @@ export function parsePacStatus(
     const directList = parseJsArray(pac, "DIRECT_LIST");
     const pacProxy = parseJsString(pac, "PAC_PROXY");
     if (blockList === null || directList === null || pacProxy === null) {
-      return basePayload(
-        "custom_parse_error",
-        updatedAt,
-        tz,
-        hasPac
-      );
+      return basePayload("custom_parse_error", updatedAt, tz, hasPac);
     }
     return {
       ...basePayload("custom", updatedAt, tz, hasPac),
@@ -212,10 +197,5 @@ export function parsePacStatus(
     };
   }
 
-  return basePayload(
-    "other",
-    updatedAt,
-    tz,
-    hasPac
-  );
+  return basePayload("other", updatedAt, tz, hasPac);
 }

@@ -173,19 +173,26 @@ onUnmounted(() => resizeObserver?.disconnect());
           <td :colspan="colSpan">
             <div class="virtual-empty-state">
               <span>{{ resolvedEmptyText }}</span>
-              <button v-if="hasMore" type="button" @click="retry">{{ t("virtualTable.loadNextBatch") }}</button>
+              <button v-if="hasMore" type="button" @click="retry">
+                {{ t("virtualTable.loadNextBatch") }}
+              </button>
             </div>
           </td>
         </tr>
         <tr v-else-if="!hasMore" class="virtual-state-row">
           <td :colspan="colSpan">
-            <span class="virtual-state is-muted">{{ t("virtualTable.loadedAll", { n: items.length }) }}</span>
+            <span class="virtual-state is-muted">{{
+              t("virtualTable.loadedAll", { n: items.length })
+            }}</span>
           </td>
         </tr>
         <tr v-else class="virtual-state-row">
           <td :colspan="colSpan">
             <span class="virtual-state is-muted"
-              >{{ t("virtualTable.scrollOrLoad") }} <button type="button" @click="retry">{{ t("virtualTable.loadNextBatch") }}</button></span
+              >{{ t("virtualTable.scrollOrLoad") }}
+              <button type="button" @click="retry">
+                {{ t("virtualTable.loadNextBatch") }}
+              </button></span
             >
           </td>
         </tr>

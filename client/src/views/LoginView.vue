@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { nextTick, ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter, useRoute } from "vue-router";
 import { api } from "../api/client";
@@ -13,20 +13,34 @@ const { notify } = useToast();
 const router = useRouter();
 const route = useRoute();
 const password = ref("");
+const passwordInput = ref<HTMLInputElement | null>(null);
 const notice = ref("");
 const error = ref("");
 const loading = ref(false);
 const adminEnabled = ref<boolean | null>(null);
+const adminCredentialsMissing = ref(false);
 
 onMounted(async () => {
   if (route.query.passwordChanged === "1") notice.value = t("login.passwordChanged");
+  let shouldFocus = true;
   try {
     const meta = await api.meta();
     adminEnabled.value = meta.adminEnabled;
     const session = await api.session();
-    if (session.loggedIn) await router.replace("/admin/dashboard");
+    if (session.adminCredentialsMissing) {
+      adminCredentialsMissing.value = true;
+      shouldFocus = false;
+    } else if (session.loggedIn) {
+      shouldFocus = false;
+      await router.replace("/admin/dashboard");
+    }
   } catch (e) {
     error.value = e instanceof Error ? e.message : t("login.connectFailed");
+  } finally {
+    if (shouldFocus && !adminCredentialsMissing.value && adminEnabled.value !== false) {
+      await nextTick();
+      passwordInput.value?.focus();
+    }
   }
 });
 async function onSubmit() {
@@ -69,9 +83,7 @@ async function onSubmit() {
         <div class="security-note">
           <span class="security-note-icon" aria-hidden="true"
             ><AppIcon name="shield-check" :size="17" /></span
-          ><span
-            >{{ t("login.securityNote") }}</span
-          >
+          ><span>{{ t("login.securityNote") }}</span>
         </div>
       </div>
       <section class="login-card">
@@ -80,6 +92,9 @@ async function onSubmit() {
         </div>
         <h2>{{ t("login.backendLogin") }}</h2>
         <p class="login-subtitle">{{ t("login.enterPassword") }}</p>
+        <div v-if="adminCredentialsMissing" class="alert" role="status">
+          {{ t("login.adminCredentialsMissing") }}
+        </div>
         <div v-if="notice" class="alert success-alert" role="status">{{ notice }}</div>
         <div v-if="error" class="alert" :class="{ warning: adminEnabled === false }" role="alert">
           {{ error }}
@@ -88,19 +103,19 @@ async function onSubmit() {
           <label for="pw">{{ t("login.password") }}</label>
           <input
             id="pw"
+            ref="passwordInput"
             v-model="password"
             type="password"
             required
             autocomplete="current-password"
             :placeholder="t('login.passwordPlaceholder')"
-            :disabled="adminEnabled === false"
-            autofocus
+            :disabled="adminCredentialsMissing || adminEnabled === false"
           />
           <button
             type="submit"
             class="login-submit"
             :class="{ 'is-loading': loading }"
-            :disabled="loading || !password || adminEnabled === false"
+            :disabled="loading || !password || adminCredentialsMissing || adminEnabled === false"
             :title="
               loading
                 ? t('login.verifying')

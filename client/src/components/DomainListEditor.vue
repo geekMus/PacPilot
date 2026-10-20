@@ -337,23 +337,37 @@ watch(
         <div class="rule-diagnostic-title">
           <span class="rule-diagnostic-title-icon" aria-hidden="true">!</span>
           <strong>{{ t("domainList.ruleCheck") }}</strong>
-          <span class="rule-diagnostic-total">{{ t("domainList.tipsCount", { n: diagnostics.length }) }}</span>
+          <span class="rule-diagnostic-total">{{
+            t("domainList.tipsCount", { n: diagnostics.length })
+          }}</span>
         </div>
         <div class="rule-diagnostic-summary">
           <span
             v-if="diagnostics.some((item) => item.severity === 'error')"
             class="diagnostic-count is-error"
-            >{{ t("domainList.errorsCount", { n: diagnostics.filter((item) => item.severity === "error").length }) }}</span
+            >{{
+              t("domainList.errorsCount", {
+                n: diagnostics.filter((item) => item.severity === "error").length,
+              })
+            }}</span
           >
           <span
             v-if="diagnostics.some((item) => item.severity === 'warning')"
             class="diagnostic-count is-warning"
-            >{{ t("domainList.warningsCount", { n: diagnostics.filter((item) => item.severity === "warning").length }) }}</span
+            >{{
+              t("domainList.warningsCount", {
+                n: diagnostics.filter((item) => item.severity === "warning").length,
+              })
+            }}</span
           >
           <span
             v-if="diagnostics.some((item) => item.severity === 'info')"
             class="diagnostic-count is-info"
-            >{{ t("domainList.infosCount", { n: diagnostics.filter((item) => item.severity === "info").length }) }}</span
+            >{{
+              t("domainList.infosCount", {
+                n: diagnostics.filter((item) => item.severity === "info").length,
+              })
+            }}</span
           >
         </div>
       </div>

@@ -57,7 +57,6 @@ const {
   filteredAccesses,
   hasAccessFilters,
   resetAccessFilters,
-  refreshDashboard,
   loadMoreAccesses,
   loadProbeHistory,
   loadProxyTestTarget,
@@ -80,21 +79,6 @@ const {
         <span class="live-dot" :class="{ busy: refreshing }"></span>
         {{ t("monitor.updatedAt", { time: formatDate(lastUpdated) }) }}
       </span>
-      <button
-        class="monitor-button secondary"
-        :class="{ 'is-loading': refreshing }"
-        type="button"
-        :disabled="refreshing"
-        :title="refreshing ? t('monitor.refreshingTitle') : t('monitor.refreshTitle')"
-        @click="refreshDashboard()"
-      >
-        <AppIcon
-          :name="refreshing ? 'loader-circle' : 'refresh-cw'"
-          :class="{ 'icon-spinning': refreshing }"
-          :size="15"
-        />
-        {{ refreshing ? t("common.refreshing") : t("common.refresh") }}
-      </button>
     </template>
 
     <div class="monitor-page">
@@ -115,9 +99,6 @@ const {
           <strong>{{ t("monitor.k64") }}</strong>
           <p>{{ error }}</p>
         </div>
-        <button class="monitor-button secondary" type="button" @click="refreshDashboard()">
-          {{ t("monitor.k65") }}
-        </button>
       </section>
 
       <template v-else>

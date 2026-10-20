@@ -30,6 +30,7 @@ import {
   changeAdminPassword,
   getAdminSecurityStatus,
   getAdminSessionSecret,
+  isAdminCredentialsMissing,
   verifyAdminPassword,
 } from "../services/admin-credentials";
 import { probeGenpac, validatePacProxyString } from "../services/pac-generator";
@@ -38,7 +39,7 @@ import { reschedule } from "../services/scheduler";
 import { sendWebhookTest, validateWebhookConfig } from "../services/webhook";
 import cron from "node-cron";
 import { parseProxyTestUrl, ProxyProbeError } from "../services/proxy-probe";
-import { t as serverT } from "../../shared/i18n";
+import { resolveLocale, t as serverT } from "../../shared/i18n";
 import { assertSafeHttpUrl } from "../utils/url-safety";
 import { adminWorkflowRoutes } from "./admin-workflows";
 import { adminMonitorRoutes } from "./admin-monitor";
@@ -69,7 +70,6 @@ function bodyToSettings(
 ): AppSettings {
   const m = String(b.mode ?? "");
   const mode: GenerationMode = m === "remote" ? "remote" : "custom";
-  const locale = String(b.locale ?? "zh_CN").trim() === "en_US" ? "en_US" : "zh_CN";
   return {
     mode,
     pacProxy: String(b.pacProxy ?? ""),
@@ -79,7 +79,6 @@ function bodyToSettings(
     directList: parseList(b.directList),
     cronSchedule: String(b.cronSchedule ?? ""),
     timezone: String(b.timezone ?? "Asia/Shanghai").trim(),
-    locale,
     proxyTestUrl: String(b.proxyTestUrl ?? fallbackProxyTestUrl).trim(),
     logRetentionDays: Math.max(
       0,
@@ -88,14 +87,18 @@ function bodyToSettings(
         Math.floor(Number(b.logRetentionDays ?? DEFAULT_SETTINGS.logRetentionDays) || 0)
       )
     ),
-    webhookSuccessConfig: normalizeWebhookConfig(b.webhookSuccessConfig, locale),
-    webhookFailureConfig: normalizeWebhookConfig(b.webhookFailureConfig, locale),
+    webhookSuccessConfig: normalizeWebhookConfig(b.webhookSuccessConfig),
+    webhookFailureConfig: normalizeWebhookConfig(b.webhookFailureConfig),
   };
+}
+function requestLocale(req: import("express").Request): "zh_CN" | "en_US" {
+  return resolveLocale(req.get("accept-language"));
 }
 function persistSettings(
   body: Record<string, unknown>,
   env: EnvConfig,
-  database: AppDatabase
+  database: AppDatabase,
+  locale: "zh_CN" | "en_US"
 ): { settings: AppSettings } | { error: string } {
   const p = bodyToSettings(body, getSettings(database).proxyTestUrl);
   if (p.mode === "remote") {
@@ -104,7 +107,7 @@ function persistSettings(
   }
   if (!p.timezone || !validTimeZone(p.timezone))
     return {
-      error: serverT(p.locale, "serverErrors.invalidTimezone"),
+      error: serverT(locale, "serverErrors.invalidTimezone"),
     };
   try {
     p.proxyTestUrl = parseProxyTestUrl(p.proxyTestUrl).toString();
@@ -112,17 +115,17 @@ function persistSettings(
     return {
       error:
         e instanceof ProxyProbeError
-          ? serverT(p.locale, e.code, { detail: e.detail })
+          ? serverT(locale, e.code, { detail: e.detail })
           : e instanceof Error
             ? e.message
-            : serverT(p.locale, "serverErrors.invalidProxyTestUrl"),
+            : serverT(locale, "serverErrors.invalidProxyTestUrl"),
     };
   }
   const proxyError = validatePacProxyString(p.pacProxy);
   if (proxyError) return { error: proxyError };
   const expr = p.cronSchedule.trim();
   if (expr && (expr.split(/\s+/).length !== 5 || !cron.validate(expr)))
-    return { error: serverT(p.locale, "serverErrors.invalidCron") };
+    return { error: serverT(locale, "serverErrors.invalidCron") };
   for (const c of [p.webhookSuccessConfig, p.webhookFailureConfig]) {
     if (c.url.trim()) {
       const errors = validateWebhookConfig(c);
@@ -138,12 +141,20 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
   router.use(adminWorkflowRoutes(database));
   router.use(adminMonitorRoutes(database));
   router.get("/api/admin/session", (req, res) =>
-    res.json({ loggedIn: isLoggedIn(req, database), ...getAdminSecurityStatus(database) })
+    res.json({
+      loggedIn: isLoggedIn(req, database),
+      adminCredentialsMissing: isAdminCredentialsMissing(database),
+      ...getAdminSecurityStatus(database),
+    })
   );
   router.post("/api/admin/login", (req, res) => {
     const originError = assertSameOrigin(req);
     if (originError) {
       res.status(403).json({ error: originError });
+      return;
+    }
+    if (isAdminCredentialsMissing(database)) {
+      res.status(428).json({ error: "setup_required" });
       return;
     }
     const rateError = checkLoginRateLimit(req);
@@ -194,7 +205,12 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
     res.json(getSettings(database))
   );
   router.put("/api/admin/settings", requireAdmin(database), (req, res) => {
-    const result = persistSettings((req.body || {}) as Record<string, unknown>, env, database);
+    const result = persistSettings(
+      (req.body || {}) as Record<string, unknown>,
+      env,
+      database,
+      requestLocale(req)
+    );
     if ("error" in result) {
       res.status(400).json({ error: result.error });
       return;
@@ -202,7 +218,12 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
     res.json(result.settings);
   });
   router.post("/api/admin/settings/save-and-generate", requireAdmin(database), (req, res) => {
-    const saved = persistSettings((req.body || {}) as Record<string, unknown>, env, database);
+    const saved = persistSettings(
+      (req.body || {}) as Record<string, unknown>,
+      env,
+      database,
+      requestLocale(req)
+    );
     if ("error" in saved) {
       res.status(400).json({ error: saved.error });
       return;
@@ -219,7 +240,7 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
     }
   });
   router.post("/api/admin/webhook-test", requireAdmin(database), async (req, res) => {
-    const c = normalizeWebhookConfig(req.body?.config ?? req.body, getSettings(database).locale),
+    const c = normalizeWebhookConfig(req.body?.config ?? req.body),
       errors = validateWebhookConfig(c);
     if (errors.length) {
       res.status(400).json({ error: errors.join("\n") });
@@ -286,13 +307,11 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
       },
     });
   });
-  router.delete("/api/admin/pac-files", requireAdmin(database), (_req, res) => {
+  router.delete("/api/admin/pac-files", requireAdmin(database), (req, res) => {
     if (hasActivePacWorkflow(database)) {
-      res
-        .status(409)
-        .json({
-          error: serverT(getSettings(database).locale, "serverErrors.activeWorkflowPacDelete"),
-        });
+      res.status(409).json({
+        error: serverT(requestLocale(req), "serverErrors.activeWorkflowPacDelete"),
+      });
       return;
     }
     const deleted: string[] = [];
@@ -345,16 +364,13 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
   router.post("/api/admin/factory-reset", requireAdmin(database), (req, res) => {
     if (req.body?.confirm !== "RESET") {
       res.status(400).json({
-        error: serverT(
-          getSettings(database).locale,
-          "serverErrors.invalidFactoryResetConfirmation"
-        ),
+        error: serverT(requestLocale(req), "serverErrors.invalidFactoryResetConfirmation"),
       });
       return;
     }
     if (hasActivePacWorkflow(database)) {
       res.status(409).json({
-        error: serverT(getSettings(database).locale, "serverErrors.activeWorkflowFactoryReset"),
+        error: serverT(requestLocale(req), "serverErrors.activeWorkflowFactoryReset"),
       });
       return;
     }
@@ -376,7 +392,7 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
       reschedule(database, env.dataDir);
       res.json({
         ok: true,
-        message: serverT(getSettings(database).locale, "serverErrors.factoryResetCompleted"),
+        message: serverT(requestLocale(req), "serverErrors.factoryResetCompleted"),
       });
     } catch (e) {
       try {

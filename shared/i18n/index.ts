@@ -10,7 +10,12 @@ interface LocaleTree {
 export const catalogs: Record<AppLocale, LocaleTree> = { en_US, zh_CN };
 
 export function resolveLocale(raw: unknown): AppLocale {
-  return String(raw ?? "").trim() === "en_US" ? "en_US" : "zh_CN";
+  const value = String(raw ?? "")
+    .trim()
+    .toLowerCase();
+  return value === "en_us" || value === "en-us" || value.startsWith("en-") || value === "en"
+    ? "en_US"
+    : "zh_CN";
 }
 
 function resolveMessage(catalog: LocaleTree, key: string): string | undefined {

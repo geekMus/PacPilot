@@ -139,8 +139,7 @@ export function getNotificationConfig(
   kind: "success" | "failure"
 ): WebhookConfig {
   return normalizeWebhookConfig(
-    kind === "success" ? settings.webhookSuccessConfig : settings.webhookFailureConfig,
-    settings.locale
+    kind === "success" ? settings.webhookSuccessConfig : settings.webhookFailureConfig
   );
 }
 

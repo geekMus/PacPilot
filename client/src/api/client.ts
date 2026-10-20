@@ -1,4 +1,4 @@
-import { i18n } from "../i18n";
+import { i18n, resolveLocale } from "../i18n";
 
 export interface Meta {
   adminEnabled: boolean;
@@ -8,6 +8,7 @@ export interface Meta {
 
 export interface AdminSession {
   loggedIn: boolean;
+  adminCredentialsMissing: boolean;
   isDefaultPassword: boolean;
   mustChangePassword: boolean;
 }
@@ -52,8 +53,6 @@ export interface AppSettings {
   directList: string[];
   cronSchedule: string;
   timezone: string;
-  /** Language used by the admin UI and generated PAC comments. */
-  locale: "zh_CN" | "en_US";
   proxyTestUrl: string;
   logRetentionDays: number;
   webhookSuccessConfig: WebhookConfig;
@@ -189,8 +188,6 @@ export interface AccessEvent {
 export interface MonitorSummary {
   generatedAt: string;
   timezone: string;
-  /** UI and generated PAC comments language. */
-  locale: "zh_CN" | "en_US";
   activeRequests: number;
   tcpConnections: number;
   requestsLastHour: number;
@@ -282,7 +279,11 @@ export class ApiError extends Error {
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     credentials: "same-origin",
-    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+    headers: {
+      "Content-Type": "application/json",
+      "Accept-Language": resolveLocale(i18n.global.locale.value) === "en_US" ? "en-US" : "zh-CN",
+      ...(init?.headers || {}),
+    },
     ...init,
   });
   if (!res.ok) {

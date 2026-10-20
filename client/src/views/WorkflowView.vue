@@ -83,14 +83,21 @@ const statusLabel = (status: string) => (statusNames[status] ? t(statusNames[sta
 const stageLabel = (stage: string) => t(`workflow.stageNames.${stage}`);
 const sourceLabel = (source: string) => (sourceNames[source] ? t(sourceNames[source]) : source);
 const modeLabel = (mode: string) =>
-  mode === "remote" ? t("workflowPage.k9") : mode === "custom" ? t("workflowPage.k10") : mode || "—";
+  mode === "remote"
+    ? t("workflowPage.k9")
+    : mode === "custom"
+      ? t("workflowPage.k10")
+      : mode || "—";
 const durationLabel = (run: WorkflowRun) => {
   const ms =
     run.duration_ms ?? (run.started_at ? Date.now() - new Date(run.started_at).getTime() : null);
   if (ms === null) return "—";
   if (ms < 1000) return ms + " ms";
   if (ms < 60000) return t("workflowPage.sec", { n: (ms / 1000).toFixed(1) });
-  return t("workflowPage.minSec", { m: Math.floor(ms / 60000), s: Math.floor((ms % 60000) / 1000) });
+  return t("workflowPage.minSec", {
+    m: Math.floor(ms / 60000),
+    s: Math.floor((ms % 60000) / 1000),
+  });
 };
 const dateLabel = (value: string | null) =>
   value ? new Date(value).toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN") : "—";
@@ -304,11 +311,7 @@ onUnmounted(stopPolling);
 </script>
 
 <template>
-  <AdminLayout
-    active="workflow"
-    :title="t('workflow.title')"
-    :subtitle="t('workflow.subtitle')"
-  >
+  <AdminLayout active="workflow" :title="t('workflow.title')" :subtitle="t('workflow.subtitle')">
     <div class="workflow-page">
       <div v-if="error" class="workflow-alert error" role="alert">
         <strong>{{ t("workflow.loadFailed") }}</strong>
@@ -330,9 +333,7 @@ onUnmounted(stopPolling);
           <div class="catalog-copy">
             <strong>{{ t("workflow.pacGeneration") }}</strong
             ><span>{{ t("workflow.pacGenerationDesc") }}</span
-            ><small
-              >{{ t("workflow.idAndTriggers") }}</small
-            >
+            ><small>{{ t("workflow.idAndTriggers") }}</small>
           </div>
           <span class="read-only-pill">{{ t("workflow.readOnly") }}</span>
         </div>
@@ -374,9 +375,7 @@ onUnmounted(stopPolling);
             </div>
             <div class="current-copy">
               <strong>{{ sourceLabel(current.source) }}</strong>
-              <span>{{
-                stageLabel(current.stage) || t("workflowPage.k21")
-              }}</span>
+              <span>{{ stageLabel(current.stage) || t("workflowPage.k21") }}</span>
             </div>
           </div>
           <p class="current-message">
@@ -384,17 +383,20 @@ onUnmounted(stopPolling);
           </p>
           <div class="current-meta">
             <div>
-              <span>{{ t("workflowPage.k49") }}</span><strong>#{{ current.id }}</strong>
+              <span>{{ t("workflowPage.k49") }}</span
+              ><strong>#{{ current.id }}</strong>
             </div>
             <div>
-              <span>{{ t("workflowPage.k50") }}</span><strong>{{ modeLabel(current.mode) }}</strong>
+              <span>{{ t("workflowPage.k50") }}</span
+              ><strong>{{ modeLabel(current.mode) }}</strong>
             </div>
             <div>
               <span>{{ t("workflowPage.k51") }}</span
               ><strong>{{ dateLabel(current.started_at || current.created_at) }}</strong>
             </div>
             <div>
-              <span>{{ t("workflowPage.k52") }}</span><strong>{{ durationLabel(current) }}</strong>
+              <span>{{ t("workflowPage.k52") }}</span
+              ><strong>{{ durationLabel(current) }}</strong>
             </div>
           </div>
           <div class="current-actions">
@@ -406,11 +408,7 @@ onUnmounted(stopPolling);
                 class="workflow-button cancel-button"
                 type="button"
                 :disabled="cancellingId === current.id"
-                :title="
-                  cancellingId === current.id
-                    ? t('workflowPage.k22')
-                    : t('workflowPage.k23')
-                "
+                :title="cancellingId === current.id ? t('workflowPage.k22') : t('workflowPage.k23')"
                 @click="toggleCurrentCancel()"
               >
                 <AppIcon name="x" :size="14" /> {{ t("workflowPage.k39") }}
@@ -420,7 +418,8 @@ onUnmounted(stopPolling);
                 class="confirm-popover cancel-popover"
                 role="group"
               >
-                <strong>{{ t("workflowPage.k54") }}</strong><span>{{ t("workflowPage.k55") }}</span>
+                <strong>{{ t("workflowPage.k54") }}</strong
+                ><span>{{ t("workflowPage.k55") }}</span>
                 <div>
                   <button type="button" class="confirm-cancel" @click.stop="resetConfirmations()">
                     {{ t("workflowPage.k56") }}</button
@@ -429,13 +428,13 @@ onUnmounted(stopPolling);
                     class="confirm-cancel-action"
                     :disabled="cancellingId === current.id"
                     :title="
-                      cancellingId === current.id
-                        ? t('workflowPage.k22')
-                        : t('workflowPage.k24')
+                      cancellingId === current.id ? t('workflowPage.k22') : t('workflowPage.k24')
                     "
                     @click="cancelRun(current, 'current')"
                   >
-                    {{ cancellingId === current.id ? t("workflowPage.k25") : t("workflowPage.k26") }}
+                    {{
+                      cancellingId === current.id ? t("workflowPage.k25") : t("workflowPage.k26")
+                    }}
                   </button>
                 </div>
               </div>
@@ -465,7 +464,9 @@ onUnmounted(stopPolling);
             <h2>{{ t("workflowPage.k60") }}</h2>
             <p class="panel-subtitle">{{ t("workflowPage.k61") }}</p>
           </div>
-          <span class="count-pill">{{ t("workflowPage.taskCount", { n: otherActiveRuns.length }) }}</span>
+          <span class="count-pill">{{
+            t("workflowPage.taskCount", { n: otherActiveRuns.length })
+          }}</span>
         </div>
         <div class="queue-list">
           <div v-for="run in otherActiveRuns" :key="run.id" class="queue-item">
@@ -481,15 +482,12 @@ onUnmounted(stopPolling);
                 ><span class="status-pill" :class="run.status">{{ statusLabel(run.status) }}</span>
               </div>
               <p>
-                {{
-                  stageLabel(run.stage) ||
-                  t("workflowPage.k0")
-                }}
+                {{ stageLabel(run.stage) || t("workflowPage.k0") }}
               </p>
             </div>
-            <RouterLink class="workflow-button secondary" :to="`/admin/workflows/${run.id}`"
-              >{{ t("workflowPage.k53") }}</RouterLink
-            >
+            <RouterLink class="workflow-button secondary" :to="`/admin/workflows/${run.id}`">{{
+              t("workflowPage.k53")
+            }}</RouterLink>
             <div v-if="run.status === 'pending'" class="confirm-anchor">
               <button
                 class="workflow-button cancel-button"
@@ -509,7 +507,8 @@ onUnmounted(stopPolling);
                 class="confirm-popover cancel-popover"
                 role="group"
               >
-                <strong>{{ t("workflowPage.k54") }}</strong><span>{{ t("workflowPage.k55") }}</span>
+                <strong>{{ t("workflowPage.k54") }}</strong
+                ><span>{{ t("workflowPage.k55") }}</span>
                 <div>
                   <button type="button" class="confirm-cancel" @click.stop="resetConfirmations()">
                     {{ t("workflowPage.k56") }}</button
@@ -517,9 +516,7 @@ onUnmounted(stopPolling);
                     type="button"
                     class="confirm-cancel-action"
                     :disabled="cancellingId === run.id"
-                    :title="
-                      cancellingId === run.id ? t('workflowPage.k28') : t('workflowPage.k29')
-                    "
+                    :title="cancellingId === run.id ? t('workflowPage.k28') : t('workflowPage.k29')"
                     @click.stop="cancelRun(run, 'queue')"
                   >
                     {{ cancellingId === run.id ? t("workflowPage.k25") : t("workflowPage.k26") }}
@@ -555,15 +552,15 @@ onUnmounted(stopPolling);
               />
               {{ refreshing ? t("common.refreshing") : t("common.refresh") }}
             </button>
-            <span class="count-pill"
-              >{{ t("workflowPage.matchLoaded", { filtered: filteredRuns.length, loaded: runs.length }) }}</span
-            >
+            <span class="count-pill">{{
+              t("workflowPage.matchLoaded", { filtered: filteredRuns.length, loaded: runs.length })
+            }}</span>
             <ConfirmPopover
               :open="confirmingHistoryClear"
-              :title='t("workflowPage.k30")'
-              :description='t("workflowPage.k31")'
-              :confirm-text='t("workflowPage.k32")'
-              :busy-text='t("workflowPage.k33")'
+              :title="t('workflowPage.k30')"
+              :description="t('workflowPage.k31')"
+              :confirm-text="t('workflowPage.k32')"
+              :busy-text="t('workflowPage.k33')"
               align="end"
               :disabled="
                 loading ||
@@ -605,14 +602,10 @@ onUnmounted(stopPolling);
             </ConfirmPopover>
           </div>
         </div>
-        <p
-          v-if="historyClearDisabledReason"
-          class="history-disabled-hint"
-          aria-live="polite"
-        >
+        <p v-if="historyClearDisabledReason" class="history-disabled-hint" aria-live="polite">
           {{ historyClearDisabledReason }}
         </p>
-        <div class="history-filters" :aria-label='t("workflowPage.k36")'>
+        <div class="history-filters" :aria-label="t('workflowPage.k36')">
           <label
             >{{ t("workflowPage.k64") }}
             <SelectField
@@ -649,7 +642,7 @@ onUnmounted(stopPolling);
           :has-more="historyHasMore"
           :loading="historyLoadingMore"
           :error="historyLoadError"
-          :empty-text='t("workflowPage.k37")'
+          :empty-text="t('workflowPage.k37')"
           :load-more="loadMoreHistory"
         >
           <template #columns
@@ -683,7 +676,9 @@ onUnmounted(stopPolling);
               <td class="task-id">
                 <span class="id-trigger">#{{ run.id }}</span>
               </td>
-              <td><span class="name-trigger ellipsis">{{ t("workflow.pacGeneration") }}</span></td>
+              <td>
+                <span class="name-trigger ellipsis">{{ t("workflow.pacGeneration") }}</span>
+              </td>
               <td class="date-cell">
                 <span class="date-trigger ellipsis">{{
                   dateLabel(run.started_at || run.created_at)
@@ -710,7 +705,7 @@ onUnmounted(stopPolling);
                     class="row-action-button cancel-button"
                     type="button"
                     :disabled="cancellingId !== null"
-                    :aria-label='t("workflowPage.k39")'
+                    :aria-label="t('workflowPage.k39')"
                     :title="
                       cancellingId === run.id
                         ? t('workflowPage.k28')
@@ -741,13 +736,13 @@ onUnmounted(stopPolling);
                         class="confirm-cancel-action"
                         :disabled="cancellingId === run.id"
                         :title="
-                          cancellingId === run.id
-                            ? t('workflowPage.k28')
-                            : t('workflowPage.k29')
+                          cancellingId === run.id ? t('workflowPage.k28') : t('workflowPage.k29')
                         "
                         @click.stop="cancelRun(run, 'history')"
                       >
-                        {{ cancellingId === run.id ? t("workflowPage.k25") : t("workflowPage.k26") }}
+                        {{
+                          cancellingId === run.id ? t("workflowPage.k25") : t("workflowPage.k26")
+                        }}
                       </button>
                     </div>
                   </div>
@@ -757,7 +752,7 @@ onUnmounted(stopPolling);
                     type="button"
                     class="row-action-button delete-run-button"
                     :disabled="deletingId !== null"
-                    :aria-label='t("workflowPage.k42")'
+                    :aria-label="t('workflowPage.k42')"
                     :title="
                       deletingId === run.id
                         ? t('workflowPage.k43')
@@ -774,7 +769,8 @@ onUnmounted(stopPolling);
                     class="confirm-popover"
                     role="group"
                   >
-                    <strong>{{ t("workflowPage.k74") }}</strong><span>{{ t("workflowPage.k75") }}</span>
+                    <strong>{{ t("workflowPage.k74") }}</strong
+                    ><span>{{ t("workflowPage.k75") }}</span>
                     <div>
                       <button
                         type="button"
@@ -787,9 +783,7 @@ onUnmounted(stopPolling);
                         class="confirm-delete"
                         :disabled="deletingId === run.id"
                         :title="
-                          deletingId === run.id
-                            ? t('workflowPage.k43')
-                            : t('workflowPage.k46')
+                          deletingId === run.id ? t('workflowPage.k43') : t('workflowPage.k46')
                         "
                         @click.stop="deleteRun(run)"
                       >

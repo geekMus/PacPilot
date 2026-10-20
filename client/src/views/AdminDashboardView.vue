@@ -36,7 +36,9 @@ const engine = ref<GenpacProbe | null>(null);
 const currentWorkflow = ref<WorkflowRun | null>(null);
 
 const modeLabel = computed(() =>
-  settings.value?.mode === "remote" ? t("dashboard.remoteRuleList") : t("dashboard.customRulesLabel")
+  settings.value?.mode === "remote"
+    ? t("dashboard.remoteRuleList")
+    : t("dashboard.customRulesLabel")
 );
 const customRuleCount = computed(
   () => (settings.value?.directList.length ?? 0) + (settings.value?.blockList.length ?? 0)
@@ -44,7 +46,11 @@ const customRuleCount = computed(
 const latestLog = computed(() => logs.value[0] ?? null);
 
 function modeForLog(value: string): string {
-  return value === "remote" ? t("dashboard.remoteRuleList") : value === "custom" ? t("dashboard.customRulesLabel") : value;
+  return value === "remote"
+    ? t("dashboard.remoteRuleList")
+    : value === "custom"
+      ? t("dashboard.customRulesLabel")
+      : value;
 }
 function generationLogText(entry: GenerationLog): string {
   return entry.success
@@ -122,29 +128,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <AdminLayout
-    active="dashboard"
-    :title="t('dashboard.title')"
-    :subtitle="t('dashboard.subtitle')"
-  >
-    <template #actions>
-      <button
-        class="dash-button secondary"
-        :class="{ 'is-loading': refreshing }"
-        type="button"
-        :disabled="refreshing"
-        :title="refreshing ? t('dashboard.refreshingTitle') : t('dashboard.refreshTitle')"
-        @click="loadOverview"
-      >
-        <AppIcon
-          :name="refreshing ? 'loader-circle' : 'refresh-cw'"
-          :class="{ 'icon-spinning': refreshing }"
-          :size="15"
-        />
-        {{ refreshing ? t("common.refreshing") : t("common.refresh") }}
-      </button>
-    </template>
-
+  <AdminLayout active="dashboard" :title="t('dashboard.title')" :subtitle="t('dashboard.subtitle')">
     <div class="dashboard-view">
       <section v-if="loading && !settings" class="dash-loading" aria-live="polite">
         <span class="spinner" aria-hidden="true"></span>
@@ -159,6 +143,21 @@ onMounted(() => {
           <h2>{{ t("dashboard.quickActions") }}</h2>
         </div>
         <div class="quick-actions">
+          <button
+            type="button"
+            class="dash-button secondary"
+            :class="{ 'is-loading': refreshing }"
+            :disabled="refreshing"
+            :title="refreshing ? t('dashboard.refreshingTitle') : t('dashboard.refreshTitle')"
+            @click="loadOverview"
+          >
+            <AppIcon
+              :name="refreshing ? 'loader-circle' : 'refresh-cw'"
+              :class="{ 'icon-spinning': refreshing }"
+              :size="15"
+            />
+            {{ refreshing ? t("common.refreshing") : t("common.refresh") }}
+          </button>
           <RouterLink to="/admin/settings" class="dash-button secondary"
             ><AppIcon name="settings" :size="16" />{{ t("dashboard.openSettings") }}</RouterLink
           >
@@ -187,13 +186,20 @@ onMounted(() => {
               :class="{ 'icon-spinning': generating || loading }"
               :size="16"
             />
-            {{ generating ? t("common.generating") : loading ? t("common.reading") : t("dashboard.generatePac") }}
+            {{
+              generating
+                ? t("common.generating")
+                : loading
+                  ? t("common.reading")
+                  : t("dashboard.generatePac")
+            }}
           </button>
         </div>
       </div>
 
       <div v-if="error" class="dashboard-alert is-error" role="alert">
-        <strong>{{ t("dashboard.loadFailed") }}</strong><span>{{ error }}</span>
+        <strong>{{ t("dashboard.loadFailed") }}</strong
+        ><span>{{ error }}</span>
         <button type="button" @click="loadOverview">{{ t("dashboard.reload") }}</button>
       </div>
       <div
@@ -220,7 +226,8 @@ onMounted(() => {
         >
       </RouterLink>
       <div v-if="session?.isDefaultPassword" class="dashboard-alert is-warning" role="alert">
-        <strong>{{ t("dashboard.securityAlert") }}</strong><span>{{ t("dashboard.stillDefaultPassword") }}</span>
+        <strong>{{ t("dashboard.securityAlert") }}</strong
+        ><span>{{ t("dashboard.stillDefaultPassword") }}</span>
         <RouterLink to="/admin/settings#security">{{ t("dashboard.changeNow") }}</RouterLink>
       </div>
 
@@ -233,7 +240,11 @@ onMounted(() => {
             /></span>
           </div>
           <strong class="metric-value" :class="status?.hasPac ? 'value-good' : 'value-warning'">{{
-            loading ? t("common.reading") : status?.hasPac ? t("common.generated") : t("common.notYetGenerated")
+            loading
+              ? t("common.reading")
+              : status?.hasPac
+                ? t("common.generated")
+                : t("common.notYetGenerated")
           }}</strong>
           <span class="metric-note">{{
             status?.hasPac ? t("dashboard.hasPacNote") : t("dashboard.noPacNote")
@@ -261,9 +272,12 @@ onMounted(() => {
             /></span>
           </div>
           <strong class="metric-value">{{ customRuleCount }}</strong>
-          <span class="metric-note"
-            >{{ t("dashboard.directBlockCountInline", { direct: settings?.directList.length ?? 0, block: settings?.blockList.length ?? 0 }) }}</span
-          >
+          <span class="metric-note">{{
+            t("dashboard.directBlockCountInline", {
+              direct: settings?.directList.length ?? 0,
+              block: settings?.blockList.length ?? 0,
+            })
+          }}</span>
         </article>
         <article class="overview-metric">
           <div class="metric-top">
@@ -290,26 +304,37 @@ onMounted(() => {
           </header>
           <div class="config-details">
             <div class="config-detail">
-              <span>{{ t("dashboard.generateMode") }}</span><strong>{{ modeLabel }}</strong>
+              <span>{{ t("dashboard.generateMode") }}</span
+              ><strong>{{ modeLabel }}</strong>
             </div>
             <div class="config-detail">
-              <span>{{ t("dashboard.timezone") }}</span><strong>{{ settings?.timezone || "—" }}</strong>
+              <span>{{ t("dashboard.timezone") }}</span
+              ><strong>{{ settings?.timezone || "—" }}</strong>
             </div>
             <div class="config-detail">
-              <span>{{ t("dashboard.defaultProxy") }}</span><code>{{ settings?.pacProxy || "—" }}</code>
+              <span>{{ t("dashboard.defaultProxy") }}</span
+              ><code>{{ settings?.pacProxy || "—" }}</code>
             </div>
             <div class="config-detail">
               <span>{{ t("dashboard.scheduledGen") }}</span
-              ><strong>{{ settings?.cronSchedule ? settings.cronSchedule : t("dashboard.closed") }}</strong>
+              ><strong>{{
+                settings?.cronSchedule ? settings.cronSchedule : t("dashboard.closed")
+              }}</strong>
             </div>
             <div class="config-detail">
               <span>{{ t("dashboard.remoteRuleUrl") }}</span
-              ><code>{{ settings?.mode === "remote" ? settings.listUrl : t("dashboard.notEnabled") }}</code>
+              ><code>{{
+                settings?.mode === "remote" ? settings.listUrl : t("dashboard.notEnabled")
+              }}</code>
             </div>
             <div class="config-detail">
               <span>{{ t("dashboard.engine") }}</span
               ><strong :class="engine?.available ? 'value-good' : 'value-warning'">{{
-                engine ? (engine.available ? t("common.available") : t("common.needCheck")) : t("common.notDetected")
+                engine
+                  ? engine.available
+                    ? t("common.available")
+                    : t("common.needCheck")
+                  : t("common.notDetected")
               }}</strong>
             </div>
             <div class="config-detail">
@@ -322,7 +347,13 @@ onMounted(() => {
               <span>{{ t("dashboard.genResult") }}</span
               ><strong
                 :class="latestLog?.success ? 'value-good' : latestLog ? 'value-warning' : ''"
-                >{{ latestLog ? (latestLog.success ? t("common.success") : t("common.failed")) : t("common.noRecords") }}</strong
+                >{{
+                  latestLog
+                    ? latestLog.success
+                      ? t("common.success")
+                      : t("common.failed")
+                    : t("common.noRecords")
+                }}</strong
               >
             </div>
           </div>

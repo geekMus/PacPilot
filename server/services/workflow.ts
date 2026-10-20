@@ -29,10 +29,10 @@ interface QueueItem {
 const queues = new Map<string, QueueItem[]>();
 const runningTypes = new Set<string>();
 const PAC_WORKFLOW_TYPE = "pac-generation";
-const cancelledResult = (locale: string): GenerateResult => ({
+const cancelledResult = (): GenerateResult => ({
   success: false,
   mode: "",
-  message: t(locale, "serverErrors.workflowCancelled"),
+  message: t("zh_CN", "serverErrors.workflowCancelled"),
   resultCode: "cancelled",
   pacPath: "",
 });
@@ -128,7 +128,7 @@ function pumpQueue(type: string): void {
         const item = queue.shift()!;
         const run = getWorkflowRun(item.database, item.workflowId);
         if (!run || run.status !== "pending") {
-          item.resolve(cancelledResult(getSettings(item.database).locale));
+          item.resolve(cancelledResult());
           continue;
         }
         try {
