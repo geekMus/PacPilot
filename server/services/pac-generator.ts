@@ -9,6 +9,7 @@ import { APP_VERSION } from "../version";
 import { t } from "../../shared/i18n";
 import type { AppSettings } from "../db/settings";
 import { buildRemoteListPac, fetchAndParseRemoteList } from "./remote-list";
+import { runtimeLog } from "../utils/runtime-log";
 
 export interface GenerateResult {
   success: boolean;
@@ -335,7 +336,7 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
     appendGenerationLog(database, true, settings.mode, resultCode, resultData);
     const webhook = await notifySuccess(settings);
     if (webhook) detail = { ...detail, webhook };
-    console.log(`[PAC] ${message}; file: ${pacPath}`);
+    runtimeLog("log", `PAC ${message}；文件：${pacPath}`, `[PAC] ${message}; file: ${pacPath}`);
     return {
       success: true,
       mode: settings.mode,
@@ -353,7 +354,7 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
         : undefined;
     appendGenerationLog(database, false, settings.mode, "failed", {}, message);
     const webhook = await notifyFailure(settings, message);
-    console.error(`[PAC] generation failed: ${message}`);
+    runtimeLog("error", `PAC 生成失败：${message}`, `[PAC] generation failed: ${message}`);
     return {
       success: false,
       mode: settings.mode,

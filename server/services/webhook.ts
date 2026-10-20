@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 import type { AppSettings, WebhookConfig } from "../db/settings";
 import { createDefaultWebhookConfig, normalizeWebhookConfig } from "../db/settings";
 import { assertSafeHttpUrl } from "../utils/url-safety";
+import { runtimeLog } from "../utils/runtime-log";
 
 const WEBHOOK_TIMEOUT_MS = 10_000;
 export interface WebhookDeliveryResult {
@@ -293,8 +294,19 @@ async function notify(
     url: config.url.trim(),
     duration_ms: Math.max(0, Date.now() - started),
   };
-  if (!enriched.success) console.error("[webhook] " + config.provider + ": " + enriched.message);
-  else console.info("[webhook] " + config.provider + " delivered (HTTP " + enriched.status + ")");
+  if (!enriched.success) {
+    runtimeLog(
+      "error",
+      `Webhook（${config.provider}）发送失败：${enriched.message}`,
+      "[webhook] " + config.provider + ": " + enriched.message
+    );
+  } else {
+    runtimeLog(
+      "info",
+      `Webhook（${config.provider}）发送成功（HTTP ${enriched.status}）`,
+      "[webhook] " + config.provider + " delivered (HTTP " + enriched.status + ")"
+    );
+  }
   return enriched;
 }
 

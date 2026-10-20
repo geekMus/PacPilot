@@ -3,6 +3,7 @@ import type { Socket } from "node:net";
 import { performance } from "node:perf_hooks";
 import type { AppDatabase } from "../db/sqlite";
 import { recordAccessEvent } from "../db/monitoring";
+import { runtimeLog } from "../utils/runtime-log";
 
 const tcpSockets = new Set<Socket>();
 let activeRequests = 0;
@@ -67,7 +68,9 @@ export function requestMonitoringMiddleware(database: AppDatabase) {
           response_content_type: responseType,
         });
       } catch (error) {
-        console.warn(
+        runtimeLog(
+          "warn",
+          "无法写入访问记录：",
           "[monitor] 无法写入访问记录:",
           error instanceof Error ? error.message : String(error)
         );

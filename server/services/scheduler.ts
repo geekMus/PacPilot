@@ -2,6 +2,7 @@ import cron, { type ScheduledTask } from "node-cron";
 import type { AppDatabase } from "../db/sqlite";
 import { getSettings } from "../db/sqlite";
 import { runPacWorkflow } from "./workflow";
+import { runtimeLog } from "../utils/runtime-log";
 let currentTask: ScheduledTask | null = null,
   currentKey = "";
 export function reschedule(database: AppDatabase, dataDir: string): void {
@@ -13,28 +14,36 @@ export function reschedule(database: AppDatabase, dataDir: string): void {
     currentTask.stop();
     currentTask = null;
     currentKey = "";
-    console.log("[cron] previous schedule stopped");
+    runtimeLog("log", "已停止之前的定时任务。", "[cron] previous schedule stopped");
   }
   if (!expr) {
-    console.log("[cron] no schedule configured");
+    runtimeLog("log", "未配置定时任务。", "[cron] no schedule configured");
     return;
   }
   if (!cron.validate(expr)) {
-    console.error("[cron] invalid expression: " + expr);
+    runtimeLog("error", `定时任务表达式无效：${expr}`, "[cron] invalid expression: " + expr);
     return;
   }
   currentTask = cron.schedule(
     expr,
     () => {
-      console.log("[cron] triggered: " + expr + " (timezone=" + s.timezone + ")");
+      runtimeLog(
+        "log",
+        `定时任务已触发：${expr}（时区：${s.timezone}）`,
+        "[cron] triggered: " + expr + " (timezone=" + s.timezone + ")"
+      );
       void runPacWorkflow(database, dataDir, "scheduled").catch((error) =>
-        console.error("[cron] workflow failed:", error)
+        runtimeLog("error", "定时任务工作流失败：", "[cron] workflow failed:", error)
       );
     },
     { timezone: s.timezone }
   );
   currentKey = key;
-  console.log("[cron] scheduled: " + expr + " (timezone=" + s.timezone + ")");
+  runtimeLog(
+    "log",
+    `已安排定时任务：${expr}（时区：${s.timezone}）`,
+    "[cron] scheduled: " + expr + " (timezone=" + s.timezone + ")"
+  );
 }
 export function stopScheduler(): void {
   if (currentTask) {

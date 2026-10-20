@@ -11,6 +11,7 @@ import {
 } from "../db/sqlite";
 import { generatePac, type GenerateResult } from "./pac-generator";
 import { t } from "../../shared/i18n";
+import { runtimeLog } from "../utils/runtime-log";
 
 export type WorkflowSource = "startup" | "scheduled" | "manual" | "save-and-generate";
 export interface PacWorkflowResult {
@@ -113,7 +114,12 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
         duration_ms: Math.max(0, finishedAt.getTime() - startedAt.getTime()),
       });
     } catch (recordError) {
-      console.error("[workflow] failed to persist task failure:", recordError);
+      runtimeLog(
+        "error",
+        "保存工作流失败状态时发生错误：",
+        "[workflow] failed to persist task failure:",
+        recordError
+      );
     }
     throw error;
   }
@@ -182,7 +188,9 @@ export function startPacWorkflow(
   source: WorkflowSource
 ): number {
   const item = enqueuePacWorkflow(database, dataDir, source);
-  void item.promise.catch((error) => console.error("[workflow] task failed:", error));
+  void item.promise.catch((error) =>
+    runtimeLog("error", "工作流执行失败：", "[workflow] task failed:", error)
+  );
   return item.workflowId;
 }
 
