@@ -69,7 +69,25 @@ export function useMonitoringDashboard() {
 
   const savingProxyTestTarget = ref(false);
 
-  const proxyTestTargetMessage = ref("");
+  const proxyTestTargetMessageKey = ref<"monitor.k6" | "">("");
+  const proxyTestTargetError = ref<unknown>(null);
+  const proxyTestTargetMessage = computed({
+    get: () =>
+      proxyTestTargetMessageKey.value
+        ? t(proxyTestTargetMessageKey.value)
+        : proxyTestTargetError.value
+          ? errorMessage(proxyTestTargetError.value)
+          : "",
+    set: (message: string) => {
+      if (!message) {
+        proxyTestTargetMessageKey.value = "";
+        proxyTestTargetError.value = null;
+      } else {
+        proxyTestTargetMessageKey.value = "";
+        proxyTestTargetError.value = message;
+      }
+    },
+  });
 
   const proxyTestTargetMessageOk = ref<boolean | null>(null);
 
@@ -144,11 +162,14 @@ export function useMonitoringDashboard() {
 
   const accessDetailDialog = ref<HTMLDialogElement | null>(null);
 
-  const accessDetailCopyState = ref("");
+  const accessDetailCopyStateKey = ref<"monitor.k4" | "monitor.k5" | "">("");
+  const accessDetailCopyState = computed(() =>
+    accessDetailCopyStateKey.value ? t(accessDetailCopyStateKey.value) : ""
+  );
 
   async function openAccessDetail(event: AccessEvent): Promise<void> {
     selectedAccess.value = event;
-    accessDetailCopyState.value = "";
+    accessDetailCopyStateKey.value = "";
     await nextTick();
     if (accessDetailDialog.value && !accessDetailDialog.value.open)
       accessDetailDialog.value.showModal();
@@ -160,7 +181,7 @@ export function useMonitoringDashboard() {
 
   function onAccessDetailClose(): void {
     selectedAccess.value = null;
-    accessDetailCopyState.value = "";
+    accessDetailCopyStateKey.value = "";
   }
 
   function handleAccessDetailBackdrop(event: MouseEvent): void {
@@ -205,9 +226,9 @@ export function useMonitoringDashboard() {
     ];
     try {
       await navigator.clipboard.writeText(lines.join("\n"));
-      accessDetailCopyState.value = t("monitor.k4");
+      accessDetailCopyStateKey.value = "monitor.k4";
     } catch {
-      accessDetailCopyState.value = t("monitor.k5");
+      accessDetailCopyStateKey.value = "monitor.k5";
     }
   }
 
@@ -349,7 +370,7 @@ export function useMonitoringDashboard() {
     } catch (caught) {
       proxyTestTargetLoaded.value = false;
       proxyTestTargetMessageOk.value = false;
-      proxyTestTargetMessage.value = errorMessage(caught);
+      proxyTestTargetError.value = caught;
       notify(proxyTestTargetMessage.value, "error");
     } finally {
       loadingProxyTestTarget.value = false;
@@ -372,11 +393,11 @@ export function useMonitoringDashboard() {
       proxyTestUrl.value = result.url;
       savedProxyTestUrl.value = result.url;
       proxyTestTargetMessageOk.value = true;
-      proxyTestTargetMessage.value = t("monitor.k6");
+      proxyTestTargetMessageKey.value = "monitor.k6";
       notify(t("monitor.k7"), "success");
     } catch (caught) {
       proxyTestTargetMessageOk.value = false;
-      proxyTestTargetMessage.value = errorMessage(caught);
+      proxyTestTargetError.value = caught;
       notify(proxyTestTargetMessage.value, "error");
     } finally {
       savingProxyTestTarget.value = false;

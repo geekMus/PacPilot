@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import { watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useToast } from "../composables/useToast";
 import AppIcon from "./AppIcon.vue";
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { toasts, dismiss } = useToast();
+watch(locale, () => {
+  for (const toast of [...toasts]) dismiss(toast.id);
+});
 const iconNames = {
   success: "check-circle-2",
   error: "circle-x",

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { api, type WorkflowDetail, type WorkflowStage } from "../api/client";
 import AdminLayout from "../components/AdminLayout.vue";
@@ -28,7 +28,10 @@ let requestInFlight = false;
 
 const selectedStage = ref<WorkflowStage | null>(null);
 const stageDetailDialog = ref<HTMLDialogElement | null>(null);
-const stageDetailCopyState = ref("");
+const stageDetailCopyStateKey = ref<"workflowDetailPage.k12" | "workflowDetailPage.k13" | "">("");
+const stageDetailCopyState = computed(() =>
+  stageDetailCopyStateKey.value ? t(stageDetailCopyStateKey.value) : ""
+);
 
 const statuses: Record<string, string> = {
   pending: "workflowDetailPage.k0",
@@ -82,7 +85,7 @@ function formatStageDetail(raw: string | undefined | null): string {
 
 async function openStageDetail(stage: WorkflowStage): Promise<void> {
   selectedStage.value = stage;
-  stageDetailCopyState.value = "";
+  stageDetailCopyStateKey.value = "";
   await nextTick();
   if (stageDetailDialog.value && !stageDetailDialog.value.open) {
     stageDetailDialog.value.showModal();
@@ -95,7 +98,7 @@ function closeStageDetail(): void {
 
 function onStageDetailClose(): void {
   selectedStage.value = null;
-  stageDetailCopyState.value = "";
+  stageDetailCopyStateKey.value = "";
 }
 
 function handleStageDetailBackdrop(event: MouseEvent): void {
@@ -126,9 +129,9 @@ async function copyStageDetail(): Promise<void> {
   ].join("\n");
   try {
     await navigator.clipboard.writeText(text);
-    stageDetailCopyState.value = t("workflowDetailPage.k12");
+    stageDetailCopyStateKey.value = "workflowDetailPage.k12";
   } catch {
-    stageDetailCopyState.value = t("workflowDetailPage.k13");
+    stageDetailCopyStateKey.value = "workflowDetailPage.k13";
   }
 }
 
@@ -260,7 +263,7 @@ watch(
     previousStatus = null;
     detail.value = null;
     selectedStage.value = null;
-    stageDetailCopyState.value = "";
+    stageDetailCopyStateKey.value = "";
     loading.value = true;
     error.value = "";
     confirmingDelete.value = false;

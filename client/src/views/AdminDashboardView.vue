@@ -25,7 +25,12 @@ const loading = ref(true);
 const refreshing = ref(false);
 const generating = ref(false);
 const error = ref("");
-const notice = ref("");
+const noticeWorkflowId = ref<number | null>(null);
+const notice = computed(() =>
+  noticeWorkflowId.value === null
+    ? ""
+    : t("dashboard.workflowStarted", { id: noticeWorkflowId.value })
+);
 const noticeOkay = ref(true);
 const settings = ref<AppSettings | null>(null);
 const status = ref<PacStatus | null>(null);
@@ -101,12 +106,12 @@ async function loadOverview(): Promise<void> {
 async function generateNow(): Promise<void> {
   if (generating.value) return;
   generating.value = true;
-  notice.value = "";
+  noticeWorkflowId.value = null;
   error.value = "";
   try {
     const result = await api.generate();
     noticeOkay.value = true;
-    notice.value = t("dashboard.workflowStarted", { id: result.workflowId });
+    noticeWorkflowId.value = result.workflowId;
     await loadOverview();
   } catch (caught) {
     noticeOkay.value = false;

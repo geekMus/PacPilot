@@ -18,12 +18,13 @@ const props = withDefaults(
 const dialog = ref<HTMLDialogElement | null>(null);
 const trigger = ref<HTMLButtonElement | null>(null);
 const dialogMounted = ref(false);
-const copyState = ref("");
+const copyStateKey = ref<"common.copied" | "common.copyManual" | "">("");
+const copyState = computed(() => (copyStateKey.value ? t(copyStateKey.value) : ""));
 const fullText = computed(() => props.text ?? "");
 const resolvedLabel = computed(() => props.label || t("common.recordDetail"));
 
 async function openDetails(): Promise<void> {
-  copyState.value = "";
+  copyStateKey.value = "";
   dialogMounted.value = true;
   await nextTick();
   if (dialog.value && !dialog.value.open) dialog.value.showModal();
@@ -49,9 +50,9 @@ function onDialogClose(): void {
 async function copyContent(): Promise<void> {
   try {
     await navigator.clipboard.writeText(fullText.value || "—");
-    copyState.value = t("common.copied");
+    copyStateKey.value = "common.copied";
   } catch {
-    copyState.value = t("common.copyManual");
+    copyStateKey.value = "common.copyManual";
   }
 }
 </script>

@@ -186,6 +186,7 @@ export default {
     success: "Signed in",
     passwordChanged: "Admin password updated. Sign in with the new password.",
     connectFailed: "Unable to reach the service. Check that the backend is running.",
+    invalidPassword: "Invalid admin password.",
     hint: "The randomly generated admin password is available in the service startup logs.",
     footnote:
       "Do not save the admin password on shared devices. A password reset generates a new password; changing it again is optional.",
@@ -638,6 +639,7 @@ export default {
     changingPasswordTitle: "Changing the admin password…",
     changePasswordTitle: "Change admin password",
     enterCurrentPassword: "Enter the current admin password.",
+    passwordSameAsCurrent: "The new password must be different from the current password.",
     resetHelpFull:
       "If you forget the password, reset it according to your deployment: run the matching script for local development; run bun run reset:admin-password:production for a non-container production deployment; or run the existing reset command inside the Docker container. The script displays the actual database path and will not create an empty database if it does not exist.",
     resetHelpLink: "View complete reset instructions ↗",

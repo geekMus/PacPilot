@@ -28,14 +28,14 @@ const emit = defineEmits<{
 const config = computed(() => props.modelValue);
 const providerId = useId();
 const showDingTalkSecret = ref(false);
-const providers: { value: WebhookProvider; label: string; description: string }[] = [
+const providers = computed<{ value: WebhookProvider; label: string; description: string }[]>(() => [
   { value: "custom", label: t("webhookChannel.k0"), description: t("webhookChannel.k1") },
   {
     value: "dingtalk",
     label: t("webhookChannel.k2"),
     description: t("webhookChannel.k3"),
   },
-];
+]);
 
 const bodySample = computed(() =>
   JSON.stringify(
@@ -61,7 +61,7 @@ const testBodySample = JSON.stringify(
   null,
   2
 );
-const testBodyEmptyHint = t("webhookChannel.k4");
+const testBodyEmptyHint = computed(() => t("webhookChannel.k4"));
 
 function update<K extends keyof WebhookConfig>(key: K, value: WebhookConfig[K]) {
   emit("update:modelValue", { ...props.modelValue, [key]: value });

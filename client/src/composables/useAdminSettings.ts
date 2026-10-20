@@ -89,7 +89,20 @@ export function useAdminSettings() {
 
   const passwordSaving = ref(false);
 
-  const passwordError = ref("");
+  const passwordErrorKey = ref<
+    | "settings.enterCurrentPassword"
+    | "settings.passwordMismatch"
+    | "settings.passwordSameAsCurrent"
+    | ""
+  >("");
+  const passwordErrorDetail = ref("");
+  const passwordError = computed({
+    get: () => (passwordErrorKey.value ? t(passwordErrorKey.value) : passwordErrorDetail.value),
+    set: (message: string) => {
+      passwordErrorKey.value = "";
+      passwordErrorDetail.value = message;
+    },
+  });
 
   const passwordForm = reactive({ currentPassword: "", newPassword: "", confirmPassword: "" });
 
@@ -690,11 +703,15 @@ export function useAdminSettings() {
     flash.value = "";
     passwordError.value = "";
     if (!passwordForm.currentPassword) {
-      passwordError.value = t("settings.enterCurrentPassword");
+      passwordErrorKey.value = "settings.enterCurrentPassword";
       return;
     }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      passwordError.value = t("settings.passwordMismatch");
+      passwordErrorKey.value = "settings.passwordMismatch";
+      return;
+    }
+    if (passwordForm.newPassword === passwordForm.currentPassword) {
+      passwordErrorKey.value = "settings.passwordSameAsCurrent";
       return;
     }
     passwordSaving.value = true;

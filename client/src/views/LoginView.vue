@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref, onMounted } from "vue";
+import { computed, nextTick, ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter, useRoute } from "vue-router";
 import { api } from "../api/client";
@@ -14,14 +14,19 @@ const router = useRouter();
 const route = useRoute();
 const password = ref("");
 const passwordInput = ref<HTMLInputElement | null>(null);
-const notice = ref("");
-const error = ref("");
+const notice = computed(() =>
+  route.query.passwordChanged === "1" ? t("login.passwordChanged") : ""
+);
+const errorKey = ref<"login.connectFailed" | "login.invalidPassword" | "login.loginFailed" | "">(
+  ""
+);
+const errorDetail = ref("");
+const error = computed(() => (errorKey.value ? t(errorKey.value) : errorDetail.value));
 const loading = ref(false);
 const adminEnabled = ref<boolean | null>(null);
 const adminCredentialsMissing = ref(false);
 
 onMounted(async () => {
-  if (route.query.passwordChanged === "1") notice.value = t("login.passwordChanged");
   let shouldFocus = true;
   try {
     const meta = await api.meta();
@@ -35,7 +40,8 @@ onMounted(async () => {
       await router.replace("/admin/dashboard");
     }
   } catch (e) {
-    error.value = e instanceof Error ? e.message : t("login.connectFailed");
+    if (e instanceof Error) errorDetail.value = e.message;
+    else errorKey.value = "login.connectFailed";
   } finally {
     if (shouldFocus && !adminCredentialsMissing.value && adminEnabled.value !== false) {
       await nextTick();
@@ -45,7 +51,8 @@ onMounted(async () => {
 });
 async function onSubmit() {
   if (!password.value || loading.value || adminEnabled.value === false) return;
-  error.value = "";
+  errorKey.value = "";
+  errorDetail.value = "";
   loading.value = true;
   try {
     await api.login(password.value);
@@ -57,7 +64,10 @@ async function onSubmit() {
     notify(t("login.success"), "success");
     await router.push("/admin/dashboard");
   } catch (e) {
-    error.value = e instanceof Error ? e.message : t("login.loginFailed");
+    const message = e instanceof Error ? e.message : "";
+    if (message === "Invalid password") errorKey.value = "login.invalidPassword";
+    else if (!message) errorKey.value = "login.loginFailed";
+    else errorDetail.value = message;
     notify(error.value, "error");
   } finally {
     loading.value = false;
