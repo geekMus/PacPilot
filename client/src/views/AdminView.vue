@@ -447,6 +447,7 @@ function applySettings(s: AppSettings) {
   form.blockListText = s.blockList.join("\n");
   form.cronSchedule = s.cronSchedule;
   form.timezone = s.timezone || "Asia/Shanghai";
+  form.locale = s.locale === "en_US" ? "en_US" : "zh_CN";
   form.proxyTestUrl = s.proxyTestUrl || "https://www.google.com/generate_204";
   form.logRetentionDays = Number.isFinite(s.logRetentionDays) ? s.logRetentionDays : 30;
   form.webhookSuccessUrl = s.webhookSuccessUrl;
