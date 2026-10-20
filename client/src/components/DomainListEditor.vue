@@ -53,7 +53,7 @@ const ruleDecorationField = StateField.define({
   update(decorations, transaction) {
     const diagnosticsChanged = transaction.effects.some((effect) => effect.is(setRuleDiagnostics));
     const highlightChanged = transaction.effects.some((effect) => effect.is(setJumpHighlight));
-    if (!transaction.docChanged && !diagnosticsChanged && !highlightChanged && !transaction.selectionSet) return decorations.map(transaction.changes);
+    if (!transaction.docChanged && !diagnosticsChanged && !highlightChanged && (transaction.selection?.eq(transaction.startState.selection) ?? true)) return decorations.map(transaction.changes);
     const diagnostics = transaction.state.field(ruleDiagnosticsField);
     const byLine = new Map<number, RuleDiagnostic[]>();
     for (const diagnostic of diagnostics) byLine.set(diagnostic.line, [...(byLine.get(diagnostic.line) ?? []), diagnostic]);
