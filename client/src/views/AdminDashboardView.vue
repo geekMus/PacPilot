@@ -213,7 +213,7 @@ onMounted(() => { void loadOverview(); });
 
       <section class="dashboard-panel activity-panel">
         <header class="panel-header">
-          <div><h3>近 24 小时访问趋势</h3><p>按小时汇总应用收到的请求；窄区域会自动合并相邻小时，悬停柱形可查看时间区间。</p></div>
+          <div><h3>近 24 小时访问趋势</h3><p>按小时汇总应用收到的请求；柱形为请求量，叠色为错误。悬停可查看具体时段。</p></div>
           <RouterLink to="/admin/monitor">详细监控 <AppIcon name="arrow-up-right" :size="13" /></RouterLink>
         </header>
         <ResponsiveTrendChart

@@ -47,6 +47,17 @@ function cssVar(name: string, fallback: string): string {
   return value || fallback;
 }
 
+/** Append hex alpha when color is #RRGGBB; otherwise return original. */
+function withAlpha(color: string, alpha: string): string {
+  const c = color.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(c)) return c + alpha;
+  if (/^#[0-9a-fA-F]{3}$/.test(c)) {
+    const r = c[1], g = c[2], b = c[3];
+    return "#" + r + r + g + g + b + b + alpha;
+  }
+  return c;
+}
+
 function formatHour(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "--:--";
@@ -109,7 +120,7 @@ function buildOption(): Record<string, unknown> {
   const baseGrid = {
     left: isMobile ? 8 : 12,
     right: isMobile ? 8 : 14,
-    top: props.mode === "count" ? 28 : 20,
+    top: 16,
     bottom: isMobile ? 28 : 32,
     containLabel: true,
   };
@@ -199,7 +210,7 @@ function buildOption(): Record<string, unknown> {
           lineStyle: { width: 2.5, color: accent },
           itemStyle: { color: accent },
           areaStyle: {
-            color: accent + "33",
+            color: withAlpha(accent, "33"),
           },
         },
       ],
@@ -210,11 +221,7 @@ function buildOption(): Record<string, unknown> {
     animationDuration: 280,
     grid: baseGrid,
     legend: {
-      top: 0,
-      right: 0,
-      itemWidth: 10,
-      itemHeight: 10,
-      textStyle: { color: muted, fontSize: 11 },
+      show: false,
       data: ["请求", "错误"],
     },
     tooltip: {
@@ -303,6 +310,10 @@ function buildOption(): Record<string, unknown> {
 
 function renderChart() {
   if (!host.value) return;
+  if (!props.points?.length) {
+    chart.value?.clear();
+    return;
+  }
   if (!chart.value) {
     chart.value = echarts.init(host.value, undefined, { renderer: "canvas" });
   }

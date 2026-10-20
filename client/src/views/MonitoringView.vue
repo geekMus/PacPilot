@@ -484,7 +484,7 @@ onUnmounted(() => {
         <div class="panel-heading">
           <div>
             <h2><AppIcon name="chart" :size="17" />PAC 请求趋势</h2>
-            <p>按小时统计近 24 小时的 PAC 文件请求；红色部分表示失败请求。下方展示每小时平均响应耗时。</p>
+            <p>按小时统计近 24 小时的 PAC 文件请求（柱形为总量，叠色为失败）；下方折线图展示每小时平均响应耗时。</p>
           </div>
           <span class="panel-count">峰值 {{ Math.max(0, ...(summary?.pacRequestTrend ?? []).map((item) => item.requests)) }} 次/小时</span>
         </div>
@@ -567,7 +567,7 @@ onUnmounted(() => {
         <div class="panel-heading">
           <div>
             <h2><AppIcon name="chart" :size="17" />最近 24 小时请求趋势</h2>
-            <p>按小时汇总网页、PAC 与 API 请求；红色部分代表 HTTP 4xx/5xx。当前小时尚未结束，计数可能继续增长。</p>
+            <p>按小时汇总网页、PAC 与 API 请求；柱形为请求量，叠色为错误请求（HTTP 4xx/5xx）。当前小时尚未结束，计数可能继续增长。</p>
           </div>
           <span class="panel-count">峰值 {{ Math.max(0, ...(summary?.requestTrend ?? []).map((item) => item.requests)) }} 次/小时</span>
         </div>
@@ -933,10 +933,6 @@ onUnmounted(() => {
 .pac-latest-grid strong { font-size:12px; font-weight:650; overflow-wrap:anywhere; }
 .pac-no-latest { color:var(--muted); font-size:12px; line-height:1.6; }
 .pac-latency-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:18px; font-size:12px; }
-.pac-latency-chart { display:grid; grid-template-columns:repeat(24,minmax(0,1fr)); align-items:end; gap:4px; padding:10px 2px 0; border-bottom:1px solid var(--line); }
-.pac-latency-column { display:flex; flex-direction:column; align-items:stretch; gap:7px; min-width:0; }
-.pac-latency-track { height:74px; position:relative; overflow:hidden; border-radius:5px 5px 0 0; background:color-mix(in srgb,var(--muted) 6%,transparent); }
-.pac-latency-bar { position:absolute; bottom:0; left:18%; right:18%; min-height:2px; border-radius:4px 4px 0 0; background:var(--accent); }
 .pac-latency-column > span { min-height:14px; color:var(--muted); font-size:9px; line-height:14px; text-align:center; white-space:nowrap; }
 .pac-latency-column:nth-child(odd) > span { visibility:hidden; }
 .pac-latency-column:hover > span { visibility:visible; }
@@ -1137,8 +1133,8 @@ onUnmounted(() => {
 @media(max-width:560px) {
   .access-detail-grid { grid-template-columns:1fr; }
 }
-@media(max-width:1100px) { .metric-grid,.pac-metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .monitor-panel { padding:16px; } .probe-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .pac-latest-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .pac-latency-chart { gap:2px; } .access-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .search-filter { grid-column:1 / -1; } .access-filter-reset { justify-self:start; } }
-@media(max-width:560px) { .access-filters { grid-template-columns:1fr; } .search-filter { grid-column:auto; } .pac-metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; } .pac-latest-grid { grid-template-columns:1fr; gap:10px; } .pac-latest-heading,.pac-latency-heading { align-items:flex-start; flex-direction:column; } .pac-latency-chart { grid-template-columns:repeat(12,minmax(0,1fr)); } .pac-latency-column:nth-child(odd) > span { visibility:visible; } .pac-latency-column:nth-child(even) > span { visibility:hidden; } .probe-target-controls { flex-direction:column; } .probe-target-controls .monitor-button { align-self:flex-start; } .monitor-title-row { flex-direction:column; } .monitor-title-row .monitor-button { align-self:flex-start; } .panel-heading { flex-direction:column; align-items:stretch; gap:8px; margin-bottom:12px; } .panel-actions { align-self:flex-start; } .panel-heading > .monitor-button { align-self:flex-start; } .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:14px 0 20px; } .metric-card { padding:12px 11px; border-radius:11px; } .metric-label { font-size:10px; } .metric-value { font-size:1.32rem; } .monitor-panel { padding:13px; margin-bottom:16px; } .trend-sample-note { margin-left:0; flex-basis:100%; } .probe-run-head { flex-direction:column; align-items:flex-start; } .probe-metrics { gap:7px; } }
+@media(max-width:1100px) { .metric-grid,.pac-metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .monitor-panel { padding:16px; } .probe-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .pac-latest-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .access-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .search-filter { grid-column:1 / -1; } .access-filter-reset { justify-self:start; } }
+@media(max-width:560px) { .access-filters { grid-template-columns:1fr; } .search-filter { grid-column:auto; } .pac-metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; } .pac-latest-grid { grid-template-columns:1fr; gap:10px; } .pac-latest-heading,.pac-latency-heading { align-items:flex-start; flex-direction:column; } .probe-target-controls { flex-direction:column; } .probe-target-controls .monitor-button { align-self:flex-start; } .monitor-title-row { flex-direction:column; } .monitor-title-row .monitor-button { align-self:flex-start; } .panel-heading { flex-direction:column; align-items:stretch; gap:8px; margin-bottom:12px; } .panel-actions { align-self:flex-start; } .panel-heading > .monitor-button { align-self:flex-start; } .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:14px 0 20px; } .metric-card { padding:12px 11px; border-radius:11px; } .metric-label { font-size:10px; } .metric-value { font-size:1.32rem; } .monitor-panel { padding:13px; margin-bottom:16px; } .trend-sample-note { margin-left:0; flex-basis:100%; } .probe-run-head { flex-direction:column; align-items:flex-start; } .probe-metrics { gap:7px; } }
 
 .panel-heading h2,
 .overall-stats-heading h2{
