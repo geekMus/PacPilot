@@ -3,7 +3,7 @@
  * 通知端点按渠道分开存储，旧版 URL/Body 字段在读取时自动迁移。
  */
 export type GenerationMode = "custom" | "remote";
-export type AppLocale = "zh" | "en";
+export type AppLocale = "zh_CN" | "en_US";
 export type WebhookProvider = "custom" | "dingtalk";
 export type WebhookMethod = "POST" | "PUT" | "PATCH";
 export type DingTalkMessageType = "text" | "markdown";
@@ -112,7 +112,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   directList: [],
   cronSchedule: "",
   timezone: "Asia/Shanghai",
-  locale: "zh",
+  locale: "zh_CN",
   proxyTestUrl: "https://www.google.com/generate_204",
   logRetentionDays: 30,
   webhookSuccessUrl: "",

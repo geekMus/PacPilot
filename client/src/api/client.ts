@@ -52,7 +52,7 @@ export interface AppSettings {
   cronSchedule: string;
   timezone: string;
   /** UI and generated PAC comments language. */
-  locale: "zh" | "en";
+  locale: "zh_CN" | "en_US";
   proxyTestUrl: string;
   logRetentionDays: number;
   webhookSuccessUrl: string;
@@ -175,7 +175,7 @@ export interface MonitorSummary {
   generatedAt: string;
   timezone: string;
   /** UI and generated PAC comments language. */
-  locale: "zh" | "en";
+  locale: "zh_CN" | "en_US";
   activeRequests: number;
   tcpConnections: number;
   requestsLastHour: number;

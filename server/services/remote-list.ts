@@ -237,7 +237,7 @@ export function buildRemoteListPac(
   userBlockList: string[],
   userDirectList: string[],
   compress: boolean,
-  locale: "zh" | "en" = "zh"
+  locale: "zh_CN" | "en_US" = "zh_CN"
 ): string {
   const proxyObj = proxyHosts
     .map((h) => `"${escapeJsString(h)}":1`)
@@ -248,7 +248,7 @@ export function buildRemoteListPac(
   const blockJs = toJsArray(userBlockList, false);
   const directJs = toJsArray(userDirectList, false);
 
-  const lang = locale === "en" ? "en" : "zh";
+  const lang = locale === "en_US" ? "en_US" : "zh_CN";
   const intro = t(lang, "pac.body.remoteIntro");
   const stats = t(lang, "pac.body.remoteStats", { proxy: proxyHosts.length, direct: remoteDirectHosts.length });
   const customStats = t(lang, "pac.body.remoteCustomStats", { block: userBlockList.length, direct: userDirectList.length });

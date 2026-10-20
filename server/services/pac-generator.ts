@@ -96,10 +96,10 @@ async function compressPac(content: string): Promise<string> {
   return result.code;
 }
 
-function formatPacGeneratedAt(date: Date, locale: AppLocale = "zh"): string {
+function formatPacGeneratedAt(date: Date, locale: AppLocale = "zh_CN"): string {
   const iso = date.toISOString();
-  const local = date.toLocaleString(locale === "en" ? "en-US" : "zh-CN", { hour12: false });
-  return locale === "en" ? iso + " (local " + local + ")" : iso + "（本地 " + local + "）";
+  const local = date.toLocaleString(locale === "en_US" ? "en-US" : "zh-CN", { hour12: false });
+  return locale === "en_US" ? iso + " (local " + local + ")" : iso + "（本地 " + local + "）";
 }
 
 function stripPacMetaHeaders(content: string): string {
@@ -113,12 +113,12 @@ function stripPacMetaHeaders(content: string): string {
  * 写入或刷新 PAC 文件元数据头。
  * 真正生成时传入 generatedAt，便于运维查看规则产出时间；只读刷新时省略以保留已有时间戳。
  */
-function withPacVersionHeader(content: string, generatedAt?: Date | null, locale: AppLocale = "zh"): string {
+function withPacVersionHeader(content: string, generatedAt?: Date | null, locale: AppLocale = "zh_CN"): string {
   const existingGenerated =
     content.match(/^\/\/ genpac-runner (?:Generated at:|生成时间[:：])\s*(.+)\s*$/im)?.[1]?.trim() || "";
   const body = stripPacMetaHeaders(content);
-  const versionLabel = locale === "en" ? "// genpac-runner version: " : "// genpac-runner 版本：";
-  const timeLabel = locale === "en" ? "// genpac-runner Generated at: " : "// genpac-runner 生成时间：";
+  const versionLabel = locale === "en_US" ? "// genpac-runner version: " : "// genpac-runner 版本：";
+  const timeLabel = locale === "en_US" ? "// genpac-runner Generated at: " : "// genpac-runner 生成时间：";
   const lines = [versionLabel + APP_VERSION];
   const stamp = generatedAt ? formatPacGeneratedAt(generatedAt, locale) : existingGenerated;
   if (stamp) lines.push(timeLabel + stamp);
@@ -132,7 +132,7 @@ function toJsArray(list: string[], compress: boolean): string {
 function buildCustomPac(settings: AppSettings): string {
   const blockJs = toJsArray(settings.blockList, false);
   const directJs = toJsArray(settings.directList, false);
-  const locale = settings.locale === "en" ? "en" : "zh";
+  const locale = settings.locale === "en_US" ? "en_US" : "zh_CN";
   const intro = t(locale, "pac.body.customIntro");
   const policy = t(locale, "pac.body.customPolicy");
   const listsLabel = t(locale, "pac.body.customLists");
@@ -211,7 +211,7 @@ async function runRemoteMode(
     settings.blockList,
     settings.directList,
     false,
-    settings.locale === "en" ? "en" : "zh"
+    settings.locale === "en_US" ? "en_US" : "zh_CN"
   );
   const generatedAt = new Date();
   const source = withPacVersionHeader(pac, generatedAt, settings.locale);
@@ -335,7 +335,7 @@ export async function generatePac(
   }
 }
 
-export function readPacFile(dataDir: string, locale: AppLocale = "zh"): string {
+export function readPacFile(dataDir: string, locale: AppLocale = "zh_CN"): string {
   const pacPath = path.join(dataDir, "proxy.pac");
   try {
     const original = fs.readFileSync(pacPath, "utf8");

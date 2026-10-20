@@ -1,19 +1,25 @@
 import { createI18n } from "vue-i18n";
-import zh from "./locales/zh";
-import en from "./locales/en";
+import zh_CN from "./locales/zh_CN";
+import en_US from "./locales/en_US";
 
-export type AppLocale = "zh" | "en";
+/** 界面与生成物语言，采用常见区域码（下划线形式）。 */
+export type AppLocale = "zh_CN" | "en_US";
 
 const STORAGE_KEY = "genpac-runner-locale";
 
+export function resolveLocale(raw: unknown): AppLocale {
+  const value = String(raw || "").trim().toLowerCase().replace(/-/g, "_");
+  // 兼容旧版 zh / en
+  if (value === "en" || value === "en_us" || value === "english") return "en_US";
+  return "zh_CN";
+}
+
 export function readStoredLocale(): AppLocale {
   try {
-    const value = localStorage.getItem(STORAGE_KEY)?.toLowerCase();
-    if (value === "en") return "en";
+    return resolveLocale(localStorage.getItem(STORAGE_KEY));
   } catch {
-    /* ignore */
+    return "zh_CN";
   }
-  return "zh";
 }
 
 export function persistLocale(locale: AppLocale): void {
@@ -23,24 +29,20 @@ export function persistLocale(locale: AppLocale): void {
     /* ignore */
   }
   if (typeof document !== "undefined") {
-    document.documentElement.lang = locale === "en" ? "en" : "zh-CN";
+    // HTML lang 使用 BCP 47 连字符形式
+    document.documentElement.lang = locale === "en_US" ? "en-US" : "zh-CN";
   }
 }
 
 export const i18n = createI18n({
   legacy: false,
   locale: readStoredLocale(),
-  fallbackLocale: "zh",
-  messages: { zh, en },
+  fallbackLocale: "zh_CN",
+  messages: { zh_CN, en_US },
 });
 
 export function setAppLocale(locale: AppLocale): void {
-  const next = locale === "en" ? "en" : "zh";
+  const next = resolveLocale(locale);
   i18n.global.locale.value = next;
   persistLocale(next);
-}
-
-export function resolveLocale(raw: unknown): AppLocale {
-  const value = String(raw || "").trim().toLowerCase();
-  return value === "en" || value === "en-us" ? "en" : "zh";
 }

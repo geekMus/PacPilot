@@ -11,9 +11,9 @@ function sendPac(
   dataDir: string,
   database: AppDatabase
 ) {
-  const locale = getSettings(database).locale === "en" ? "en" : "zh";
+  const locale = getSettings(database).locale === "en_US" ? "en_US" : "zh_CN";
   const fallback =
-    locale === "en"
+    locale === "en_US"
       ? "// PAC has not been generated yet; temporary policy is DIRECT for all requests.\nfunction FindProxyForURL(url, host){return 'DIRECT';}\n"
       : "// 尚未生成 PAC；临时回退策略为所有请求直连\nfunction FindProxyForURL(url, host){return 'DIRECT';}\n";
   const pac = readPacFile(dataDir, locale) || fallback;

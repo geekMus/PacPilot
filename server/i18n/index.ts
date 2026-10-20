@@ -65,7 +65,7 @@ const zh: Dict = {
   "workflow.stage.abnormal": "工作流阶段发生异常",
 };
 
-const catalogs: Record<AppLocale, Dict> = { en, zh };
+const catalogs: Record<AppLocale, Dict> = { en_US: en, zh_CN: zh };
 
 /** 用户可见文案（PAC 注释、工作流阶段说明等）；接口错误与控制台日志请直接写英文。 */
 export function t(
@@ -73,8 +73,8 @@ export function t(
   key: string,
   params?: Record<string, string | number>
 ): string {
-  const lang: AppLocale = locale === "en" ? "en" : "zh";
-  let text = catalogs[lang][key] ?? catalogs.en[key] ?? key;
+  const lang: AppLocale = resolveLocale(locale);
+  let text = catalogs[lang][key] ?? catalogs.en_US[key] ?? key;
   if (params) {
     for (const [k, v] of Object.entries(params)) {
       text = text.replaceAll("{" + k + "}", String(v));
@@ -84,7 +84,7 @@ export function t(
 }
 
 export function resolveLocale(raw: unknown): AppLocale {
-  const value = String(raw || "").trim().toLowerCase();
-  if (value === "en" || value === "en-us" || value === "english") return "en";
-  return "zh";
+  const value = String(raw || "").trim().toLowerCase().replace(/-/g, "_");
+  if (value === "en" || value === "en_us" || value === "english") return "en_US";
+  return "zh_CN";
 }
