@@ -316,24 +316,6 @@ onUnmounted(stopPolling);
     :title="t('workflow.title')"
     :subtitle="t('workflow.subtitle')"
   >
-    <template #actions>
-      <button
-        class="workflow-button secondary"
-        type="button"
-        :disabled="refreshing"
-        :title="refreshing ? t('workflow.refreshingTitle') : t('workflow.refreshTitle')"
-        @click="load()"
-      >
-        <AppIcon
-          :name="refreshing ? 'loader-circle' : 'refresh-cw'"
-          :size="15"
-          :class="{ spinning: refreshing }"
-        />
-        {{ refreshing ? t("common.refreshing") : t("common.refresh") }}
-      </button>
-      <RouterLink class="workflow-button primary" to="/admin/settings">{{ t("workflow.configSettings") }}</RouterLink>
-    </template>
-
     <div class="workflow-page">
       <div v-if="error" class="workflow-alert error" role="alert">
         <strong>{{ t("workflow.loadFailed") }}</strong>
@@ -568,6 +550,20 @@ onUnmounted(stopPolling);
             </p>
           </div>
           <div class="history-heading-actions">
+            <button
+              class="workflow-button secondary"
+              type="button"
+              :disabled="refreshing"
+              :title="refreshing ? t('workflow.refreshingTitle') : t('workflow.refreshTitle')"
+              @click="load()"
+            >
+              <AppIcon
+                :name="refreshing ? 'loader-circle' : 'refresh-cw'"
+                :size="15"
+                :class="{ spinning: refreshing }"
+              />
+              {{ refreshing ? t("common.refreshing") : t("common.refresh") }}
+            </button>
             <span class="count-pill"
               >{{ t("workflowPage.matchLoaded", { filtered: filteredRuns.length, loaded: runs.length }) }}</span
             >
