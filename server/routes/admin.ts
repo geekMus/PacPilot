@@ -6,7 +6,17 @@ import type { EnvConfig } from "../config/env";
 import { cleanupOperationalLogs, clearOperationalLogs, clearWorkflowHistory, getCurrentWorkflow, getSettings, listWorkflowRuns, listActiveWorkflowRuns, operationalLogStorageBytes, recentLogs, setSettings, updateSettings, getWorkflowRun, listWorkflowStages, deleteWorkflowRun, cancelPendingWorkflow } from "../db/sqlite";
 import type { AppSettings, GenerationMode } from "../db/settings";
 import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../db/settings";
-import { clearSessionCookie, createSessionToken, isLoggedIn, requireAdmin, setSessionCookie } from "../middleware/auth";
+import {
+  assertSameOrigin,
+  checkLoginRateLimit,
+  clearLoginFailures,
+  clearSessionCookie,
+  createSessionToken,
+  isLoggedIn,
+  recordLoginFailure,
+  requireAdmin,
+  setSessionCookie,
+} from "../middleware/auth";
 import { changeAdminPassword, getAdminSecurityStatus, getAdminSessionSecret, verifyAdminPassword } from "../services/admin-credentials";
 import { probeGenpac, validatePacProxyString } from "../services/pac-generator";
 import { hasActivePacWorkflow, startPacWorkflow } from "../services/workflow";
@@ -16,6 +26,7 @@ import cron from "node-cron";
 import { getMonitorSummary, listAccessEvents, listProxyProbeRuns } from "../db/monitoring";
 import { getActiveRequestCount, getTcpConnectionCount } from "../services/request-monitor";
 import { DEFAULT_PROXY_TEST_URL, parseProxyTestUrl, testConfiguredProxies } from "../services/proxy-probe";
+import { assertSafeHttpUrl, maskIpAddress } from "../utils/url-safety";
 
 function parseList(raw:unknown):string[]{if(Array.isArray(raw))return raw.map(String).map(s=>s.trim()).filter(Boolean);if(typeof raw!=="string")return[];return raw.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);}
 function validTimeZone(v:string):boolean{try{new Intl.DateTimeFormat("en-US",{timeZone:v}).format(new Date());return true;}catch{return false;}}
@@ -23,9 +34,8 @@ function bodyToSettings(b:Record<string,unknown>,fallbackProxyTestUrl=DEFAULT_SE
 function persistSettings(body:Record<string,unknown>,env:EnvConfig,database:AppDatabase):{settings:AppSettings}|{error:string}{
  const p=bodyToSettings(body,getSettings(database).proxyTestUrl);
  if(p.mode==="remote"){
-  let listUrl:URL;
-  try{listUrl=new URL(p.listUrl);}catch{return {error:"规则列表 URL 无效，请使用完整的 HTTP(S) 地址。"};}
-  if((listUrl.protocol!=="http:"&&listUrl.protocol!=="https:")||!listUrl.hostname||listUrl.username||listUrl.password)return {error:"规则列表 URL 必须使用有效的 HTTP(S) 地址，且不能包含 URL 用户名或密码。"};
+  const listUrlError=assertSafeHttpUrl(p.listUrl,"规则列表 URL");
+  if(listUrlError)return {error:listUrlError};
  }
  if(!p.timezone||!validTimeZone(p.timezone))return {error:"时区无效。请从建议列表选择，或输入有效 IANA 时区，例如 Asia/Shanghai。"};
  try{p.proxyTestUrl=parseProxyTestUrl(p.proxyTestUrl).toString();}catch(e){return {error:e instanceof Error?e.message:"代理测试地址无效。"};}
@@ -47,9 +57,38 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
  const router=Router();
  let monitorProbeInProgress = false;
  router.get("/api/admin/session",(req,res)=>res.json({loggedIn:isLoggedIn(req,database),...getAdminSecurityStatus(database)}));
- router.post("/api/admin/login",(req,res)=>{const pw=String(req.body?.password??"");if(!verifyAdminPassword(database,pw)){res.status(401).json({error:"密码错误"});return;}const token=createSessionToken(getAdminSessionSecret(database));const secure=req.secure||req.headers["x-forwarded-proto"]==="https";setSessionCookie(res,token,secure);res.json({ok:true,...getAdminSecurityStatus(database)});});
- router.post("/api/admin/logout",(_req,res)=>{clearSessionCookie(res);res.json({ok:true});});
- router.post("/api/admin/password",requireAdmin(database,true),(req,res)=>{try{changeAdminPassword(database,String(req.body?.currentPassword??""),String(req.body?.newPassword??""));clearSessionCookie(res);res.json({ok:true});}catch(e){res.status(400).json({error:e instanceof Error?e.message:String(e)});}});
+ router.post("/api/admin/login",(req,res)=>{
+  const originError=assertSameOrigin(req);
+  if(originError){res.status(403).json({error:originError});return;}
+  const rateError=checkLoginRateLimit(req);
+  if(rateError){res.status(429).json({error:rateError});return;}
+  const pw=String(req.body?.password??"");
+  if(!verifyAdminPassword(database,pw)){
+   recordLoginFailure(req);
+   res.status(401).json({error:"密码错误"});
+   return;
+  }
+  clearLoginFailures(req);
+  const token=createSessionToken(getAdminSessionSecret(database));
+  const secure=req.secure||req.headers["x-forwarded-proto"]==="https";
+  setSessionCookie(res,token,secure);
+  res.json({ok:true,...getAdminSecurityStatus(database)});
+ });
+ router.post("/api/admin/logout",(req,res)=>{
+  const originError=assertSameOrigin(req);
+  if(originError){res.status(403).json({error:originError});return;}
+  clearSessionCookie(res);
+  res.json({ok:true});
+ });
+ router.post("/api/admin/password",requireAdmin(database,true),(req,res)=>{
+  const originError=assertSameOrigin(req);
+  if(originError){res.status(403).json({error:originError});return;}
+  try{
+   changeAdminPassword(database,String(req.body?.currentPassword??""),String(req.body?.newPassword??""));
+   clearSessionCookie(res);
+   res.json({ok:true});
+  }catch(e){res.status(400).json({error:e instanceof Error?e.message:String(e)});}
+ });
  router.get("/api/admin/settings",requireAdmin(database),(_req,res)=>res.json(getSettings(database)));
  router.put("/api/admin/settings",requireAdmin(database),(req,res)=>{const result=persistSettings((req.body||{}) as Record<string,unknown>,env,database);if("error" in result){res.status(400).json({error:result.error});return;}res.json(result.settings);});
  router.post("/api/admin/settings/save-and-generate",requireAdmin(database),(req,res)=>{const saved=persistSettings((req.body||{}) as Record<string,unknown>,env,database);if("error" in saved){res.status(400).json({error:saved.error});return;}try{const workflowId=startPacWorkflow(database,env.dataDir,"save-and-generate");res.status(202).json({settings:saved.settings,workflowId,status:getWorkflowRun(database,workflowId)?.status??"pending"});}catch(e){res.status(409).json({error:e instanceof Error?e.message:String(e)});}});
@@ -127,14 +166,18 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
  router.get("/api/admin/genpac-status",requireAdmin(database),async(_req,res)=>res.json(await probeGenpac()));
  router.get("/api/admin/monitor/summary",requireAdmin(database),(_req,res)=>{
   res.setHeader("Cache-Control","no-store");
-  res.json({...getMonitorSummary(database,getActiveRequestCount(),getTcpConnectionCount()),timezone:getSettings(database).timezone});
+  const summary=getMonitorSummary(database,getActiveRequestCount(),getTcpConnectionCount());
+  if(summary.latestPacRequest?.source_ip){
+   summary.latestPacRequest={...summary.latestPacRequest,source_ip:maskIpAddress(summary.latestPacRequest.source_ip)};
+  }
+  res.json({...summary,timezone:getSettings(database).timezone});
  });
  router.get("/api/admin/monitor/access",requireAdmin(database),(req,res)=>{
   res.setHeader("Cache-Control","no-store");
   const paged=String(req.query.paged??"") === "1";
   const limit=Math.min(paged?100:200,Math.max(1,Number.parseInt(String(req.query.limit??"50"),10)||50));
   const beforeId=Math.max(0,Number.parseInt(String(req.query.beforeId??"0"),10)||0);
-  const rows=listAccessEvents(database,paged?limit+1:limit,beforeId);
+  const rows=listAccessEvents(database,paged?limit+1:limit,beforeId).map((row)=>({...row,source_ip:maskIpAddress(row.source_ip)}));
   if(!paged){res.json(rows);return;}
   const hasMore=rows.length>limit;
   const total=Number((database.query("SELECT COUNT(*) AS total FROM access_events").get() as {total:number}).total);

@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import type { AppSettings, WebhookConfig } from "../db/settings";
 import { createDefaultWebhookConfig, normalizeWebhookConfig } from "../db/settings";
+import { assertSafeHttpUrl } from "../utils/url-safety";
 
 const WEBHOOK_TIMEOUT_MS = 10_000;
 export interface WebhookDeliveryResult {
@@ -19,15 +20,8 @@ interface MessageContext {
 function urlValidationError(raw: string, label: string): string | null {
   const value = raw.trim();
   if (!value) return label + "不能为空。";
-  try {
-    const url = new URL(value);
-    if (url.protocol !== "http:" && url.protocol !== "https:") return label + "必须使用 HTTP(S) 地址。";
-    if (!url.hostname) return label + "缺少主机名。";
-    if (url.username || url.password) return label + "请勿在 URL 中嵌入用户名或密码。";
-    return null;
-  } catch {
-    return label + "格式无效，请填写完整的 HTTP(S) URL。";
-  }
+  // Webhooks may target LAN services (ntfy, Home Assistant); still block loopback/metadata.
+  return assertSafeHttpUrl(value, label, { allowPrivateHosts: true });
 }
 
 function parseJson(raw: string, label: string, allowArray = false): string | null {

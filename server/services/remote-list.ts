@@ -3,6 +3,8 @@
  * 用户自定义直连 / 黑名单始终优先于远程列表规则。
  */
 
+import { assertSafeHttpUrl } from "../utils/url-safety";
+
 export interface RemoteListParseResult {
   proxyHosts: string[];
   directHosts: string[];
@@ -137,6 +139,9 @@ export function parseRemoteListText(body: string): RemoteListParseResult {
 export async function fetchAndParseRemoteList(
   url: string
 ): Promise<RemoteListParseResult> {
+  const unsafe = assertSafeHttpUrl(url, "规则列表 URL");
+  if (unsafe) throw new Error(unsafe);
+
   let lastError: unknown;
   // 远程源偶发断开连接时有限重试；HTTP 错误不重试，避免重复请求无效地址。
   for (let attempt = 0; attempt < 3; attempt++) {
