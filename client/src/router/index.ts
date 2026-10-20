@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { i18n } from "../i18n";
 import {
   fetchAdminSession,
   isAdminAppRoute,
@@ -15,31 +16,31 @@ const router = createRouter({
     {
       path: "/",
       name: "home",
-      meta: { title: "公共状态" },
+      meta: { titleKey: "status.sub" },
       component: () => import("../views/StatusView.vue"),
     },
     {
       path: "/admin/dashboard",
       name: "admin-dashboard",
-      meta: { title: "系统总览" },
+      meta: { titleKey: "nav.dashboard" },
       component: () => import("../views/AdminDashboardView.vue"),
     },
     {
       path: "/admin/login",
       name: "login",
-      meta: { title: "登录" },
+      meta: { titleKey: "nav.login" },
       component: () => import("../views/LoginView.vue"),
     },
     {
       path: "/admin/settings",
       name: "admin-settings",
-      meta: { title: "配置管理" },
+      meta: { titleKey: "nav.settings" },
       component: () => import("../views/AdminView.vue"),
     },
     {
       path: "/admin/system-settings",
       name: "admin-system-settings",
-      meta: { title: "系统设置" },
+      meta: { titleKey: "nav.systemSettings" },
       component: () => import("../views/SystemSettingsView.vue"),
     },
     {
@@ -50,26 +51,26 @@ const router = createRouter({
     {
       path: "/admin/workflows",
       name: "admin-workflows",
-      meta: { title: "工作流" },
+      meta: { titleKey: "nav.workflow" },
       component: () => import("../views/WorkflowView.vue"),
     },
     {
       path: "/admin/workflows/:id",
       name: "admin-workflow-detail",
-      meta: { title: "工作流详情" },
+      meta: { titleKey: "workflow.detailTitle" },
       component: () => import("../views/WorkflowDetailView.vue"),
       props: true,
     },
     {
       path: "/admin/monitor",
       name: "admin-monitor",
-      meta: { title: "网络监控" },
+      meta: { titleKey: "nav.monitor" },
       component: () => import("../views/MonitoringView.vue"),
     },
     {
       path: "/:pathMatch(.*)*",
       name: "not-found",
-      meta: { title: "页面未找到" },
+      meta: { titleKey: "notFound.title" },
       component: () => import("../views/NotFoundView.vue"),
     },
   ],
@@ -85,7 +86,7 @@ function applyDocumentTitle(pageTitle?: unknown): void {
   document.title = page ? `${page} · ${APP_BRAND}` : APP_BRAND;
 }
 
-const PASSWORD_CHANGE_TOAST = "请先修改默认管理密码后，再使用其他管理功能。";
+const PASSWORD_CHANGE_TOAST_KEY = "layout.mustChangePassword";
 
 router.beforeEach(async (to, from) => {
   if (!isAdminAppRoute(to.path)) return true;
@@ -104,7 +105,7 @@ router.beforeEach(async (to, from) => {
         !isPasswordChangeAllowedRoute(from.path) &&
         from.name !== "login";
       if (!alreadyLeavingBlocked) {
-        useToast().notify(PASSWORD_CHANGE_TOAST, "warning", 5500);
+        useToast().notify(String(i18n.global.t(PASSWORD_CHANGE_TOAST_KEY)), "warning", 5500);
       }
       return { name: "admin-settings" };
     }
@@ -116,7 +117,8 @@ router.beforeEach(async (to, from) => {
 });
 
 router.afterEach((to) => {
-  applyDocumentTitle(to.meta.title);
+  const titleKey = typeof to.meta.titleKey === "string" ? to.meta.titleKey : "";
+  applyDocumentTitle(titleKey ? i18n.global.t(titleKey) : "");
 });
 
 export default router;

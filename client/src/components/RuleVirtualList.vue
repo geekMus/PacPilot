@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { computed, ref, watch } from "vue";
 import TextDetail from "./TextDetail.vue";
+const { t } = useI18n();
 
 interface RuleEntry {
   domain: string;
@@ -66,7 +68,7 @@ watch(
     class="virtual-list"
     :style="{ height: viewportHeight + 'px' }"
     role="list"
-    aria-label="域名规则列表"
+    :aria-label="t('common.domainRules')"
     @scroll="onScroll"
   >
     <div v-if="items.length" class="virtual-canvas" :style="{ height: totalHeight + 'px' }">
@@ -78,7 +80,7 @@ watch(
           :style="{ height: rowHeight + 'px' }"
           role="listitem"
         >
-          <TextDetail :text="item.domain" label="域名规则" class="domain-detail"
+          <TextDetail :text="item.domain" :label="t('common.domainRules')" class="domain-detail"
             ><code>{{ item.domain }}</code></TextDetail
           >
           <span v-if="item.source" class="row-source" :class="sourceClass(item.source)">{{

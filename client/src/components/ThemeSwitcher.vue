@@ -1,15 +1,18 @@
 <script setup lang="ts">
+import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import { useTheme, type ThemeMode } from "../composables/useTheme";
+const { t } = useI18n();
 const { mode, setMode } = useTheme();
-const options: { value: ThemeMode; label: string; title: string }[] = [
-  { value: "system", label: "自动", title: "跟随系统" },
-  { value: "light", label: "浅色", title: "浅色模式" },
-  { value: "dark", label: "深色", title: "深色模式" },
-];
+const options = computed(() => [
+  { value: "system" as ThemeMode, label: t("theme.auto"), title: t("theme.followSystem") },
+  { value: "light" as ThemeMode, label: t("theme.light"), title: t("theme.lightMode") },
+  { value: "dark" as ThemeMode, label: t("theme.dark"), title: t("theme.darkMode") },
+]);
 </script>
 
 <template>
-  <div class="theme-switch" role="group" aria-label="主题切换">
+  <div class="theme-switch" role="group" :aria-label="t('theme.switch')">
     <button
       v-for="opt in options"
       :key="opt.value"

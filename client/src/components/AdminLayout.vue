@@ -35,12 +35,12 @@ async function refreshSecurityGate(): Promise<void> {
 }
 
 function blockedNavTitle(label: string): string {
-  return mustChangePassword.value ? `请先修改默认管理密码后再访问「${label}」` : label;
+  return mustChangePassword.value ? t("layout.mustChangeBeforeAccess", { label }) : label;
 }
 
 function onBlockedNav(label: string): void {
   if (!mustChangePassword.value) return;
-  notify(`请先修改默认管理密码后再访问「${label}」。`, "warning", 4500);
+  notify(t("layout.mustChangeBeforeAccessNotify", { label }), "warning", 4500);
 }
 
 async function logout(): Promise<void> {
@@ -78,12 +78,12 @@ watch(
       v-if="menuOpen"
       class="sidebar-backdrop"
       type="button"
-      aria-label="关闭导航菜单"
+      :aria-label="t('layout.closeNav')"
       @click="menuOpen = false"
     ></button>
 
     <aside class="admin-sidebar" :class="{ 'is-open': menuOpen }">
-      <div class="sidebar-brand" aria-label="genpac-runner 项目名称">
+      <div class="sidebar-brand" :aria-label="t('app.projectName')">
         <BrandMark :size="40" />
         <span class="brand-copy">
           <strong>genpac-runner</strong>
@@ -203,19 +203,19 @@ watch(
 
       <div class="sidebar-bottom">
         <div class="sidebar-status">
-          <span class="status-dot"></span><span>管理服务已连接</span>
+          <span class="status-dot"></span><span>{{ t("layout.adminConnected") }}</span>
         </div>
-        <span class="sidebar-note">设置保存于本地 SQLite 数据库</span>
+        <span class="sidebar-note">{{ t("layout.settingsStoredLocal") }}</span>
         <div class="sidebar-mobile-controls">
           <div class="sidebar-theme-group">
-            <span class="sidebar-control-label">外观主题</span>
+            <span class="sidebar-control-label">{{ t("layout.appearanceTheme") }}</span>
             <ThemeSwitcher />
           </div>
           <button
             type="button"
             class="sidebar-logout-button"
             :disabled="logoutBusy"
-            :title="logoutBusy ? '正在退出管理员账号，请稍候' : '退出管理员账号'"
+            :title="logoutBusy ? t('layout.loggingOutTitle') : t('layout.logoutTitle')"
             @click="logout"
           >
             <AppIcon
@@ -223,7 +223,7 @@ watch(
               :size="16"
               :class="{ 'icon-spinning': logoutBusy }"
             />
-            {{ logoutBusy ? "正在退出…" : t("nav.logout") }}
+            {{ logoutBusy ? t("layout.loggingOut") : t("nav.logout") }}
           </button>
         </div>
       </div>
@@ -235,7 +235,7 @@ watch(
           class="mobile-menu-toggle"
           type="button"
           :aria-expanded="menuOpen"
-          aria-label="切换导航菜单"
+          :aria-label="t('layout.toggleNav')"
           @click="menuOpen = !menuOpen"
         >
           <AppIcon name="menu" :size="18" />
@@ -251,7 +251,7 @@ watch(
             type="button"
             class="admin-logout-button"
             :disabled="logoutBusy"
-            :title="logoutBusy ? '正在退出管理员账号，请稍候' : '退出管理员账号'"
+            :title="logoutBusy ? t('layout.loggingOutTitle') : t('layout.logoutTitle')"
             @click="logout"
           >
             <AppIcon
@@ -259,7 +259,7 @@ watch(
               :size="15"
               :class="{ 'icon-spinning': logoutBusy }"
             />
-            {{ logoutBusy ? "正在退出…" : t("nav.logout") }}
+            {{ logoutBusy ? t("layout.loggingOut") : t("nav.logout") }}
           </button>
           <span class="topbar-theme-switcher"><ThemeSwitcher /></span>
         </div>

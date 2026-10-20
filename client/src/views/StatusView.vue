@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { onMounted, ref, computed, watch } from "vue";
 import { api, type Meta, type PacStatus } from "../api/client";
 import AppHeader from "../components/AppHeader.vue";
 import AppFooter from "../components/AppFooter.vue";
 import RuleVirtualList from "../components/RuleVirtualList.vue";
 import AppIcon from "../components/AppIcon.vue";
+const { t } = useI18n();
 
 const status = ref<PacStatus | null>(null);
 const meta = ref<Meta | null>(null);
@@ -63,16 +65,16 @@ const directEntries = computed<RuleEntry[]>(() => {
   if (!current) return [];
   const entries = new Map<string, RuleEntry>();
   for (const domain of current.remoteDirectList) {
-    entries.set(domain.toLowerCase(), { domain, source: "远程例外直连" });
+    entries.set(domain.toLowerCase(), { domain, source: t("status.sourceRemoteExceptionDirect") });
   }
   for (const domain of current.directList) {
-    entries.set(domain.toLowerCase(), { domain, source: "自定义直连" });
+    entries.set(domain.toLowerCase(), { domain, source: t("status.sourceCustomDirect") });
   }
   return [...entries.values()];
 });
 
 const blockEntries = computed<RuleEntry[]>(() =>
-  (status.value?.blockList ?? []).map((domain) => ({ domain, source: "自定义黑名单" }))
+  (status.value?.blockList ?? []).map((domain) => ({ domain, source: t("status.sourceCustomBlock") }))
 );
 
 watch(domainInput, () => {
@@ -129,8 +131,8 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
     return {
       kind: "invalid",
       host: raw,
-      title: "域名格式不正确",
-      detail: "请输入域名或完整 URL，例如 example.com 或 https://example.com/path。",
+      title: t("status.domainFormatInvalid"),
+      detail: t("status.domainFormatDetail"),
       matchedRule: null,
       source: null,
     };
@@ -141,8 +143,8 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
     return {
       kind: "unknown",
       host,
-      title: "暂时无法判断",
-      detail: current?.notice || "当前 PAC 状态不可用，请先生成并刷新 PAC。",
+      title: t("status.cannotJudge"),
+      detail: current?.notice || t("status.pacUnavailable"),
       matchedRule: null,
       source: null,
     };
@@ -152,10 +154,10 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
     return {
       kind: "direct",
       host,
-      title: "直连",
-      detail: "命中 PAC 的 localhost、无点号主机名或 IPv4 回环 / RFC 1918 私网地址直连规则。",
+      title: t("status.directTitle"),
+      detail: t("status.directLocalDetail"),
       matchedRule: null,
-      source: "本地 / 内网规则",
+      source: t("status.sourceLocal"),
     };
   }
 
@@ -164,10 +166,10 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
     return {
       kind: "blocked",
       host,
-      title: "黑名单拦截",
-      detail: "命中自定义黑名单；按照 PAC 的规则顺序，该结果优先于直连和远程列表。",
+      title: t("status.blockTitle"),
+      detail: t("status.blockDetail"),
       matchedRule: blocked,
-      source: "自定义黑名单",
+      source: t("status.sourceCustomBlock"),
     };
   }
 
@@ -176,10 +178,10 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
     return {
       kind: "direct",
       host,
-      title: "直连",
-      detail: "命中自定义直连规则，优先于远程列表。",
+      title: t("status.directTitle"),
+      detail: t("status.directCustomDetail"),
       matchedRule: customDirect,
-      source: "自定义直连",
+      source: t("status.sourceCustomDirect"),
     };
   }
 
@@ -189,10 +191,10 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
       return {
         kind: "direct",
         host,
-        title: "直连",
-        detail: "命中远程列表的例外直连域名。",
+        title: t("status.directTitle"),
+        detail: t("status.directRemoteExceptionDetail"),
         matchedRule: remoteDirect,
-        source: "远程例外",
+        source: t("status.sourceRemoteException"),
       };
     }
 
@@ -201,43 +203,43 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
       return {
         kind: "proxy",
         host,
-        title: "走代理",
-        detail: "命中远程代理域名列表。",
+        title: t("common.viaProxy"),
+        detail: t("status.proxyRemoteDetail"),
         matchedRule: remoteProxy,
-        source: "远程代理列表",
+        source: t("status.sourceRemoteProxy"),
       };
     }
 
     return {
       kind: "direct",
       host,
-      title: "直连",
-      detail: "未命中自定义规则或远程代理列表；远程模式下其余域名默认直连。",
+      title: t("status.directTitle"),
+      detail: t("status.directRemoteDefaultDetail"),
       matchedRule: null,
-      source: "远程模式默认规则",
+      source: t("status.sourceRemoteDefault"),
     };
   }
 
   return {
     kind: "proxy",
     host,
-    title: "走代理",
-    detail: "未命中黑名单或直连规则，将使用当前默认代理：" + (current.pacProxy || "未识别") + "。",
+    title: t("common.viaProxy"),
+    detail: t("status.proxyDefaultDetail", { proxy: current.pacProxy || t("common.notRecognized") }),
     matchedRule: null,
-    source: current.pacProxy || "默认代理未识别",
+    source: current.pacProxy || t("status.sourceDefaultProxy"),
   };
 });
 </script>
 
 <template>
   <main class="page status-page">
-    <AppHeader brand="genpac-runner" sub="公共状态页">
-      <RouterLink v-if="meta?.adminEnabled" class="primary" :to="adminEntry">后台管理</RouterLink>
+    <AppHeader brand="genpac-runner" :sub="t('status.sub')">
+      <RouterLink v-if="meta?.adminEnabled" class="primary" :to="adminEntry">{{ t("nav.admin") }}</RouterLink>
     </AppHeader>
 
     <section class="page-hero">
-      <div class="page-kicker">运行状态</div>
-      <h1 class="page-title">PAC 规则概览</h1>
+      <div class="page-kicker">{{ t("status.kicker") }}</div>
+      <h1 class="page-title">{{ t("status.title") }}</h1>
       <p class="page-intro">
         这里会读取当前生成的
         <code>proxy.pac</code>
@@ -248,18 +250,18 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
         <span class="status-indicator" :class="status.hasPac ? 'online' : 'idle'"></span>
         <strong>{{ status.modeLabel }}</strong
         ><span class="meta-divider">·</span>
-        <span>{{ status.hasPac ? `生成时间：${status.updatedAt}` : "尚无生成文件" }}</span>
+        <span>{{ status.hasPac ? t("status.generatedAt", { time: status.updatedAt }) : "{{ t("status.noFile") }}" }}</span>
       </div>
     </section>
 
-    <section v-if="status?.hasPac" class="pac-access-card" aria-label="PAC 文件操作">
+    <section v-if="status?.hasPac" class="pac-access-card" :aria-label="t('status.pacOps')">
       <div class="pac-access-copy">
         <span class="pac-access-kicker"
-          ><AppIcon name="file-check-2" :size="14" /> 当前 PAC 文件</span
+          ><AppIcon name="file-check-2" :size="14" /> {{ t("status.currentPac") }}</span
         >
-        <h2>获取 PAC 文件</h2>
-        <p>查看当前生成的代理规则文件，或下载到设备中使用。</p>
-        <span class="pac-access-updated">最后生成：{{ status.updatedAt }}</span>
+        <h2>{{ t("status.getPac") }}</h2>
+        <p>{{ t("status.getPacDesc") }}</p>
+        <span class="pac-access-updated">{{ t("status.lastGenerated", { time: status.updatedAt }) }}</span>
       </div>
       <div class="pac-access-actions">
         <a
@@ -268,10 +270,10 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
           target="_blank"
           rel="noopener noreferrer"
         >
-          <AppIcon name="external-link" :size="17" />查看 PAC
+          <AppIcon name="external-link" :size="17" />{{ t("status.viewPac") }}
         </a>
         <a class="pac-access-link secondary" href="/proxy.pac?download=1">
-          <AppIcon name="download" :size="17" />下载 PAC
+          <AppIcon name="download" :size="17" />{{ t("status.downloadPac") }}
         </a>
         <button
           class="pac-access-refresh"
@@ -295,7 +297,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
       <span class="spinner" aria-hidden="true"></span>
       <div>
         <strong>正在读取运行状态</strong>
-        <p>正在检查当前 PAC 文件和生成模式。</p>
+        <p>正在检查{{ t("status.currentPac") }}和生成模式。</p>
       </div>
     </section>
 
@@ -315,14 +317,14 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
         </div>
         <h2>还没有生成 PAC</h2>
         <p>
-          先进入后台管理，在配置页面设置启动模式和规则，然后点击「保存并生成
+          先进入{{ t("nav.admin") }}，在配置页面设置启动模式和规则，然后点击「保存并生成
           PAC」。生成后，这里会显示可识别的规则摘要。
         </p>
         <p class="empty-pac-note">
           注意：尚未生成时，<code>/proxy.pac</code>
           仍会暂时返回“所有请求直连”的回退脚本；这不是已经生成的规则文件。
         </p>
-        <RouterLink class="action-button primary" :to="adminEntry">进入后台管理</RouterLink>
+        <RouterLink class="action-button primary" :to="adminEntry">进入{{ t("nav.admin") }}</RouterLink>
       </section>
 
       <template v-else-if="hasRuleSummary">

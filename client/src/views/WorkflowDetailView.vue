@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { api, type WorkflowDetail, type WorkflowStage } from "../api/client";
@@ -6,6 +7,7 @@ import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
 import { useToast } from "../composables/useToast";
+const { t } = useI18n();
 
 const route = useRoute();
 const router = useRouter();
@@ -270,22 +272,22 @@ onUnmounted(() => {
 <template>
   <AdminLayout
     active="workflow"
-    title="工作流详情"
-    subtitle="查看本次执行的整体状态、各阶段结果与失败原因。"
+    :title="t('workflow.detailTitle')"
+    :subtitle="t('workflow.detailSubtitle')"
   >
     <div class="detail-page">
       <div v-if="error" class="error-panel" role="alert">
-        <strong>读取执行详情失败</strong>
+        <strong>{{ t("workflow.loadDetailFailed") }}</strong>
         <span>{{ error }}</span>
-        <button type="button" @click="load()">重试</button>
+        <button type="button" @click="load()">{{ t("common.retry") }}</button>
       </div>
 
       <section v-if="detail" class="detail-panel">
         <div class="panel-heading">
           <div>
             <p class="eyebrow">EXECUTION #{{ detail.run.id }}</p>
-            <h2>PAC 生成工作流</h2>
-            <p class="muted">固定工作流标识：pac-generation</p>
+            <h2>{{ t("workflow.pacGeneration") }}</h2>
+            <p class="muted">{{ t("workflow.fixedId") }}</p>
           </div>
           <span class="status" :class="detail.run.status">
             <AppIcon
@@ -299,32 +301,32 @@ onUnmounted(() => {
         </div>
         <div class="meta-grid">
           <div>
-            <span>执行编号</span>
+            <span>{{ t("workflow.runId") }}</span>
             <strong>#{{ detail.run.id }}</strong>
           </div>
           <div>
-            <span>触发方式</span>
+            <span>{{ t("workflow.trigger") }}</span>
             <strong>{{ sourceLabel(detail.run.source) }}</strong>
           </div>
           <div>
-            <span>生成模式</span>
-            <strong>{{ detail.run.mode === "remote" ? "远程规则" : "自定义规则" }}</strong>
+            <span>{{ t("workflow.generateMode") }}</span>
+            <strong>{{ detail.run.mode === "remote" ? t("workflow.remoteMode") : t("workflow.customMode") }}</strong>
           </div>
           <div>
-            <span>开始时间</span>
+            <span>{{ t("workflow.startTime") }}</span>
             <strong>{{ dateLabel(detail.run.started_at || detail.run.created_at) }}</strong>
           </div>
           <div>
-            <span>结束时间</span>
+            <span>{{ t("workflow.endTime") }}</span>
             <strong>{{ dateLabel(detail.run.finished_at) }}</strong>
           </div>
           <div>
-            <span>总耗时</span>
+            <span>{{ t("workflow.totalDuration") }}</span>
             <strong>
               {{
                 detail.run.duration_ms == null
                   ? detail.run.status === "running"
-                    ? "执行中"
+                    ? t("common.running")
                     : "—"
                   : detail.run.duration_ms + " ms"
               }}
@@ -332,7 +334,7 @@ onUnmounted(() => {
           </div>
         </div>
         <div class="result-message">
-          <strong>执行结果</strong>
+          <strong>{{ t("workflow.result") }}</strong>
           <p>{{ detail.run.message || "暂无结果信息" }}</p>
         </div>
         <div v-if="detail.run.error" class="failure-message">
@@ -452,11 +454,11 @@ onUnmounted(() => {
                   </strong>
                 </div>
                 <div class="stage-detail-meta-card">
-                  <span>开始时间</span>
+                  <span>{{ t("workflow.startTime") }}</span>
                   <strong>{{ dateLabel(selectedStage.started_at) }}</strong>
                 </div>
                 <div class="stage-detail-meta-card">
-                  <span>结束时间</span>
+                  <span>{{ t("workflow.endTime") }}</span>
                   <strong>{{ dateLabel(selectedStage.finished_at) }}</strong>
                 </div>
               </div>

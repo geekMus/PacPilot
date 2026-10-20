@@ -287,10 +287,10 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     // not that the submitted settings are invalid.
     if (res.status === 404 && url === "/api/admin/settings/save-and-generate") {
       msg =
-        "当前后端未提供“保存并生成”接口，前后端代码版本可能不一致。请先停止所有旧的 genpac-runner 开发进程，更新到最新 main，再从项目根目录重新运行 bun run dev。检查终端中的后端监听端口，并确认 client/vite.config.ts 的代理目标 PORT 与后端 PORT 一致。此次请求未能完成保存与生成，请检查配置是否已保存后再重试。";
+        "The backend does not expose the save-and-generate endpoint (frontend/backend version mismatch). Stop old genpac-runner processes, update to latest main, and restart from the project root. Ensure the Vite proxy PORT matches the backend PORT. This request did not save or generate; verify settings and retry.";
     }
     if (res.status === 428 || msg === "password_change_required") {
-      msg = "请先修改默认管理密码后再继续操作。";
+      msg = "Change the default admin password before continuing.";
     }
 
     throw new Error(msg);

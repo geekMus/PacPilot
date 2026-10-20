@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { api, type WorkflowRun } from "../api/client";
@@ -9,6 +10,7 @@ import ConfirmPopover from "../components/ConfirmPopover.vue";
 import VirtualTable from "../components/VirtualTable.vue";
 import SelectField from "../components/SelectField.vue";
 import { useToast } from "../composables/useToast";
+const { t } = useI18n();
 
 const router = useRouter();
 const { notify } = useToast();
@@ -299,15 +301,15 @@ onUnmounted(stopPolling);
 <template>
   <AdminLayout
     active="workflow"
-    title="工作流"
-    subtitle="查看 PAC 生成任务的实时状态、执行阶段与历史记录。"
+    :title="t('workflow.title')"
+    :subtitle="t('workflow.subtitle')"
   >
     <template #actions>
       <button
         class="workflow-button secondary"
         type="button"
         :disabled="refreshing"
-        :title="refreshing ? '正在刷新工作流状态，请稍候' : '刷新工作流状态'"
+        :title="refreshing ? t('workflow.refreshingTitle') : t('workflow.refreshTitle')"
         @click="load()"
       >
         <AppIcon
@@ -315,37 +317,37 @@ onUnmounted(stopPolling);
           :size="15"
           :class="{ spinning: refreshing }"
         />
-        {{ refreshing ? "刷新中…" : "刷新" }}
+        {{ refreshing ? t("common.refreshing") : t("common.refresh") }}
       </button>
-      <RouterLink class="workflow-button primary" to="/admin/settings">配置设置</RouterLink>
+      <RouterLink class="workflow-button primary" to="/admin/settings">{{ t("workflow.configSettings") }}</RouterLink>
     </template>
 
     <div class="workflow-page">
       <div v-if="error" class="workflow-alert error" role="alert">
-        <strong>读取工作流失败</strong>
+        <strong>{{ t("workflow.loadFailed") }}</strong>
         <span>{{ error }}</span>
-        <button type="button" @click="load()">重试</button>
+        <button type="button" @click="load()">{{ t("common.retry") }}</button>
       </div>
 
       <section class="workflow-current panel">
         <div class="panel-heading">
           <div>
             <p class="eyebrow">WORKFLOW CATALOG</p>
-            <h2>工作流定义</h2>
-            <p class="panel-subtitle">名称与标识固定，触发来源可以有多种。</p>
+            <h2>{{ t("workflow.definition") }}</h2>
+            <p class="panel-subtitle">{{ t("workflow.definitionDesc") }}</p>
           </div>
-          <span class="count-pill">1 个工作流</span>
+          <span class="count-pill">{{ t("workflow.countOne") }}</span>
         </div>
         <div class="catalog-item">
           <div class="current-icon"><AppIcon name="workflow" :size="22" /></div>
           <div class="catalog-copy">
-            <strong>PAC 生成工作流</strong
-            ><span>根据当前配置生成 PAC 文件，并记录每次执行结果。</span
+            <strong>{{ t("workflow.pacGeneration") }}</strong
+            ><span>{{ t("workflow.pacGenerationDesc") }}</span
             ><small
-              >标识：pac-generation · 触发方式：服务启动、定时任务、手动生成、保存并生成</small
+              >{{ t("workflow.idAndTriggers") }}</small
             >
           </div>
-          <span class="read-only-pill">只读</span>
+          <span class="read-only-pill">{{ t("workflow.readOnly") }}</span>
         </div>
       </section>
 
@@ -353,7 +355,7 @@ onUnmounted(stopPolling);
         <div class="panel-heading">
           <div>
             <p class="eyebrow">CURRENT TASK</p>
-            <h2>当前工作流</h2>
+            <h2>{{ t("workflow.current") }}</h2>
           </div>
           <span class="status-pill" :class="active ? current!.status : 'idle'"
             ><AppIcon
@@ -667,7 +669,7 @@ onUnmounted(stopPolling);
               <td class="task-id">
                 <span class="id-trigger">#{{ run.id }}</span>
               </td>
-              <td><span class="name-trigger ellipsis">PAC 生成工作流</span></td>
+              <td><span class="name-trigger ellipsis">{{ t("workflow.pacGeneration") }}</span></td>
               <td class="date-cell">
                 <span class="date-trigger ellipsis">{{
                   dateLabel(run.started_at || run.created_at)

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 
 const props = withDefaults(
   defineProps<{
@@ -16,15 +17,23 @@ const props = withDefaults(
     busy?: boolean;
   }>(),
   {
-    confirmText: "确认",
-    cancelText: "返回",
-    busyText: "处理中…",
+    confirmText: "",
+    cancelText: "",
+    busyText: "",
     tone: "danger",
     align: "end",
     disabled: false,
     disabledReason: "",
     busy: false,
   }
+);
+
+const { t } = useI18n();
+const resolvedConfirmText = computed(() => props.confirmText || t("common.confirm"));
+const resolvedCancelText = computed(() => props.cancelText || t("common.back"));
+const resolvedBusyText = computed(() => props.busyText || t("common.processing"));
+const resolvedDisabledReason = computed(
+  () => props.disabledReason || props.description || t("common.conditionNotMet")
 );
 
 const emit = defineEmits<{
@@ -84,7 +93,7 @@ onBeforeUnmount(detachListeners);
       class="confirm-popover"
       :class="['tone-' + props.tone, 'align-' + props.align, 'placement-' + placement]"
       role="group"
-      aria-label="确认操作"
+      :aria-label="t('common.confirmAction')"
       @click.stop
     >
       <strong>{{ props.title }}</strong>
@@ -94,10 +103,10 @@ onBeforeUnmount(detachListeners);
           type="button"
           class="confirm-cancel"
           :disabled="props.busy"
-          :title="props.busy ? props.busyText : props.cancelText"
+          :title="props.busy ? resolvedBusyText : resolvedCancelText"
           @click="close"
         >
-          {{ props.cancelText }}
+          {{ resolvedCancelText }}
         </button>
         <button
           type="button"
@@ -105,14 +114,14 @@ onBeforeUnmount(detachListeners);
           :disabled="props.disabled || props.busy"
           :title="
             props.busy
-              ? props.busyText
+              ? resolvedBusyText
               : props.disabled
-                ? props.disabledReason || props.description || '当前条件不满足，暂时无法执行'
-                : props.confirmText
+                ? resolvedDisabledReason
+                : resolvedConfirmText
           "
           @click="emit('confirm')"
         >
-          {{ props.busy ? props.busyText : props.confirmText }}
+          {{ props.busy ? resolvedBusyText : resolvedConfirmText }}
         </button>
       </div>
     </div>

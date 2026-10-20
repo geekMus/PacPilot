@@ -125,7 +125,7 @@ async function refreshStorage() {
   try {
     storage.value = await api.storage();
   } catch (e) {
-    notify("刷新存储占用失败：" + (e instanceof Error ? e.message : String(e)), "error");
+    notify("{{ t("common.refresh") }}存储占用失败：" + (e instanceof Error ? e.message : String(e)), "error");
   }
 }
 async function cleanupLogs() {
@@ -195,8 +195,8 @@ onMounted(() => void load());
 <template>
   <AdminLayout
     active="system-settings"
-    title="系统设置"
-    subtitle="管理运行数据、日志保留策略与不可逆的系统维护操作。"
+    :title="t('system.title')"
+    :subtitle="t('system.subtitleFull')"
   >
     <div class="system-settings">
       <p v-if="maintenanceBusy()" class="maintenance-status" role="status" aria-live="polite">
@@ -206,41 +206,41 @@ onMounted(() => void load());
         <div class="heading">
           <span class="icon-badge"><AppIcon name="database" :size="19" /></span>
           <div>
-            <h2>存储占用</h2>
-            <p>查看数据库、日志和应用数据目录的当前占用。</p>
+            <h2>{{ t("system.storage") }}</h2>
+            <p>{{ t("system.storageDesc") }}</p>
           </div>
           <button
             class="secondary"
             type="button"
             :disabled="loading"
-            :title="loading ? '正在读取存储统计，请稍候' : '刷新存储统计'"
+            :title="loading ? t('system.readingStorage') : t('system.refreshStorage')"
             @click="refreshStorage"
           >
-            <AppIcon name="refresh-cw" :size="14" /> 刷新
+            <AppIcon name="refresh-cw" :size="14" /> {{ t("common.refresh") }}
           </button>
         </div>
         <div v-if="loading" class="state state-loading" aria-live="polite">
           <span class="spinner" aria-hidden="true"></span>
           <div>
-            <strong>正在读取系统数据</strong>
-            <p>正在检查存储占用与日志统计。</p>
+            <strong>{{ t("system.readingSystem") }}</strong>
+            <p>{{ t("system.checkingStorage") }}</p>
           </div>
         </div>
         <div v-else-if="error" class="state error" role="alert">
-          {{ error }} <button class="secondary" @click="load">重试</button>
+          {{ error }} <button class="secondary" @click="load">{{ t("common.retry") }}</button>
         </div>
         <div v-else-if="storage" class="metrics">
           <div class="metric">
-            <span>数据目录占用</span><strong>{{ formatBytes(storage.dataBytes) }}</strong
-            ><small>数据库、PAC 文件及其他数据</small>
+            <span>{{ t("system.dataDir") }}</span><strong>{{ formatBytes(storage.dataBytes) }}</strong
+            ><small>{{ t("system.dataDirHint") }}</small>
           </div>
           <div class="metric">
-            <span>数据库文件</span><strong>{{ formatBytes(storage.dbBytes) }}</strong
-            ><small>包含 SQLite 主文件及 WAL 文件</small>
+            <span>{{ t("system.dbFile") }}</span><strong>{{ formatBytes(storage.dbBytes) }}</strong
+            ><small>{{ t("system.dbFileHint") }}</small>
           </div>
           <div class="metric">
-            <span>日志估算占用</span><strong>{{ formatBytes(storage.logBytes) }}</strong
-            ><small>生成日志、访问记录与代理测试记录</small>
+            <span>{{ t("system.logEstimate") }}</span><strong>{{ formatBytes(storage.logBytes) }}</strong
+            ><small>{{ t("system.logEstimateHint") }}</small>
           </div>
         </div>
         <div v-if="storage" class="counts">
@@ -333,10 +333,10 @@ onMounted(() => void load());
             class="secondary"
             type="button"
             :disabled="loading"
-            :title="loading ? '正在读取存储统计，请稍候' : '刷新存储统计'"
+            :title="loading ? t('system.readingStorage') : t('system.refreshStorage')"
             @click="refreshStorage"
           >
-            <AppIcon name="refresh-cw" :size="14" /> 刷新状态
+            <AppIcon name="refresh-cw" :size="14" /> {{ t("common.refresh") }}状态
           </button>
         </div>
         <div v-if="storage" class="pac-files">

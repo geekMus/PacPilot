@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 import { computed, onMounted, ref } from "vue";
 import packageJson from "../../../package.json";
 import AppIcon from "./AppIcon.vue";
@@ -25,7 +28,7 @@ const refreshFailed = ref(false);
 const hasUpdate = computed(() =>
   Boolean(updateInfo.value?.updateAvailable && updateInfo.value.latestVersion)
 );
-const latestVersion = computed(() => updateInfo.value?.latestVersion || "暂时未知");
+const latestVersion = computed(() => updateInfo.value?.latestVersion || t("common.temporarilyUnknown"));
 let requestSequence = 0;
 
 function parseCalendarVersion(value: string): CalendarVersion | null {
@@ -115,8 +118,8 @@ onMounted(() => {
         :href="projectUrl"
         target="_blank"
         rel="noopener noreferrer"
-        aria-label="打开 genpac-runner 的 GitHub 项目"
-        title="GitHub 项目地址"
+        :aria-label="t('footer.openGithub')"
+        :title="t('footer.githubTitle')"
       >
         <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
           <path
@@ -130,7 +133,7 @@ onMounted(() => {
         class="version-badge"
         :class="{ 'is-update': hasUpdate }"
         @click="openVersionDialog"
-        :aria-label="hasUpdate ? '查看新版本详情' : '查看当前版本信息'"
+        :aria-label="hasUpdate ? t('footer.viewUpdate') : t('footer.viewVersion')"
       >
         <span>v{{ currentVersion }}</span
         ><span v-if="hasUpdate" class="new-badge">New</span>
@@ -145,11 +148,11 @@ onMounted(() => {
           aria-labelledby="version-dialog-title"
         >
           <header class="dialog-header">
-            <h2 id="version-dialog-title">项目与版本</h2>
+            <h2 id="version-dialog-title">{{ t("footer.projectVersion") }}</h2>
             <button
               type="button"
               class="dialog-close"
-              aria-label="关闭弹窗"
+              :aria-label="t('common.closeDialog')"
               @click="dialogOpen = false"
               autofocus
             >
@@ -158,7 +161,7 @@ onMounted(() => {
           </header>
           <div class="version-grid">
             <div class="version-item">
-              <span>当前版本</span><strong>v{{ currentVersion }}</strong>
+              <span>{{ t("footer.currentVersion") }}</span><strong>v{{ currentVersion }}</strong>
             </div>
             <button
               type="button"
@@ -166,28 +169,28 @@ onMounted(() => {
               :class="{ 'version-new': hasUpdate, 'is-loading': isCheckingVersion }"
               @click="loadVersionInfo"
               :disabled="isCheckingVersion"
-              :title="isCheckingVersion ? '正在获取最新版本，请稍候' : '查询远程最新版本'"
-              :aria-label="isCheckingVersion ? '正在获取最新版本' : '点击获取最新版本'"
+              :title="isCheckingVersion ? t('footer.checkingVersion') : t('footer.queryLatest')"
+              :aria-label="isCheckingVersion ? t('footer.checkingLatest') : t('footer.clickGetLatest')"
             >
               <span
-                >最新版本 <small>{{ isCheckingVersion ? "获取中…" : "点击刷新" }}</small></span
+                >{{ t("footer.latestVersion") }} <small>{{ isCheckingVersion ? t("common.getting") : t("common.clickRefresh") }}</small></span
               ><strong>{{
-                latestVersion === "暂时未知" ? latestVersion : "v" + latestVersion
+                latestVersion === t("common.temporarilyUnknown") ? latestVersion : "v" + latestVersion
               }}</strong>
             </button>
           </div>
           <div v-if="hasUpdate" class="dialog-update-note" role="status">
             <span class="dialog-update-dot"></span>
             <div>
-              <strong>发现新版本 {{ updateInfo?.latestVersion }}</strong>
-              <p>当前运行版本较旧，可前往项目仓库查看最新代码与更新说明。</p>
+              <strong>{{ t("footer.foundNew", { version: updateInfo?.latestVersion }) }}</strong>
+              <p>{{ t("footer.outdated") }}</p>
             </div>
           </div>
-          <p v-else-if="isCheckingVersion" class="dialog-status" role="status">正在获取最新版本…</p>
+          <p v-else-if="isCheckingVersion" class="dialog-status" role="status">{{ t("footer.checkingStatus") }}</p>
           <p v-else-if="refreshFailed" class="dialog-status" role="status">
-            获取最新版本失败，请稍后点击上方“最新版本”重试。这不会影响 PAC 和管理功能。
+            {{ t("footer.fetchFailed") }}
           </p>
-          <p v-else-if="updateInfo?.checked" class="dialog-status">你当前使用的已经是最新版本。</p>
+          <p v-else-if="updateInfo?.checked" class="dialog-status">{{ t("footer.alreadyLatest") }}</p>
           <p v-else class="dialog-status">暂时无法获取远程版本信息；这不会影响 PAC 和管理功能。</p>
           <div class="dialog-actions">
             <a

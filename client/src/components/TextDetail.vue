@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import AppIcon from "./AppIcon.vue";
+import { useI18n } from "vue-i18n";
 import { computed, nextTick, ref } from "vue";
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
@@ -9,7 +11,7 @@ const props = withDefaults(
   }>(),
   {
     text: "",
-    label: "记录详情",
+    label: "",  // resolved via t() below when empty
   }
 );
 
@@ -18,6 +20,7 @@ const trigger = ref<HTMLButtonElement | null>(null);
 const dialogMounted = ref(false);
 const copyState = ref("");
 const fullText = computed(() => props.text ?? "");
+const resolvedLabel = computed(() => props.label || t("common.recordDetail"));
 
 async function openDetails(): Promise<void> {
   copyState.value = "";
@@ -46,9 +49,9 @@ function onDialogClose(): void {
 async function copyContent(): Promise<void> {
   try {
     await navigator.clipboard.writeText(fullText.value || "—");
-    copyState.value = "已复制到剪贴板";
+    copyState.value = t("common.copied");
   } catch {
-    copyState.value = "当前环境无法自动复制，请选中文本后手动复制。";
+    copyState.value = t("common.copyManual");
   }
 }
 </script>
@@ -58,8 +61,8 @@ async function copyContent(): Promise<void> {
     ref="trigger"
     class="text-detail-trigger"
     type="button"
-    :title="`点击查看${label}详情`"
-    :aria-label="`查看${label}详情`"
+    :title="t('common.viewDetail', { label: resolvedLabel })"
+    :aria-label="t('common.viewDetailAria', { label: resolvedLabel })"
     @click="openDetails"
   >
     <slot>{{ fullText || "—" }}</slot>
@@ -69,16 +72,16 @@ async function copyContent(): Promise<void> {
     v-if="dialogMounted"
     ref="dialog"
     class="text-detail-dialog"
-    :aria-label="`${label}详情`"
+    :aria-label="t('common.detailAria', { label: resolvedLabel })"
     @click="handleDialogClick"
     @close="onDialogClose"
   >
     <header class="text-detail-header">
       <div class="text-detail-heading">
-        <p>{{ label }}</p>
-        <h2>完整记录内容</h2>
+        <p>{{ resolvedLabel }}</p>
+        <h2>{{ t("common.recordDetail") }}</h2>
       </div>
-      <button class="text-detail-close" type="button" aria-label="关闭详情" @click="closeDetails">
+      <button class="text-detail-close" type="button" :aria-label="t('common.closeDetail')" @click="closeDetails">
         <AppIcon name="x" :size="16" />
       </button>
     </header>
@@ -89,9 +92,9 @@ async function copyContent(): Promise<void> {
       <span class="text-detail-copy-state" role="status" aria-live="polite">{{ copyState }}</span>
       <div class="text-detail-actions">
         <button class="text-detail-button secondary" type="button" @click="copyContent">
-          <AppIcon name="copy" :size="14" />复制内容
+          <AppIcon name="copy" :size="14" />{{ t("common.copyContent") }}
         </button>
-        <button class="text-detail-button primary" type="button" @click="closeDetails">关闭</button>
+        <button class="text-detail-button primary" type="button" @click="closeDetails">{{ t("common.close") }}</button>
       </div>
     </footer>
   </dialog>
