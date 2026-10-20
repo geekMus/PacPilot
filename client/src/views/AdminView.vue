@@ -162,7 +162,7 @@ const { style: timezonePanelStyle } = useViewportPanel(
           <p class="field-hint">
             {{ t("settings.resetHelpFull")
             }}<a
-              href="https://github.com/geekMus/genpac-runner#常见问题"
+              href="https://github.com/geekMus/genpac-runner#重置管理员密码"
               target="_blank"
               rel="noopener noreferrer"
               >{{ t("settings.resetHelpLink") }}</a

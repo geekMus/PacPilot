@@ -32,10 +32,10 @@ function assertLocaleParity(): void {
     const zh = chinese.get(key);
     const en = english.get(key);
     if (zh === undefined || en === undefined) {
-      throw new Error(`Locale catalog is missing key: ${key}`);
+      throw new Error(`语言目录缺少翻译键：${key}`);
     }
     if (placeholders(zh) !== placeholders(en)) {
-      throw new Error(`Locale placeholders differ for key: ${key}`);
+      throw new Error(`语言目录中的占位符不一致：${key}`);
     }
   }
 }
@@ -67,12 +67,10 @@ function assertTranslationReferences(): void {
   }
 
   if (missing.size > 0) {
-    throw new Error(
-      `Client references missing translation keys:\n${[...missing].sort().join("\n")}`
-    );
+    throw new Error(`客户端引用了不存在的翻译键：\n${[...missing].sort().join("\n")}`);
   }
 }
 
 assertLocaleParity();
 assertTranslationReferences();
-console.log("Static translation checks passed.");
+console.log("静态翻译检查通过。");

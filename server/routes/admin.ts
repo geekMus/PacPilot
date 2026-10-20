@@ -27,6 +27,7 @@ import {
   setSessionCookie,
 } from "../middleware/auth";
 import {
+  AdminPasswordError,
   changeAdminPassword,
   getAdminSessionSecret,
   isAdminCredentialsMissing,
@@ -196,7 +197,10 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
       clearSessionCookie(res);
       res.json({ ok: true });
     } catch (e) {
-      res.status(400).json({ error: e instanceof Error ? e.message : String(e) });
+      res.status(400).json({
+        error: e instanceof Error ? e.message : String(e),
+        ...(e instanceof AdminPasswordError ? { errorCode: e.code } : {}),
+      });
     }
   });
   router.get("/api/admin/settings", requireAdmin(database), (_req, res) =>

@@ -3,6 +3,7 @@ import { useI18n } from "vue-i18n";
 import { useRouter, useRoute } from "vue-router";
 import {
   api,
+  ApiError,
   type AppSettings,
   type GenerationLog,
   type GenpacProbe,
@@ -93,6 +94,8 @@ export function useAdminSettings() {
     | "settings.enterCurrentPassword"
     | "settings.passwordMismatch"
     | "settings.passwordSameAsCurrent"
+    | "settings.currentPasswordIncorrect"
+    | "settings.newPasswordEmpty"
     | ""
   >("");
   const passwordErrorDetail = ref("");
@@ -103,6 +106,30 @@ export function useAdminSettings() {
       passwordErrorDetail.value = message;
     },
   });
+  function passwordErrorKeyFromCode(code: string): typeof passwordErrorKey.value {
+    switch (code) {
+      case "current_password_incorrect":
+        return "settings.currentPasswordIncorrect";
+      case "new_password_empty":
+        return "settings.newPasswordEmpty";
+      case "new_password_same_as_current":
+        return "settings.passwordSameAsCurrent";
+      default:
+        return "";
+    }
+  }
+  function passwordErrorKeyFromMessage(message: string): typeof passwordErrorKey.value {
+    switch (message) {
+      case "当前管理密码不正确。":
+        return "settings.currentPasswordIncorrect";
+      case "新密码不能为空。":
+        return "settings.newPasswordEmpty";
+      case "新密码不能与当前密码相同。":
+        return "settings.passwordSameAsCurrent";
+      default:
+        return "";
+    }
+  }
 
   const passwordForm = reactive({ currentPassword: "", newPassword: "", confirmPassword: "" });
 
@@ -725,7 +752,12 @@ export function useAdminSettings() {
       notify(t("settings.passwordChangedOk"), "success");
       await router.replace({ path: "/admin/login", query: { passwordChanged: "1" } });
     } catch (e) {
-      passwordError.value = e instanceof Error ? e.message : t("settings.passwordChangeFailed");
+      const message = e instanceof Error ? e.message : "";
+      const key =
+        (e instanceof ApiError && passwordErrorKeyFromCode(e.code)) ||
+        passwordErrorKeyFromMessage(message);
+      if (key) passwordErrorKey.value = key;
+      else passwordError.value = message || t("settings.passwordChangeFailed");
     } finally {
       passwordSaving.value = false;
     }

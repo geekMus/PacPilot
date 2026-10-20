@@ -14,6 +14,21 @@ interface AdminAuthRecord {
   sessionSecret: string;
 }
 
+export type AdminPasswordErrorCode =
+  | "current_password_incorrect"
+  | "new_password_empty"
+  | "new_password_same_as_current";
+
+export class AdminPasswordError extends Error {
+  constructor(
+    readonly code: AdminPasswordErrorCode,
+    message: string
+  ) {
+    super(message);
+    this.name = "AdminPasswordError";
+  }
+}
+
 function readRecord(database: AppDatabase): AdminAuthRecord | null {
   const row = database.query("SELECT value FROM settings WHERE key = ?").get(AUTH_KEY) as {
     value: string;
@@ -103,13 +118,13 @@ export function changeAdminPassword(
   newPassword: string
 ): void {
   if (!verifyAdminPassword(database, currentPassword)) {
-    throw new Error("当前管理密码不正确。");
+    throw new AdminPasswordError("current_password_incorrect", "当前管理密码不正确。");
   }
   if (typeof newPassword !== "string" || newPassword.length === 0) {
-    throw new Error("新密码不能为空。");
+    throw new AdminPasswordError("new_password_empty", "新密码不能为空。");
   }
   if (newPassword === currentPassword) {
-    throw new Error("新密码不能与当前密码相同。");
+    throw new AdminPasswordError("new_password_same_as_current", "新密码不能与当前密码相同。");
   }
   writeRecord(database, passwordRecord(newPassword));
 }
