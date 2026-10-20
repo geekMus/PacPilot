@@ -155,6 +155,15 @@ export interface AccessEvent {
   status_code: number;
   duration_ms: number;
   response_bytes: number;
+  query_string?: string;
+  host?: string;
+  referer?: string;
+  accept?: string;
+  accept_language?: string;
+  content_type?: string;
+  /** JSON string of sanitized request headers. */
+  request_headers?: string;
+  response_content_type?: string;
 }
 
 export interface MonitorSummary {

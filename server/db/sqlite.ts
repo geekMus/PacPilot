@@ -46,7 +46,15 @@ function migrate(database: AppDatabase): void {
       user_agent TEXT NOT NULL DEFAULT '',
       status_code INTEGER NOT NULL,
       duration_ms REAL NOT NULL DEFAULT 0,
-      response_bytes INTEGER NOT NULL DEFAULT 0
+      response_bytes INTEGER NOT NULL DEFAULT 0,
+      query_string TEXT NOT NULL DEFAULT '',
+      host TEXT NOT NULL DEFAULT '',
+      referer TEXT NOT NULL DEFAULT '',
+      accept TEXT NOT NULL DEFAULT '',
+      accept_language TEXT NOT NULL DEFAULT '',
+      content_type TEXT NOT NULL DEFAULT '',
+      request_headers TEXT NOT NULL DEFAULT '',
+      response_content_type TEXT NOT NULL DEFAULT ''
     );
     CREATE INDEX IF NOT EXISTS idx_access_events_created_at ON access_events(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_access_events_source_created ON access_events(source_ip, created_at DESC);
@@ -100,12 +108,36 @@ function migrate(database: AppDatabase): void {
     CREATE INDEX IF NOT EXISTS idx_workflow_stages_run ON workflow_stages(run_id, id);
   `);
 
+  ensureAccessEventDetailColumns(database);
+
   const row = database
     .query("SELECT value FROM settings WHERE key = ?")
     .get("config") as { value: string } | null;
 
   if (!row) {
     setSettings(database, DEFAULT_SETTINGS);
+  }
+}
+
+/** Additive columns for richer access-log detail views (safe on existing DBs). */
+function ensureAccessEventDetailColumns(database: AppDatabase): void {
+  const existing = new Set(
+    (database.query("PRAGMA table_info(access_events)").all() as Array<{ name: string }>).map((c) => c.name)
+  );
+  const columns: Array<[string, string]> = [
+    ["query_string", "TEXT NOT NULL DEFAULT ''"],
+    ["host", "TEXT NOT NULL DEFAULT ''"],
+    ["referer", "TEXT NOT NULL DEFAULT ''"],
+    ["accept", "TEXT NOT NULL DEFAULT ''"],
+    ["accept_language", "TEXT NOT NULL DEFAULT ''"],
+    ["content_type", "TEXT NOT NULL DEFAULT ''"],
+    ["request_headers", "TEXT NOT NULL DEFAULT ''"],
+    ["response_content_type", "TEXT NOT NULL DEFAULT ''"],
+  ];
+  for (const [name, definition] of columns) {
+    if (!existing.has(name)) {
+      database.exec(`ALTER TABLE access_events ADD COLUMN ${name} ${definition}`);
+    }
   }
 }
 

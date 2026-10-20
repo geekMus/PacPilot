@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import {
   api,
@@ -78,6 +78,69 @@ const accessPageSize = 50;
 const accessKeyword = ref("");
 const accessCategory = ref("all");
 const accessStatus = ref("all");
+const selectedAccess = ref<AccessEvent | null>(null);
+const accessDetailDialog = ref<HTMLDialogElement | null>(null);
+const accessDetailCopyState = ref("");
+
+async function openAccessDetail(event: AccessEvent): Promise<void> {
+  selectedAccess.value = event;
+  accessDetailCopyState.value = "";
+  await nextTick();
+  if (accessDetailDialog.value && !accessDetailDialog.value.open) accessDetailDialog.value.showModal();
+}
+function closeAccessDetail(): void {
+  if (accessDetailDialog.value?.open) accessDetailDialog.value.close();
+}
+function onAccessDetailClose(): void {
+  selectedAccess.value = null;
+  accessDetailCopyState.value = "";
+}
+function handleAccessDetailBackdrop(event: MouseEvent): void {
+  if (event.target === accessDetailDialog.value) closeAccessDetail();
+}
+function formatAccessHeaders(raw: string | undefined): string {
+  if (!raw) return "（无记录）";
+  try {
+    const parsed = JSON.parse(raw) as Record<string, string>;
+    const keys = Object.keys(parsed).sort();
+    if (!keys.length) return "（无允许记录的请求头）";
+    return keys.map((key) => `${key}: ${parsed[key]}`).join("\n");
+  } catch {
+    return raw;
+  }
+}
+async function copyAccessDetail(): Promise<void> {
+  const event = selectedAccess.value;
+  if (!event) return;
+  const lines = [
+    `时间：${formatDate(event.created_at)}`,
+    `方法：${event.method}`,
+    `路径：${event.path}`,
+    `查询参数：${event.query_string || "（无）"}`,
+    `类型：${categoryLabel(event.category)}`,
+    `状态：${event.status_code} ${statusLabel(event.status_code)}`,
+    `耗时：${formatDuration(event.duration_ms)}`,
+    `响应大小：${formatBytes(event.response_bytes)}`,
+    `响应 Content-Type：${event.response_content_type || "（无）"}`,
+    `来源地址：${event.source_ip || "unknown"}`,
+    `Host：${event.host || "（无）"}`,
+    `Referer：${event.referer || "（无）"}`,
+    `Accept：${event.accept || "（无）"}`,
+    `Accept-Language：${event.accept_language || "（无）"}`,
+    `请求 Content-Type：${event.content_type || "（无）"}`,
+    `User-Agent：${event.user_agent || "（无）"}`,
+    "",
+    "请求头：",
+    formatAccessHeaders(event.request_headers),
+  ];
+  try {
+    await navigator.clipboard.writeText(lines.join("\n"));
+    accessDetailCopyState.value = "已复制到剪贴板";
+  } catch {
+    accessDetailCopyState.value = "当前环境无法自动复制，请选中文本后手动复制。";
+  }
+}
+
 const filteredAccesses = computed(() => {
   const keyword = accessKeyword.value.trim().toLocaleLowerCase();
   return accesses.value.filter((event) => {
@@ -89,6 +152,7 @@ const filteredAccesses = computed(() => {
     if (keyword) {
       const haystack = [
         event.source_ip, event.method, event.path, event.user_agent,
+        event.host, event.referer, event.query_string,
         categoryLabel(event.category), String(event.status_code),
       ].join(" ").toLocaleLowerCase();
       if (!haystack.includes(keyword)) return false;
@@ -581,10 +645,10 @@ onUnmounted(() => {
           v-else
           :items="filteredAccesses"
           item-key="id"
-          :col-span="8"
+          :col-span="9"
           :row-height="58"
           height="520px"
-          min-width="1225px"
+          min-width="1320px"
           table-class="monitor-table"
           :has-more="accessHasMore"
           :loading="accessLoadingMore"
@@ -593,27 +657,96 @@ onUnmounted(() => {
           :load-more="loadMoreAccesses"
         >
           <template #columns>
-            <col style="width: 145px" /><col style="width: 310px" /><col style="width: 90px" /><col style="width: 210px" />
-            <col style="width: 120px" /><col style="width: 85px" /><col style="width: 95px" /><col style="width: 170px" />
+            <col style="width: 145px" /><col style="width: 280px" /><col style="width: 90px" /><col style="width: 200px" />
+            <col style="width: 120px" /><col style="width: 85px" /><col style="width: 95px" /><col style="width: 160px" /><col style="width: 72px" />
           </template>
           <template #header>
-            <tr><th>时间</th><th>来源地址</th><th>类型</th><th>请求路径</th><th>状态</th><th>耗时</th><th>响应大小</th><th>客户端</th></tr>
+            <tr><th>时间</th><th>来源地址</th><th>类型</th><th>请求路径</th><th>状态</th><th>耗时</th><th>响应大小</th><th>客户端</th><th>详情</th></tr>
           </template>
           <template #row="{ item: event }">
-            <tr>
+            <tr class="access-row" @click="openAccessDetail(event)">
               <td class="nowrap">{{ formatDate(event.created_at) }}</td>
               <td><code>{{ event.source_ip || "unknown" }}</code></td>
               <td><span class="category-pill">{{ categoryLabel(event.category) }}</span></td>
-              <td class="path-cell"><span class="method-label">{{ event.method }}</span><TextDetail :text="event.path" label="请求路径"><code>{{ event.path }}</code></TextDetail></td>
+              <td class="path-cell"><span class="method-label">{{ event.method }}</span><code>{{ event.path }}</code></td>
               <td><span class="status-pill" :class="statusTone(event.status_code)"><AppIcon :name="statusTone(event.status_code) === 'good' ? 'circle-check' : statusTone(event.status_code) === 'bad' ? 'circle-x' : 'circle-alert'" :size="12" />{{ event.status_code }} {{ statusLabel(event.status_code) }}</span></td>
               <td class="nowrap">{{ formatDuration(event.duration_ms) }}</td>
               <td class="nowrap">{{ formatBytes(event.response_bytes) }}</td>
-              <td class="ua-cell"><TextDetail v-if="event.user_agent" :text="event.user_agent" label="客户端信息" /><span v-else>—</span></td>
+              <td class="ua-cell"><span class="ua-preview">{{ event.user_agent || "—" }}</span></td>
+              <td class="access-detail-cell">
+                <button class="monitor-button secondary access-detail-button" type="button" title="查看请求详情" aria-label="查看请求详情" @click.stop="openAccessDetail(event)">
+                  <AppIcon name="eye" :size="14" />
+                </button>
+              </td>
             </tr>
           </template>
         </VirtualTable>
-        <p class="panel-footnote">已加载 {{ accesses.length }} / {{ accessTotal }} 条；筛选只作用于已加载记录。访问日志最多保留 7 天且上限为 5,000 条。</p>
+        <p class="panel-footnote">已加载 {{ accesses.length }} / {{ accessTotal }} 条；筛选只作用于已加载记录。访问日志最多保留 7 天且上限为 5,000 条。点击行或「详情」可查看请求头等完整信息；Cookie 与 Authorization 等敏感头不会入库。</p>
       </section>
+
+      <dialog
+        v-if="selectedAccess"
+        ref="accessDetailDialog"
+        class="access-detail-dialog"
+        aria-label="访问请求详情"
+        @click="handleAccessDetailBackdrop"
+        @close="onAccessDetailClose"
+      >
+        <header class="access-detail-header">
+          <div>
+            <p class="access-detail-kicker">ACCESS LOG #{{ selectedAccess.id }}</p>
+            <h2>请求详情</h2>
+          </div>
+          <div class="access-detail-actions">
+            <button class="monitor-button secondary" type="button" @click="copyAccessDetail"><AppIcon name="copy" :size="14" />复制</button>
+            <button class="monitor-button secondary" type="button" aria-label="关闭" @click="closeAccessDetail"><AppIcon name="x" :size="14" /></button>
+          </div>
+        </header>
+        <p v-if="accessDetailCopyState" class="access-detail-copy-state" role="status">{{ accessDetailCopyState }}</p>
+        <div class="access-detail-grid">
+          <div><span>时间</span><strong>{{ formatDate(selectedAccess.created_at) }}</strong></div>
+          <div><span>方法</span><strong><code>{{ selectedAccess.method }}</code></strong></div>
+          <div><span>类型</span><strong>{{ categoryLabel(selectedAccess.category) }}</strong></div>
+          <div><span>状态</span><strong>{{ selectedAccess.status_code }} {{ statusLabel(selectedAccess.status_code) }}</strong></div>
+          <div><span>耗时</span><strong>{{ formatDuration(selectedAccess.duration_ms) }}</strong></div>
+          <div><span>响应大小</span><strong>{{ formatBytes(selectedAccess.response_bytes) }}</strong></div>
+          <div><span>来源地址</span><strong><code>{{ selectedAccess.source_ip || "unknown" }}</code></strong></div>
+          <div><span>Host</span><strong><code>{{ selectedAccess.host || "—" }}</code></strong></div>
+        </div>
+        <div class="access-detail-block">
+          <span>请求路径</span>
+          <pre>{{ selectedAccess.path }}</pre>
+        </div>
+        <div class="access-detail-block">
+          <span>查询参数</span>
+          <pre>{{ selectedAccess.query_string || "（无）" }}</pre>
+        </div>
+        <div class="access-detail-block">
+          <span>Referer</span>
+          <pre>{{ selectedAccess.referer || "（无）" }}</pre>
+        </div>
+        <div class="access-detail-block">
+          <span>Accept / Accept-Language</span>
+          <pre>{{ selectedAccess.accept || "（无）" }}
+{{ selectedAccess.accept_language || "（无）" }}</pre>
+        </div>
+        <div class="access-detail-block">
+          <span>请求 Content-Type</span>
+          <pre>{{ selectedAccess.content_type || "（无）" }}</pre>
+        </div>
+        <div class="access-detail-block">
+          <span>响应 Content-Type</span>
+          <pre>{{ selectedAccess.response_content_type || "（无）" }}</pre>
+        </div>
+        <div class="access-detail-block">
+          <span>User-Agent</span>
+          <pre>{{ selectedAccess.user_agent || "（无）" }}</pre>
+        </div>
+        <div class="access-detail-block">
+          <span>请求头（已过滤敏感字段）</span>
+          <pre>{{ formatAccessHeaders(selectedAccess.request_headers) }}</pre>
+        </div>
+      </dialog>
 
       <section class="monitor-panel">
         <div class="panel-heading">
@@ -946,6 +1079,69 @@ onUnmounted(() => {
 .monitor-spinner { width:20px; height:20px; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:monitor-spin .8s linear infinite; flex:0 0 auto; }
 @keyframes monitor-spin { to { transform:rotate(360deg); } }
 .probe-history-error { min-width:220px; max-width:340px; overflow-wrap:anywhere; color:var(--red); }
+.access-row { cursor:pointer; }
+.access-row:hover { background:var(--surface-2); }
+.ua-preview { display:block; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:11px; }
+.access-detail-cell { text-align:center; }
+.access-detail-button { min-height:32px; min-width:32px; padding:0 8px; }
+.access-detail-dialog {
+  width:min(640px, calc(100vw - 24px));
+  max-height:min(86dvh, 820px);
+  margin:auto;
+  padding:0;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--surface);
+  color:var(--text);
+  box-shadow:0 18px 48px color-mix(in srgb, var(--text) 18%, transparent);
+  overflow:auto;
+}
+.access-detail-dialog::backdrop { background:rgba(12, 16, 24, 0.45); }
+.access-detail-header {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  padding:18px 18px 12px;
+  border-bottom:1px solid var(--line);
+  position:sticky;
+  top:0;
+  background:var(--surface);
+  z-index:1;
+}
+.access-detail-kicker { margin:0 0 4px; color:var(--muted); font-size:10px; font-weight:800; letter-spacing:.12em; }
+.access-detail-header h2 { margin:0; font-size:18px; }
+.access-detail-actions { display:flex; gap:8px; flex:0 0 auto; }
+.access-detail-copy-state { margin:0; padding:8px 18px; color:var(--green); font-size:12px; }
+.access-detail-grid {
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+  padding:14px 18px;
+}
+.access-detail-grid div { display:grid; gap:4px; min-width:0; }
+.access-detail-grid span { color:var(--muted); font-size:11px; }
+.access-detail-grid strong { font-size:12px; overflow-wrap:anywhere; }
+.access-detail-block { padding:0 18px 14px; }
+.access-detail-block span { display:block; margin-bottom:6px; color:var(--muted); font-size:11px; font-weight:700; }
+.access-detail-block pre {
+  margin:0;
+  padding:11px 12px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--surface-2);
+  color:var(--text);
+  font:inherit;
+  font-size:12px;
+  line-height:1.55;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  max-height:220px;
+  overflow:auto;
+}
+@media(max-width:560px) {
+  .access-detail-grid { grid-template-columns:1fr; }
+}
 @media(max-width:1100px) { .metric-grid,.pac-metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .monitor-panel { padding:16px; } .probe-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .pac-latest-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .pac-latency-chart { gap:2px; } .access-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .search-filter { grid-column:1 / -1; } .access-filter-reset { justify-self:start; } }
 @media(max-width:560px) { .access-filters { grid-template-columns:1fr; } .search-filter { grid-column:auto; } .pac-metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; } .pac-latest-grid { grid-template-columns:1fr; gap:10px; } .pac-latest-heading,.pac-latency-heading { align-items:flex-start; flex-direction:column; } .pac-latency-chart { grid-template-columns:repeat(12,minmax(0,1fr)); } .pac-latency-column:nth-child(odd) > span { visibility:visible; } .pac-latency-column:nth-child(even) > span { visibility:hidden; } .probe-target-controls { flex-direction:column; } .probe-target-controls .monitor-button { align-self:flex-start; } .monitor-title-row { flex-direction:column; } .monitor-title-row .monitor-button { align-self:flex-start; } .panel-heading { flex-direction:column; align-items:stretch; gap:8px; margin-bottom:12px; } .panel-actions { align-self:flex-start; } .panel-heading > .monitor-button { align-self:flex-start; } .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:14px 0 20px; } .metric-card { padding:12px 11px; border-radius:11px; } .metric-label { font-size:10px; } .metric-value { font-size:1.32rem; } .monitor-panel { padding:13px; margin-bottom:16px; } .trend-sample-note { margin-left:0; flex-basis:100%; } .probe-run-head { flex-direction:column; align-items:flex-start; } .probe-metrics { gap:7px; } }
 </style>

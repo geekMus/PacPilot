@@ -10,6 +10,16 @@ export interface AccessEventInput {
   status_code: number;
   duration_ms: number;
   response_bytes: number;
+  /** Raw query string without leading `?`, length-capped. */
+  query_string: string;
+  host: string;
+  referer: string;
+  accept: string;
+  accept_language: string;
+  content_type: string;
+  /** JSON object of sanitized request headers (no cookies/credentials). */
+  request_headers: string;
+  response_content_type: string;
 }
 
 export interface AccessEvent extends AccessEventInput {
@@ -68,8 +78,9 @@ let lastPruneAt = 0;
 export function recordAccessEvent(database: AppDatabase, event: AccessEventInput): void {
   database.query(
     "INSERT INTO access_events " +
-    "(created_at, method, path, category, source_ip, user_agent, status_code, duration_ms, response_bytes) " +
-    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    "(created_at, method, path, category, source_ip, user_agent, status_code, duration_ms, response_bytes, " +
+    "query_string, host, referer, accept, accept_language, content_type, request_headers, response_content_type) " +
+    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
   ).run(
     event.created_at,
     event.method,
@@ -79,7 +90,15 @@ export function recordAccessEvent(database: AppDatabase, event: AccessEventInput
     event.user_agent,
     event.status_code,
     event.duration_ms,
-    event.response_bytes
+    event.response_bytes,
+    event.query_string || "",
+    event.host || "",
+    event.referer || "",
+    event.accept || "",
+    event.accept_language || "",
+    event.content_type || "",
+    event.request_headers || "",
+    event.response_content_type || ""
   );
 
   maybePruneMonitoringData(database);
@@ -90,7 +109,12 @@ export function listAccessEvents(database: AppDatabase, requestedLimit = 50, bef
   const limit = Math.max(1, Math.min(201, Math.trunc(requestedLimit) || 50));
   const cursor = Math.max(0, Math.trunc(beforeId) || 0);
   const where = cursor > 0 ? " WHERE id < ?" : "";
-  const query = "SELECT id, created_at, method, path, category, source_ip, user_agent, status_code, duration_ms, response_bytes " +
+  const query =
+    "SELECT id, created_at, method, path, category, source_ip, user_agent, status_code, duration_ms, response_bytes, " +
+    "COALESCE(query_string, '') AS query_string, COALESCE(host, '') AS host, COALESCE(referer, '') AS referer, " +
+    "COALESCE(accept, '') AS accept, COALESCE(accept_language, '') AS accept_language, " +
+    "COALESCE(content_type, '') AS content_type, COALESCE(request_headers, '') AS request_headers, " +
+    "COALESCE(response_content_type, '') AS response_content_type " +
     "FROM access_events" + where + " ORDER BY id DESC LIMIT ?";
   return (cursor > 0 ? database.query(query).all(cursor, limit) : database.query(query).all(limit)) as AccessEvent[];
 }
