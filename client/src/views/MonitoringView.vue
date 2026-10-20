@@ -70,7 +70,6 @@ function formatTrendHour(value: string): string {
   }
 }
 
-const maxPacLatency = computed(() => Math.max(1, ...(summary.value?.pacRequestTrend ?? []).map((point) => point.averageResponseMs)));
 const latestPacRequest = computed(() => summary.value?.latestPacRequest ?? null);
 
 // 访问表格筛选仅作用于当前加载的最近 N 条记录，不改变服务端日志。
@@ -512,9 +511,6 @@ onUnmounted(() => {
           :time-zone="timeZone"
           aria-label="最近 24 小时 PAC 文件每小时平均响应耗时"
         />
-        <div v-if="(summary?.pacRequestsLast24h ?? 0) > 0 && summary?.pacRequestTrend?.length" class="trend-legend">
-          <span><i class="legend-swatch request-swatch"></i>平均响应耗时</span>
-        </div>
         <div v-else class="pac-no-latest">暂无足够的 PAC 请求数据，后续会逐步形成响应耗时趋势。</div>
       </section>
 
