@@ -89,6 +89,8 @@ export function useAdminSettings() {
 
   const passwordSaving = ref(false);
 
+  const passwordError = ref("");
+
   const passwordForm = reactive({ currentPassword: "", newPassword: "", confirmPassword: "" });
 
   const webhookTestState = reactive({
@@ -686,13 +688,13 @@ export function useAdminSettings() {
 
   async function changeAdminPassword() {
     flash.value = "";
-    error.value = "";
+    passwordError.value = "";
     if (!passwordForm.currentPassword) {
-      error.value = t("settings.enterCurrentPassword");
+      passwordError.value = t("settings.enterCurrentPassword");
       return;
     }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      error.value = t("settings.passwordMismatch");
+      passwordError.value = t("settings.passwordMismatch");
       return;
     }
     passwordSaving.value = true;
@@ -706,8 +708,7 @@ export function useAdminSettings() {
       notify(t("settings.passwordChangedOk"), "success");
       await router.replace({ path: "/admin/login", query: { passwordChanged: "1" } });
     } catch (e) {
-      error.value = e instanceof Error ? e.message : t("settings.passwordChangeFailed");
-      notify(error.value, "error");
+      passwordError.value = e instanceof Error ? e.message : t("settings.passwordChangeFailed");
     } finally {
       passwordSaving.value = false;
     }
@@ -731,6 +732,7 @@ export function useAdminSettings() {
     timezoneQuery,
     mobileTimezoneOpen,
     passwordSaving,
+    passwordError,
     passwordForm,
     webhookTestState,
     form,

@@ -30,6 +30,7 @@ const {
   timezoneQuery,
   mobileTimezoneOpen,
   passwordSaving,
+  passwordError,
   passwordForm,
   webhookTestState,
   form,
@@ -115,6 +116,7 @@ const { style: timezonePanelStyle } = useViewportPanel(
                 type="password"
                 autocomplete="current-password"
                 required
+                @input="passwordError = ''"
               />
             </div>
             <div class="field">
@@ -126,6 +128,7 @@ const { style: timezonePanelStyle } = useViewportPanel(
                 autocomplete="new-password"
                 required
                 :placeholder="t('settings.newPasswordPlaceholder')"
+                @input="passwordError = ''"
               />
             </div>
             <div class="field">
@@ -136,8 +139,10 @@ const { style: timezonePanelStyle } = useViewportPanel(
                 type="password"
                 autocomplete="new-password"
                 required
+                @input="passwordError = ''"
               />
             </div>
+            <p v-if="passwordError" class="field-error" role="alert">{{ passwordError }}</p>
             <div class="actions">
               <button
                 type="submit"
