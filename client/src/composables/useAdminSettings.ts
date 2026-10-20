@@ -81,8 +81,6 @@ export function useAdminSettings() {
 
   const genpacProbe = ref<GenpacProbe | null>(null);
 
-  const securityStatus = ref({ isDefaultPassword: false, mustChangePassword: false });
-
   const timezoneMenuOpen = ref(false);
 
   const timezoneQuery = ref("");
@@ -574,15 +572,10 @@ export function useAdminSettings() {
     error.value = "";
     try {
       const session = await api.session();
-      securityStatus.value = {
-        isDefaultPassword: session.isDefaultPassword,
-        mustChangePassword: session.mustChangePassword,
-      };
       if (!session.loggedIn) {
         await router.replace("/admin/login");
         return;
       }
-      if (session.mustChangePassword) return;
       const [settings, logList, probe] = await Promise.all([
         api.settings(),
         api.logsPage(logPageSize, 0),
@@ -734,7 +727,6 @@ export function useAdminSettings() {
     logTotal,
     loadMoreLogs,
     genpacProbe,
-    securityStatus,
     timezoneMenuOpen,
     timezoneQuery,
     mobileTimezoneOpen,

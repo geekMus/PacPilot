@@ -71,10 +71,6 @@ async function load() {
       await router.replace("/admin/login");
       return;
     }
-    if (session.mustChangePassword) {
-      await router.replace("/admin/settings");
-      return;
-    }
     const [s, st] = await Promise.all([api.settings(), api.storage()]);
     settings.value = s;
     retention.value = s.logRetentionDays;

@@ -53,14 +53,9 @@ async function onSubmit() {
       "../composables/useAdminSession"
     );
     invalidateAdminSessionCache();
-    const session = await fetchAdminSession(true);
+    await fetchAdminSession(true);
     notify(t("login.success"), "success");
-    if (session.mustChangePassword) {
-      notify(t("login.stillDefaultPassword"), "warning", 5500);
-      await router.push("/admin/settings");
-    } else {
-      await router.push("/admin/dashboard");
-    }
+    await router.push("/admin/dashboard");
   } catch (e) {
     error.value = e instanceof Error ? e.message : t("login.loginFailed");
     notify(error.value, "error");

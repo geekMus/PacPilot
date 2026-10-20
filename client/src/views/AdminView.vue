@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineAsyncComponent } from "vue";
+import { defineAsyncComponent, ref } from "vue";
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
@@ -7,6 +7,7 @@ import DomainListEditor from "../components/DomainListEditor.vue";
 import TextDetail from "../components/TextDetail.vue";
 import VirtualTable from "../components/VirtualTable.vue";
 import { useAdminSettings } from "../composables/useAdminSettings";
+import { useViewportPanel } from "../composables/useViewportPanel";
 
 const WebhookChannelEditor = defineAsyncComponent(
   () => import("../components/WebhookChannelEditor.vue")
@@ -25,7 +26,6 @@ const {
   logTotal,
   loadMoreLogs,
   genpacProbe,
-  securityStatus,
   timezoneMenuOpen,
   timezoneQuery,
   mobileTimezoneOpen,
@@ -64,6 +64,15 @@ const {
   testWebhook,
   changeAdminPassword,
 } = useAdminSettings();
+
+const timezoneAnchor = ref<HTMLElement | null>(null);
+const timezonePanel = ref<HTMLElement | null>(null);
+const { style: timezonePanelStyle } = useViewportPanel(
+  timezoneAnchor,
+  timezonePanel,
+  timezoneMenuOpen,
+  { matchAnchorWidth: true, maxHeight: 270, gap: 5 }
+);
 </script>
 
 <template>
@@ -96,16 +105,6 @@ const {
               <h2>{{ t("settings.changePasswordTitle") }}</h2>
               <p class="card-sub">{{ t("settings.passwordStoredLocal") }}</p>
             </div>
-          </div>
-          <div v-if="securityStatus.isDefaultPassword" class="password-warning" role="alert">
-            <strong>{{ t("settings.defaultPasswordAlert") }}</strong>
-            <p>
-              {{ t("settings.defaultPasswordTip") }}
-            </p>
-          </div>
-          <div v-if="securityStatus.mustChangePassword" class="password-warning" role="alert">
-            <strong>{{ t("settings.needNewPassword") }}</strong>
-            <p>{{ t("settings.tempPasswordNote") }}</p>
           </div>
           <form class="password-change-form" @submit.prevent="changeAdminPassword">
             <div class="field">
@@ -168,7 +167,6 @@ const {
 
         <form
           id="settings-form"
-          v-if="!securityStatus.mustChangePassword"
           class="stack"
           :inert="saving"
           :aria-busy="saving"
@@ -189,7 +187,7 @@ const {
             </div>
             <div class="field" data-validation-target="timezone">
               <label for="timezone">{{ t("settings.timezone") }}</label>
-              <div class="timezone-picker desktop-timezone-picker">
+              <div ref="timezoneAnchor" class="timezone-picker desktop-timezone-picker">
                 <input
                   id="timezone"
                   v-model="form.timezone"
@@ -205,28 +203,32 @@ const {
                   @blur="closeTimezoneMenu"
                   @keydown.esc="timezoneMenuOpen = false"
                 />
-                <div
-                  v-if="timezoneMenuOpen"
-                  class="timezone-options-menu"
-                  role="listbox"
-                  :aria-label="t('settings.timezoneSuggest')"
-                >
-                  <button
-                    v-for="zone in filteredTimeZones"
-                    :key="zone.value"
-                    type="button"
-                    role="option"
-                    :aria-selected="form.timezone === zone.value"
-                    class="timezone-option"
-                    @pointerdown.prevent="selectTimeZone(zone.value)"
+                <Teleport to="body">
+                  <div
+                    v-if="timezoneMenuOpen"
+                    ref="timezonePanel"
+                    class="timezone-options-menu"
+                    :style="timezonePanelStyle"
+                    role="listbox"
+                    :aria-label="t('settings.timezoneSuggest')"
                   >
-                    <span>{{ t(zone.labelKey) }}</span
-                    ><code>{{ zone.value }}</code>
-                  </button>
-                  <p v-if="filteredTimeZones.length === 0" class="timezone-no-results">
-                    {{ t("settings.timezoneNoMatch") }}
-                  </p>
-                </div>
+                    <button
+                      v-for="zone in filteredTimeZones"
+                      :key="zone.value"
+                      type="button"
+                      role="option"
+                      :aria-selected="form.timezone === zone.value"
+                      class="timezone-option"
+                      @pointerdown.prevent="selectTimeZone(zone.value)"
+                    >
+                      <span>{{ t(zone.labelKey) }}</span
+                      ><code>{{ zone.value }}</code>
+                    </button>
+                    <p v-if="filteredTimeZones.length === 0" class="timezone-no-results">
+                      {{ t("settings.timezoneNoMatch") }}
+                    </p>
+                  </div>
+                </Teleport>
               </div>
               <button
                 type="button"
@@ -690,7 +692,7 @@ const {
         </section>
 
         <button
-          v-if="!securityStatus.mustChangePassword && hasUnsavedSettings"
+          v-if="hasUnsavedSettings"
           form="settings-form"
           :type="canSubmit ? 'submit' : 'button'"
           class="floating-save-button"

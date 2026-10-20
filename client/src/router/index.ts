@@ -1,11 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { i18n } from "../i18n";
-import {
-  fetchAdminSession,
-  isAdminAppRoute,
-  isPasswordChangeAllowedRoute,
-} from "../composables/useAdminSession";
-import { useToast } from "../composables/useToast";
+import { fetchAdminSession, isAdminAppRoute } from "../composables/useAdminSession";
 
 /** Site brand matches package.json / GitHub repo (kebab-case), like many OSS tools. */
 export const APP_BRAND = "genpac-runner";
@@ -86,9 +81,7 @@ function applyDocumentTitle(pageTitle?: unknown): void {
   document.title = page ? `${page} · ${APP_BRAND}` : APP_BRAND;
 }
 
-const PASSWORD_CHANGE_TOAST_KEY = "layout.mustChangePassword";
-
-router.beforeEach(async (to, from) => {
+router.beforeEach(async (to) => {
   const isAdminPath = isAdminAppRoute(to.path);
   if (!isAdminPath && to.path !== "/") return true;
 
@@ -98,20 +91,9 @@ router.beforeEach(async (to, from) => {
       return isAdminPath && to.name !== "login" ? { name: "login" } : true;
     }
     if (!isAdminPath) return true;
-    if (to.name === "login" || isPasswordChangeAllowedRoute(to.path)) return true;
+    if (to.name === "login") return true;
     if (!session.loggedIn) {
       return { name: "login", query: { redirect: to.fullPath } };
-    }
-    if (session.mustChangePassword) {
-      // Avoid repeated toasts when already bouncing from another blocked page.
-      const alreadyLeavingBlocked =
-        isAdminAppRoute(from.path) &&
-        !isPasswordChangeAllowedRoute(from.path) &&
-        from.name !== "login";
-      if (!alreadyLeavingBlocked) {
-        useToast().notify(String(i18n.global.t(PASSWORD_CHANGE_TOAST_KEY)), "warning", 5500);
-      }
-      return { name: "admin-settings" };
     }
   } catch {
     // Session probe failed — let the page handle API errors.

@@ -27,7 +27,6 @@ async function loadStatus() {
     meta.value = currentMeta;
     // 只有成功确认会话状态后才决定入口；未登录时直接进入登录页。
     if (currentSession && !currentSession.loggedIn) adminEntry.value = "/admin/login";
-    else if (currentSession?.mustChangePassword) adminEntry.value = "/admin/settings";
     else if (currentSession?.loggedIn) adminEntry.value = "/admin/dashboard";
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);

@@ -39,14 +39,21 @@ const iconNames = {
 .toast-host {
   position: fixed;
   z-index: 9999;
-  top: 18px;
-  right: 18px;
-  width: min(420px, calc(100vw - 36px));
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  left: max(12px, env(safe-area-inset-left));
+  display: flex;
+  justify-content: flex-end;
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   pointer-events: none;
 }
 .toast-stack {
   display: grid;
   gap: 10px;
+  width: min(420px, 100%);
 }
 .toast-item {
   display: flex;

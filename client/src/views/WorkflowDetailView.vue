@@ -6,6 +6,7 @@ import { api, type WorkflowDetail, type WorkflowStage } from "../api/client";
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
+import ConfirmPopover from "../components/ConfirmPopover.vue";
 import { useToast } from "../composables/useToast";
 const { t, locale } = useI18n();
 
@@ -160,11 +161,6 @@ async function load() {
     if (!session.loggedIn) {
       stopPolling();
       await router.replace("/admin/login");
-      return;
-    }
-    if (session.mustChangePassword) {
-      stopPolling();
-      await router.replace("/admin/settings");
       return;
     }
     const next = await api.workflowDetail(requestedId);
@@ -515,89 +511,72 @@ onUnmounted(() => {
           <AppIcon name="arrow-left" :size="16" /> {{ t("workflowDetailPage.k38") }}
         </RouterLink>
         <div class="detail-action-group">
-          <div v-if="detail.run.status === 'pending'" class="detail-confirm-anchor">
-            <button
-              class="cancel-button"
-              type="button"
-              :disabled="cancelling"
-              :title="
-                cancelling
-                  ? t('workflowDetailPage.cancellingTitle')
-                  : t('workflowDetailPage.cancelQueuedTitle')
-              "
-              @click="
-                confirmingCancel = !confirmingCancel;
-                confirmingDelete = false;
-              "
-            >
-              <AppIcon name="x" :size="15" /> {{ t("workflowDetailPage.k39") }}
-            </button>
-            <div
-              v-if="confirmingCancel"
-              class="detail-confirm-popover cancel-confirm-popover"
-              role="group"
-            >
-              <strong>{{ t("workflowDetailPage.k40") }}</strong>
-              <span>{{ t("workflowDetailPage.k41") }}</span>
-              <div>
-                <button type="button" class="confirm-cancel" @click="confirmingCancel = false">
-                  {{ t("workflowDetailPage.k42") }}
-                </button>
-                <button
-                  type="button"
-                  class="confirm-cancel-action"
-                  :disabled="cancelling"
-                  :title="
-                    cancelling
-                      ? t('workflowDetailPage.cancellingTitle')
-                      : t('workflowDetailPage.confirmCancelTitle')
-                  "
-                  @click="cancelRun"
-                >
-                  {{ t("workflowDetailPage.k43") }}
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="detail-confirm-anchor">
-            <button
-              class="delete-button"
-              type="button"
-              :disabled="
-                deleting || detail.run.status === 'running' || detail.run.status === 'pending'
-              "
-              :title="
-                detail.run.status === 'running' || detail.run.status === 'pending'
-                  ? t('workflowDetailPage.k23')
-                  : deleting
-                    ? t('workflowDetailPage.k24')
-                    : t('workflowDetailPage.k25')
-              "
-              @click="
-                confirmingDelete = !confirmingDelete;
-                confirmingCancel = false;
-              "
-            >
-              <AppIcon name="trash-2" :size="15" /> {{ t("workflowDetailPage.k44") }}
-            </button>
-            <div v-if="confirmingDelete" class="detail-confirm-popover" role="group">
-              <strong>{{ t("workflowDetailPage.k45") }}</strong>
-              <span>{{ t("workflowDetailPage.k46") }}</span>
-              <div>
-                <button type="button" class="confirm-cancel" @click="confirmingDelete = false">
-                  {{ t("workflowDetailPage.k42") }}
-                </button>
-                <button
-                  type="button"
-                  class="confirm-delete"
-                  :disabled="deleting"
-                  @click="deleteRun"
-                >
-                  {{ t("workflowDetailPage.k47") }}
-                </button>
-              </div>
-            </div>
-          </div>
+          <ConfirmPopover
+            v-if="detail.run.status === 'pending'"
+            :open="confirmingCancel"
+            :title="t('workflowDetailPage.k40')"
+            :description="t('workflowDetailPage.k41')"
+            :confirm-text="t('workflowDetailPage.k43')"
+            :cancel-text="t('workflowDetailPage.k42')"
+            :busy-text="t('workflowDetailPage.cancellingTitle')"
+            tone="warning"
+            :busy="cancelling"
+            @update:open="confirmingCancel = $event"
+            @confirm="cancelRun"
+          >
+            <template #trigger="{ toggle }">
+              <button
+                class="cancel-button"
+                type="button"
+                :disabled="cancelling"
+                :title="
+                  cancelling
+                    ? t('workflowDetailPage.cancellingTitle')
+                    : t('workflowDetailPage.cancelQueuedTitle')
+                "
+                @click="
+                  confirmingDelete = false;
+                  toggle();
+                "
+              >
+                <AppIcon name="x" :size="15" /> {{ t("workflowDetailPage.k39") }}
+              </button>
+            </template>
+          </ConfirmPopover>
+          <ConfirmPopover
+            :open="confirmingDelete"
+            :title="t('workflowDetailPage.k45')"
+            :description="t('workflowDetailPage.k46')"
+            :confirm-text="t('workflowDetailPage.k47')"
+            :cancel-text="t('workflowDetailPage.k42')"
+            :busy-text="t('workflowDetailPage.k24')"
+            :busy="deleting"
+            @update:open="confirmingDelete = $event"
+            @confirm="deleteRun"
+          >
+            <template #trigger="{ toggle }">
+              <button
+                class="delete-button"
+                type="button"
+                :disabled="
+                  deleting || detail.run.status === 'running' || detail.run.status === 'pending'
+                "
+                :title="
+                  detail.run.status === 'running' || detail.run.status === 'pending'
+                    ? t('workflowDetailPage.k23')
+                    : deleting
+                      ? t('workflowDetailPage.k24')
+                      : t('workflowDetailPage.k25')
+                "
+                @click="
+                  confirmingCancel = false;
+                  toggle();
+                "
+              >
+                <AppIcon name="trash-2" :size="15" /> {{ t("workflowDetailPage.k44") }}
+              </button>
+            </template>
+          </ConfirmPopover>
         </div>
       </div>
     </div>
@@ -910,65 +889,6 @@ onUnmounted(() => {
 .cancel-button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
-}
-.detail-confirm-anchor {
-  position: relative;
-}
-.detail-confirm-popover {
-  position: absolute;
-  z-index: 30;
-  right: 0;
-  top: calc(100% + 7px);
-  width: 245px;
-  padding: 13px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
-}
-.cancel-confirm-popover {
-  border-color: color-mix(in srgb, var(--amber, #d97706) 35%, var(--line));
-}
-.detail-confirm-popover strong,
-.detail-confirm-popover span {
-  display: block;
-}
-.detail-confirm-popover strong {
-  font-size: 12px;
-  color: var(--text);
-}
-.detail-confirm-popover span {
-  margin-top: 5px;
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--muted);
-}
-.detail-confirm-popover > div {
-  display: flex;
-  justify-content: flex-end;
-  gap: 7px;
-  margin-top: 12px;
-}
-.detail-confirm-popover button {
-  min-height: 29px;
-  padding: 0 9px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--surface-2);
-  color: var(--text);
-  font: inherit;
-  font-size: 11px;
-  cursor: pointer;
-}
-.detail-confirm-popover .confirm-delete {
-  background: var(--red);
-  border-color: var(--red);
-  color: white;
-}
-.detail-confirm-popover .confirm-cancel-action {
-  background: var(--amber-soft, #fff3dc);
-  border-color: color-mix(in srgb, var(--amber, #d97706) 40%, var(--line));
-  color: var(--amber, #b45309);
 }
 .spinning {
   animation: spin 0.9s linear infinite;

@@ -9,7 +9,6 @@ export default {
   serverErrors: {
     versionMismatch:
       "The backend does not expose the save-and-generate endpoint (frontend/backend version mismatch). Stop old genpac-runner processes, update to the latest code, and restart from the project root. This request did not save or generate; verify settings and retry.",
-    passwordChangeRequired: "Change the default admin password before continuing.",
     invalidTimezone: "Invalid time zone. Enter a valid IANA time zone, such as Asia/Shanghai.",
     invalidCron: "Invalid cron expression. Use the 5-field form: minute hour day month weekday.",
     invalidProxyTestUrl: "Invalid proxy test URL.",
@@ -149,6 +148,7 @@ export default {
     alreadyExists: "Already exists",
     notExists: "Does not exist",
     generated: "Generated",
+    notYetGenerated: "Not generated yet",
     skipped: "Skipped",
     closed: "Closed",
     cancelled: "Cancelled",
@@ -178,6 +178,17 @@ export default {
     line: "Line:",
     conditionNotMet: "Conditions are not met; action is unavailable for now",
   },
+  editor: {
+    textEditor: "Text editor",
+  },
+  chart: {
+    trend24h: "Last 24 hours",
+    avgResponse: "Average response time",
+    request: "Requests",
+    error: "Errors",
+    errorRequest: "Failed requests",
+    totalRequests: "Total requests",
+  },
   login: {
     title: "Admin login",
     password: "Admin password",
@@ -187,9 +198,9 @@ export default {
     success: "Signed in",
     passwordChanged: "Admin password updated. Sign in with the new password.",
     connectFailed: "Unable to reach the service. Check that the backend is running.",
-    hint: "Sign in with the one-time password and set a new password immediately.",
+    hint: "The randomly generated admin password is available in the service startup logs.",
     footnote:
-      "Do not save the admin password on shared devices. Password reset issues a one-time temporary password; set a new password right after signing in.",
+      "Do not save the admin password on shared devices. A password reset generates a new password; changing it again is optional.",
     resetHelp: "Cross-platform password reset instructions ↗",
     titleButton: "Sign in to admin",
     needPassword: "Enter the admin password to continue",
@@ -200,11 +211,9 @@ export default {
     pageDesc:
       "After signing in you can switch generation modes, maintain direct and block lists, schedule generation, and manage Webhook notifications.",
     securityNote:
-      "Before signing in for the first time, run the password reset command to generate a one-time password. You can also use that command to recover access if you forget your password.",
+      "The randomly generated admin password is printed in the service startup logs. If you forget it, use the password reset command to generate a new one.",
     backendLogin: "Admin sign-in",
     enterPassword: "Enter the admin password to continue",
-    stillDefaultPassword:
-      "You are still using the default password. Change it before using other features.",
     loginFailed: "Sign-in failed. Please try again.",
     adminCredentialsMissing:
       "Admin credentials have not been created. Run the password reset command to generate a one-time password, then refresh this page to sign in.",
@@ -231,7 +240,6 @@ export default {
   },
   layout: {
     adminConsole: "Admin console",
-    mustChangePassword: "Change the default password first; other menus stay unavailable.",
     workbench: "Workbench",
     closeNav: "Close navigation menu",
     toggleNav: "Toggle navigation menu",
@@ -241,9 +249,6 @@ export default {
     loggingOut: "Signing out…",
     loggingOutTitle: "Signing out of admin…",
     logoutTitle: "Sign out of admin",
-    mustChangeBeforeAccess: "Change the default admin password before opening “{label}”",
-    mustChangeBeforeAccessNotify: "Change the default admin password before opening “{label}”.",
-    mustChangeBeforeContinue: "Change the default admin password before continuing.",
   },
   theme: {
     light: "Light",
@@ -449,9 +454,6 @@ export default {
     reload: "Reload",
     workflowRunning: "Workflow running: {stage}",
     clickLiveProgress: "View live progress",
-    securityAlert: "Security notice",
-    stillDefaultPassword: "You are still using the default admin password (password).",
-    changeNow: "Change now",
     keyStatus: "Key status",
     pacFileStatus: "PAC file status",
     hasPacNote: "A rule file is available for clients",
@@ -506,6 +508,7 @@ export default {
     title: "Configuration",
     subtitle: "Manage PAC generation mode, rule lists, scheduled tasks, and Webhook notifications.",
     loading: "Loading configuration",
+    loadingDesc: "Loading configuration, generation history, and proxy test status.",
     saveSuccess: "Configuration saved",
     saveAndGenerate: "Save and generate PAC",
     savingAndGenerating: "Saving and generating PAC",
@@ -646,13 +649,10 @@ export default {
     changingPassword: "Changing…",
     changingPasswordTitle: "Changing the admin password…",
     changePasswordTitle: "Change admin password",
-    needNewPassword: "A new password is required",
     enterCurrentPassword: "Enter the current admin password.",
     resetHelpFull:
       "If you forget the password, reset it according to your deployment: run the matching script for local development; run bun run reset:admin-password:production for a non-container production deployment; or run the existing reset command inside the Docker container. The script displays the actual database path and will not create an empty database if it does not exist.",
     resetHelpLink: "View complete reset instructions ↗",
-    tempPasswordNote:
-      "You are using a one-time temporary password generated by a container command. Other admin features remain locked until you change it.",
     newPasswordPlaceholder: "Enter a new password (no length or complexity requirements)",
     scheduleWebhook: "Schedule and Webhook",
     scheduleWebhookDesc:
@@ -711,9 +711,6 @@ export default {
     passwordChangeFailed: "Failed to change password. Please try again.",
     passwordStoredLocal:
       "The password is stored in the local database, not via environment variables.",
-    defaultPasswordAlert: "Security notice: you are still using the default password (password)",
-    defaultPasswordTip:
-      "Change the default password to one only you know. There are no length or complexity limits.",
   },
 
   monitor: {
@@ -781,7 +778,7 @@ export default {
     k58: "Failed",
     noProbeErrorDetails: "No error details provided",
     k60: "Failure reason",
-    k61: "Data refreshes every 15 seconds. Request statistics include only traffic received by genpac-runner, not traffic forwarded by the proxy server.",
+    k61: "Monitor data refreshes every 10 seconds. Request statistics include only traffic received by genpac-runner, not traffic forwarded by the proxy server.",
     k62: "Loading monitor data",
     k63: "Loading access statistics and proxy test history.",
     k64: "Unable to load monitor data",

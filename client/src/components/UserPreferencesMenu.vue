@@ -4,17 +4,28 @@ import { useI18n } from "vue-i18n";
 import AppIcon from "./AppIcon.vue";
 import { setAppLocale, type AppLocale } from "../i18n";
 import { useTheme, type ThemeMode } from "../composables/useTheme";
-
-withDefaults(defineProps<{ placement?: "bottom" | "top" }>(), { placement: "bottom" });
+import { useViewportPanel } from "../composables/useViewportPanel";
 
 const { t, locale } = useI18n();
 const { mode, setMode } = useTheme();
 const root = ref<HTMLElement | null>(null);
+const trigger = ref<HTMLButtonElement | null>(null);
+const panel = ref<HTMLElement | null>(null);
 const open = ref(false);
 const panelId = `user-preferences-${useId()}`;
+const { style: panelStyle } = useViewportPanel(trigger, panel, open, {
+  align: "end",
+  maxWidth: 280,
+});
 
 function onDocumentPointerDown(event: PointerEvent): void {
-  if (event.target instanceof Node && !root.value?.contains(event.target)) open.value = false;
+  if (
+    event.target instanceof Node &&
+    !root.value?.contains(event.target) &&
+    !panel.value?.contains(event.target)
+  ) {
+    open.value = false;
+  }
 }
 
 function onDocumentKeydown(event: KeyboardEvent): void {
@@ -44,8 +55,9 @@ const languages: { value: AppLocale; label: string }[] = [
 </script>
 
 <template>
-  <div ref="root" class="preferences-menu" :class="`placement-${placement}`">
+  <div ref="root" class="preferences-menu">
     <button
+      ref="trigger"
       class="preferences-trigger"
       type="button"
       :aria-label="t('preferences.open')"
@@ -56,43 +68,47 @@ const languages: { value: AppLocale; label: string }[] = [
     >
       <AppIcon name="sliders-horizontal" :size="17" />
     </button>
-    <section
-      v-if="open"
-      :id="panelId"
-      class="preferences-panel"
-      :aria-label="t('preferences.title')"
-    >
-      <div class="preferences-group">
-        <h2>{{ t("preferences.appearance") }}</h2>
-        <div class="preferences-options" role="group" :aria-label="t('preferences.appearance')">
-          <button
-            v-for="theme in themes"
-            :key="theme.value"
-            type="button"
-            :aria-pressed="mode === theme.value"
-            :class="{ active: mode === theme.value }"
-            @click="setMode(theme.value)"
-          >
-            {{ t(theme.label) }}
-          </button>
+    <Teleport to="body">
+      <section
+        v-if="open"
+        :id="panelId"
+        ref="panel"
+        class="preferences-panel"
+        :style="panelStyle"
+        :aria-label="t('preferences.title')"
+      >
+        <div class="preferences-group">
+          <h2>{{ t("preferences.appearance") }}</h2>
+          <div class="preferences-options" role="group" :aria-label="t('preferences.appearance')">
+            <button
+              v-for="theme in themes"
+              :key="theme.value"
+              type="button"
+              :aria-pressed="mode === theme.value"
+              :class="{ active: mode === theme.value }"
+              @click="setMode(theme.value)"
+            >
+              {{ t(theme.label) }}
+            </button>
+          </div>
         </div>
-      </div>
-      <div class="preferences-group">
-        <h2>{{ t("preferences.language") }}</h2>
-        <div class="preferences-options" role="group" :aria-label="t('preferences.language')">
-          <button
-            v-for="language in languages"
-            :key="language.value"
-            type="button"
-            :aria-pressed="locale === language.value"
-            :class="{ active: locale === language.value }"
-            @click="setAppLocale(language.value)"
-          >
-            {{ t(language.label) }}
-          </button>
+        <div class="preferences-group">
+          <h2>{{ t("preferences.language") }}</h2>
+          <div class="preferences-options" role="group" :aria-label="t('preferences.language')">
+            <button
+              v-for="language in languages"
+              :key="language.value"
+              type="button"
+              :aria-pressed="locale === language.value"
+              :class="{ active: locale === language.value }"
+              @click="setAppLocale(language.value)"
+            >
+              {{ t(language.label) }}
+            </button>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </Teleport>
   </div>
 </template>
 
@@ -121,21 +137,13 @@ const languages: { value: AppLocale; label: string }[] = [
   background: var(--accent-soft);
 }
 .preferences-panel {
-  position: absolute;
   z-index: 100;
-  right: 0;
-  width: min(280px, calc(100vw - 32px));
+  box-sizing: border-box;
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--surface);
   box-shadow: var(--shadow);
-}
-.placement-bottom .preferences-panel {
-  top: calc(100% + 8px);
-}
-.placement-top .preferences-panel {
-  bottom: calc(100% + 8px);
 }
 .preferences-group + .preferences-group {
   margin-top: 16px;

@@ -17,16 +17,6 @@ export async function fetchAdminSession(force = false): Promise<AdminSession> {
   return data;
 }
 
-/** Admin routes that remain reachable while a password change is required. */
-export function isPasswordChangeAllowedRoute(path: string): boolean {
-  if (path === "/admin/login" || path.startsWith("/admin/login?")) return true;
-  if (path === "/admin/settings" || path.startsWith("/admin/settings?")) return true;
-  if (path === "/admin/settings/" || path.startsWith("/admin/settings#")) return true;
-  // Hash-only navigation stays on settings.
-  if (path.startsWith("/admin/settings")) return true;
-  return false;
-}
-
 export function isAdminAppRoute(path: string): boolean {
   return path === "/admin" || path.startsWith("/admin/");
 }

@@ -16,10 +16,10 @@ import { createApp } from "../server/app";
 import { COOKIE_NAME, createSessionToken } from "../server/middleware/auth";
 import {
   changeAdminPassword,
+  createInitialAdminCredentials,
   getAdminSessionSecret,
-  getAdminSecurityStatus,
   isAdminCredentialsMissing,
-  resetAdminPassword,
+  verifyAdminPassword,
 } from "../server/services/admin-credentials";
 import { runPacWorkflow } from "../server/services/workflow";
 import en_US from "../shared/i18n/en_US";
@@ -63,6 +63,38 @@ function assertLocaleParity(): void {
 
 assertLocaleParity();
 
+function assertTranslationReferences(): void {
+  const catalogs = [flattenCatalog(zh_CN), flattenCatalog(en_US)];
+  const sourceRoot = path.resolve(import.meta.dir, "../client/src");
+  const sourceFiles: string[] = [];
+
+  function collectSourceFiles(directory: string): void {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const entryPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) collectSourceFiles(entryPath);
+      else if (/\.(?:vue|ts)$/.test(entry.name)) sourceFiles.push(entryPath);
+    }
+  }
+
+  collectSourceFiles(sourceRoot);
+  const missing = new Set<string>();
+  const translationCall = /(?:\bt|\$t)\s*\(\s*["']([^"']+)["']/g;
+  for (const file of sourceFiles) {
+    const source = fs.readFileSync(file, "utf8");
+    for (const match of source.matchAll(translationCall)) {
+      const key = match[1];
+      if (!catalogs.every((catalog) => catalog.has(key))) missing.add(`${file}: ${key}`);
+    }
+  }
+
+  assert(
+    missing.size === 0,
+    `Client references missing translation keys:\n${[...missing].sort().join("\n")}`
+  );
+}
+
+assertTranslationReferences();
+
 let dataDir: string | undefined;
 let database: ReturnType<typeof createDatabase> | undefined;
 let server: Server | undefined;
@@ -92,11 +124,16 @@ try {
     getSettings(runtimeDatabase).timezone === "Asia/Shanghai",
     "Fresh settings should use the default time zone."
   );
-  const temporaryPassword = resetAdminPassword(runtimeDatabase);
+  const initialPassword = createInitialAdminCredentials(runtimeDatabase);
+  assert(initialPassword, "Fresh database should generate an initial admin password.");
   assert(
-    getAdminSecurityStatus(runtimeDatabase).mustChangePassword &&
+    createInitialAdminCredentials(runtimeDatabase) === null,
+    "Initial admin password must only be generated once."
+  );
+  assert(
+    verifyAdminPassword(runtimeDatabase, initialPassword) &&
       !isAdminCredentialsMissing(runtimeDatabase),
-    "The password reset command must bootstrap fresh admin credentials and require password change."
+    "Initial credentials must validate without requiring a password change."
   );
   assert(
     !fs.existsSync(path.join(runtimeDataDir, "proxy.pac")) &&
@@ -147,12 +184,6 @@ try {
     "Operational log storage metrics failed."
   );
 
-  changeAdminPassword(runtimeDatabase, temporaryPassword, "Runtime-Check-Password-2026!");
-  assert(
-    !isAdminCredentialsMissing(runtimeDatabase) &&
-      !getAdminSecurityStatus(runtimeDatabase).mustChangePassword,
-    "Admin setup or password initialization did not complete."
-  );
   const token = createSessionToken(getAdminSessionSecret(runtimeDatabase));
   const app = createApp(
     { dataDir: runtimeDataDir, runtimeProfile: "development", port: 0, host: "127.0.0.1" },
@@ -175,14 +206,10 @@ try {
   const session = (await sessionResponse.json()) as {
     loggedIn: boolean;
     adminCredentialsMissing: boolean;
-    mustChangePassword: boolean;
   };
   assert(
-    sessionResponse.ok &&
-      session.loggedIn &&
-      !session.adminCredentialsMissing &&
-      !session.mustChangePassword,
-    "Admin session did not reflect completed first-run setup."
+    sessionResponse.ok && session.loggedIn && !session.adminCredentialsMissing,
+    "Admin session did not reflect the active login."
   );
   for (const endpoint of [
     "/api/admin/workflows",
@@ -198,6 +225,13 @@ try {
   assert(
     invalidWorkflow.status === 400 && invalidWorkflowBody.error === "Invalid workflow id.",
     "Locale-aware workflow API errors failed."
+  );
+  changeAdminPassword(runtimeDatabase, initialPassword, "Runtime-Check-Password-2026!");
+  assert(
+    !isAdminCredentialsMissing(runtimeDatabase) &&
+      !verifyAdminPassword(runtimeDatabase, initialPassword) &&
+      verifyAdminPassword(runtimeDatabase, "Runtime-Check-Password-2026!"),
+    "Optional admin password change did not complete."
   );
 
   console.log(

@@ -27,7 +27,6 @@ const generating = ref(false);
 const error = ref("");
 const notice = ref("");
 const noticeOkay = ref(true);
-const session = ref<AdminSession | null>(null);
 const settings = ref<AppSettings | null>(null);
 const status = ref<PacStatus | null>(null);
 const logs = ref<GenerationLog[]>([]);
@@ -72,13 +71,8 @@ async function loadOverview(): Promise<void> {
   error.value = "";
   try {
     const nextSession: AdminSession = await api.session();
-    session.value = nextSession;
     if (!nextSession.loggedIn) {
       await router.replace("/admin/login");
-      return;
-    }
-    if (nextSession.mustChangePassword) {
-      await router.replace("/admin/settings");
       return;
     }
 
@@ -225,12 +219,6 @@ onMounted(() => {
           ><small>{{ t("dashboard.clickLiveProgress") }}</small></span
         >
       </RouterLink>
-      <div v-if="session?.isDefaultPassword" class="dashboard-alert is-warning" role="alert">
-        <strong>{{ t("dashboard.securityAlert") }}</strong
-        ><span>{{ t("dashboard.stillDefaultPassword") }}</span>
-        <RouterLink to="/admin/settings#security">{{ t("dashboard.changeNow") }}</RouterLink>
-      </div>
-
       <section class="overview-metrics" :aria-label="t('dashboard.keyStatus')">
         <article class="overview-metric">
           <div class="metric-top">

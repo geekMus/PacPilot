@@ -149,6 +149,7 @@ function buildOption(): Record<string, unknown> {
 
   const tooltip = {
     trigger: "axis" as const,
+    confine: true,
     backgroundColor: surface,
     borderColor: line,
     borderWidth: 1,

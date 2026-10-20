@@ -477,10 +477,6 @@ export function useMonitoringDashboard() {
         await router.replace("/admin/login");
         return;
       }
-      if (session.mustChangePassword) {
-        await router.replace("/admin");
-        return;
-      }
       authChecking.value = false;
       await Promise.all([refreshDashboard(), loadProbeHistory(), loadProxyTestTarget()]);
       refreshTimer = setInterval(() => {

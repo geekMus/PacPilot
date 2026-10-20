@@ -9,8 +9,6 @@ export interface Meta {
 export interface AdminSession {
   loggedIn: boolean;
   adminCredentialsMissing: boolean;
-  isDefaultPassword: boolean;
-  mustChangePassword: boolean;
 }
 
 export type WebhookProvider = "custom" | "dingtalk";
@@ -311,8 +309,8 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     if (res.status === 404 && url === "/api/admin/settings/save-and-generate") {
       msg = i18n.global.t("serverErrors.versionMismatch");
     }
-    if (res.status === 428 || msg === "password_change_required") {
-      msg = i18n.global.t("serverErrors.passwordChangeRequired");
+    if (msg === "setup_required") {
+      msg = i18n.global.t("login.adminCredentialsMissing");
     }
 
     throw new ApiError(msg, code, detail);

@@ -6,8 +6,8 @@
 .floating-save-button {
   position: fixed;
   z-index: 40;
-  right: 24px;
-  bottom: 24px;
+  right: max(24px, env(safe-area-inset-right));
+  bottom: max(24px, env(safe-area-inset-bottom));
   display: grid;
   place-items: center;
   width: 56px;
@@ -633,7 +633,7 @@ tr:last-child td {
     padding-bottom: 100px;
   }
   .floating-save-button {
-    right: 16px;
+    right: max(16px, env(safe-area-inset-right));
     bottom: max(16px, env(safe-area-inset-bottom));
     width: 52px;
     height: 52px;
@@ -946,13 +946,8 @@ textarea.body-area {
   position: relative;
 }
 .timezone-options-menu {
-  position: absolute;
   z-index: 30;
-  top: calc(100% + 5px);
-  left: 0;
-  right: 0;
-  max-height: 270px;
-  overflow: auto;
+  box-sizing: border-box;
   padding: 5px;
   border: 1px solid var(--line);
   border-radius: 10px;

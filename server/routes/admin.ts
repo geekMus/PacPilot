@@ -28,7 +28,6 @@ import {
 } from "../middleware/auth";
 import {
   changeAdminPassword,
-  getAdminSecurityStatus,
   getAdminSessionSecret,
   isAdminCredentialsMissing,
   verifyAdminPassword,
@@ -144,7 +143,6 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
     res.json({
       loggedIn: isLoggedIn(req, database),
       adminCredentialsMissing: isAdminCredentialsMissing(database),
-      ...getAdminSecurityStatus(database),
     })
   );
   router.post("/api/admin/login", (req, res) => {
@@ -172,7 +170,7 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
     const token = createSessionToken(getAdminSessionSecret(database));
     const secure = req.secure || req.headers["x-forwarded-proto"] === "https";
     setSessionCookie(res, token, secure);
-    res.json({ ok: true, ...getAdminSecurityStatus(database) });
+    res.json({ ok: true });
   });
   router.post("/api/admin/logout", (req, res) => {
     const originError = assertSameOrigin(req);
@@ -183,7 +181,7 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
     clearSessionCookie(res);
     res.json({ ok: true });
   });
-  router.post("/api/admin/password", requireAdmin(database, true), (req, res) => {
+  router.post("/api/admin/password", requireAdmin(database), (req, res) => {
     const originError = assertSameOrigin(req);
     if (originError) {
       res.status(403).json({ error: originError });

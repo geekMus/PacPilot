@@ -113,10 +113,6 @@ async function load(silent = false, resetHistory = false) {
       await router.replace("/admin/login");
       return;
     }
-    if (session.mustChangePassword) {
-      await router.replace("/admin/settings");
-      return;
-    }
     const result = await api.workflows(historyPageSize, 0);
     if (statusSnapshotReady) {
       for (const run of result.runs) {
@@ -197,25 +193,21 @@ function resetConfirmations() {
   confirmingHistoryDeleteId.value = null;
   confirmingHistoryClear.value = false;
 }
-function toggleCurrentCancel() {
-  const opening = !confirmingCurrentCancel.value;
-  resetConfirmations();
-  confirmingCurrentCancel.value = opening;
+function toggleCurrentCancel(toggle: () => void, isOpen: boolean) {
+  if (!isOpen) resetConfirmations();
+  toggle();
 }
-function toggleQueueCancel(run: WorkflowRun) {
-  const opening = confirmingQueueCancelId.value !== run.id;
-  resetConfirmations();
-  confirmingQueueCancelId.value = opening ? run.id : null;
+function toggleQueueCancel(toggle: () => void, isOpen: boolean) {
+  if (!isOpen) resetConfirmations();
+  toggle();
 }
-function toggleHistoryCancel(run: WorkflowRun) {
-  const opening = confirmingHistoryCancelId.value !== run.id;
-  resetConfirmations();
-  confirmingHistoryCancelId.value = opening ? run.id : null;
+function toggleHistoryCancel(toggle: () => void, isOpen: boolean) {
+  if (!isOpen) resetConfirmations();
+  toggle();
 }
-function toggleHistoryDelete(run: WorkflowRun) {
-  const opening = confirmingHistoryDeleteId.value !== run.id;
-  resetConfirmations();
-  confirmingHistoryDeleteId.value = opening ? run.id : null;
+function toggleHistoryDelete(toggle: () => void, isOpen: boolean) {
+  if (!isOpen) resetConfirmations();
+  toggle();
 }
 function toggleHistoryClear(toggle: () => void, isOpen: boolean) {
   // Closing keeps the component's normal behavior; opening first closes any
@@ -403,42 +395,33 @@ onUnmounted(stopPolling);
             <RouterLink class="workflow-button secondary" :to="`/admin/workflows/${current.id}`"
               ><AppIcon name="external-link" :size="14" /> {{ t("workflowPage.k53") }}</RouterLink
             >
-            <div v-if="current.status === 'pending'" class="confirm-anchor">
-              <button
-                class="workflow-button cancel-button"
-                type="button"
-                :disabled="cancellingId === current.id"
-                :title="cancellingId === current.id ? t('workflowPage.k22') : t('workflowPage.k23')"
-                @click="toggleCurrentCancel()"
-              >
-                <AppIcon name="x" :size="14" /> {{ t("workflowPage.k39") }}
-              </button>
-              <div
-                v-if="confirmingCurrentCancel"
-                class="confirm-popover cancel-popover"
-                role="group"
-              >
-                <strong>{{ t("workflowPage.k54") }}</strong
-                ><span>{{ t("workflowPage.k55") }}</span>
-                <div>
-                  <button type="button" class="confirm-cancel" @click.stop="resetConfirmations()">
-                    {{ t("workflowPage.k56") }}</button
-                  ><button
-                    type="button"
-                    class="confirm-cancel-action"
-                    :disabled="cancellingId === current.id"
-                    :title="
-                      cancellingId === current.id ? t('workflowPage.k22') : t('workflowPage.k24')
-                    "
-                    @click="cancelRun(current, 'current')"
-                  >
-                    {{
-                      cancellingId === current.id ? t("workflowPage.k25") : t("workflowPage.k26")
-                    }}
-                  </button>
-                </div>
-              </div>
-            </div>
+            <ConfirmPopover
+              v-if="current.status === 'pending'"
+              :open="confirmingCurrentCancel"
+              :title="t('workflowPage.k54')"
+              :description="t('workflowPage.k55')"
+              :confirm-text="t('workflowPage.k26')"
+              :cancel-text="t('workflowPage.k56')"
+              :busy-text="t('workflowPage.k25')"
+              tone="warning"
+              :busy="cancellingId === current.id"
+              @update:open="confirmingCurrentCancel = $event"
+              @confirm="cancelRun(current, 'current')"
+            >
+              <template #trigger="{ toggle, open }">
+                <button
+                  class="workflow-button cancel-button"
+                  type="button"
+                  :disabled="cancellingId === current.id"
+                  :title="
+                    cancellingId === current.id ? t('workflowPage.k22') : t('workflowPage.k23')
+                  "
+                  @click="toggleCurrentCancel(toggle, open)"
+                >
+                  <AppIcon name="x" :size="14" /> {{ t("workflowPage.k39") }}
+                </button>
+              </template>
+            </ConfirmPopover>
           </div>
           <div v-if="current.error" class="workflow-error-detail">
             <strong>{{ t("workflowPage.k57") }}</strong>
@@ -488,42 +471,35 @@ onUnmounted(stopPolling);
             <RouterLink class="workflow-button secondary" :to="`/admin/workflows/${run.id}`">{{
               t("workflowPage.k53")
             }}</RouterLink>
-            <div v-if="run.status === 'pending'" class="confirm-anchor">
-              <button
-                class="workflow-button cancel-button"
-                type="button"
-                :disabled="cancellingId === run.id"
-                :title="
-                  cancellingId === run.id
-                    ? t('workflowPage.cancellingQueuedTitle')
-                    : t('workflowPage.cancelQueuedTitle')
-                "
-                @click.stop="toggleQueueCancel(run)"
-              >
-                <AppIcon name="x" :size="14" /> {{ t("workflowPage.k39") }}
-              </button>
-              <div
-                v-if="confirmingQueueCancelId === run.id"
-                class="confirm-popover cancel-popover"
-                role="group"
-              >
-                <strong>{{ t("workflowPage.k54") }}</strong
-                ><span>{{ t("workflowPage.k55") }}</span>
-                <div>
-                  <button type="button" class="confirm-cancel" @click.stop="resetConfirmations()">
-                    {{ t("workflowPage.k56") }}</button
-                  ><button
-                    type="button"
-                    class="confirm-cancel-action"
-                    :disabled="cancellingId === run.id"
-                    :title="cancellingId === run.id ? t('workflowPage.k28') : t('workflowPage.k29')"
-                    @click.stop="cancelRun(run, 'queue')"
-                  >
-                    {{ cancellingId === run.id ? t("workflowPage.k25") : t("workflowPage.k26") }}
-                  </button>
-                </div>
-              </div>
-            </div>
+            <ConfirmPopover
+              v-if="run.status === 'pending'"
+              :open="confirmingQueueCancelId === run.id"
+              :title="t('workflowPage.k54')"
+              :description="t('workflowPage.k55')"
+              :confirm-text="t('workflowPage.k26')"
+              :cancel-text="t('workflowPage.k56')"
+              :busy-text="t('workflowPage.k25')"
+              tone="warning"
+              :busy="cancellingId === run.id"
+              @update:open="confirmingQueueCancelId = $event ? run.id : null"
+              @confirm="cancelRun(run, 'queue')"
+            >
+              <template #trigger="{ toggle, open }">
+                <button
+                  class="workflow-button cancel-button"
+                  type="button"
+                  :disabled="cancellingId === run.id"
+                  :title="
+                    cancellingId === run.id
+                      ? t('workflowPage.cancellingQueuedTitle')
+                      : t('workflowPage.cancelQueuedTitle')
+                  "
+                  @click.stop="toggleQueueCancel(toggle, open)"
+                >
+                  <AppIcon name="x" :size="14" /> {{ t("workflowPage.k39") }}
+                </button>
+              </template>
+            </ConfirmPopover>
           </div>
         </div>
       </section>
@@ -700,98 +676,69 @@ onUnmounted(stopPolling);
                 <span class="duration-trigger ellipsis">{{ durationLabel(run) }}</span>
               </td>
               <td class="actions-cell">
-                <div v-if="run.status === 'pending'" class="confirm-anchor" @click.stop>
-                  <button
-                    class="row-action-button cancel-button"
-                    type="button"
-                    :disabled="cancellingId !== null"
-                    :aria-label="t('workflowPage.k39')"
-                    :title="
-                      cancellingId === run.id
-                        ? t('workflowPage.k28')
-                        : cancellingId !== null
-                          ? t('workflowPage.k40')
-                          : t('workflowPage.k41')
-                    "
-                    @click.stop="toggleHistoryCancel(run)"
-                  >
-                    <AppIcon name="x" :size="15" />
-                  </button>
-                  <div
-                    v-if="confirmingHistoryCancelId === run.id"
-                    class="confirm-popover cancel-popover"
-                    role="group"
-                  >
-                    <strong>{{ t("workflowPage.k54") }}</strong
-                    ><span>{{ t("workflowPage.k55") }}</span>
-                    <div>
-                      <button
-                        type="button"
-                        class="confirm-cancel"
-                        @click.stop="resetConfirmations()"
-                      >
-                        {{ t("workflowPage.k56") }}</button
-                      ><button
-                        type="button"
-                        class="confirm-cancel-action"
-                        :disabled="cancellingId === run.id"
-                        :title="
-                          cancellingId === run.id ? t('workflowPage.k28') : t('workflowPage.k29')
-                        "
-                        @click.stop="cancelRun(run, 'history')"
-                      >
-                        {{
-                          cancellingId === run.id ? t("workflowPage.k25") : t("workflowPage.k26")
-                        }}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                <div v-else-if="run.status !== 'running'" class="confirm-anchor" @click.stop>
-                  <button
-                    type="button"
-                    class="row-action-button delete-run-button"
-                    :disabled="deletingId !== null"
-                    :aria-label="t('workflowPage.k42')"
-                    :title="
-                      deletingId === run.id
-                        ? t('workflowPage.k43')
-                        : deletingId !== null
-                          ? t('workflowPage.k44')
-                          : t('workflowPage.k45')
-                    "
-                    @click.stop="toggleHistoryDelete(run)"
-                  >
-                    <AppIcon name="trash-2" :size="15" />
-                  </button>
-                  <div
-                    v-if="confirmingHistoryDeleteId === run.id"
-                    class="confirm-popover"
-                    role="group"
-                  >
-                    <strong>{{ t("workflowPage.k74") }}</strong
-                    ><span>{{ t("workflowPage.k75") }}</span>
-                    <div>
-                      <button
-                        type="button"
-                        class="confirm-cancel"
-                        @click.stop="resetConfirmations()"
-                      >
-                        {{ t("workflowPage.k76") }}</button
-                      ><button
-                        type="button"
-                        class="confirm-delete"
-                        :disabled="deletingId === run.id"
-                        :title="
-                          deletingId === run.id ? t('workflowPage.k43') : t('workflowPage.k46')
-                        "
-                        @click.stop="deleteRun(run)"
-                      >
-                        {{ deletingId === run.id ? t("workflowPage.k47") : t("workflowPage.k48") }}
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <ConfirmPopover
+                  v-if="run.status === 'pending'"
+                  :open="confirmingHistoryCancelId === run.id"
+                  :title="t('workflowPage.k54')"
+                  :description="t('workflowPage.k55')"
+                  :confirm-text="t('workflowPage.k26')"
+                  :cancel-text="t('workflowPage.k56')"
+                  :busy-text="t('workflowPage.k25')"
+                  tone="warning"
+                  :busy="cancellingId === run.id"
+                  @update:open="confirmingHistoryCancelId = $event ? run.id : null"
+                  @confirm="cancelRun(run, 'history')"
+                >
+                  <template #trigger="{ toggle, open }">
+                    <button
+                      class="row-action-button cancel-button"
+                      type="button"
+                      :disabled="cancellingId !== null"
+                      :aria-label="t('workflowPage.k39')"
+                      :title="
+                        cancellingId === run.id
+                          ? t('workflowPage.k28')
+                          : cancellingId !== null
+                            ? t('workflowPage.k40')
+                            : t('workflowPage.k41')
+                      "
+                      @click.stop="toggleHistoryCancel(toggle, open)"
+                    >
+                      <AppIcon name="x" :size="15" />
+                    </button>
+                  </template>
+                </ConfirmPopover>
+                <ConfirmPopover
+                  v-else-if="run.status !== 'running'"
+                  :open="confirmingHistoryDeleteId === run.id"
+                  :title="t('workflowPage.k74')"
+                  :description="t('workflowPage.k75')"
+                  :confirm-text="t('workflowPage.k48')"
+                  :cancel-text="t('workflowPage.k76')"
+                  :busy-text="t('workflowPage.k47')"
+                  :busy="deletingId === run.id"
+                  @update:open="confirmingHistoryDeleteId = $event ? run.id : null"
+                  @confirm="deleteRun(run)"
+                >
+                  <template #trigger="{ toggle, open }">
+                    <button
+                      type="button"
+                      class="row-action-button delete-run-button"
+                      :disabled="deletingId !== null"
+                      :aria-label="t('workflowPage.k42')"
+                      :title="
+                        deletingId === run.id
+                          ? t('workflowPage.k43')
+                          : deletingId !== null
+                            ? t('workflowPage.k44')
+                            : t('workflowPage.k45')
+                      "
+                      @click.stop="toggleHistoryDelete(toggle, open)"
+                    >
+                      <AppIcon name="trash-2" :size="15" />
+                    </button>
+                  </template>
+                </ConfirmPopover>
               </td>
             </tr>
           </template>
@@ -860,9 +807,6 @@ onUnmounted(stopPolling);
   text-align: center;
   white-space: nowrap;
 }
-.actions-cell .confirm-anchor {
-  display: inline-block;
-}
 .ellipsis {
   display: block;
   overflow: hidden;
@@ -908,75 +852,10 @@ onUnmounted(stopPolling);
   opacity: 0.4;
   cursor: not-allowed;
 }
-.confirm-anchor {
-  position: relative;
-  display: inline-block;
-}
-.confirm-popover {
-  position: absolute;
-  z-index: 20;
-  right: 0;
-  top: calc(100% + 7px);
-  width: 220px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
-  text-align: left;
-}
-.confirm-popover strong,
-.confirm-popover span {
-  display: block;
-}
-.confirm-popover strong {
-  color: var(--text);
-  font-size: 12px;
-}
-.confirm-popover span {
-  margin-top: 5px;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.5;
-}
-.confirm-popover > div {
-  display: flex;
-  justify-content: flex-end;
-  gap: 7px;
-  margin-top: 12px;
-}
-.confirm-popover button {
-  min-height: 29px;
-  padding: 0 9px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--surface-2);
-  color: var(--text);
-  font: inherit;
-  font-size: 11px;
-  cursor: pointer;
-}
-.confirm-popover .confirm-delete {
-  background: var(--red);
-  border-color: var(--red);
-  color: white;
-}
-.confirm-popover .confirm-cancel-action {
-  background: var(--amber-soft, #fff3dc);
-  border-color: color-mix(in srgb, var(--amber, #d97706) 40%, var(--line));
-  color: var(--amber, #b45309);
-}
-.cancel-popover {
-  border-color: color-mix(in srgb, var(--amber, #d97706) 35%, var(--line));
-}
 .workflow-button.cancel-button {
   background: var(--amber-soft, #fff3dc);
   border-color: color-mix(in srgb, var(--amber, #d97706) 35%, var(--line));
   color: var(--amber, #b45309);
-}
-.confirm-popover button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 .current-actions {
   display: flex;

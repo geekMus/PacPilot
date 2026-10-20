@@ -9,7 +9,6 @@ export default {
   serverErrors: {
     versionMismatch:
       "当前后端不支持保存并生成工作流，前后端版本不匹配。请停止旧版进程，从项目根目录更新并重启。本次请求未保存配置或生成 PAC；请核对设置后重试。",
-    passwordChangeRequired: "请先修改默认管理员密码，然后继续操作。",
     invalidTimezone: "时区无效，请填写有效的 IANA 时区，例如 Asia/Shanghai。",
     invalidCron: "Cron 表达式无效，请使用 5 段格式：分 时 日 月 周。",
     invalidProxyTestUrl: "代理测试地址无效。",
@@ -141,6 +140,7 @@ export default {
     alreadyExists: "已存在",
     notExists: "不存在",
     generated: "已生成",
+    notYetGenerated: "尚未生成",
     skipped: "已跳过",
     closed: "已关闭",
     cancelled: "已取消",
@@ -170,6 +170,17 @@ export default {
     line: "行：",
     conditionNotMet: "当前条件不满足，暂时无法执行",
   },
+  editor: {
+    textEditor: "文本编辑器",
+  },
+  chart: {
+    trend24h: "近 24 小时趋势",
+    avgResponse: "平均响应时间",
+    request: "请求",
+    error: "错误",
+    errorRequest: "错误请求",
+    totalRequests: "请求总量",
+  },
   login: {
     title: "管理员登录",
     password: "管理密码",
@@ -179,9 +190,8 @@ export default {
     success: "登录成功",
     passwordChanged: "管理密码已修改，请使用新密码登录。",
     connectFailed: "暂时无法连接服务，请检查后端状态。",
-    hint: "使用一次性临时密码登录后，请立即设置新密码。",
-    footnote:
-      "请勿在公共设备上保存管理密码。密码重置会生成一次性临时密码，登录后需立即设置新密码。",
+    hint: "首次启动时生成的随机管理员密码可在服务启动日志中查看。",
+    footnote: "请勿在公共设备上保存管理密码。密码重置后会生成新密码；是否再次修改由你自行决定。",
     resetHelp: "查看跨平台密码重置说明 ↗",
     titleButton: "登录管理后台",
     needPassword: "请输入管理员密码后登录",
@@ -191,13 +201,12 @@ export default {
     pageTitle: "管理你的 PAC 配置",
     pageDesc: "登录后可以切换生成模式、维护直连和黑名单、设置定时生成，并管理 Webhook 通知。",
     securityNote:
-      "首次使用前，请运行密码重置命令生成一次性临时密码。忘记密码时，也可使用该命令重新生成临时密码。",
+      "首次启动时，随机管理员密码会输出到服务日志。忘记密码时，可使用密码重置命令生成新密码。",
     backendLogin: "后台登录",
     enterPassword: "输入管理密码以继续",
-    stillDefaultPassword: "当前仍使用默认密码，请先修改后再使用其他功能。",
     loginFailed: "登录失败，请重试。",
     adminCredentialsMissing:
-      "尚未创建管理员凭据。请先运行密码重置命令生成一次性临时密码，再刷新此页面登录。",
+      "尚未创建管理员凭据。请使用密码重置命令生成管理员密码，再刷新此页面登录。",
   },
   system: {
     title: "系统设置",
@@ -221,7 +230,6 @@ export default {
   },
   layout: {
     adminConsole: "管理控制台",
-    mustChangePassword: "请先修改默认密码；其余菜单暂时不可用。",
     workbench: "工作台",
     closeNav: "关闭导航菜单",
     toggleNav: "切换导航菜单",
@@ -231,9 +239,6 @@ export default {
     loggingOut: "正在退出…",
     loggingOutTitle: "正在退出管理员账号，请稍候",
     logoutTitle: "退出管理员账号",
-    mustChangeBeforeAccess: "请先修改默认管理密码后再访问「{label}」",
-    mustChangeBeforeAccessNotify: "请先修改默认管理密码后再访问「{label}」。",
-    mustChangeBeforeContinue: "请先修改默认管理密码后再继续操作。",
   },
   theme: {
     light: "浅色",
@@ -431,9 +436,6 @@ export default {
     reload: "重新加载",
     workflowRunning: "工作流正在执行：{stage}",
     clickLiveProgress: "点击查看实时进度",
-    securityAlert: "安全提醒",
-    stillDefaultPassword: "当前仍使用默认管理密码 password。",
-    changeNow: "立即修改",
     keyStatus: "关键状态",
     pacFileStatus: "PAC 文件状态",
     hasPacNote: "已存在可供客户端获取的规则文件",
@@ -487,6 +489,7 @@ export default {
     title: "配置管理",
     subtitle: "管理 PAC 生成模式、规则列表、定时任务与 Webhook 通知。",
     loading: "正在加载配置",
+    loadingDesc: "正在加载配置、生成记录和代理检测状态。",
     saveSuccess: "配置保存成功",
     saveAndGenerate: "保存并生成 PAC",
     savingAndGenerating: "正在保存并生成 PAC",
@@ -610,13 +613,10 @@ export default {
     changingPassword: "正在修改…",
     changingPasswordTitle: "正在修改管理密码，请稍候",
     changePasswordTitle: "修改管理密码",
-    needNewPassword: "需要设置新密码",
     enterCurrentPassword: "请输入当前管理密码。",
     resetHelpFull:
       "忘记密码时，可根据部署方式重置：本机开发运行对应脚本；非容器生产部署运行 bun run reset:admin-password:production；Docker 部署仍可在容器内运行原重置命令。脚本会显示实际数据库路径，且不会在数据库不存在时创建空库。",
     resetHelpLink: "查看完整重置说明 ↗",
-    tempPasswordNote:
-      "当前使用的是容器命令生成的一次性临时密码。完成修改前，其他管理功能会保持锁定。",
     newPasswordPlaceholder: "输入新密码（不限制长度或复杂度）",
     scheduleWebhook: "定时与 Webhook",
     scheduleWebhookDesc:
@@ -672,9 +672,6 @@ export default {
     passwordChangedOk: "管理员密码修改成功，请使用新密码重新登录。",
     passwordChangeFailed: "修改密码失败，请重试。",
     passwordStoredLocal: "密码保存在本地数据库，不再通过环境变量配置。",
-    defaultPasswordAlert: "安全提醒：当前仍使用默认密码 password",
-    defaultPasswordTip:
-      "建议将默认密码改成只有你知道的密码，避免其他人通过默认密码进入管理后台。新密码不限制长度或复杂度，由你自行决定。",
   },
 
   monitor: {
@@ -742,7 +739,7 @@ export default {
     k58: "失败",
     noProbeErrorDetails: "未提供错误详情",
     k60: "检测失败原因",
-    k61: "自动刷新间隔为 15 秒。请求统计仅包含 genpac-runner\n        自身接收的流量，不代表代理服务器的实际转发流量。",
+    k61: "监控数据每 10 秒自动更新。请求统计仅包含 genpac-runner\n        自身接收的流量，不代表代理服务器的实际转发流量。",
     k62: "正在读取监控数据",
     k63: "正在加载访问统计与代理检测历史。",
     k64: "无法读取监控数据",

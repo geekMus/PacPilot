@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { api } from "../api/client";
-import { fetchAdminSession, invalidateAdminSessionCache } from "../composables/useAdminSession";
-import { useToast } from "../composables/useToast";
+import { invalidateAdminSessionCache } from "../composables/useAdminSession";
 import AppIcon from "./AppIcon.vue";
 import { useI18n } from "vue-i18n";
 import BrandMark from "./BrandMark.vue";
@@ -20,28 +19,8 @@ defineProps<{
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const { notify } = useToast();
 const menuOpen = ref(false);
 const logoutBusy = ref(false);
-const mustChangePassword = ref(false);
-
-async function refreshSecurityGate(): Promise<void> {
-  try {
-    const session = await fetchAdminSession();
-    mustChangePassword.value = Boolean(session.loggedIn && session.mustChangePassword);
-  } catch {
-    mustChangePassword.value = false;
-  }
-}
-
-function blockedNavTitle(label: string): string {
-  return mustChangePassword.value ? t("layout.mustChangeBeforeAccess", { label }) : label;
-}
-
-function onBlockedNav(label: string): void {
-  if (!mustChangePassword.value) return;
-  notify(t("layout.mustChangeBeforeAccessNotify", { label }), "warning", 4500);
-}
 
 async function logout(): Promise<void> {
   if (logoutBusy.value) return;
@@ -59,15 +38,10 @@ async function logout(): Promise<void> {
   }
 }
 
-onMounted(() => {
-  void refreshSecurityGate();
-});
-
 watch(
   () => route.fullPath,
   () => {
     menuOpen.value = false;
-    void refreshSecurityGate();
   }
 );
 </script>
@@ -94,11 +68,7 @@ watch(
       <nav class="sidebar-nav" :aria-label="t('layout.adminConsole')">
         <section class="nav-group" aria-labelledby="nav-workbench">
           <p id="nav-workbench" class="nav-caption">{{ t("layout.workbench") }}</p>
-          <p v-if="mustChangePassword" class="nav-lock-note" role="status">
-            {{ t("layout.mustChangePassword") }}
-          </p>
           <RouterLink
-            v-if="!mustChangePassword"
             to="/admin/dashboard"
             class="sidebar-link"
             :class="{ active: active === 'dashboard' }"
@@ -107,19 +77,7 @@ watch(
             <AppIcon name="layout-dashboard" :size="18" />
             <span>{{ t("nav.dashboard") }}</span>
           </RouterLink>
-          <button
-            v-else
-            type="button"
-            class="sidebar-link is-disabled"
-            :title="blockedNavTitle(t('nav.dashboard'))"
-            aria-disabled="true"
-            @click="onBlockedNav(t('nav.dashboard'))"
-          >
-            <AppIcon name="layout-dashboard" :size="18" />
-            <span>{{ t("nav.dashboard") }}</span>
-          </button>
           <RouterLink
-            v-if="!mustChangePassword"
             to="/admin/monitor"
             class="sidebar-link"
             :class="{ active: active === 'monitor' }"
@@ -128,17 +86,6 @@ watch(
             <AppIcon name="activity" :size="18" />
             <span>{{ t("nav.monitor") }}</span>
           </RouterLink>
-          <button
-            v-else
-            type="button"
-            class="sidebar-link is-disabled"
-            :title="blockedNavTitle(t('nav.monitor'))"
-            aria-disabled="true"
-            @click="onBlockedNav(t('nav.monitor'))"
-          >
-            <AppIcon name="activity" :size="18" />
-            <span>{{ t("nav.monitor") }}</span>
-          </button>
           <RouterLink
             to="/admin/settings"
             class="sidebar-link"
@@ -149,7 +96,6 @@ watch(
             <span>{{ t("nav.settings") }}</span>
           </RouterLink>
           <RouterLink
-            v-if="!mustChangePassword"
             to="/admin/workflows"
             class="sidebar-link"
             :class="{ active: active === 'workflow' }"
@@ -158,19 +104,7 @@ watch(
             <AppIcon name="workflow" :size="18" />
             <span>{{ t("nav.workflow") }}</span>
           </RouterLink>
-          <button
-            v-else
-            type="button"
-            class="sidebar-link is-disabled"
-            :title="blockedNavTitle(t('nav.workflow'))"
-            aria-disabled="true"
-            @click="onBlockedNav(t('nav.workflow'))"
-          >
-            <AppIcon name="workflow" :size="18" />
-            <span>{{ t("nav.workflow") }}</span>
-          </button>
           <RouterLink
-            v-if="!mustChangePassword"
             to="/admin/system-settings"
             class="sidebar-link"
             :class="{ active: active === 'system-settings' }"
@@ -179,17 +113,6 @@ watch(
             <AppIcon name="settings-2" :size="18" />
             <span>{{ t("nav.systemSettings") }}</span>
           </RouterLink>
-          <button
-            v-else
-            type="button"
-            class="sidebar-link is-disabled"
-            :title="blockedNavTitle(t('nav.systemSettings'))"
-            aria-disabled="true"
-            @click="onBlockedNav(t('nav.systemSettings'))"
-          >
-            <AppIcon name="settings-2" :size="18" />
-            <span>{{ t("nav.systemSettings") }}</span>
-          </button>
         </section>
 
         <section class="nav-group" aria-labelledby="nav-services">
@@ -207,10 +130,6 @@ watch(
         </div>
         <span class="sidebar-note">{{ t("layout.settingsStoredLocal") }}</span>
         <div class="sidebar-controls">
-          <div class="sidebar-preferences-group">
-            <span class="sidebar-control-label">{{ t("layout.preferences") }}</span>
-            <UserPreferencesMenu placement="top" />
-          </div>
           <button
             type="button"
             class="sidebar-logout-button"
@@ -247,6 +166,7 @@ watch(
         </div>
         <div class="topbar-actions">
           <slot name="actions"></slot>
+          <UserPreferencesMenu />
         </div>
       </header>
       <main class="admin-content">
