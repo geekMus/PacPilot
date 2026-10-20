@@ -10,3 +10,4 @@ data/
 coverage/
 .idea/
 .vscode/
+bun.lock
