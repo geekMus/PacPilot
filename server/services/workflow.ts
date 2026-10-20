@@ -10,6 +10,7 @@ import {
   encodeWorkflowStageDetail,
 } from "../db/sqlite";
 import { generatePac, type GenerateResult } from "./pac-generator";
+import { t } from "../i18n";
 
 export type WorkflowSource = "startup" | "scheduled" | "manual" | "save-and-generate";
 export interface PacWorkflowResult {
@@ -43,12 +44,12 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
   const { database, workflowId: id } = item;
   const startedAt = new Date();
   let activeStageId: number | null = null;
+  const settings = getSettings(database);
   try {
-    const settings = getSettings(database);
     updateWorkflowRun(database, id, {
       status: "running",
-      stage: "生成 PAC",
-      message: "正在读取配置并生成 PAC 文件",
+      stage: t(settings.locale, "workflow.stage.running"),
+      message: t(settings.locale, "workflow.stage.runningMsg"),
       started_at: startedAt.toISOString(),
     });
     const prepareDetail = encodeWorkflowStageDetail({
@@ -68,22 +69,22 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
       database,
       id,
       "prepare",
-      "准备工作流",
-      "已读取当前配置并完成任务初始化",
+      t(settings.locale, "workflow.prepare.name"),
+      t(settings.locale, "workflow.prepare.start"),
       prepareDetail
     );
     activeStageId = prepareStage;
-    finishWorkflowStage(database, prepareStage, "succeeded", "工作流初始化成功", "", prepareDetail);
+    finishWorkflowStage(database, prepareStage, "succeeded", t(settings.locale, "workflow.prepare.done"), "", prepareDetail);
     activeStageId = null;
 
     const generationStage = startWorkflowStage(
       database,
       id,
       "generate-pac",
-      "生成 PAC",
+      t(settings.locale, "workflow.generate.name"),
       settings.mode === "remote"
-        ? "正在下载远程规则列表并生成 PAC 文件"
-        : "正在根据自定义规则生成并写入 PAC 文件"
+        ? t(settings.locale, "workflow.generate.start.remote")
+        : t(settings.locale, "workflow.generate.start.custom")
     );
     activeStageId = generationStage;
     const generation = await generatePac(database, item.dataDir);
@@ -100,7 +101,7 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
     activeStageId = null;
     updateWorkflowRun(database, id, {
       status: generation.success ? "succeeded" : "failed",
-      stage: generation.success ? "已完成" : "生成失败",
+      stage: generation.success ? t(settings.locale, "workflow.stage.done") : t(settings.locale, "workflow.stage.failed"),
       message: generation.message,
       error: generation.success ? "" : generation.message,
       finished_at: finishedAt.toISOString(),
@@ -116,15 +117,15 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
           database,
           activeStageId,
           "failed",
-          "工作流阶段发生异常",
+          t(settings.locale, "workflow.stage.abnormal"),
           message,
           encodeWorkflowStageDetail({ error: message })
         );
       }
       updateWorkflowRun(database, id, {
         status: "failed",
-        stage: "执行异常",
-        message: "工作流执行异常",
+        stage: t(settings.locale, "workflow.stage.exception"),
+        message: t(settings.locale, "workflow.stage.exceptionMsg"),
         error: message,
         finished_at: finishedAt.toISOString(),
         duration_ms: Math.max(0, finishedAt.getTime() - startedAt.getTime()),

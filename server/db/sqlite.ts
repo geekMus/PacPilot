@@ -241,6 +241,12 @@ export function recentLogs(
 }
 
 function normalizeTimeZone(value:string):string {try{new Intl.DateTimeFormat("en-US",{timeZone:value.trim()}).format(new Date());return value.trim();}catch{return DEFAULT_SETTINGS.timezone;}}
+function normalizeLocale(raw: unknown): import("./settings").AppLocale {
+  const value = String(raw || "").trim().toLowerCase();
+  if (value === "en" || value === "en-us" || value === "english") return "en";
+  return "zh";
+}
+
 function normalizeSettings(
   s: AppSettings & { gfwlistUrl?: string; mode?: string }
 ): AppSettings {
@@ -278,6 +284,7 @@ function normalizeSettings(
       : [],
     cronSchedule: String(s.cronSchedule || "").trim(),
     timezone: normalizeTimeZone(String(s.timezone || DEFAULT_SETTINGS.timezone)),
+    locale: normalizeLocale((s as { locale?: unknown }).locale ?? DEFAULT_SETTINGS.locale),
     proxyTestUrl: String(s.proxyTestUrl || DEFAULT_SETTINGS.proxyTestUrl).trim(),
     logRetentionDays: Math.max(0, Math.min(3650, Math.floor(Number(s.logRetentionDays ?? DEFAULT_SETTINGS.logRetentionDays) || 0))),
     webhookSuccessUrl,

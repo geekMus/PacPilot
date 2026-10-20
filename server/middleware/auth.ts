@@ -88,7 +88,7 @@ export function checkLoginRateLimit(req: Request): string | null {
   const key = clientKey(req);
   const recent = pruneFailures(key, Date.now());
   if (recent.length >= LOGIN_MAX_FAILURES) {
-    return "登录尝试过于频繁，请约 15 分钟后再试。";
+    return "Too many login attempts，请约 15 分钟后再试。";
   }
   return null;
 }

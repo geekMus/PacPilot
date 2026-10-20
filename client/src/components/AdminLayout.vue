@@ -5,6 +5,7 @@ import { api } from "../api/client";
 import { fetchAdminSession, invalidateAdminSessionCache } from "../composables/useAdminSession";
 import { useToast } from "../composables/useToast";
 import AppIcon from "./AppIcon.vue";
+import { useI18n } from "vue-i18n";
 import BrandMark from "./BrandMark.vue";
 import ThemeSwitcher from "./ThemeSwitcher.vue";
 
@@ -16,6 +17,7 @@ defineProps<{
   subtitle: string;
 }>();
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const { notify } = useToast();
@@ -84,14 +86,14 @@ watch(() => route.fullPath, () => {
         <BrandMark :size="40" />
         <span class="brand-copy">
           <strong>genpac-runner</strong>
-          <small>管理控制台</small>
+          <small>{{ t('layout.adminConsole') }}</small>
         </span>
       </div>
 
       <nav class="sidebar-nav" aria-label="管理导航">
         <section class="nav-group" aria-labelledby="nav-workbench">
-          <p id="nav-workbench" class="nav-caption">工作台</p>
-          <p v-if="mustChangePassword" class="nav-lock-note" role="status">请先修改默认密码；其余菜单暂时不可用。</p>
+          <p id="nav-workbench" class="nav-caption">{{ t('layout.workbench') }}</p>
+          <p v-if="mustChangePassword" class="nav-lock-note" role="status">{{ t('layout.mustChangePassword') }}</p>
           <RouterLink
             v-if="!mustChangePassword"
             to="/admin/dashboard"
@@ -100,18 +102,18 @@ watch(() => route.fullPath, () => {
             :aria-current="active === 'dashboard' ? 'page' : undefined"
           >
             <AppIcon name="layout-dashboard" :size="18" />
-            <span>系统总览</span>
+            <span>{{ t('nav.dashboard') }}</span>
           </RouterLink>
           <button
             v-else
             type="button"
             class="sidebar-link is-disabled"
-            :title="blockedNavTitle('系统总览')"
+            :title="blockedNavTitle(t('nav.dashboard'))"
             aria-disabled="true"
-            @click="onBlockedNav('系统总览')"
+            @click="onBlockedNav(t('nav.dashboard'))"
           >
             <AppIcon name="layout-dashboard" :size="18" />
-            <span>系统总览</span>
+            <span>{{ t('nav.dashboard') }}</span>
           </button>
           <RouterLink
             v-if="!mustChangePassword"
@@ -121,18 +123,18 @@ watch(() => route.fullPath, () => {
             :aria-current="active === 'monitor' ? 'page' : undefined"
           >
             <AppIcon name="activity" :size="18" />
-            <span>网络监控</span>
+            <span>{{ t('nav.monitor') }}</span>
           </RouterLink>
           <button
             v-else
             type="button"
             class="sidebar-link is-disabled"
-            :title="blockedNavTitle('网络监控')"
+            :title="blockedNavTitle(t('nav.monitor'))"
             aria-disabled="true"
-            @click="onBlockedNav('网络监控')"
+            @click="onBlockedNav(t('nav.monitor'))"
           >
             <AppIcon name="activity" :size="18" />
-            <span>网络监控</span>
+            <span>{{ t('nav.monitor') }}</span>
           </button>
           <RouterLink
             to="/admin/settings"
@@ -141,7 +143,7 @@ watch(() => route.fullPath, () => {
             :aria-current="active === 'settings' ? 'page' : undefined"
           >
             <AppIcon name="sliders-horizontal" :size="18" />
-            <span>配置管理</span>
+            <span>{{ t('nav.settings') }}</span>
           </RouterLink>
           <RouterLink
             v-if="!mustChangePassword"
@@ -151,18 +153,18 @@ watch(() => route.fullPath, () => {
             :aria-current="active === 'workflow' ? 'page' : undefined"
           >
             <AppIcon name="workflow" :size="18" />
-            <span>工作流</span>
+            <span>{{ t('nav.workflow') }}</span>
           </RouterLink>
           <button
             v-else
             type="button"
             class="sidebar-link is-disabled"
-            :title="blockedNavTitle('工作流')"
+            :title="blockedNavTitle(t('nav.workflow'))"
             aria-disabled="true"
-            @click="onBlockedNav('工作流')"
+            @click="onBlockedNav(t('nav.workflow'))"
           >
             <AppIcon name="workflow" :size="18" />
-            <span>工作流</span>
+            <span>{{ t('nav.workflow') }}</span>
           </button>
           <RouterLink
             v-if="!mustChangePassword"
@@ -172,26 +174,26 @@ watch(() => route.fullPath, () => {
             :aria-current="active === 'system-settings' ? 'page' : undefined"
           >
             <AppIcon name="settings-2" :size="18" />
-            <span>系统设置</span>
+            <span>{{ t('nav.systemSettings') }}</span>
           </RouterLink>
           <button
             v-else
             type="button"
             class="sidebar-link is-disabled"
-            :title="blockedNavTitle('系统设置')"
+            :title="blockedNavTitle(t('nav.systemSettings'))"
             aria-disabled="true"
-            @click="onBlockedNav('系统设置')"
+            @click="onBlockedNav(t('nav.systemSettings'))"
           >
             <AppIcon name="settings-2" :size="18" />
-            <span>系统设置</span>
+            <span>{{ t('nav.systemSettings') }}</span>
           </button>
         </section>
 
         <section class="nav-group" aria-labelledby="nav-services">
-          <p id="nav-services" class="nav-caption">服务入口</p>
+          <p id="nav-services" class="nav-caption">{{ t('nav.services') }}</p>
           <RouterLink to="/" class="sidebar-link">
             <AppIcon name="globe" :size="18" />
-            <span>公共状态页</span>
+            <span>{{ t('nav.publicStatus') }}</span>
           </RouterLink>
         </section>
       </nav>
@@ -206,7 +208,7 @@ watch(() => route.fullPath, () => {
           </div>
           <button type="button" class="sidebar-logout-button" :disabled="logoutBusy" :title="logoutBusy ? '正在退出管理员账号，请稍候' : '退出管理员账号'" @click="logout">
             <AppIcon :name="logoutBusy ? 'loader-circle' : 'log-out'" :size="16" :class="{ 'icon-spinning': logoutBusy }" />
-            {{ logoutBusy ? "正在退出…" : "退出登录" }}
+            {{ logoutBusy ? "正在退出…" : "{{ t('nav.logout') }}" }}
           </button>
         </div>
       </div>
@@ -218,7 +220,7 @@ watch(() => route.fullPath, () => {
           <AppIcon name="menu" :size="18" />
         </button>
         <div class="topbar-title">
-          <span class="topbar-kicker">管理控制台</span>
+          <span class="topbar-kicker">{{ t('layout.adminConsole') }}</span>
           <h1>{{ title }}</h1>
           <p>{{ subtitle }}</p>
         </div>
@@ -226,7 +228,7 @@ watch(() => route.fullPath, () => {
           <slot name="actions"></slot>
           <button type="button" class="admin-logout-button" :disabled="logoutBusy" :title="logoutBusy ? '正在退出管理员账号，请稍候' : '退出管理员账号'" @click="logout">
             <AppIcon :name="logoutBusy ? 'loader-circle' : 'log-out'" :size="15" :class="{ 'icon-spinning': logoutBusy }" />
-            {{ logoutBusy ? "正在退出…" : "退出登录" }}
+            {{ logoutBusy ? "正在退出…" : "{{ t('nav.logout') }}" }}
           </button>
           <span class="topbar-theme-switcher"><ThemeSwitcher /></span>
         </div>

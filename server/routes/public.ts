@@ -8,11 +8,15 @@ import { APP_VERSION, PROJECT_URL } from "../version";
 function sendPac(
   req: import("express").Request,
   res: import("express").Response,
-  dataDir: string
+  dataDir: string,
+  database: AppDatabase
 ) {
-  const pac =
-    readPacFile(dataDir) ||
-    "// 尚未生成 PAC；临时回退策略为所有请求直连\nfunction FindProxyForURL(url, host){return 'DIRECT';}\n";
+  const locale = getSettings(database).locale === "en" ? "en" : "zh";
+  const fallback =
+    locale === "en"
+      ? "// PAC has not been generated yet; temporary policy is DIRECT for all requests.\nfunction FindProxyForURL(url, host){return 'DIRECT';}\n"
+      : "// 尚未生成 PAC；临时回退策略为所有请求直连\nfunction FindProxyForURL(url, host){return 'DIRECT';}\n";
+  const pac = readPacFile(dataDir, locale) || fallback;
 
   // 公共状态页是 PAC 文件的主要 UI 入口；默认在浏览器中查看，?download=1 时才触发下载。
   const asDownload =
@@ -39,7 +43,7 @@ function sendPac(
 export function publicRoutes(env: EnvConfig, database: AppDatabase): Router {
   const router = Router();
 
-  router.get("/proxy.pac", (req, res) => sendPac(req, res, env.dataDir));
+  router.get("/proxy.pac", (req, res) => sendPac(req, res, env.dataDir, database));
 
   router.get("/api/meta", (_req, res) => {
     res.json({

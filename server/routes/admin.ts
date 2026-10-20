@@ -30,19 +30,19 @@ import { assertSafeHttpUrl } from "../utils/url-safety";
 
 function parseList(raw:unknown):string[]{if(Array.isArray(raw))return raw.map(String).map(s=>s.trim()).filter(Boolean);if(typeof raw!=="string")return[];return raw.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);}
 function validTimeZone(v:string):boolean{try{new Intl.DateTimeFormat("en-US",{timeZone:v}).format(new Date());return true;}catch{return false;}}
-function bodyToSettings(b:Record<string,unknown>,fallbackProxyTestUrl=DEFAULT_SETTINGS.proxyTestUrl):AppSettings{const m=String(b.mode??"");const mode:GenerationMode=m==="remote"||m==="genpac"?"remote":"custom";return{mode,pacProxy:String(b.pacProxy??""),pacCompress:Boolean(b.pacCompress),listUrl:String(b.listUrl??b.gfwlistUrl??""),blockList:parseList(b.blockList),directList:parseList(b.directList),cronSchedule:String(b.cronSchedule??""),timezone:String(b.timezone??"Asia/Shanghai").trim(),proxyTestUrl:String(b.proxyTestUrl??fallbackProxyTestUrl).trim(),logRetentionDays:Math.max(0,Math.min(3650,Math.floor(Number(b.logRetentionDays??DEFAULT_SETTINGS.logRetentionDays)||0))),webhookSuccessUrl:String(b.webhookSuccessUrl??""),webhookSuccessBody:String(b.webhookSuccessBody??""),webhookFailureUrl:String(b.webhookFailureUrl??""),webhookFailureBody:String(b.webhookFailureBody??""),webhookSuccessConfig:normalizeWebhookConfig(b.webhookSuccessConfig,String(b.webhookSuccessUrl??""),String(b.webhookSuccessBody??"")),webhookFailureConfig:normalizeWebhookConfig(b.webhookFailureConfig,String(b.webhookFailureUrl??""),String(b.webhookFailureBody??""))};}
+function bodyToSettings(b:Record<string,unknown>,fallbackProxyTestUrl=DEFAULT_SETTINGS.proxyTestUrl):AppSettings{const m=String(b.mode??"");const mode:GenerationMode=m==="remote"||m==="genpac"?"remote":"custom";return{mode,pacProxy:String(b.pacProxy??""),pacCompress:Boolean(b.pacCompress),listUrl:String(b.listUrl??b.gfwlistUrl??""),blockList:parseList(b.blockList),directList:parseList(b.directList),cronSchedule:String(b.cronSchedule??""),timezone:String(b.timezone??"Asia/Shanghai").trim(),locale:(String(b.locale??"zh").toLowerCase()==="en"?"en":"zh"),proxyTestUrl:String(b.proxyTestUrl??fallbackProxyTestUrl).trim(),logRetentionDays:Math.max(0,Math.min(3650,Math.floor(Number(b.logRetentionDays??DEFAULT_SETTINGS.logRetentionDays)||0))),webhookSuccessUrl:String(b.webhookSuccessUrl??""),webhookSuccessBody:String(b.webhookSuccessBody??""),webhookFailureUrl:String(b.webhookFailureUrl??""),webhookFailureBody:String(b.webhookFailureBody??""),webhookSuccessConfig:normalizeWebhookConfig(b.webhookSuccessConfig,String(b.webhookSuccessUrl??""),String(b.webhookSuccessBody??"")),webhookFailureConfig:normalizeWebhookConfig(b.webhookFailureConfig,String(b.webhookFailureUrl??""),String(b.webhookFailureBody??""))};}
 function persistSettings(body:Record<string,unknown>,env:EnvConfig,database:AppDatabase):{settings:AppSettings}|{error:string}{
  const p=bodyToSettings(body,getSettings(database).proxyTestUrl);
  if(p.mode==="remote"){
-  const listUrlError=assertSafeHttpUrl(p.listUrl,"规则列表 URL");
+  const listUrlError=assertSafeHttpUrl(p.listUrl,"rule list URL");
   if(listUrlError)return {error:listUrlError};
  }
- if(!p.timezone||!validTimeZone(p.timezone))return {error:"时区无效。请从建议列表选择，或输入有效 IANA 时区，例如 Asia/Shanghai。"};
- try{p.proxyTestUrl=parseProxyTestUrl(p.proxyTestUrl).toString();}catch(e){return {error:e instanceof Error?e.message:"代理测试地址无效。"};}
+ if(!p.timezone||!validTimeZone(p.timezone))return {error:"Invalid timezone. Choose from the suggestions or enter a valid IANA timezone such as Asia/Shanghai."};
+ try{p.proxyTestUrl=parseProxyTestUrl(p.proxyTestUrl).toString();}catch(e){return {error:e instanceof Error?e.message:"Invalid proxy test URL."};}
  const proxyError=validatePacProxyString(p.pacProxy);
  if(proxyError)return {error:proxyError};
  const expr=p.cronSchedule.trim();
- if(expr&&(expr.split(/\s+/).length!==5||!cron.validate(expr)))return {error:"Cron 表达式无效；请使用 5 段格式（分 时 日 月 周）。"};
+ if(expr&&(expr.split(/\s+/).length!==5||!cron.validate(expr)))return {error:"Invalid cron expression; use the 5-field form (minute hour day month weekday)."};
  for(const c of [p.webhookSuccessConfig,p.webhookFailureConfig]){
   if(c.url.trim()){
    const errors=validateWebhookConfig(c);
@@ -65,7 +65,7 @@ export function adminRoutes(env:EnvConfig,database:AppDatabase):Router{
   const pw=String(req.body?.password??"");
   if(!verifyAdminPassword(database,pw)){
    recordLoginFailure(req);
-   res.status(401).json({error:"密码错误"});
+   res.status(401).json({error:"Invalid password"});
    return;
   }
   clearLoginFailures(req);

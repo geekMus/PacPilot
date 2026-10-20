@@ -51,6 +51,8 @@ export interface AppSettings {
   directList: string[];
   cronSchedule: string;
   timezone: string;
+  /** UI and generated PAC comments language. */
+  locale: "zh" | "en";
   proxyTestUrl: string;
   logRetentionDays: number;
   webhookSuccessUrl: string;
@@ -172,6 +174,8 @@ export interface AccessEvent {
 export interface MonitorSummary {
   generatedAt: string;
   timezone: string;
+  /** UI and generated PAC comments language. */
+  locale: "zh" | "en";
   activeRequests: number;
   tcpConnections: number;
   requestsLastHour: number;

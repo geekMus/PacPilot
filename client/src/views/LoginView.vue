@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { api } from "../api/client";

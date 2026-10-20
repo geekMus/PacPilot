@@ -78,25 +78,25 @@ export function assertSafeHttpUrl(
   try {
     url = new URL(raw);
   } catch {
-    return `${label} 无效，请使用完整的 HTTP(S) 地址。`;
+    return `${label} is invalid; provide a full HTTP(S) URL.`;
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") {
-    return `${label} 必须使用 HTTP 或 HTTPS 协议。`;
+    return `${label} must use the HTTP or HTTPS scheme.`;
   }
   if (!url.hostname) {
-    return `${label} 缺少主机名。`;
+    return `${label} is missing a hostname.`;
   }
   if (url.username || url.password) {
-    return `${label} 不能包含 URL 用户名或密码。`;
+    return `${label} must not include a URL username or password.`;
   }
   if (options.allowPrivateHosts) {
     if (isLoopbackOrMetadata(url.hostname)) {
-      return `${label} 不能指向本机回环或云元数据地址。`;
+      return `${label} must not target loopback or cloud metadata addresses.`;
     }
     return null;
   }
   if (isBlockedHostname(url.hostname)) {
-    return `${label} 不能指向本机、内网或云元数据地址，以降低 SSRF 风险。`;
+    return `${label} must not target loopback, private, or cloud metadata addresses (SSRF protection).`;
   }
   return null;
 }
