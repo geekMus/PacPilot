@@ -29,7 +29,6 @@ export interface WebhookConfig {
 
 export interface PacStatus {
   mode: "custom" | "remote" | "custom_parse_error" | "other" | "empty";
-  modeLabel: string;
   blockList: string[];
   directList: string[];
   pacProxy: string | null;
@@ -37,8 +36,8 @@ export interface PacStatus {
   remoteDirectList: string[];
   remoteProxyCount: number;
   remoteDirectCount: number;
-  notice: string;
   updatedAt: string;
+  timeZone: string;
   hasPac: boolean;
 }
 

@@ -6,7 +6,7 @@ import AppHeader from "../components/AppHeader.vue";
 import AppFooter from "../components/AppFooter.vue";
 import RuleVirtualList from "../components/RuleVirtualList.vue";
 import AppIcon from "../components/AppIcon.vue";
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const status = ref<PacStatus | null>(null);
 const meta = ref<Meta | null>(null);
@@ -42,6 +42,39 @@ onMounted(() => {
 const hasRuleSummary = computed(
   () => status.value?.mode === "custom" || status.value?.mode === "remote"
 );
+const statusModeLabel = computed(() =>
+  status.value ? t(`status.mode.${status.value.mode}`) : ""
+);
+const statusNotice = computed(() => {
+  const current = status.value;
+  if (!current) return "";
+  switch (current.mode) {
+    case "empty":
+      return t("status.notice.empty");
+    case "custom":
+      return t("status.notice.custom", {
+        proxy: current.pacProxy || t("common.notRecognized"),
+      });
+    case "remote":
+      return t("status.notice.remote", {
+        block: current.blockList.length,
+        direct: current.directList.length,
+      });
+    case "custom_parse_error":
+      return t("status.notice.customParseError");
+    case "other":
+      return t("status.notice.other");
+  }
+});
+const formattedUpdatedAt = computed(() => {
+  const value = status.value?.updatedAt;
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN", {
+    timeZone: status.value?.timeZone,
+  });
+});
 
 const domainInput = ref("");
 const checkedDomain = ref("");
@@ -144,7 +177,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
       kind: "unknown",
       host,
       title: t("status.cannotJudge"),
-      detail: current?.notice || t("status.pacUnavailable"),
+      detail: current ? statusNotice.value : t("status.pacUnavailable"),
       matchedRule: null,
       source: null,
     };
@@ -247,9 +280,9 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
       </p>
       <div v-if="status" class="hero-meta">
         <span class="status-indicator" :class="status.hasPac ? 'online' : 'idle'"></span>
-        <strong>{{ status.modeLabel }}</strong
+        <strong>{{ statusModeLabel }}</strong
         ><span class="meta-divider">·</span>
-        <span>{{ status.hasPac ? t("status.generatedAt", { time: status.updatedAt }) : t("status.noFile") }}</span>
+        <span>{{ status.hasPac ? t("status.generatedAt", { time: formattedUpdatedAt }) : t("status.noFile") }}</span>
       </div>
     </section>
 
@@ -260,7 +293,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
         >
         <h2>{{ t("status.getPac") }}</h2>
         <p>{{ t("status.getPacDesc") }}</p>
-        <span class="pac-access-updated">{{ t("status.lastGenerated", { time: status.updatedAt }) }}</span>
+        <span class="pac-access-updated">{{ t("status.lastGenerated", { time: formattedUpdatedAt }) }}</span>
       </div>
       <div class="pac-access-actions">
         <a
@@ -287,7 +320,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
             :class="{ 'icon-spinning': loading }"
             :size="15"
           />
-          {{ loading ? t("statusPage.k1") : t("statusPage.k2") }}
+          {{ loading ? t("common.refreshing") : t("common.refresh") }}
         </button>
       </div>
     </section>
@@ -342,8 +375,10 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
           </article>
           <article class="stat-card">
             <span class="stat-label">{{ t("statusPage.k23") }}</span
-            ><strong class="stat-number">{{ status.directList.length }}</strong
-            ><span class="stat-caption">{{ t("statusPage.k24") }}</span>
+            ><strong class="stat-number">{{ directEntries.length }}</strong
+            ><span class="stat-caption">{{
+              t(status.mode === "remote" ? "statusPage.remoteDirectCaption" : "statusPage.k24")
+            }}</span>
           </article>
           <article class="stat-card">
             <span class="stat-label">{{ t("statusPage.k25") }}</span
@@ -492,8 +527,8 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
       <section v-else class="state-card warning-card">
         <div class="state-icon"><AppIcon name="info" :size="18" /></div>
         <div class="state-copy">
-          <strong>{{ status.modeLabel }}</strong>
-          <p>{{ status.notice }}</p>
+          <strong>{{ statusModeLabel }}</strong>
+          <p>{{ statusNotice }}</p>
         </div>
       </section>
     </template>

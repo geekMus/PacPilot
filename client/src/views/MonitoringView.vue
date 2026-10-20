@@ -470,7 +470,7 @@ onUnmounted(() => {
           :class="{ 'icon-spinning': refreshing }"
           :size="15"
         />
-        {{ refreshing ? t("monitor.k27") : t("monitor.k28") }}
+        {{ refreshing ? t("common.refreshing") : t("common.refresh") }}
       </button>
     </template>
 

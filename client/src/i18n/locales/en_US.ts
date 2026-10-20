@@ -253,6 +253,23 @@ export default {
     proxyDefaultDetail: "Did not match block or direct rules; will use the current default proxy: {proxy}.",
     sourceDefaultProxy: "Default proxy unrecognized",
     sourceRemoteExceptionDirect: "Remote exception direct",
+    mode: {
+      custom: "Custom rules",
+      remote: "Remote list + custom rules",
+      custom_parse_error: "PAC rule summary could not be parsed",
+      other: "Third-party or legacy PAC template",
+      empty: "PAC not generated",
+    },
+    notice: {
+      empty: "proxy.pac has not been generated. Open configuration, set up the rules, and generate the PAC file.",
+      custom: "Local and private-network hosts use direct access first; then block and custom direct rules are checked. Other requests use the default proxy: {proxy}",
+      remote:
+        "The {block} custom block rules and {direct} custom direct rules take priority, followed by remote exceptions and proxy rules; all other traffic goes direct.",
+      customParseError:
+        "The PAC rule summary could not be fully parsed. You can still view the PAC file; a parsing failure does not mean its rules are invalid.",
+      other:
+        "This file is not a recognized genpac-runner template, so rule counts cannot be shown reliably. Open the PAC file to inspect its content and behavior.",
+    },
   },
   footer: {
     openGithub: "Open genpac-runner on GitHub",
@@ -1056,7 +1073,7 @@ export default {
     k20: 'Use proxy when matched',
     k21: 'Remote exceptions (direct)',
     k22: 'Exception rules in the remote list',
-    k23: 'Custom direct rules',
+    k23: 'Direct rules',
     k24: 'These domains bypass the proxy',
     k25: 'Custom block rules',
     k26: 'Block matching requests',
@@ -1069,7 +1086,7 @@ export default {
     k33: 'This tool estimates routing from recognized PAC rule summaries. It does not query DNS or execute the PAC script, and may not reflect complex rules or proxy-client behavior. localhost, hostnames without dots, IPv4 loopback, and RFC 1918 private addresses follow this project’s direct-routing rules.',
     k34: 'Matched rule',
     k35: 'Domain routing details',
-    k36: 'Custom direct and block rules are shown here; default proxy details appear above. Select a long domain to view it in full. Long lists can be scrolled within the fixed area.',
+    k36: 'Custom direct, remote exception direct, and block rules are shown here; default proxy details appear above. Select a long domain to view it in full. Long lists can be scrolled within the fixed area.',
     k37: 'Edit rules',
     k38: 'Direct',
     k39: 'Block list',
@@ -1077,6 +1094,7 @@ export default {
     k41: 'Red source labels indicate custom block rules. localhost, hostnames without dots, IPv4 loopback, and RFC 1918 private direct-routing rules take priority.',
     checking: 'Checking the current PAC file and generation mode.',
     emptyHint: 'Open admin, set generation mode and rules, then Save & generate PAC. Recognized rule summaries will appear here afterward.',
+    remoteDirectCaption: 'Custom direct and remote exceptions',
 
   },
 

@@ -19,7 +19,7 @@ import AppFooter from "../components/AppFooter.vue";
 import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
 import TextDetail from "../components/TextDetail.vue";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const localizedText = (
   text: string | null | undefined,
   key: string | undefined,
@@ -50,6 +50,14 @@ const latestLog = computed(() => logs.value[0] ?? null);
 
 function modeForLog(value: string): string {
   return value === "remote" ? t("dashboard.remoteRuleList") : value === "custom" ? t("dashboard.customRulesLabel") : value;
+}
+function formatStatusDate(value: string | undefined): string {
+  if (!value) return t("common.noRecords");
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN", {
+    timeZone: settings.value?.timezone,
+  });
 }
 
 async function loadOverview(): Promise<void> {
@@ -133,7 +141,7 @@ onMounted(() => {
           :class="{ 'icon-spinning': refreshing }"
           :size="15"
         />
-        {{ refreshing ? t("common.refreshing") : t("dashboard.refreshData") }}
+        {{ refreshing ? t("common.refreshing") : t("common.refresh") }}
       </button>
     </template>
 
@@ -318,7 +326,7 @@ onMounted(() => {
             <div class="config-detail">
               <span>{{ t("dashboard.lastGenerated") }}</span
               ><strong>{{
-                latestLog ? latestLog.created_at : status?.updatedAt || t("common.noRecords")
+                latestLog ? latestLog.created_at : formatStatusDate(status?.updatedAt)
               }}</strong>
             </div>
             <div class="config-detail">

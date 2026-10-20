@@ -153,7 +153,8 @@ watch(
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  max-width: 124px;
+  max-width: min(124px, 40%);
+  overflow: hidden;
   padding: 3px 7px;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -163,6 +164,7 @@ watch(
   font-weight: 700;
   line-height: 1.35;
   text-align: center;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .row-source.source-custom {
