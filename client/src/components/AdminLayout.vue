@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { api } from "../api/client";
+import { fetchAdminSession, invalidateAdminSessionCache } from "../composables/useAdminSession";
+import { useToast } from "../composables/useToast";
 import AppIcon from "./AppIcon.vue";
 import ThemeSwitcher from "./ThemeSwitcher.vue";
 
@@ -15,14 +17,37 @@ defineProps<{
 
 const route = useRoute();
 const router = useRouter();
+const { notify } = useToast();
 const menuOpen = ref(false);
 const logoutBusy = ref(false);
+const mustChangePassword = ref(false);
+
+async function refreshSecurityGate(): Promise<void> {
+  try {
+    const session = await fetchAdminSession();
+    mustChangePassword.value = Boolean(session.loggedIn && session.mustChangePassword);
+  } catch {
+    mustChangePassword.value = false;
+  }
+}
+
+function blockedNavTitle(label: string): string {
+  return mustChangePassword.value
+    ? `请先修改默认管理密码后再访问「${label}」`
+    : label;
+}
+
+function onBlockedNav(label: string): void {
+  if (!mustChangePassword.value) return;
+  notify(`请先修改默认管理密码后再访问「${label}」。`, "warning", 4500);
+}
 
 async function logout(): Promise<void> {
   if (logoutBusy.value) return;
   logoutBusy.value = true;
   try {
     await api.logout();
+    invalidateAdminSessionCache();
   } finally {
     menuOpen.value = false;
     try {
@@ -33,8 +58,13 @@ async function logout(): Promise<void> {
   }
 }
 
+onMounted(() => {
+  void refreshSecurityGate();
+});
+
 watch(() => route.fullPath, () => {
   menuOpen.value = false;
+  void refreshSecurityGate();
 });
 </script>
 
@@ -60,7 +90,9 @@ watch(() => route.fullPath, () => {
       <nav class="sidebar-nav" aria-label="管理导航">
         <section class="nav-group" aria-labelledby="nav-workbench">
           <p id="nav-workbench" class="nav-caption">工作台</p>
+          <p v-if="mustChangePassword" class="nav-lock-note" role="status">请先修改默认密码；其余菜单暂时不可用。</p>
           <RouterLink
+            v-if="!mustChangePassword"
             to="/admin/dashboard"
             class="sidebar-link"
             :class="{ active: active === 'dashboard' }"
@@ -69,7 +101,19 @@ watch(() => route.fullPath, () => {
             <AppIcon name="layout-dashboard" :size="18" />
             <span>系统总览</span>
           </RouterLink>
+          <button
+            v-else
+            type="button"
+            class="sidebar-link is-disabled"
+            :title="blockedNavTitle('系统总览')"
+            aria-disabled="true"
+            @click="onBlockedNav('系统总览')"
+          >
+            <AppIcon name="layout-dashboard" :size="18" />
+            <span>系统总览</span>
+          </button>
           <RouterLink
+            v-if="!mustChangePassword"
             to="/admin/monitor"
             class="sidebar-link"
             :class="{ active: active === 'monitor' }"
@@ -78,6 +122,17 @@ watch(() => route.fullPath, () => {
             <AppIcon name="activity" :size="18" />
             <span>网络监控</span>
           </RouterLink>
+          <button
+            v-else
+            type="button"
+            class="sidebar-link is-disabled"
+            :title="blockedNavTitle('网络监控')"
+            aria-disabled="true"
+            @click="onBlockedNav('网络监控')"
+          >
+            <AppIcon name="activity" :size="18" />
+            <span>网络监控</span>
+          </button>
           <RouterLink
             to="/admin/settings"
             class="sidebar-link"
@@ -88,6 +143,7 @@ watch(() => route.fullPath, () => {
             <span>配置管理</span>
           </RouterLink>
           <RouterLink
+            v-if="!mustChangePassword"
             to="/admin/workflows"
             class="sidebar-link"
             :class="{ active: active === 'workflow' }"
@@ -96,7 +152,19 @@ watch(() => route.fullPath, () => {
             <AppIcon name="workflow" :size="18" />
             <span>工作流</span>
           </RouterLink>
+          <button
+            v-else
+            type="button"
+            class="sidebar-link is-disabled"
+            :title="blockedNavTitle('工作流')"
+            aria-disabled="true"
+            @click="onBlockedNav('工作流')"
+          >
+            <AppIcon name="workflow" :size="18" />
+            <span>工作流</span>
+          </button>
           <RouterLink
+            v-if="!mustChangePassword"
             to="/admin/system-settings"
             class="sidebar-link"
             :class="{ active: active === 'system-settings' }"
@@ -105,6 +173,17 @@ watch(() => route.fullPath, () => {
             <AppIcon name="settings-2" :size="18" />
             <span>系统设置</span>
           </RouterLink>
+          <button
+            v-else
+            type="button"
+            class="sidebar-link is-disabled"
+            :title="blockedNavTitle('系统设置')"
+            aria-disabled="true"
+            @click="onBlockedNav('系统设置')"
+          >
+            <AppIcon name="settings-2" :size="18" />
+            <span>系统设置</span>
+          </button>
         </section>
 
         <section class="nav-group" aria-labelledby="nav-services">
@@ -184,11 +263,30 @@ watch(() => route.fullPath, () => {
 .sidebar-nav { flex:1; min-height:0; overflow-y:auto; padding:0 2px 10px; }
 .nav-group + .nav-group { margin-top:20px; padding-top:17px; border-top:1px solid var(--line); }
 .nav-caption { margin:0 10px 7px; color:var(--muted); font-size:10px; font-weight:800; letter-spacing:.13em; }
-.sidebar-link { display:flex; align-items:center; gap:12px; min-height:42px; margin:3px 0; padding:0 11px; border:1px solid transparent; border-radius:10px; color:var(--muted); text-decoration:none; font-size:12px; font-weight:650; transition:background .15s,border-color .15s,color .15s; }
+.nav-lock-note {
+  margin:0 8px 10px;
+  padding:8px 10px;
+  border:1px solid color-mix(in srgb,var(--warn, #d97706) 28%,var(--line));
+  border-radius:9px;
+  background:var(--warn-soft, color-mix(in srgb, #d97706 12%, var(--surface)));
+  color:var(--warn, #b45309);
+  font-size:11px;
+  line-height:1.5;
+  font-weight:650;
+}
+.sidebar-link { display:flex; align-items:center; gap:12px; min-height:42px; margin:3px 0; padding:0 11px; border:1px solid transparent; border-radius:10px; color:var(--muted); text-decoration:none; font-size:12px; font-weight:650; transition:background .15s,border-color .15s,color .15s; background:transparent; font:inherit; width:100%; text-align:left; cursor:pointer; }
 .sidebar-link :deep(.app-icon) { flex:0 0 18px; }
 .sidebar-link:hover { color:var(--text); background:var(--surface-2); text-decoration:none; }
-.sidebar-link:active:not(.active) { color:var(--accent); background:var(--accent-soft); border-color:color-mix(in srgb,var(--accent) 24%,var(--line)); }
+.sidebar-link:active:not(.active):not(.is-disabled) { color:var(--accent); background:var(--accent-soft); border-color:color-mix(in srgb,var(--accent) 24%,var(--line)); }
 .sidebar-link.active { color:var(--accent); background:var(--accent-soft); border-color:color-mix(in srgb,var(--accent) 22%,var(--line)); box-shadow:inset 3px 0 0 var(--accent); }
+.sidebar-link.is-disabled,
+.sidebar-link.is-disabled:hover {
+  color:var(--muted);
+  background:transparent;
+  border-color:transparent;
+  opacity:.48;
+  cursor:not-allowed;
+}
 .external-mark { margin-left:auto; opacity:.65; font-size:13px; }
 .sidebar-bottom { padding:14px 10px 0; border-top:1px solid var(--line); }
 .sidebar-mobile-controls { display:none; }

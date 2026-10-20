@@ -90,6 +90,10 @@ async function load(silent = false, resetHistory = false) {
       await router.replace("/admin/login");
       return;
     }
+    if (session.mustChangePassword) {
+      await router.replace("/admin/settings");
+      return;
+    }
     const result = await api.workflows(historyPageSize, 0);
     if (statusSnapshotReady) {
       for (const run of result.runs) {

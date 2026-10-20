@@ -33,8 +33,16 @@ async function onSubmit() {
   loading.value = true;
   try {
     await api.login(password.value);
+    const { invalidateAdminSessionCache, fetchAdminSession } = await import("../composables/useAdminSession");
+    invalidateAdminSessionCache();
+    const session = await fetchAdminSession(true);
     notify("登录成功", "success");
-    await router.push("/admin/dashboard");
+    if (session.mustChangePassword) {
+      notify("当前仍使用默认密码，请先修改后再使用其他功能。", "warning", 5500);
+      await router.push("/admin/settings");
+    } else {
+      await router.push("/admin/dashboard");
+    }
   } catch (e) {
     error.value = e instanceof Error ? e.message : "登录失败，请重试。";
     notify(error.value, "error");

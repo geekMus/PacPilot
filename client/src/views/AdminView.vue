@@ -613,6 +613,8 @@ async function changeAdminPassword() {
       currentPassword: passwordForm.currentPassword,
       newPassword: passwordForm.newPassword,
     });
+    const { invalidateAdminSessionCache } = await import("../composables/useAdminSession");
+    invalidateAdminSessionCache();
     notify("管理员密码修改成功，请使用新密码重新登录。", "success");
     await router.replace({ path: "/admin/login", query: { passwordChanged: "1" } });
   } catch (e) {

@@ -256,6 +256,9 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     if (res.status === 404 && url === "/api/admin/settings/save-and-generate") {
       msg = "当前后端未提供“保存并生成”接口，前后端代码版本可能不一致。请先停止所有旧的 genpac-runner 开发进程，更新到最新 main，再从项目根目录重新运行 bun run dev。检查终端中的后端监听端口，并确认 client/vite.config.ts 的代理目标 PORT 与后端 PORT 一致。此次请求未能完成保存与生成，请检查配置是否已保存后再重试。";
     }
+    if (res.status === 428 || msg === "password_change_required") {
+      msg = "请先修改默认管理密码后再继续操作。";
+    }
 
     throw new Error(msg);
   }

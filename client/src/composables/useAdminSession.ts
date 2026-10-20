@@ -1,0 +1,32 @@
+import { api, type AdminSession } from "../api/client";
+
+let cache: { at: number; data: AdminSession } | null = null;
+const CACHE_TTL_MS = 2500;
+
+/** Invalidate after login, logout, or password change so guards see fresh state. */
+export function invalidateAdminSessionCache(): void {
+  cache = null;
+}
+
+export async function fetchAdminSession(force = false): Promise<AdminSession> {
+  if (!force && cache && Date.now() - cache.at < CACHE_TTL_MS) {
+    return cache.data;
+  }
+  const data = await api.session();
+  cache = { at: Date.now(), data };
+  return data;
+}
+
+/** Admin routes that remain reachable while a password change is required. */
+export function isPasswordChangeAllowedRoute(path: string): boolean {
+  if (path === "/admin/login" || path.startsWith("/admin/login?")) return true;
+  if (path === "/admin/settings" || path.startsWith("/admin/settings?")) return true;
+  if (path === "/admin/settings/" || path.startsWith("/admin/settings#")) return true;
+  // Hash-only navigation stays on settings.
+  if (path.startsWith("/admin/settings")) return true;
+  return false;
+}
+
+export function isAdminAppRoute(path: string): boolean {
+  return path === "/admin" || path.startsWith("/admin/");
+}
