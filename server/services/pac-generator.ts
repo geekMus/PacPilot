@@ -2,7 +2,7 @@ import fs from "fs";
 import { minify } from "terser";
 import path from "path";
 import { isIP } from "node:net";
-import type { AppDatabase } from "../db/sqlite";
+import type { AppDatabase, LocalizedText } from "../db/sqlite";
 import { appendGenerationLog, getSettings } from "../db/sqlite";
 import { notifyFailure, notifySuccess } from "./webhook";
 import { APP_VERSION } from "../version";
@@ -14,6 +14,8 @@ export interface GenerateResult {
   success: boolean;
   mode: string;
   message: string;
+  messageKey?: string;
+  messageParams?: Record<string, string | number>;
   pacPath: string;
   /** Structured diagnostics for workflow stage detail panels. */
   detail?: Record<string, unknown>;
@@ -211,7 +213,7 @@ export async function probeGenpac(): Promise<EngineProbe> {
 async function runRemoteMode(
   settings: AppSettings,
   outFile: string
-): Promise<{ message: string; detail: Record<string, unknown> }> {
+): Promise<{ message: string; messageKey: string; messageParams: Record<string, number>; detail: Record<string, unknown> }> {
   if (!settings.listUrl) {
     throw new Error("Remote list mode requires listUrl to be configured.");
   }
@@ -240,14 +242,19 @@ async function runRemoteMode(
       : parsed.format === "abp"
         ? "format.abp"
         : "format.plain";
-  const formatLabel = t(settings.locale, formatKey);
-  const message = t(settings.locale, "gen.success.remote", {
-    format: formatLabel,
+  const formatSuffix =
+    parsed.format === "gfwlist-base64" ? "gfwlist" : parsed.format === "abp" ? "abp" : "plain";
+  const messageKey = `gen.success.remote.${formatSuffix}`;
+  const messageParams = {
     proxy: parsed.proxyHosts.length,
     direct: parsed.directHosts.length,
-  });
+  };
+  const formatLabel = t(settings.locale, formatKey);
+  const message = t(settings.locale, messageKey, messageParams);
   return {
     message,
+    messageKey,
+    messageParams,
     detail: {
       mode: "remote",
       pac_proxy: settings.pacProxy,
@@ -284,10 +291,14 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
     if (proxyError) throw new Error(proxyError);
 
     let message: string;
+    let messageKey: string;
+    let messageParams: Record<string, string | number> = {};
     let detail: Record<string, unknown>;
     if (settings.mode === "remote") {
       const remote = await runRemoteMode(settings, pacPath);
       message = remote.message;
+      messageKey = remote.messageKey;
+      messageParams = remote.messageParams;
       detail = remote.detail;
     } else {
       const customPac = buildCustomPac(settings);
@@ -299,9 +310,10 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
       const sourcePath = path.join(dataDir, "proxy.source.pac");
       fs.writeFileSync(sourcePath, source, "utf8");
       fs.writeFileSync(pacPath, output, "utf8");
-      message = t(settings.locale, "gen.success.custom", {
-        compress: t(settings.locale, settings.pacCompress ? "gen.compress.on" : "gen.compress.off"),
-      });
+      messageKey = settings.pacCompress
+        ? "gen.success.custom.compressed"
+        : "gen.success.custom.uncompressed";
+      message = t(settings.locale, messageKey);
       detail = {
         mode: "custom",
         pac_proxy: settings.pacProxy,
@@ -320,11 +332,20 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
       };
     }
 
-    appendGenerationLog(database, true, settings.mode, message);
+    const persistedMessage: LocalizedText = { key: messageKey, params: messageParams };
+    appendGenerationLog(database, true, settings.mode, persistedMessage);
     const webhook = await notifySuccess(settings);
     if (webhook) detail = { ...detail, webhook };
     console.log(`[PAC] ${message}; file: ${pacPath}`);
-    return { success: true, mode: settings.mode, message, pacPath, detail };
+    return {
+      success: true,
+      mode: settings.mode,
+      message,
+      messageKey,
+      messageParams,
+      pacPath,
+      detail,
+    };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     const fetchMeta =

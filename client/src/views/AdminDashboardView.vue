@@ -20,6 +20,11 @@ import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
 import TextDetail from "../components/TextDetail.vue";
 
 const { t } = useI18n();
+const localizedText = (
+  text: string | null | undefined,
+  key: string | undefined,
+  params?: Record<string, string | number>
+) => (key ? t(key, params ?? {}) : text ?? "");
 const router = useRouter();
 const loading = ref(true);
 const refreshing = ref(false);
@@ -198,8 +203,23 @@ onMounted(() => {
       >
         <AppIcon name="workflow" :size="18" />
         <span
-          ><strong>{{ t("dashboard.workflowRunning", { stage: currentWorkflow.stage || t("common.preparing") }) }}</strong
-          ><small>{{ currentWorkflow.message }} · {{ t("dashboard.clickLiveProgress") }}</small></span
+          ><strong>{{
+            t("dashboard.workflowRunning", {
+              stage:
+                localizedText(
+                  currentWorkflow.stage,
+                  currentWorkflow.stage_key,
+                  currentWorkflow.stage_params
+                ) || t("common.preparing"),
+            })
+          }}</strong
+          ><small>{{
+            localizedText(
+              currentWorkflow.message,
+              currentWorkflow.message_key,
+              currentWorkflow.message_params
+            )
+          }} · {{ t("dashboard.clickLiveProgress") }}</small></span
         >
       </RouterLink>
       <div v-if="session?.isDefaultPassword" class="dashboard-alert is-warning" role="alert">
@@ -348,7 +368,10 @@ onMounted(() => {
                   </td>
                   <td>{{ modeForLog(entry.mode) }}</td>
                   <td class="log-message">
-                    <TextDetail :text="entry.message || ''" :label="t('dashboard.genLogLabel')" />
+                    <TextDetail
+                      :text="localizedText(entry.message, entry.message_key, entry.message_params)"
+                      :label="t('dashboard.genLogLabel')"
+                    />
                   </td>
                 </tr>
               </tbody>

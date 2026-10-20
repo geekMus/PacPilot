@@ -74,6 +74,8 @@ export interface GenerationLog {
   success: boolean;
   mode: string;
   message: string | null;
+  message_key: string;
+  message_params: Record<string, string | number>;
   created_at: string;
 }
 export interface GenerateResult {
@@ -100,9 +102,15 @@ export interface WorkflowRun {
   source: string;
   status: WorkflowStatus;
   stage: string;
+  stage_key: string;
+  stage_params: Record<string, string | number>;
   mode: string;
   message: string;
+  message_key: string;
+  message_params: Record<string, string | number>;
   error: string;
+  error_key: string;
+  error_params: Record<string, string | number>;
   created_at: string;
   started_at: string | null;
   finished_at: string | null;
@@ -113,9 +121,15 @@ export interface WorkflowStage {
   run_id: number;
   stage_key: string;
   name: string;
+  name_key: string;
+  name_params: Record<string, string | number>;
   status: "pending" | "running" | "succeeded" | "failed" | "skipped";
   message: string;
+  message_key: string;
+  message_params: Record<string, string | number>;
   error: string;
+  error_key: string;
+  error_params: Record<string, string | number>;
   /** JSON string with request/config/output diagnostics when available. */
   detail?: string;
   started_at: string | null;

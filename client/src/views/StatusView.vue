@@ -280,7 +280,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
           :class="{ 'is-loading': loading }"
           @click="loadStatus"
           :disabled="loading"
-          :title='t("statusPage.k0")'
+          :title="loading ? t('statusPage.refreshingTitle') : t('statusPage.refreshTitle')"
         >
           <AppIcon
             :name="loading ? 'loader-circle' : 'refresh-cw'"
@@ -381,7 +381,11 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               type="submit"
               class="action-button primary"
               :disabled="!domainInput.trim()"
-              :title='t("statusPage.k7")'
+              :title="
+                !domainInput.trim()
+                  ? t('statusPage.enterDomainToCheckTitle')
+                  : t('statusPage.checkDomainTitle')
+              "
             >
               {{ t("statusPage.k32") }}
             </button>

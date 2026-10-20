@@ -7,7 +7,12 @@ import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
 import { useToast } from "../composables/useToast";
-const { t } = useI18n();
+const { t, locale } = useI18n();
+const localizedText = (
+  text: string | null | undefined,
+  key: string | undefined,
+  params?: Record<string, string | number>
+) => (key ? t(key, params ?? {}) : text ?? "");
 
 const route = useRoute();
 const router = useRouter();
@@ -48,7 +53,8 @@ const isActiveStatus = (status: string | undefined) => status === "pending" || s
 
 const label = (v: string) => statuses[v] || v;
 const sourceLabel = (v: string) => sources[v] || v;
-const dateLabel = (v: string | null) => (v ? new Date(v).toLocaleString() : "—");
+const dateLabel = (v: string | null) =>
+  v ? new Date(v).toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN") : "—";
 
 function stopPolling() {
   if (pollHandle) clearInterval(pollHandle);
@@ -103,11 +109,17 @@ async function copyStageDetail(): Promise<void> {
   const stage = selectedStage.value;
   if (!stage) return;
   const text = [
-    t("workflowDetailPage.stageName", { name: stage.name }),
+    t("workflowDetailPage.stageName", {
+      name: localizedText(stage.name, stage.name_key, stage.name_params),
+    }),
     t("workflowDetailPage.stageKey", { key: stage.stage_key }),
     `${t("workflowDetailPage.k33")}：${label(stage.status)}`,
-    t("workflowDetailPage.stageMsg", { msg: stage.message || "—" }),
-    t("workflowDetailPage.stageErr", { err: stage.error || "—" }),
+    t("workflowDetailPage.stageMsg", {
+      msg: localizedText(stage.message, stage.message_key, stage.message_params) || "—",
+    }),
+    t("workflowDetailPage.stageErr", {
+      err: localizedText(stage.error, stage.error_key, stage.error_params) || "—",
+    }),
     t("workflowDetailPage.stageStart", { time: dateLabel(stage.started_at) }),
     t("workflowDetailPage.stageEnd", { time: dateLabel(stage.finished_at) }),
     `${t("workflowDetailPage.k34")}：${stage.duration_ms == null ? "—" : stage.duration_ms + " ms"}`,
@@ -169,7 +181,13 @@ async function load() {
         next.run.status === "succeeded"
           ? t("workflowDetailPage.runCompleted", { id: next.run.id })
           : next.run.status === "failed"
-            ? t("workflowDetailPage.runFailed", { id: next.run.id, detail: next.run.error || next.run.message || t("workflowDetailPage.k14") })
+            ? t("workflowDetailPage.runFailed", {
+                id: next.run.id,
+                detail:
+                  localizedText(next.run.error, next.run.error_key, next.run.error_params) ||
+                  localizedText(next.run.message, next.run.message_key, next.run.message_params) ||
+                  t("workflowDetailPage.k14"),
+              })
             : t("workflowDetailPage.runCancelled", { id: next.run.id });
       notify(
         message,
@@ -335,11 +353,16 @@ onUnmounted(() => {
         </div>
         <div class="result-message">
           <strong>{{ t("workflow.result") }}</strong>
-          <p>{{ detail.run.message || t("workflowDetailPage.k16") }}</p>
+          <p>
+            {{
+              localizedText(detail.run.message, detail.run.message_key, detail.run.message_params) ||
+              t("workflowDetailPage.k16")
+            }}
+          </p>
         </div>
-        <div v-if="detail.run.error" class="failure-message">
+        <div v-if="detail.run.error || detail.run.error_key" class="failure-message">
           <strong><AppIcon name="circle-alert" :size="16" /> {{ t("workflowDetailPage.k26") }}</strong>
-          <pre>{{ detail.run.error }}</pre>
+          <pre>{{ localizedText(detail.run.error, detail.run.error_key, detail.run.error_params) }}</pre>
         </div>
       </section>
 
@@ -373,18 +396,26 @@ onUnmounted(() => {
                     :title='t("workflowDetailPage.k17")'
                     @click="openStageDetail(stage)"
                   >
-                    {{ stage.name }}
+                    {{ localizedText(stage.name, stage.name_key, stage.name_params) }}
                   </button>
                 </div>
                 <span class="status" :class="stage.status">{{ label(stage.status) }}</span>
               </div>
-              <p>{{ stage.message || t("workflowDetailPage.k18") }}</p>
+              <p>
+                {{
+                  localizedText(stage.message, stage.message_key, stage.message_params) ||
+                  t("workflowDetailPage.k18")
+                }}
+              </p>
               <div class="stage-meta">
                 <span>{{ t("workflowDetailPage.stageStart", { time: dateLabel(stage.started_at) }) }}</span>
                 <span>{{ t("workflowDetailPage.stageEnd", { time: dateLabel(stage.finished_at) }) }}</span>
                 <span>{{ t("workflowDetailPage.k34") }}：{{ durationLabel(stage) }}</span>
               </div>
-              <pre v-if="stage.error" class="stage-error">{{ stage.error }}</pre>
+              <pre
+                v-if="stage.error || stage.error_key"
+                class="stage-error"
+              >{{ localizedText(stage.error, stage.error_key, stage.error_params) }}</pre>
             </div>
           </li>
           <li v-if="!detail.stages.length" class="no-stages">
@@ -411,7 +442,11 @@ onUnmounted(() => {
           <header class="stage-detail-header">
             <div>
               <p class="stage-detail-kicker">STAGE · {{ selectedStage.stage_key }}</p>
-              <h2>{{ selectedStage.name }}</h2>
+              <h2>
+                {{
+                  localizedText(selectedStage.name, selectedStage.name_key, selectedStage.name_params)
+                }}
+              </h2>
             </div>
             <div class="stage-detail-actions">
               <button class="stage-detail-btn" type="button" @click="copyStageDetail">
@@ -431,8 +466,14 @@ onUnmounted(() => {
             {{ stageDetailCopyState }}
           </p>
           <div class="stage-detail-body">
-            <p v-if="selectedStage.message" class="stage-detail-message">
-              {{ selectedStage.message }}
+            <p v-if="selectedStage.message || selectedStage.message_key" class="stage-detail-message">
+              {{
+                localizedText(
+                  selectedStage.message,
+                  selectedStage.message_key,
+                  selectedStage.message_params
+                )
+              }}
             </p>
             <section class="stage-detail-section">
               <h3 class="stage-detail-section-title">{{ t("workflowDetailPage.k32") }}</h3>
@@ -463,9 +504,15 @@ onUnmounted(() => {
                 </div>
               </div>
             </section>
-            <section v-if="selectedStage.error" class="stage-detail-section">
+            <section v-if="selectedStage.error || selectedStage.error_key" class="stage-detail-section">
               <h3 class="stage-detail-section-title">{{ t("workflowDetailPage.k35") }}</h3>
-              <pre class="stage-detail-pre is-error">{{ selectedStage.error }}</pre>
+              <pre class="stage-detail-pre is-error">{{
+                localizedText(
+                  selectedStage.error,
+                  selectedStage.error_key,
+                  selectedStage.error_params
+                )
+              }}</pre>
             </section>
             <section class="stage-detail-section">
               <h3 class="stage-detail-section-title">{{ t("workflowDetailPage.k36") }}</h3>
@@ -488,7 +535,11 @@ onUnmounted(() => {
               class="cancel-button"
               type="button"
               :disabled="cancelling"
-              :title='t("workflowDetailPage.k21")'
+              :title="
+                cancelling
+                  ? t('workflowDetailPage.cancellingTitle')
+                  : t('workflowDetailPage.cancelQueuedTitle')
+              "
               @click="
                 confirmingCancel = !confirmingCancel;
                 confirmingDelete = false;
@@ -511,7 +562,11 @@ onUnmounted(() => {
                   type="button"
                   class="confirm-cancel-action"
                   :disabled="cancelling"
-                  :title='t("workflowDetailPage.k22")'
+                  :title="
+                    cancelling
+                      ? t('workflowDetailPage.cancellingTitle')
+                      : t('workflowDetailPage.confirmCancelTitle')
+                  "
                   @click="cancelRun"
                 >
                   {{ t("workflowDetailPage.k43") }}

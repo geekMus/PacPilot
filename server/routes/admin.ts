@@ -481,9 +481,10 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
       res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
     }
   });
-  router.get("/api/admin/logs", requireAdmin(database), (_req, res) =>
-    res.json(recentLogs(database, 50, getSettings(database).timezone))
-  );
+  router.get("/api/admin/logs", requireAdmin(database), (_req, res) => {
+    const settings = getSettings(database);
+    res.json(recentLogs(database, 50, settings.timezone, 0, 0, settings.locale));
+  });
   router.get("/api/admin/logs/page", requireAdmin(database), (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     const limit = Math.min(
@@ -491,7 +492,15 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
       Math.max(1, Number.parseInt(String(req.query.limit ?? "50"), 10) || 50)
     );
     const beforeId = Math.max(0, Number.parseInt(String(req.query.beforeId ?? "0"), 10) || 0);
-    const rows = recentLogs(database, limit + 1, getSettings(database).timezone, 0, beforeId);
+    const settings = getSettings(database);
+    const rows = recentLogs(
+      database,
+      limit + 1,
+      settings.timezone,
+      0,
+      beforeId,
+      settings.locale
+    );
     const total = Number(
       (database.query("SELECT COUNT(*) AS total FROM generation_log").get() as { total: number })
         .total

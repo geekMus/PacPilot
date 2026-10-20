@@ -12,7 +12,7 @@ import { useI18n } from "vue-i18n";
 import { setAppLocale, resolveLocale, type AppLocale } from "../i18n";
 const router = useRouter(),
   { notify } = useToast();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const localeChoice = ref<AppLocale>("zh_CN");
 const savingLocale = ref(false);
 const loading = ref(true),
@@ -57,7 +57,9 @@ const deletePacFilesDisabledReason = computed(() => {
   return t("systemPage.k14");
 });
 function fileDateLabel(value: string | null) {
-  return value ? new Date(value).toLocaleString() : "—";
+  return value
+    ? new Date(value).toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN")
+    : "—";
 }
 function formatBytes(bytes: number) {
   if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";

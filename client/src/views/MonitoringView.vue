@@ -20,7 +20,7 @@ import VirtualTable from "../components/VirtualTable.vue";
 import SelectField from "../components/SelectField.vue";
 import { useToast } from "../composables/useToast";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { notify } = useToast();
 
 const router = useRouter();
@@ -79,7 +79,7 @@ function formatTrendHour(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "--:--";
   try {
-    return new Intl.DateTimeFormat("zh-CN", {
+    return new Intl.DateTimeFormat(locale.value === "en_US" ? "en-US" : "zh-CN", {
       timeZone: timeZone.value,
       hour: "2-digit",
       minute: "2-digit",
@@ -352,7 +352,7 @@ function formatDate(value: string | null | undefined): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   try {
-    return new Intl.DateTimeFormat("zh-CN", {
+    return new Intl.DateTimeFormat(locale.value === "en_US" ? "en-US" : "zh-CN", {
       timeZone: timeZone.value,
       month: "2-digit",
       day: "2-digit",
@@ -362,7 +362,7 @@ function formatDate(value: string | null | undefined): string {
       hour12: false,
     }).format(date);
   } catch {
-    return date.toLocaleString();
+    return date.toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN");
   }
 }
 
@@ -462,7 +462,7 @@ onUnmounted(() => {
         :class="{ 'is-loading': refreshing }"
         type="button"
         :disabled="refreshing"
-        :title='t("monitor.k26")'
+        :title="refreshing ? t('monitor.refreshingTitle') : t('monitor.refreshTitle')"
         @click="refreshDashboard()"
       >
         <AppIcon
@@ -810,7 +810,7 @@ onUnmounted(() => {
             :has-more="accessHasMore"
             :loading="accessLoadingMore"
             :error="accessLoadError"
-            :empty-text='t("monitor.k37")'
+            :empty-text="hasAccessFilters ? t('monitor.noFilteredAccess') : t('monitor.noAccess')"
             :load-more="loadMoreAccesses"
           >
             <template #columns>
@@ -1263,7 +1263,7 @@ onUnmounted(() => {
                 <td class="probe-history-error">
                   <TextDetail
                     v-if="!item.success"
-                    :text='t("monitor.k59")'
+                    :text="probePhaseLabel(item.phase) + ': ' + (item.error || t('monitor.noProbeErrorDetails'))"
                     :label='t("monitor.k60")'
                   /><span v-else>—</span>
                 </td>

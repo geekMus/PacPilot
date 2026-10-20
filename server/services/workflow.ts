@@ -10,7 +10,8 @@ import {
   encodeWorkflowStageDetail,
 } from "../db/sqlite";
 import { generatePac, type GenerateResult } from "./pac-generator";
-import { t } from "../i18n";
+
+const localized = (key: string) => ({ key });
 
 export type WorkflowSource = "startup" | "scheduled" | "manual" | "save-and-generate";
 export interface PacWorkflowResult {
@@ -48,8 +49,8 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
   try {
     updateWorkflowRun(database, id, {
       status: "running",
-      stage: t(settings.locale, "workflow.stage.running"),
-      message: t(settings.locale, "workflow.stage.runningMsg"),
+      stage: localized("workflow.stage.running"),
+      message: localized("workflow.stage.runningMsg"),
       started_at: startedAt.toISOString(),
     });
     const prepareDetail = encodeWorkflowStageDetail({
@@ -69,8 +70,8 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
       database,
       id,
       "prepare",
-      t(settings.locale, "workflow.prepare.name"),
-      t(settings.locale, "workflow.prepare.start"),
+      localized("workflow.prepare.name"),
+      localized("workflow.prepare.start"),
       prepareDetail
     );
     activeStageId = prepareStage;
@@ -78,7 +79,7 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
       database,
       prepareStage,
       "succeeded",
-      t(settings.locale, "workflow.prepare.done"),
+      localized("workflow.prepare.done"),
       "",
       prepareDetail
     );
@@ -88,10 +89,12 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
       database,
       id,
       "generate-pac",
-      t(settings.locale, "workflow.generate.name"),
-      settings.mode === "remote"
-        ? t(settings.locale, "workflow.generate.start.remote")
-        : t(settings.locale, "workflow.generate.start.custom")
+      localized("workflow.generate.name"),
+      localized(
+        settings.mode === "remote"
+          ? "workflow.generate.start.remote"
+          : "workflow.generate.start.custom"
+      )
     );
     activeStageId = generationStage;
     const generation = await generatePac(database, item.dataDir);
@@ -101,17 +104,20 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
       database,
       generationStage,
       generation.success ? "succeeded" : "failed",
-      generation.message,
+      generation.success && generation.messageKey
+        ? { key: generation.messageKey, params: generation.messageParams }
+        : generation.message,
       generation.success ? "" : generation.message,
       generationDetail
     );
     activeStageId = null;
     updateWorkflowRun(database, id, {
       status: generation.success ? "succeeded" : "failed",
-      stage: generation.success
-        ? t(settings.locale, "workflow.stage.done")
-        : t(settings.locale, "workflow.stage.failed"),
-      message: generation.message,
+      stage: localized(generation.success ? "workflow.stage.done" : "workflow.stage.failed"),
+      message:
+        generation.success && generation.messageKey
+          ? { key: generation.messageKey, params: generation.messageParams }
+          : generation.message,
       error: generation.success ? "" : generation.message,
       finished_at: finishedAt.toISOString(),
       duration_ms: Math.max(0, finishedAt.getTime() - startedAt.getTime()),
@@ -126,15 +132,15 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
           database,
           activeStageId,
           "failed",
-          t(settings.locale, "workflow.stage.abnormal"),
+          localized("workflow.stage.abnormal"),
           message,
           encodeWorkflowStageDetail({ error: message })
         );
       }
       updateWorkflowRun(database, id, {
         status: "failed",
-        stage: t(settings.locale, "workflow.stage.exception"),
-        message: t(settings.locale, "workflow.stage.exceptionMsg"),
+        stage: localized("workflow.stage.exception"),
+        message: localized("workflow.stage.exceptionMsg"),
         error: message,
         finished_at: finishedAt.toISOString(),
         duration_ms: Math.max(0, finishedAt.getTime() - startedAt.getTime()),

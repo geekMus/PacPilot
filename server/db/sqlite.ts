@@ -33,6 +33,8 @@ function migrate(database: AppDatabase): void {
       success    INTEGER NOT NULL,
       mode       TEXT NOT NULL,
       message    TEXT,
+      message_key TEXT NOT NULL DEFAULT '',
+      message_params TEXT NOT NULL DEFAULT '{}',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -82,9 +84,15 @@ function migrate(database: AppDatabase): void {
       source TEXT NOT NULL,
       status TEXT NOT NULL,
       stage TEXT NOT NULL DEFAULT '',
+      stage_key TEXT NOT NULL DEFAULT '',
+      stage_params TEXT NOT NULL DEFAULT '{}',
       mode TEXT NOT NULL DEFAULT '',
       message TEXT NOT NULL DEFAULT '',
+      message_key TEXT NOT NULL DEFAULT '',
+      message_params TEXT NOT NULL DEFAULT '{}',
       error TEXT NOT NULL DEFAULT '',
+      error_key TEXT NOT NULL DEFAULT '',
+      error_params TEXT NOT NULL DEFAULT '{}',
       created_at TEXT NOT NULL,
       started_at TEXT,
       finished_at TEXT,
@@ -98,9 +106,15 @@ function migrate(database: AppDatabase): void {
       run_id INTEGER NOT NULL REFERENCES workflow_runs(id) ON DELETE CASCADE,
       stage_key TEXT NOT NULL,
       name TEXT NOT NULL,
+      name_key TEXT NOT NULL DEFAULT '',
+      name_params TEXT NOT NULL DEFAULT '{}',
       status TEXT NOT NULL,
       message TEXT NOT NULL DEFAULT '',
+      message_key TEXT NOT NULL DEFAULT '',
+      message_params TEXT NOT NULL DEFAULT '{}',
       error TEXT NOT NULL DEFAULT '',
+      error_key TEXT NOT NULL DEFAULT '',
+      error_params TEXT NOT NULL DEFAULT '{}',
       detail TEXT NOT NULL DEFAULT '',
       started_at TEXT,
       finished_at TEXT,
@@ -111,6 +125,7 @@ function migrate(database: AppDatabase): void {
 
   ensureAccessEventDetailColumns(database);
   ensureWorkflowStageDetailColumn(database);
+  ensureLocalizedRecordColumns(database);
 
   const row = database.query("SELECT value FROM settings WHERE key = ?").get("config") as {
     value: string;
@@ -118,6 +133,41 @@ function migrate(database: AppDatabase): void {
 
   if (!row) {
     setSettings(database, DEFAULT_SETTINGS);
+  }
+}
+
+function ensureLocalizedRecordColumns(database: AppDatabase): void {
+  const columns: Array<[string, string, string]> = [
+    ["generation_log", "message_key", "TEXT NOT NULL DEFAULT ''"],
+    ["generation_log", "message_params", "TEXT NOT NULL DEFAULT '{}'"],
+    ["workflow_runs", "stage_key", "TEXT NOT NULL DEFAULT ''"],
+    ["workflow_runs", "stage_params", "TEXT NOT NULL DEFAULT '{}'"],
+    ["workflow_runs", "message_key", "TEXT NOT NULL DEFAULT ''"],
+    ["workflow_runs", "message_params", "TEXT NOT NULL DEFAULT '{}'"],
+    ["workflow_runs", "error_key", "TEXT NOT NULL DEFAULT ''"],
+    ["workflow_runs", "error_params", "TEXT NOT NULL DEFAULT '{}'"],
+    ["workflow_stages", "name_key", "TEXT NOT NULL DEFAULT ''"],
+    ["workflow_stages", "name_params", "TEXT NOT NULL DEFAULT '{}'"],
+    ["workflow_stages", "message_key", "TEXT NOT NULL DEFAULT ''"],
+    ["workflow_stages", "message_params", "TEXT NOT NULL DEFAULT '{}'"],
+    ["workflow_stages", "error_key", "TEXT NOT NULL DEFAULT ''"],
+    ["workflow_stages", "error_params", "TEXT NOT NULL DEFAULT '{}'"],
+  ];
+  const existingByTable = new Map<string, Set<string>>();
+  for (const [table, column, definition] of columns) {
+    let existing = existingByTable.get(table);
+    if (!existing) {
+      existing = new Set(
+        (database.query(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map(
+          (entry) => entry.name
+        )
+      );
+      existingByTable.set(table, existing);
+    }
+    if (!existing.has(column)) {
+      database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+      existing.add(column);
+    }
   }
 }
 
@@ -192,11 +242,45 @@ export function appendGenerationLog(
   database: AppDatabase,
   success: boolean,
   mode: GenerationMode,
-  message: string
+  message: PersistedText
 ): void {
+  const stored = serializePersistedText(message);
   database
-    .query(`INSERT INTO generation_log (success, mode, message) VALUES (?, ?, ?)`)
-    .run(success ? 1 : 0, mode, message);
+    .query(
+      `INSERT INTO generation_log (success, mode, message, message_key, message_params) VALUES (?, ?, ?, ?, ?)`
+    )
+    .run(success ? 1 : 0, mode, stored.text, stored.key, stored.params);
+}
+
+export interface LocalizedText {
+  key: string;
+  params?: Record<string, string | number>;
+}
+export type PersistedText = string | LocalizedText;
+export type LocalizedParams = Record<string, string | number>;
+
+function serializePersistedText(value: PersistedText): {
+  text: string;
+  key: string;
+  params: string;
+} {
+  if (typeof value === "string") return { text: value, key: "", params: "{}" };
+  return { text: "", key: value.key, params: JSON.stringify(value.params ?? {}) };
+}
+
+function parseLocalizedParams(value: string | null | undefined): LocalizedParams {
+  if (!value) return {};
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    const result: LocalizedParams = {};
+    for (const [key, entry] of Object.entries(parsed)) {
+      if (typeof entry === "string" || typeof entry === "number") result[key] = entry;
+    }
+    return result;
+  } catch {
+    return {};
+  }
 }
 
 export function recentLogs(
@@ -204,12 +288,15 @@ export function recentLogs(
   limit = 20,
   timeZone = "Asia/Shanghai",
   offset = 0,
-  beforeId = 0
+  beforeId = 0,
+  locale: "zh_CN" | "en_US" = "zh_CN"
 ): Array<{
   id: number;
   success: boolean;
   mode: string;
   message: string | null;
+  message_key: string;
+  message_params: LocalizedParams;
   created_at: string;
 }> {
   const safeLimit = Math.max(1, Math.min(101, Math.trunc(limit) || 20));
@@ -218,12 +305,12 @@ export function recentLogs(
     cursor > 0
       ? database
           .query(
-            "SELECT id, success, mode, message, created_at FROM generation_log WHERE id < ? ORDER BY id DESC LIMIT ?"
+            "SELECT id, success, mode, message, message_key, message_params, created_at FROM generation_log WHERE id < ? ORDER BY id DESC LIMIT ?"
           )
           .all(cursor, safeLimit)
       : database
           .query(
-            "SELECT id, success, mode, message, created_at FROM generation_log ORDER BY id DESC LIMIT ? OFFSET ?"
+            "SELECT id, success, mode, message, message_key, message_params, created_at FROM generation_log ORDER BY id DESC LIMIT ? OFFSET ?"
           )
           .all(safeLimit, Math.max(0, Math.trunc(offset) || 0))
   ) as Array<{
@@ -231,6 +318,8 @@ export function recentLogs(
     success: number;
     mode: string;
     message: string | null;
+    message_key: string;
+    message_params: string;
     created_at: string;
   }>;
 
@@ -239,11 +328,13 @@ export function recentLogs(
     success: Boolean(r.success),
     mode: r.mode,
     message: r.message,
+    message_key: r.message_key,
+    message_params: parseLocalizedParams(r.message_params),
     created_at: (() => {
       const parsed = new Date(r.created_at.replace(" ", "T") + "Z");
       return Number.isNaN(parsed.getTime())
         ? r.created_at
-        : parsed.toLocaleString("zh-CN", { timeZone });
+        : parsed.toLocaleString(locale === "en_US" ? "en-US" : "zh-CN", { timeZone });
     })(),
   }));
 }
@@ -335,61 +426,94 @@ export interface WorkflowRun {
   source: string;
   status: WorkflowStatus;
   stage: string;
+  stage_key: string;
+  stage_params: LocalizedParams;
   mode: string;
   message: string;
+  message_key: string;
+  message_params: LocalizedParams;
   error: string;
+  error_key: string;
+  error_params: LocalizedParams;
   created_at: string;
   started_at: string | null;
   finished_at: string | null;
   duration_ms: number | null;
 }
+interface WorkflowRunRow extends Omit<WorkflowRun, "stage_params" | "message_params" | "error_params"> {
+  stage_params: string;
+  message_params: string;
+  error_params: string;
+}
+function decodeWorkflowRun(row: WorkflowRunRow): WorkflowRun {
+  return {
+    ...row,
+    stage_params: parseLocalizedParams(row.stage_params),
+    message_params: parseLocalizedParams(row.message_params),
+    error_params: parseLocalizedParams(row.error_params),
+  };
+}
 export function createWorkflowRun(database: AppDatabase, source: string, mode: string): number {
   const now = new Date().toISOString();
   const result = database
     .query(
-      "INSERT INTO workflow_runs (source,status,stage,mode,message,error,created_at) VALUES (?,'pending','等待执行',?,'任务已创建','',?)"
+      "INSERT INTO workflow_runs (source,status,stage,stage_key,mode,message,message_key,error,created_at) VALUES (?,'pending','','workflow.stage.queued',?,'','workflow.run.queued','',?)"
     )
     .run(source, mode, now);
   return Number(result.lastInsertRowid);
 }
+type WorkflowRunPatch = Partial<
+  Pick<WorkflowRun, "status" | "started_at" | "finished_at" | "duration_ms">
+> & {
+  stage?: PersistedText;
+  message?: PersistedText;
+  error?: PersistedText;
+};
+
 export function updateWorkflowRun(
   database: AppDatabase,
   id: number,
-  patch: Partial<
-    Pick<
-      WorkflowRun,
-      "status" | "stage" | "message" | "error" | "started_at" | "finished_at" | "duration_ms"
-    >
-  >
+  patch: WorkflowRunPatch
 ): void {
-  const allowed = [
-    "status",
-    "stage",
-    "message",
-    "error",
-    "started_at",
-    "finished_at",
-    "duration_ms",
-  ] as const;
-  const fields = allowed.filter((key) => patch[key] !== undefined);
-  if (!fields.length) return;
+  const updates: Array<[string, string | number | null]> = [];
+  for (const key of ["status", "started_at", "finished_at", "duration_ms"] as const) {
+    const value = patch[key];
+    if (value !== undefined) updates.push([key, value]);
+  }
+  for (const key of ["stage", "message", "error"] as const) {
+    const value = patch[key];
+    if (value === undefined) continue;
+    const stored = serializePersistedText(value);
+    updates.push(
+      [key, stored.text],
+      [`${key}_key`, stored.key],
+      [`${key}_params`, stored.params]
+    );
+  }
+  if (!updates.length) return;
   database
     .query(
-      "UPDATE workflow_runs SET " + fields.map((key) => key + " = ?").join(", ") + " WHERE id = ?"
+      "UPDATE workflow_runs SET " +
+        updates.map(([key]) => key + " = ?").join(", ") +
+        " WHERE id = ?"
     )
-    .run(...fields.map((key) => patch[key] as string | number | null), id);
+    .run(...updates.map(([, value]) => value), id);
 
   // A terminal workflow must never leave active/pending stages behind.
   if (patch.status === "succeeded" || patch.status === "failed" || patch.status === "cancelled") {
     const finishedAt = patch.finished_at ?? new Date().toISOString();
-    const fallbackError = patch.error || "工作流已结束，但该阶段未正常收尾";
+    const fallbackError = typeof patch.error === "string" ? patch.error : "";
     database
       .query(
         `
       UPDATE workflow_stages
       SET status = CASE WHEN status = 'running' THEN 'failed' ELSE 'skipped' END,
-          message = CASE WHEN status = 'running' THEN '工作流已结束，阶段未正常收尾' ELSE '工作流已结束，未执行的阶段已跳过' END,
+          message = '',
+          message_key = CASE WHEN status = 'running' THEN 'workflow.stage.unfinished' ELSE 'workflow.stage.skippedMsg' END,
+          message_params = '{}',
           error = CASE WHEN status = 'running' THEN ? ELSE '' END,
+          error_key = '',
+          error_params = '{}',
           finished_at = COALESCE(finished_at, ?),
           duration_ms = CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0, CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER)) END
       WHERE run_id = ? AND status IN ('running', 'pending')
@@ -402,35 +526,37 @@ export function listWorkflowRuns(database: AppDatabase, limit = 50, beforeId = 0
   const safeLimit = Math.max(1, Math.min(101, Math.floor(limit) || 50));
   const cursor = Math.max(0, Math.floor(beforeId) || 0);
   if (cursor > 0) {
-    return database
+    const rows = database
       .query("SELECT * FROM workflow_runs WHERE id < ? ORDER BY id DESC LIMIT ?")
-      .all(cursor, safeLimit) as WorkflowRun[];
+      .all(cursor, safeLimit) as WorkflowRunRow[];
+    return rows.map(decodeWorkflowRun);
   }
-  return database
+  const rows = database
     .query("SELECT * FROM workflow_runs ORDER BY id DESC LIMIT ?")
-    .all(safeLimit) as WorkflowRun[];
+    .all(safeLimit) as WorkflowRunRow[];
+  return rows.map(decodeWorkflowRun);
 }
 export function listActiveWorkflowRuns(database: AppDatabase): WorkflowRun[] {
-  return database
+  const rows = database
     .query(
       "SELECT * FROM workflow_runs WHERE status IN ('pending','running') ORDER BY CASE status WHEN 'running' THEN 0 ELSE 1 END, id ASC"
     )
-    .all() as WorkflowRun[];
+    .all() as WorkflowRunRow[];
+  return rows.map(decodeWorkflowRun);
 }
 export function getCurrentWorkflow(database: AppDatabase): WorkflowRun | null {
-  return (
-    (database
+  const row = database
       .query(
         "SELECT * FROM workflow_runs WHERE status IN ('pending','running') ORDER BY CASE status WHEN 'running' THEN 0 ELSE 1 END, id ASC LIMIT 1"
       )
-      .get() as WorkflowRun | null) ?? null
-  );
+      .get() as WorkflowRunRow | null;
+  return row ? decodeWorkflowRun(row) : null;
 }
 export function markInterruptedWorkflows(database: AppDatabase): void {
   const now = new Date().toISOString();
   database
     .query(
-      "UPDATE workflow_runs SET status='failed', stage='进程中断', error='服务进程重启，任务未能正常完成', message='任务已中断', finished_at=?, duration_ms=CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0, CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER)) END WHERE status IN ('pending','running')"
+      "UPDATE workflow_runs SET status='failed', stage='', stage_key='workflow.stage.interrupted', stage_params='{}', error='', error_key='workflow.run.interrupted', error_params='{}', message='', message_key='workflow.run.interruptedMsg', message_params='{}', finished_at=?, duration_ms=CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0, CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER)) END WHERE status IN ('pending','running')"
     )
     .run(now, now);
 
@@ -440,14 +566,12 @@ export function markInterruptedWorkflows(database: AppDatabase): void {
       `
     UPDATE workflow_stages
     SET status = CASE WHEN status = 'running' THEN 'failed' ELSE 'skipped' END,
-        message = CASE WHEN status = 'running' THEN '工作流未正常结束，该阶段已标记为失败' ELSE '工作流已结束，未执行的阶段已跳过' END,
-        error = CASE
-          WHEN status = 'running' THEN COALESCE(
-            (SELECT NULLIF(error, '') FROM workflow_runs WHERE workflow_runs.id = workflow_stages.run_id),
-            '工作流未正常结束，该阶段已标记为失败'
-          )
-          ELSE ''
-        END,
+        message = '',
+        message_key = CASE WHEN status = 'running' THEN 'workflow.stage.unfinished' ELSE 'workflow.stage.skippedMsg' END,
+        message_params = '{}',
+        error = '',
+        error_key = CASE WHEN status = 'running' THEN 'workflow.stage.unfinished' ELSE '' END,
+        error_params = '{}',
         finished_at = COALESCE(finished_at, ?),
         duration_ms = CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0, CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER)) END
     WHERE status IN ('running', 'pending')
@@ -527,44 +651,94 @@ export interface WorkflowStage {
   run_id: number;
   stage_key: string;
   name: string;
+  name_key: string;
+  name_params: LocalizedParams;
   status: "pending" | "running" | "succeeded" | "failed" | "skipped";
   message: string;
+  message_key: string;
+  message_params: LocalizedParams;
   error: string;
+  error_key: string;
+  error_params: LocalizedParams;
   detail: string;
   started_at: string | null;
   finished_at: string | null;
   duration_ms: number | null;
 }
+interface WorkflowStageRow extends Omit<
+  WorkflowStage,
+  "name_params" | "message_params" | "error_params"
+> {
+  name_params: string;
+  message_params: string;
+  error_params: string;
+}
+function decodeWorkflowStage(row: WorkflowStageRow): WorkflowStage {
+  return {
+    ...row,
+    name_params: parseLocalizedParams(row.name_params),
+    message_params: parseLocalizedParams(row.message_params),
+    error_params: parseLocalizedParams(row.error_params),
+  };
+}
 export function startWorkflowStage(
   database: AppDatabase,
   runId: number,
   stageKey: string,
-  name: string,
-  message: string,
+  name: PersistedText,
+  message: PersistedText,
   detail = ""
 ): number {
   const now = new Date().toISOString();
+  const storedName = serializePersistedText(name);
+  const storedMessage = serializePersistedText(message);
   const result = database
     .query(
-      "INSERT INTO workflow_stages (run_id,stage_key,name,status,message,detail,started_at) VALUES (?,?,?,'running',?,?,?)"
+      "INSERT INTO workflow_stages (run_id,stage_key,name,name_key,name_params,status,message,message_key,message_params,detail,started_at) VALUES (?,?,?,?,?,'running',?,?,?,?,?)"
     )
-    .run(runId, stageKey, name, message, detail || "", now);
+    .run(
+      runId,
+      stageKey,
+      storedName.text,
+      storedName.key,
+      storedName.params,
+      storedMessage.text,
+      storedMessage.key,
+      storedMessage.params,
+      detail || "",
+      now
+    );
   return Number(result.lastInsertRowid);
 }
 export function finishWorkflowStage(
   database: AppDatabase,
   stageId: number,
   status: "succeeded" | "failed" | "skipped",
-  message: string,
-  error = "",
+  message: PersistedText,
+  error: PersistedText = "",
   detail = ""
 ): void {
   const now = new Date().toISOString();
+  const storedMessage = serializePersistedText(message);
+  const storedError = serializePersistedText(error);
   database
     .query(
-      "UPDATE workflow_stages SET status=?,message=?,error=?,detail=CASE WHEN ? <> '' THEN ? ELSE detail END,finished_at=?,duration_ms=CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0,CAST((julianday(?) - julianday(started_at))*86400000 AS INTEGER)) END WHERE id=?"
+      "UPDATE workflow_stages SET status=?,message=?,message_key=?,message_params=?,error=?,error_key=?,error_params=?,detail=CASE WHEN ? <> '' THEN ? ELSE detail END,finished_at=?,duration_ms=CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0,CAST((julianday(?) - julianday(started_at))*86400000 AS INTEGER)) END WHERE id=?"
     )
-    .run(status, message, error, detail || "", detail || "", now, now, stageId);
+    .run(
+      status,
+      storedMessage.text,
+      storedMessage.key,
+      storedMessage.params,
+      storedError.text,
+      storedError.key,
+      storedError.params,
+      detail || "",
+      detail || "",
+      now,
+      now,
+      stageId
+    );
 }
 export function encodeWorkflowStageDetail(value: unknown): string {
   try {
@@ -585,22 +759,23 @@ export function cancelPendingWorkflow(
   const now = new Date().toISOString();
   const result = database
     .query(
-      "UPDATE workflow_runs SET status='cancelled', stage='已取消', message='任务在等待期间被取消', error='', finished_at=? WHERE id=? AND status='pending'"
+      "UPDATE workflow_runs SET status='cancelled', stage='', stage_key='workflow.stage.cancelled', stage_params='{}', message='', message_key='workflow.run.cancelled', message_params='{}', error='', error_key='', error_params='{}', finished_at=? WHERE id=? AND status='pending'"
     )
     .run(now, id);
   return Number(result.changes) > 0 ? "cancelled" : "not-pending";
 }
 
 export function getWorkflowRun(database: AppDatabase, id: number): WorkflowRun | null {
-  return (
-    (database.query("SELECT * FROM workflow_runs WHERE id = ?").get(id) as WorkflowRun | null) ??
-    null
-  );
+  const row = database.query("SELECT * FROM workflow_runs WHERE id = ?").get(id) as
+    | WorkflowRunRow
+    | null;
+  return row ? decodeWorkflowRun(row) : null;
 }
 export function listWorkflowStages(database: AppDatabase, runId: number): WorkflowStage[] {
-  return database
+  const rows = database
     .query("SELECT * FROM workflow_stages WHERE run_id = ? ORDER BY id")
-    .all(runId) as WorkflowStage[];
+    .all(runId) as WorkflowStageRow[];
+  return rows.map(decodeWorkflowStage);
 }
 
 /** Clear all execution history and stage timelines, but never while a workflow is active. */

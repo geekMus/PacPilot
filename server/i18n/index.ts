@@ -14,7 +14,15 @@ const en: Dict = {
   "pac.body.remoteCustomStats": "// Custom block list: {block}; custom direct list: {direct}",
   "gen.success.remote":
     "Generated successfully (remote rules: {format}, {proxy} proxy hosts, {direct} direct exceptions)",
+  "gen.success.remote.gfwlist":
+    "Generated successfully (remote rules: GFWList (Base64), {proxy} proxy hosts, {direct} direct exceptions)",
+  "gen.success.remote.abp":
+    "Generated successfully (remote rules: AutoProxy / ABP, {proxy} proxy hosts, {direct} direct exceptions)",
+  "gen.success.remote.plain":
+    "Generated successfully (remote rules: plain domain list, {proxy} proxy hosts, {direct} direct exceptions)",
   "gen.success.custom": "Generated successfully (custom rules mode{compress})",
+  "gen.success.custom.compressed": "Generated successfully (custom rules mode, compressed)",
+  "gen.success.custom.uncompressed": "Generated successfully (custom rules mode, uncompressed)",
   "gen.compress.on": ", compressed",
   "gen.compress.off": ", uncompressed",
   "format.gfwlist": "GFWList (Base64)",
@@ -33,6 +41,15 @@ const en: Dict = {
   "workflow.stage.exception": "Execution error",
   "workflow.stage.exceptionMsg": "Workflow execution failed",
   "workflow.stage.abnormal": "Workflow stage failed unexpectedly",
+  "workflow.stage.queued": "Queued",
+  "workflow.stage.interrupted": "Interrupted",
+  "workflow.stage.cancelled": "Cancelled",
+  "workflow.stage.unfinished": "Workflow ended before this stage completed",
+  "workflow.stage.skippedMsg": "Skipped because the workflow ended",
+  "workflow.run.queued": "Task created",
+  "workflow.run.interrupted": "Service restarted before the task completed",
+  "workflow.run.interruptedMsg": "Task interrupted",
+  "workflow.run.cancelled": "Task cancelled while waiting",
 };
 
 /** 中文：覆盖生成物与用户可见服务端文案。 */
@@ -47,7 +64,12 @@ const zh: Dict = {
   "pac.body.remoteStats": "// 远程代理域名：{proxy} 条；远程例外直连：{direct} 条",
   "pac.body.remoteCustomStats": "// 自定义黑名单：{block} 条；自定义直连：{direct} 条",
   "gen.success.remote": "生成成功（远程规则：{format}，代理域名 {proxy} 条，例外直连 {direct} 条）",
+  "gen.success.remote.gfwlist": "生成成功（远程规则：GFWList（Base64），代理域名 {proxy} 条，例外直连 {direct} 条）",
+  "gen.success.remote.abp": "生成成功（远程规则：AutoProxy / ABP，代理域名 {proxy} 条，例外直连 {direct} 条）",
+  "gen.success.remote.plain": "生成成功（远程规则：明文域名列表，代理域名 {proxy} 条，例外直连 {direct} 条）",
   "gen.success.custom": "生成成功（自定义规则模式{compress}）",
+  "gen.success.custom.compressed": "生成成功（自定义规则模式，已压缩）",
+  "gen.success.custom.uncompressed": "生成成功（自定义规则模式，未压缩）",
   "gen.compress.on": "，已压缩",
   "gen.compress.off": "，未压缩",
   "format.gfwlist": "GFWList（Base64）",
@@ -66,6 +88,15 @@ const zh: Dict = {
   "workflow.stage.exception": "执行异常",
   "workflow.stage.exceptionMsg": "工作流执行异常",
   "workflow.stage.abnormal": "工作流阶段发生异常",
+  "workflow.stage.queued": "等待执行",
+  "workflow.stage.interrupted": "进程中断",
+  "workflow.stage.cancelled": "已取消",
+  "workflow.stage.unfinished": "工作流结束时该阶段未完成",
+  "workflow.stage.skippedMsg": "工作流结束，未执行的阶段已跳过",
+  "workflow.run.queued": "任务已创建",
+  "workflow.run.interrupted": "服务进程重启，任务未能正常完成",
+  "workflow.run.interruptedMsg": "任务已中断",
+  "workflow.run.cancelled": "任务在等待期间被取消",
 };
 
 const catalogs: Record<AppLocale, Dict> = { en_US: en, zh_CN: zh };

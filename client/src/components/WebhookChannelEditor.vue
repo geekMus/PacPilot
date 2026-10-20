@@ -266,7 +266,11 @@ const channelStatusText = computed(() => {
           <button
             type="button"
             class="reveal-button"
-            :aria-label='t("webhookChannel.k20")'
+            :aria-label="
+              showDingTalkSecret
+                ? t('webhookChannel.hideSecretLabel')
+                : t('webhookChannel.showSecretLabel')
+            "
             :aria-pressed="showDingTalkSecret"
             @click="showDingTalkSecret = !showDingTalkSecret"
           >

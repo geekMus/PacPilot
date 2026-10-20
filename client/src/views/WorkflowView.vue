@@ -10,7 +10,12 @@ import ConfirmPopover from "../components/ConfirmPopover.vue";
 import VirtualTable from "../components/VirtualTable.vue";
 import SelectField from "../components/SelectField.vue";
 import { useToast } from "../composables/useToast";
-const { t } = useI18n();
+const { t, locale } = useI18n();
+const localizedText = (
+  text: string | null | undefined,
+  key: string | undefined,
+  params?: Record<string, string | number>
+) => (key ? t(key, params ?? {}) : text ?? "");
 
 const router = useRouter();
 const { notify } = useToast();
@@ -91,7 +96,8 @@ const durationLabel = (run: WorkflowRun) => {
   if (ms < 60000) return t("workflowPage.sec", { n: (ms / 1000).toFixed(1) });
   return t("workflowPage.minSec", { m: Math.floor(ms / 60000), s: Math.floor((ms % 60000) / 1000) });
 };
-const dateLabel = (value: string | null) => (value ? new Date(value).toLocaleString() : "—");
+const dateLabel = (value: string | null) =>
+  value ? new Date(value).toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN") : "—";
 
 async function load(silent = false, resetHistory = false) {
   if (requestInFlight) return;
@@ -120,7 +126,13 @@ async function load(silent = false, resetHistory = false) {
             run.status === "succeeded"
               ? t("workflowPage.runCompleted", { id: run.id })
               : run.status === "failed"
-                ? t("workflowPage.runFailed", { id: run.id, detail: run.error || run.message || t("workflowPage.k11") })
+                ? t("workflowPage.runFailed", {
+                    id: run.id,
+                    detail:
+                      localizedText(run.error, run.error_key, run.error_params) ||
+                      localizedText(run.message, run.message_key, run.message_params) ||
+                      t("workflowPage.k11"),
+                  })
                 : t("workflowPage.runCancelled", { id: run.id });
           notify(
             message,
@@ -387,10 +399,15 @@ onUnmounted(stopPolling);
             </div>
             <div class="current-copy">
               <strong>{{ sourceLabel(current.source) }}</strong>
-              <span>{{ current.stage || t("workflowPage.k21") }}</span>
+              <span>{{
+                localizedText(current.stage, current.stage_key, current.stage_params) ||
+                t("workflowPage.k21")
+              }}</span>
             </div>
           </div>
-          <p class="current-message">{{ current.message }}</p>
+          <p class="current-message">
+            {{ localizedText(current.message, current.message_key, current.message_params) }}
+          </p>
           <div class="current-meta">
             <div>
               <span>{{ t("workflowPage.k49") }}</span><strong>#{{ current.id }}</strong>
@@ -450,9 +467,9 @@ onUnmounted(stopPolling);
               </div>
             </div>
           </div>
-          <div v-if="current.error" class="workflow-error-detail">
+          <div v-if="current.error || current.error_key" class="workflow-error-detail">
             <strong>{{ t("workflowPage.k57") }}</strong>
-            <pre>{{ current.error }}</pre>
+            <pre>{{ localizedText(current.error, current.error_key, current.error_params) }}</pre>
           </div>
         </template>
         <div v-else class="empty-current">
@@ -489,7 +506,13 @@ onUnmounted(stopPolling);
                 <strong>#{{ run.id }} · {{ sourceLabel(run.source) }}</strong
                 ><span class="status-pill" :class="run.status">{{ statusLabel(run.status) }}</span>
               </div>
-              <p>{{ run.stage || run.message || t("workflowPage.k0") }}</p>
+              <p>
+                {{
+                  localizedText(run.stage, run.stage_key, run.stage_params) ||
+                  localizedText(run.message, run.message_key, run.message_params) ||
+                  t("workflowPage.k0")
+                }}
+              </p>
             </div>
             <RouterLink class="workflow-button secondary" :to="`/admin/workflows/${run.id}`"
               >{{ t("workflowPage.k53") }}</RouterLink
@@ -499,7 +522,11 @@ onUnmounted(stopPolling);
                 class="workflow-button cancel-button"
                 type="button"
                 :disabled="cancellingId === run.id"
-                :title='t("workflowPage.k27")'
+                :title="
+                  cancellingId === run.id
+                    ? t('workflowPage.cancellingQueuedTitle')
+                    : t('workflowPage.cancelQueuedTitle')
+                "
                 @click.stop="toggleQueueCancel(run)"
               >
                 <AppIcon name="x" :size="14" /> {{ t("workflowPage.k39") }}
@@ -661,7 +688,7 @@ onUnmounted(stopPolling);
               class="workflow-run-row"
               tabindex="0"
               role="link"
-              :aria-label='t("workflowPage.k38")'
+              :aria-label="t('workflowPage.viewRunDetails', { id: run.id })"
               @click="router.push(`/admin/workflows/${run.id}`)"
               @keydown.enter.prevent="router.push(`/admin/workflows/${run.id}`)"
               @keydown.space.prevent="router.push(`/admin/workflows/${run.id}`)"

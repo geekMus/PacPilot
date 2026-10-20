@@ -6,7 +6,7 @@ import { BarChart, LineChart } from "echarts/charts";
 import { GridComponent, TooltipComponent, LegendComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import type { EChartsType } from "echarts/core";
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 echarts.use([
   BarChart,
@@ -70,7 +70,7 @@ function formatHour(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "--:--";
   try {
-    return new Intl.DateTimeFormat("en-GB", {
+    return new Intl.DateTimeFormat(locale.value === "en_US" ? "en-US" : "zh-CN", {
       timeZone: props.timeZone,
       hour: "2-digit",
       minute: "2-digit",
@@ -85,7 +85,7 @@ function formatTimestamp(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   try {
-    return new Intl.DateTimeFormat("zh-CN", {
+    return new Intl.DateTimeFormat(locale.value === "en_US" ? "en-US" : "zh-CN", {
       timeZone: props.timeZone,
       month: "2-digit",
       day: "2-digit",

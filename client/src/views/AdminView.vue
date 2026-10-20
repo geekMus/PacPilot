@@ -23,7 +23,12 @@ import cronstrue from "cronstrue";
 import { CronExpressionParser } from "cron-parser";
 import "cronstrue/locales/zh_CN";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
+const localizedText = (
+  text: string | null | undefined,
+  key: string | undefined,
+  params?: Record<string, string | number>
+) => (key ? t(key, params ?? {}) : text ?? "");
 const { notify } = useToast();
 const router = useRouter();
 const route = useRoute();
@@ -236,7 +241,7 @@ function parseCronDescription(expr: string): { description: string; error: strin
     CronExpressionParser.parse(value);
     return {
       description: cronstrue.toString(value, {
-        locale: "zh_CN",
+        locale: locale.value === "en_US" ? "en" : "zh_CN",
         dayOfWeekStartIndexZero: false,
         use24HourTimeFormat: true,
         throwExceptionOnParseError: true,
@@ -1319,7 +1324,12 @@ async function changeAdminPassword() {
                   }}</span>
                 </td>
                 <td>{{ l.mode }}</td>
-                <td class="msg"><TextDetail :text="l.message || ''" :label="t('settings.genLogInfo')" /></td>
+                <td class="msg">
+                  <TextDetail
+                    :text="localizedText(l.message, l.message_key, l.message_params)"
+                    :label="t('settings.genLogInfo')"
+                  />
+                </td>
               </tr>
             </template>
           </VirtualTable>
