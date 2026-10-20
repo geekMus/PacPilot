@@ -2,13 +2,16 @@
 import AppIcon from "./AppIcon.vue";
 import { computed, nextTick, ref } from "vue";
 
-const props = withDefaults(defineProps<{
-  text?: string | null;
-  label?: string;
-}>(), {
-  text: "",
-  label: "记录详情",
-});
+const props = withDefaults(
+  defineProps<{
+    text?: string | null;
+    label?: string;
+  }>(),
+  {
+    text: "",
+    label: "记录详情",
+  }
+);
 
 const dialog = ref<HTMLDialogElement | null>(null);
 const trigger = ref<HTMLButtonElement | null>(null);
@@ -75,12 +78,9 @@ async function copyContent(): Promise<void> {
         <p>{{ label }}</p>
         <h2>完整记录内容</h2>
       </div>
-      <button
-        class="text-detail-close"
-        type="button"
-        aria-label="关闭详情"
-        @click="closeDetails"
-      ><AppIcon name="x" :size="16" /></button>
+      <button class="text-detail-close" type="button" aria-label="关闭详情" @click="closeDetails">
+        <AppIcon name="x" :size="16" />
+      </button>
     </header>
 
     <pre class="text-detail-content">{{ fullText || "—" }}</pre>
@@ -88,7 +88,9 @@ async function copyContent(): Promise<void> {
     <footer class="text-detail-footer">
       <span class="text-detail-copy-state" role="status" aria-live="polite">{{ copyState }}</span>
       <div class="text-detail-actions">
-        <button class="text-detail-button secondary" type="button" @click="copyContent"><AppIcon name="copy" :size="14" />复制内容</button>
+        <button class="text-detail-button secondary" type="button" @click="copyContent">
+          <AppIcon name="copy" :size="14" />复制内容
+        </button>
         <button class="text-detail-button primary" type="button" @click="closeDetails">关闭</button>
       </div>
     </footer>
@@ -178,8 +180,16 @@ async function copyContent(): Promise<void> {
   line-height: 1.4;
 }
 
-.text-detail-close:hover { border-color:var(--accent); background:var(--accent-soft); color:var(--accent); }
-.text-detail-close:active { background:var(--accent-active); border-color:var(--accent-active); color:var(--accent-contrast); }
+.text-detail-close:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.text-detail-close:active {
+  background: var(--accent-active);
+  border-color: var(--accent-active);
+  color: var(--accent-contrast);
+}
 .text-detail-close {
   flex: 0 0 auto;
   display: grid;
@@ -205,7 +215,11 @@ async function copyContent(): Promise<void> {
   border-radius: 10px;
   background: var(--surface-2);
   color: var(--text);
-  font: 12px/1.7 ui-monospace, SFMono-Regular, Consolas, monospace;
+  font:
+    12px/1.7 ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -231,10 +245,10 @@ async function copyContent(): Promise<void> {
 }
 
 .text-detail-button {
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   min-height: 38px;
   padding: 0 13px;
   border: 1px solid var(--line);
@@ -250,15 +264,31 @@ async function copyContent(): Promise<void> {
   color: var(--text);
 }
 
-.text-detail-button.secondary:hover { border-color:var(--accent); color:var(--accent); background:var(--surface); }
-.text-detail-button.secondary:active { border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
+.text-detail-button.secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--surface);
+}
+.text-detail-button.secondary:active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
 .text-detail-button.primary {
   border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-contrast, #fff);
 }
-.text-detail-button.primary:hover { border-color:var(--accent-hover); background:var(--accent-hover); color:var(--accent-contrast); }
-.text-detail-button.primary:active { border-color:var(--accent-active); background:var(--accent-active); color:var(--accent-contrast); }
+.text-detail-button.primary:hover {
+  border-color: var(--accent-hover);
+  background: var(--accent-hover);
+  color: var(--accent-contrast);
+}
+.text-detail-button.primary:active {
+  border-color: var(--accent-active);
+  background: var(--accent-active);
+  color: var(--accent-contrast);
+}
 
 @media (max-width: 560px) {
   .text-detail-dialog {

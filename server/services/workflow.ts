@@ -74,7 +74,14 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
       prepareDetail
     );
     activeStageId = prepareStage;
-    finishWorkflowStage(database, prepareStage, "succeeded", t(settings.locale, "workflow.prepare.done"), "", prepareDetail);
+    finishWorkflowStage(
+      database,
+      prepareStage,
+      "succeeded",
+      t(settings.locale, "workflow.prepare.done"),
+      "",
+      prepareDetail
+    );
     activeStageId = null;
 
     const generationStage = startWorkflowStage(
@@ -101,7 +108,9 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
     activeStageId = null;
     updateWorkflowRun(database, id, {
       status: generation.success ? "succeeded" : "failed",
-      stage: generation.success ? t(settings.locale, "workflow.stage.done") : t(settings.locale, "workflow.stage.failed"),
+      stage: generation.success
+        ? t(settings.locale, "workflow.stage.done")
+        : t(settings.locale, "workflow.stage.failed"),
       message: generation.message,
       error: generation.success ? "" : generation.message,
       finished_at: finishedAt.toISOString(),
@@ -174,7 +183,10 @@ function enqueueWorkflow(
   const workflowId = createWorkflowRun(database, source, getSettings(database).mode);
   let resolve!: (result: GenerateResult) => void;
   let reject!: (error: unknown) => void;
-  const promise = new Promise<GenerateResult>((res, rej) => { resolve = res; reject = rej; });
+  const promise = new Promise<GenerateResult>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
   const item: QueueItem = { workflowId, database, dataDir, resolve, reject, promise, execute };
   const queue = queues.get(type) ?? [];
   queue.push(item);
@@ -182,12 +194,20 @@ function enqueueWorkflow(
   pumpQueue(type);
   return item;
 }
-function enqueuePacWorkflow(database: AppDatabase, dataDir: string, source: WorkflowSource): QueueItem {
+function enqueuePacWorkflow(
+  database: AppDatabase,
+  dataDir: string,
+  source: WorkflowSource
+): QueueItem {
   return enqueueWorkflow(PAC_WORKFLOW_TYPE, database, dataDir, source, executePacWorkflow);
 }
 
 /** Start a queued server-owned task and return its ID immediately. */
-export function startPacWorkflow(database: AppDatabase, dataDir: string, source: WorkflowSource): number {
+export function startPacWorkflow(
+  database: AppDatabase,
+  dataDir: string,
+  source: WorkflowSource
+): number {
   const item = enqueuePacWorkflow(database, dataDir, source);
   void item.promise.catch((error) => console.error("[workflow] task failed:", error));
   return item.workflowId;

@@ -7,17 +7,20 @@ interface RuleEntry {
   source?: string;
 }
 
-const props = withDefaults(defineProps<{
-  items: RuleEntry[];
-  emptyText: string;
-  height?: number;
-  rowHeight?: number;
-  overscan?: number;
-}>(), {
-  height: 300,
-  rowHeight: 36,
-  overscan: 6,
-});
+const props = withDefaults(
+  defineProps<{
+    items: RuleEntry[];
+    emptyText: string;
+    height?: number;
+    rowHeight?: number;
+    overscan?: number;
+  }>(),
+  {
+    height: 300,
+    rowHeight: 36,
+    overscan: 6,
+  }
+);
 
 const scrollTop = ref(0);
 const viewport = ref<HTMLDivElement | null>(null);
@@ -27,8 +30,8 @@ const viewportHeight = computed(() =>
 const startIndex = computed(() =>
   Math.max(0, Math.floor(scrollTop.value / props.rowHeight) - props.overscan)
 );
-const visibleCount = computed(() =>
-  Math.ceil(viewportHeight.value / props.rowHeight) + props.overscan * 2
+const visibleCount = computed(
+  () => Math.ceil(viewportHeight.value / props.rowHeight) + props.overscan * 2
 );
 const visibleItems = computed(() =>
   props.items.slice(startIndex.value, startIndex.value + visibleCount.value)
@@ -48,10 +51,13 @@ function onScroll(event: Event) {
   scrollTop.value = (event.currentTarget as HTMLDivElement).scrollTop;
 }
 
-watch(() => props.items, () => {
-  scrollTop.value = 0;
-  if (viewport.value) viewport.value.scrollTop = 0;
-});
+watch(
+  () => props.items,
+  () => {
+    scrollTop.value = 0;
+    if (viewport.value) viewport.value.scrollTop = 0;
+  }
+);
 </script>
 
 <template>
@@ -72,12 +78,12 @@ watch(() => props.items, () => {
           :style="{ height: rowHeight + 'px' }"
           role="listitem"
         >
-          <TextDetail :text="item.domain" label="域名规则" class="domain-detail"><code>{{ item.domain }}</code></TextDetail>
-          <span
-            v-if="item.source"
-            class="row-source"
-            :class="sourceClass(item.source)"
-          >{{ item.source }}</span>
+          <TextDetail :text="item.domain" label="域名规则" class="domain-detail"
+            ><code>{{ item.domain }}</code></TextDetail
+          >
+          <span v-if="item.source" class="row-source" :class="sourceClass(item.source)">{{
+            item.source
+          }}</span>
         </div>
       </div>
     </div>
@@ -97,10 +103,21 @@ watch(() => props.items, () => {
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
-.virtual-list::-webkit-scrollbar { width: var(--scrollbar-size); }
-.virtual-list::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 999px; }
-.virtual-canvas { position: relative; min-width: 0; }
-.virtual-window { position: absolute; inset: 0 0 auto; }
+.virtual-list::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+}
+.virtual-list::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+}
+.virtual-canvas {
+  position: relative;
+  min-width: 0;
+}
+.virtual-window {
+  position: absolute;
+  inset: 0 0 auto;
+}
 .virtual-row {
   box-sizing: border-box;
   display: flex;
@@ -110,7 +127,9 @@ watch(() => props.items, () => {
   padding: 0 10px;
   border-bottom: 1px solid var(--line);
 }
-.virtual-row:last-child { border-bottom: 0; }
+.virtual-row:last-child {
+  border-bottom: 0;
+}
 .virtual-row > .domain-detail {
   flex: 1 1 auto;
   font-size: 12px;

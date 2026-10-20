@@ -67,7 +67,9 @@ const isOpen = ref(false);
   pointer-events: none;
   transform: translateY(-50%) rotate(0deg);
   transform-origin: center;
-  transition: transform 180ms ease, color 180ms ease;
+  transition:
+    transform 180ms ease,
+    color 180ms ease;
 }
 .select-field.is-open .select-field-icon {
   color: var(--accent);
@@ -77,6 +79,8 @@ const isOpen = ref(false);
   border-color: var(--accent);
 }
 @media (prefers-reduced-motion: reduce) {
-  .select-field-icon { transition: none; }
+  .select-field-icon {
+    transition: none;
+  }
 }
 </style>

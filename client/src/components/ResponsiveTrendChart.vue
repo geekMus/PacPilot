@@ -2,15 +2,18 @@
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from "vue";
 import * as echarts from "echarts/core";
 import { BarChart, LineChart } from "echarts/charts";
-import {
-  GridComponent,
-  TooltipComponent,
-  LegendComponent,
-} from "echarts/components";
+import { GridComponent, TooltipComponent, LegendComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import type { EChartsType } from "echarts/core";
 
-echarts.use([BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
+echarts.use([
+  BarChart,
+  LineChart,
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  CanvasRenderer,
+]);
 
 export interface TrendPoint {
   hour: string;
@@ -52,7 +55,9 @@ function withAlpha(color: string, alpha: string): string {
   const c = color.trim();
   if (/^#[0-9a-fA-F]{6}$/.test(c)) return c + alpha;
   if (/^#[0-9a-fA-F]{3}$/.test(c)) {
-    const r = c[1], g = c[2], b = c[3];
+    const r = c[1],
+      g = c[2],
+      b = c[3];
     return "#" + r + r + g + g + b + b + alpha;
   }
   return c;
@@ -131,7 +136,7 @@ function buildOption(): Record<string, unknown> {
     axisLabel: {
       color: muted,
       fontSize: isMobile ? 10 : 11,
-      fontFamily: 'var(--font)',
+      fontFamily: "var(--font)",
     },
     splitLine: {
       show: true,
@@ -145,7 +150,7 @@ function buildOption(): Record<string, unknown> {
     borderColor: line,
     borderWidth: 1,
     padding: [10, 12],
-    textStyle: { color: text, fontSize: 12, fontFamily: 'var(--font)' },
+    textStyle: { color: text, fontSize: 12, fontFamily: "var(--font)" },
     extraCssText: "box-shadow:0 10px 28px rgba(0,0,0,.12);border-radius:10px;",
   };
 
@@ -192,7 +197,8 @@ function buildOption(): Record<string, unknown> {
         axisLabel: {
           color: muted,
           fontSize: isMobile ? 10 : 11,
-          formatter: (value: number) => (value >= 1000 ? (value / 1000).toFixed(1) + "s" : String(Math.round(value))),
+          formatter: (value: number) =>
+            value >= 1000 ? (value / 1000).toFixed(1) + "s" : String(Math.round(value)),
         },
         splitLine: { lineStyle: { color: line, type: "dashed" } },
         axisLine: { show: false },
@@ -357,12 +363,7 @@ watch(
 </script>
 
 <template>
-  <div
-    class="responsive-trend-chart"
-    :class="{ compact }"
-    role="img"
-    :aria-label="ariaLabel"
-  >
+  <div class="responsive-trend-chart" :class="{ compact }" role="img" :aria-label="ariaLabel">
     <div ref="host" class="chart-host"></div>
   </div>
 </template>

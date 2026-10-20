@@ -12,9 +12,7 @@ function getStored(): ThemeMode {
 
 function resolve(mode: ThemeMode): "light" | "dark" {
   if (mode === "light" || mode === "dark") return mode;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 function applyClass(resolved: "light" | "dark") {

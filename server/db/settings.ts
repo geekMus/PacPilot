@@ -28,14 +28,20 @@ export interface WebhookConfig {
   testMessageTemplate: string;
 }
 
-export const DEFAULT_TASK_BODY = JSON.stringify({
-  ok: "{{ok}}",
-  event: "{{event}}",
-  message: "{{message}}",
-  timestamp: "{{timestamp}}",
-}, null, 2);
-export const DEFAULT_TASK_MESSAGE_TEMPLATE = "genpac-runner 通知\n事件：{{event}}\n状态：{{status}}\n时间：{{timestamp}}\n详情：{{message}}";
-export const DEFAULT_TEST_MESSAGE_TEMPLATE = "genpac-runner 测试通知\n时间：{{timestamp}}\n结果：{{message}}";
+export const DEFAULT_TASK_BODY = JSON.stringify(
+  {
+    ok: "{{ok}}",
+    event: "{{event}}",
+    message: "{{message}}",
+    timestamp: "{{timestamp}}",
+  },
+  null,
+  2
+);
+export const DEFAULT_TASK_MESSAGE_TEMPLATE =
+  "genpac-runner 通知\n事件：{{event}}\n状态：{{status}}\n时间：{{timestamp}}\n详情：{{message}}";
+export const DEFAULT_TEST_MESSAGE_TEMPLATE =
+  "genpac-runner 测试通知\n时间：{{timestamp}}\n结果：{{message}}";
 export const DEFAULT_TEST_BODY = DEFAULT_TASK_BODY;
 
 export function createDefaultWebhookConfig(): WebhookConfig {
@@ -59,9 +65,7 @@ export function normalizeWebhookConfig(
   legacyBody = ""
 ): WebhookConfig {
   const defaults = createDefaultWebhookConfig();
-  const raw = input && typeof input === "object"
-    ? input as Record<string, unknown>
-    : {};
+  const raw = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
   return {
     provider: raw.provider === "dingtalk" ? "dingtalk" : "custom",
     url: String(raw.url ?? legacyUrl).trim(),

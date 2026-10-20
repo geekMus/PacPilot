@@ -31,9 +31,8 @@ function isLikelyDomain(s: string): boolean {
   if (!s || s.length < 2 || s.length > 253) return false;
   if (s.includes("://") || s.includes("/") || s.includes(" ")) return false;
   return (
-    /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(
-      s
-    ) || /^[a-z0-9._-]+$/i.test(s)
+    /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(s) ||
+    /^[a-z0-9._-]+$/i.test(s)
   );
 }
 
@@ -85,13 +84,7 @@ function parsePlainDomains(text: string): RemoteListParseResult {
   let rawLineCount = 0;
   for (const raw of text.split(/\r?\n/)) {
     let line = raw.trim();
-    if (
-      !line ||
-      line.startsWith("#") ||
-      line.startsWith("//") ||
-      line.startsWith("!")
-    )
-      continue;
+    if (!line || line.startsWith("#") || line.startsWith("//") || line.startsWith("!")) continue;
     rawLineCount++;
     line = line.replace(/^\*\./, "").replace(/^\./, "").toLowerCase();
     if (isLikelyDomain(line)) proxy.add(line);
@@ -116,10 +109,7 @@ export function parseRemoteListText(body: string): RemoteListParseResult {
 
   if (looksBase64) {
     try {
-      const decoded = Buffer.from(
-        trimmed.replace(/\s+/g, ""),
-        "base64"
-      ).toString("utf8");
+      const decoded = Buffer.from(trimmed.replace(/\s+/g, ""), "base64").toString("utf8");
       const parsed = parseAbpOrAutoproxy(decoded);
       if (parsed.proxyHosts.length === 0) {
         throw new Error("Base64 解码后没有有效域名");
@@ -127,17 +117,11 @@ export function parseRemoteListText(body: string): RemoteListParseResult {
       return { ...parsed, format: "gfwlist-base64" };
     } catch (e) {
       if (e instanceof Error && e.message.includes("有效域名")) throw e;
-      throw new Error(
-        "列表 Base64 解码失败，请确认 URL 返回的是 GFWList 或明文规则"
-      );
+      throw new Error("列表 Base64 解码失败，请确认 URL 返回的是 GFWList 或明文规则");
     }
   }
 
-  if (
-    trimmed.includes("||") ||
-    trimmed.includes("@@") ||
-    /^!\s/m.test(trimmed)
-  ) {
+  if (trimmed.includes("||") || trimmed.includes("@@") || /^!\s/m.test(trimmed)) {
     const parsed = parseAbpOrAutoproxy(trimmed);
     if (parsed.proxyHosts.length > 0) return parsed;
   }
@@ -159,9 +143,7 @@ function collectResponseHeaders(res: Response): Record<string, string> {
   return out;
 }
 
-export async function fetchAndParseRemoteList(
-  url: string
-): Promise<RemoteListParseResult> {
+export async function fetchAndParseRemoteList(url: string): Promise<RemoteListParseResult> {
   const unsafe = assertSafeHttpUrl(url, "规则列表 URL");
   if (unsafe) throw new Error(unsafe);
 
@@ -205,7 +187,12 @@ export async function fetchAndParseRemoteList(
     } catch (error) {
       lastError = error;
       // HTTP 响应错误和列表格式错误是确定性错误，不应重试。
-      if (error instanceof Error && /^(下载远程列表失败：HTTP|远程列表内容为空|未能从远程列表解析|列表 Base64 解码失败)/.test(error.message)) {
+      if (
+        error instanceof Error &&
+        /^(下载远程列表失败：HTTP|远程列表内容为空|未能从远程列表解析|列表 Base64 解码失败)/.test(
+          error.message
+        )
+      ) {
         throw error;
       }
       if (attempt < 2) {
@@ -239,9 +226,7 @@ export function buildRemoteListPac(
   compress: boolean,
   locale: "zh_CN" | "en_US" = "zh_CN"
 ): string {
-  const proxyObj = proxyHosts
-    .map((h) => `"${escapeJsString(h)}":1`)
-    .join(compress ? "," : ",\n  ");
+  const proxyObj = proxyHosts.map((h) => `"${escapeJsString(h)}":1`).join(compress ? "," : ",\n  ");
   const remoteDirectObj = remoteDirectHosts
     .map((h) => `"${escapeJsString(h)}":1`)
     .join(compress ? "," : ",\n  ");
@@ -250,8 +235,14 @@ export function buildRemoteListPac(
 
   const lang = locale === "en_US" ? "en_US" : "zh_CN";
   const intro = t(lang, "pac.body.remoteIntro");
-  const stats = t(lang, "pac.body.remoteStats", { proxy: proxyHosts.length, direct: remoteDirectHosts.length });
-  const customStats = t(lang, "pac.body.remoteCustomStats", { block: userBlockList.length, direct: userDirectList.length });
+  const stats = t(lang, "pac.body.remoteStats", {
+    proxy: proxyHosts.length,
+    direct: remoteDirectHosts.length,
+  });
+  const customStats = t(lang, "pac.body.remoteCustomStats", {
+    block: userBlockList.length,
+    direct: userDirectList.length,
+  });
   const body = `${intro}
 ${stats}
 ${customStats}

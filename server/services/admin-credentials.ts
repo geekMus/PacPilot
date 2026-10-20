@@ -21,9 +21,9 @@ interface AdminAuthRecord extends AdminSecurityStatus {
 }
 
 function readRecord(database: AppDatabase): AdminAuthRecord | null {
-  const row = database
-    .query("SELECT value FROM settings WHERE key = ?")
-    .get(AUTH_KEY) as { value: string } | null;
+  const row = database.query("SELECT value FROM settings WHERE key = ?").get(AUTH_KEY) as {
+    value: string;
+  } | null;
   if (!row) return null;
   try {
     const v = JSON.parse(row.value) as Partial<AdminAuthRecord>;

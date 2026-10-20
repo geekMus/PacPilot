@@ -24,13 +24,7 @@ withDefaults(
     <title>{{ title }}</title>
     <rect width="32" height="32" rx="8" fill="#3556d8" />
     <circle cx="12" cy="16" r="2.75" fill="#ffffff" />
-    <path
-      d="M5 16h4.2"
-      fill="none"
-      stroke="#ffffff"
-      stroke-width="2.2"
-      stroke-linecap="round"
-    />
+    <path d="M5 16h4.2" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" />
     <path
       d="M14.2 14.6c2.2-2.8 5.4-4.2 9.3-4.2"
       fill="none"
@@ -64,6 +58,8 @@ withDefaults(
   flex: 0 0 auto;
   border-radius: 22%;
   /* Soft edge on light surfaces without a second colored plate behind the mark. */
-  box-shadow: 0 1px 2px rgba(26, 35, 50, 0.06), 0 4px 12px rgba(53, 86, 216, 0.18);
+  box-shadow:
+    0 1px 2px rgba(26, 35, 50, 0.06),
+    0 4px 12px rgba(53, 86, 216, 0.18);
 }
 </style>

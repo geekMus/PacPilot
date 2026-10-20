@@ -109,14 +109,23 @@ export interface WorkflowRun {
   duration_ms: number | null;
 }
 export interface WorkflowStage {
-  id: number; run_id: number; stage_key: string; name: string;
+  id: number;
+  run_id: number;
+  stage_key: string;
+  name: string;
   status: "pending" | "running" | "succeeded" | "failed" | "skipped";
-  message: string; error: string;
+  message: string;
+  error: string;
   /** JSON string with request/config/output diagnostics when available. */
   detail?: string;
-  started_at: string | null; finished_at: string | null; duration_ms: number | null;
+  started_at: string | null;
+  finished_at: string | null;
+  duration_ms: number | null;
 }
-export interface WorkflowDetail { run: WorkflowRun; stages: WorkflowStage[]; }
+export interface WorkflowDetail {
+  run: WorkflowRun;
+  stages: WorkflowStage[];
+}
 export interface PagedResult<T> {
   items: T[];
   nextCursor: number | null;
@@ -132,13 +141,23 @@ export interface WorkflowList {
   total?: number;
   hasMore?: boolean;
 }
-export interface PacFileStatus { exists: boolean; sizeBytes: number; modifiedAt: string | null; }
+export interface PacFileStatus {
+  exists: boolean;
+  sizeBytes: number;
+  modifiedAt: string | null;
+}
 export interface StorageSummary {
   dataBytes: number;
   dbBytes: number;
   logBytes: number;
   retentionDays: number;
-  counts: { generationLogs: number; accessEvents: number; proxyProbeRuns: number; workflows: number; activeWorkflows: number };
+  counts: {
+    generationLogs: number;
+    accessEvents: number;
+    proxyProbeRuns: number;
+    workflows: number;
+    activeWorkflows: number;
+  };
   pacFiles: { proxyPac: PacFileStatus; proxySourcePac: PacFileStatus };
 }
 export interface GenpacProbe {
@@ -147,7 +166,6 @@ export interface GenpacProbe {
   engine?: string;
   detail: string;
 }
-
 
 export interface AccessEvent {
   id: number;
@@ -198,7 +216,12 @@ export interface MonitorSummary {
     status_code: number;
     duration_ms: number;
   } | null;
-  pacRequestTrend: Array<{ hour: string; requests: number; errors: number; averageResponseMs: number }>;
+  pacRequestTrend: Array<{
+    hour: string;
+    requests: number;
+    errors: number;
+    averageResponseMs: number;
+  }>;
 }
 
 export interface ProxyProbeResult {
@@ -255,13 +278,16 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
       const data = (await res.json()) as { error?: string; message?: string };
       if (data.error) msg = data.error;
       else if (data.message) msg = data.message;
-    } catch { /* ignore non-JSON errors */ }
+    } catch {
+      /* ignore non-JSON errors */
+    }
 
     // This endpoint was added with the server-side save-and-generate workflow.
     // A 404 means the browser is talking to an older backend process/build,
     // not that the submitted settings are invalid.
     if (res.status === 404 && url === "/api/admin/settings/save-and-generate") {
-      msg = "当前后端未提供“保存并生成”接口，前后端代码版本可能不一致。请先停止所有旧的 genpac-runner 开发进程，更新到最新 main，再从项目根目录重新运行 bun run dev。检查终端中的后端监听端口，并确认 client/vite.config.ts 的代理目标 PORT 与后端 PORT 一致。此次请求未能完成保存与生成，请检查配置是否已保存后再重试。";
+      msg =
+        "当前后端未提供“保存并生成”接口，前后端代码版本可能不一致。请先停止所有旧的 genpac-runner 开发进程，更新到最新 main，再从项目根目录重新运行 bun run dev。检查终端中的后端监听端口，并确认 client/vite.config.ts 的代理目标 PORT 与后端 PORT 一致。此次请求未能完成保存与生成，请检查配置是否已保存后再重试。";
     }
     if (res.status === 428 || msg === "password_change_required") {
       msg = "请先修改默认管理密码后再继续操作。";
@@ -278,47 +304,89 @@ export const api = {
   session: () => request<AdminSession>("/api/admin/session"),
   changePassword: (body: { currentPassword: string; newPassword: string }) =>
     request<{ ok: boolean }>("/api/admin/password", {
-      method: "POST", body: JSON.stringify(body),
+      method: "POST",
+      body: JSON.stringify(body),
     }),
-  login: (password: string) => request<{ ok: boolean }>("/api/admin/login", {
-    method: "POST", body: JSON.stringify({ password }),
-  }),
+  login: (password: string) =>
+    request<{ ok: boolean }>("/api/admin/login", {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    }),
   logout: () => request<{ ok: boolean }>("/api/admin/logout", { method: "POST" }),
   settings: () => request<AppSettings>("/api/admin/settings"),
-  saveSettings: (body: AppSettings) => request<AppSettings>("/api/admin/settings", {
-    method: "PUT", body: JSON.stringify(body),
-  }),
-  saveAndGenerate: (body: AppSettings) => request<SaveAndGenerateResult>("/api/admin/settings/save-and-generate", {
-    method: "POST", body: JSON.stringify(body),
-  }),
+  saveSettings: (body: AppSettings) =>
+    request<AppSettings>("/api/admin/settings", {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  saveAndGenerate: (body: AppSettings) =>
+    request<SaveAndGenerateResult>("/api/admin/settings/save-and-generate", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   testWebhook: (body: { config: WebhookConfig }) =>
     request<WebhookTestResult>("/api/admin/webhook-test", {
-      method: "POST", body: JSON.stringify(body),
+      method: "POST",
+      body: JSON.stringify(body),
     }),
   generate: () => request<GenerateStartResult>("/api/admin/generate", { method: "POST" }),
   logs: () => request<GenerationLog[]>("/api/admin/logs"),
-  logsPage: (limit = 50, beforeId = 0) => request<PagedResult<GenerationLog>>(`/api/admin/logs/page?limit=${limit}&beforeId=${beforeId}`),
-  workflows: (limit = 50, beforeId = 0) => request<WorkflowList>(`/api/admin/workflows?limit=${limit}&beforeId=${beforeId}`),
-  clearWorkflowHistory: () => request<{ ok: boolean; deletedRuns: number }>("/api/admin/workflows", { method: "DELETE" }),
+  logsPage: (limit = 50, beforeId = 0) =>
+    request<PagedResult<GenerationLog>>(`/api/admin/logs/page?limit=${limit}&beforeId=${beforeId}`),
+  workflows: (limit = 50, beforeId = 0) =>
+    request<WorkflowList>(`/api/admin/workflows?limit=${limit}&beforeId=${beforeId}`),
+  clearWorkflowHistory: () =>
+    request<{ ok: boolean; deletedRuns: number }>("/api/admin/workflows", { method: "DELETE" }),
   workflowDetail: (id: number) => request<WorkflowDetail>(`/api/admin/workflows/${id}`),
-  deleteWorkflow: (id: number) => request<{ ok: boolean; id: number }>(`/api/admin/workflows/${id}`, { method: "DELETE" }),
-  cancelWorkflow: (id: number) => request<{ ok: boolean; id: number; status: "cancelled" }>(`/api/admin/workflows/${id}/cancel`, { method: "POST" }),
+  deleteWorkflow: (id: number) =>
+    request<{ ok: boolean; id: number }>(`/api/admin/workflows/${id}`, { method: "DELETE" }),
+  cancelWorkflow: (id: number) =>
+    request<{ ok: boolean; id: number; status: "cancelled" }>(`/api/admin/workflows/${id}/cancel`, {
+      method: "POST",
+    }),
   storage: () => request<StorageSummary>("/api/admin/storage"),
-  deletePacFiles: () => request<{ ok: boolean; deleted: string[]; pacFiles: StorageSummary["pacFiles"] }>("/api/admin/pac-files", { method: "DELETE" }),
-  cleanupLogs: () => request<{ deleted: { generationLogs: number; accessEvents: number; proxyProbeRuns: number }; retentionDays: number }>("/api/admin/logs/cleanup", { method: "POST" }),
-  clearLogs: () => request<{ deleted: { generationLogs: number; accessEvents: number; proxyProbeRuns: number }; retentionDays: number }>("/api/admin/logs/clear", { method: "POST" }),
-  factoryReset: () => request<{ ok: boolean; message: string }>("/api/admin/factory-reset", { method: "POST", body: JSON.stringify({ confirm: "RESET" }) }),
+  deletePacFiles: () =>
+    request<{ ok: boolean; deleted: string[]; pacFiles: StorageSummary["pacFiles"] }>(
+      "/api/admin/pac-files",
+      { method: "DELETE" }
+    ),
+  cleanupLogs: () =>
+    request<{
+      deleted: { generationLogs: number; accessEvents: number; proxyProbeRuns: number };
+      retentionDays: number;
+    }>("/api/admin/logs/cleanup", { method: "POST" }),
+  clearLogs: () =>
+    request<{
+      deleted: { generationLogs: number; accessEvents: number; proxyProbeRuns: number };
+      retentionDays: number;
+    }>("/api/admin/logs/clear", { method: "POST" }),
+  factoryReset: () =>
+    request<{ ok: boolean; message: string }>("/api/admin/factory-reset", {
+      method: "POST",
+      body: JSON.stringify({ confirm: "RESET" }),
+    }),
   genpacStatus: () => request<GenpacProbe>("/api/admin/genpac-status"),
   monitorSummary: () => request<MonitorSummary>("/api/admin/monitor/summary"),
   monitorAccess: (limit = 50) => request<AccessEvent[]>(`/api/admin/monitor/access?limit=${limit}`),
-  monitorAccessPage: (limit = 50, beforeId = 0) => request<PagedResult<AccessEvent>>(`/api/admin/monitor/access?paged=1&limit=${limit}&beforeId=${beforeId}`),
+  monitorAccessPage: (limit = 50, beforeId = 0) =>
+    request<PagedResult<AccessEvent>>(
+      `/api/admin/monitor/access?paged=1&limit=${limit}&beforeId=${beforeId}`
+    ),
   proxyProbeTarget: () => request<{ url: string }>("/api/admin/monitor/probe-target"),
-  saveProxyProbeTarget: (url: string) => request<{ url: string }>("/api/admin/monitor/probe-target", {
-    method: "PUT", body: JSON.stringify({ url }),
-  }),
-  testProxies: () => request<ProxyProbeBatch>("/api/admin/monitor/probe", {
-    method: "POST", body: JSON.stringify({}),
-  }),
-  proxyProbeHistory: (limit = 30) => request<ProxyProbeRecord[]>(`/api/admin/monitor/probes?limit=${limit}`),
-  proxyProbeHistoryPage: (limit = 50, beforeId = 0) => request<PagedResult<ProxyProbeRecord>>(`/api/admin/monitor/probes?paged=1&limit=${limit}&beforeId=${beforeId}`),
+  saveProxyProbeTarget: (url: string) =>
+    request<{ url: string }>("/api/admin/monitor/probe-target", {
+      method: "PUT",
+      body: JSON.stringify({ url }),
+    }),
+  testProxies: () =>
+    request<ProxyProbeBatch>("/api/admin/monitor/probe", {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+  proxyProbeHistory: (limit = 30) =>
+    request<ProxyProbeRecord[]>(`/api/admin/monitor/probes?limit=${limit}`),
+  proxyProbeHistoryPage: (limit = 50, beforeId = 0) =>
+    request<PagedResult<ProxyProbeRecord>>(
+      `/api/admin/monitor/probes?paged=1&limit=${limit}&beforeId=${beforeId}`
+    ),
 };

@@ -22,10 +22,8 @@ export function loadDevelopmentDotEnv(): boolean {
 
   const runtimeProfile = (process.env.GENPAC_ENV || "").toLowerCase();
   const nodeEnv = (process.env.NODE_ENV || "").toLowerCase();
-  const explicitDevelopment =
-    runtimeProfile === "development" || runtimeProfile === "dev";
-  const explicitProduction =
-    runtimeProfile === "production" || runtimeProfile === "prod";
+  const explicitDevelopment = runtimeProfile === "development" || runtimeProfile === "dev";
+  const explicitProduction = runtimeProfile === "production" || runtimeProfile === "prod";
 
   // 明确以生产模式启动时，完全跳过 .env 文件。
   if (explicitProduction || (!explicitDevelopment && nodeEnv === "production")) {
@@ -43,11 +41,7 @@ export function loadDevelopmentDotEnv(): boolean {
   if (!explicitDevelopment && !nodeEnv) {
     const fileProfile = (parsed.GENPAC_ENV || "").toLowerCase();
     const fileNodeEnv = (parsed.NODE_ENV || "").toLowerCase();
-    if (
-      fileProfile === "production" ||
-      fileProfile === "prod" ||
-      fileNodeEnv === "production"
-    ) {
+    if (fileProfile === "production" || fileProfile === "prod" || fileNodeEnv === "production") {
       return false;
     }
   }

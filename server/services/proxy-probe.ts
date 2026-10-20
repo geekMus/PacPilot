@@ -12,16 +12,20 @@ export const DEFAULT_PROXY_TEST_URL = "https://www.google.com/generate_204";
 export function parseProxyTestUrl(raw: string): URL {
   const value = String(raw ?? "").trim();
   if (!value) throw new Error("代理测试地址不能为空。");
-  if (/[\u0000-\u0020\u007f]/.test(value)) throw new Error("代理测试地址不能包含空白字符或控制字符；请检查 URL 编码。");
+  if (/[\u0000-\u0020\u007f]/.test(value))
+    throw new Error("代理测试地址不能包含空白字符或控制字符；请检查 URL 编码。");
 
   let url: URL;
   try {
     url = new URL(value);
   } catch {
-    throw new Error("代理测试地址格式无效，请填写完整的 HTTPS URL，例如 https://www.google.com/generate_204。");
+    throw new Error(
+      "代理测试地址格式无效，请填写完整的 HTTPS URL，例如 https://www.google.com/generate_204。"
+    );
   }
   if (url.protocol !== "https:") throw new Error("代理测试地址目前只支持 HTTPS URL。");
-  if (!url.hostname || url.username || url.password) throw new Error("代理测试地址必须包含主机名，且不能包含用户名或密码。");
+  if (!url.hostname || url.username || url.password)
+    throw new Error("代理测试地址必须包含主机名，且不能包含用户名或密码。");
   if (url.hash) throw new Error("代理测试地址不能包含 URL 片段（# 后的内容）。");
   return url;
 }
@@ -76,11 +80,18 @@ export async function testConfiguredProxies(
   const targetPath = (targetUrl.pathname || "/") + targetUrl.search;
   const parsed = parsePacProxy(pacProxy);
   if (parsed.candidates.length === 0) {
-    throw new Error(parsed.warnings[0] || "PAC 代理字符串中没有可测试的代理指令；DIRECT 不需要进行代理连通性检测。");
+    throw new Error(
+      parsed.warnings[0] ||
+        "PAC 代理字符串中没有可测试的代理指令；DIRECT 不需要进行代理连通性检测。"
+    );
   }
 
   const candidates = parsed.candidates.slice(0, MAX_PROXIES_PER_RUN);
-  const results = await Promise.all(candidates.map((candidate) => probeCandidate(candidate, targetUrl, targetHost, targetPort, targetPath)));
+  const results = await Promise.all(
+    candidates.map((candidate) =>
+      probeCandidate(candidate, targetUrl, targetHost, targetPort, targetPath)
+    )
+  );
   for (const result of results) {
     const item: ProxyProbeInput = {
       tested_at: result.testedAt,
@@ -118,7 +129,10 @@ function parsePacProxy(raw: string): {
   const candidates: ProxyCandidate[] = [];
   const warnings: string[] = [];
   let ignoredDirectEntries = 0;
-  const pieces = raw.split(";").map((part) => part.trim()).filter(Boolean);
+  const pieces = raw
+    .split(";")
+    .map((part) => part.trim())
+    .filter(Boolean);
 
   for (const piece of pieces) {
     if (/^DIRECT$/i.test(piece)) {
@@ -136,9 +150,13 @@ function parsePacProxy(raw: string): {
     try {
       const candidate = parseProxyAddress(kind, match[2].trim());
       const key = [candidate.kind, candidate.host.toLowerCase(), candidate.port].join("|");
-      if (!candidates.some((existing) =>
-        [existing.kind, existing.host.toLowerCase(), existing.port].join("|") === key
-      )) candidates.push(candidate);
+      if (
+        !candidates.some(
+          (existing) =>
+            [existing.kind, existing.host.toLowerCase(), existing.port].join("|") === key
+        )
+      )
+        candidates.push(candidate);
     } catch (error) {
       warnings.push((error instanceof Error ? error.message : String(error)).slice(0, 200));
     }
@@ -167,7 +185,8 @@ function parseProxyAddress(kind: ProxyKind, rawAddress: string): ProxyCandidate 
       const credentials = address.slice(0, at);
       address = address.slice(at + 1);
       const separator = credentials.indexOf(":");
-      if (separator <= 0) throw new Error("代理认证信息格式无效，请使用 username:password@host:port。");
+      if (separator <= 0)
+        throw new Error("代理认证信息格式无效，请使用 username:password@host:port。");
       username = decodeURIComponent(credentials.slice(0, separator));
       password = decodeURIComponent(credentials.slice(separator + 1));
     }
@@ -195,7 +214,13 @@ function parseProxyAddress(kind: ProxyKind, rawAddress: string): ProxyCandidate 
   return { kind, host, port, username, password };
 }
 
-async function probeCandidate(candidate: ProxyCandidate, targetUrl: URL, targetHost: string, targetPort: number, targetPath: string): Promise<ProxyProbeResult> {
+async function probeCandidate(
+  candidate: ProxyCandidate,
+  targetUrl: URL,
+  targetHost: string,
+  targetPort: number,
+  targetPath: string
+): Promise<ProxyProbeResult> {
   const testedAt = new Date().toISOString();
   const label = candidate.kind + " " + formatHostPort(candidate.host, candidate.port);
   let socket: Socket | null = null;
@@ -214,9 +239,21 @@ async function probeCandidate(candidate: ProxyCandidate, targetUrl: URL, targetH
   let overallTimeoutExpired = false;
   const deadlineTimer = setTimeout(() => {
     overallTimeoutExpired = true;
-    try { targetTls?.destroy(); } catch { /* ignore cleanup errors */ }
-    try { proxyTls?.destroy(); } catch { /* ignore cleanup errors */ }
-    try { socket?.destroy(); } catch { /* ignore cleanup errors */ }
+    try {
+      targetTls?.destroy();
+    } catch {
+      /* ignore cleanup errors */
+    }
+    try {
+      proxyTls?.destroy();
+    } catch {
+      /* ignore cleanup errors */
+    }
+    try {
+      socket?.destroy();
+    } catch {
+      /* ignore cleanup errors */
+    }
   }, 12000);
 
   try {
@@ -243,11 +280,15 @@ async function probeCandidate(candidate: ProxyCandidate, targetUrl: URL, targetH
     phase = "TARGET_HTTP";
     const headersPromise = readHttpHeader(targetTls, IO_TIMEOUT_MS);
     targetTls.write(
-      "GET " + targetPath + " HTTP/1.1\r\n" +
-      "Host: " + targetUrl.host + "\r\n" +
-      "User-Agent: genpac-runner-monitor\r\n" +
-      "Accept: */*\r\n" +
-      "Connection: close\r\n\r\n"
+      "GET " +
+        targetPath +
+        " HTTP/1.1\r\n" +
+        "Host: " +
+        targetUrl.host +
+        "\r\n" +
+        "User-Agent: genpac-runner-monitor\r\n" +
+        "Accept: */*\r\n" +
+        "Connection: close\r\n\r\n"
     );
     const responseHeader = await headersPromise;
     const statusMatch = /^HTTP\/\d(?:\.\d)?\s+(\d{3})/i.exec(responseHeader);
@@ -255,7 +296,9 @@ async function probeCandidate(candidate: ProxyCandidate, targetUrl: URL, targetH
     httpStatus = Number(statusMatch[1]);
     targetMs = roundedMs(performance.now() - targetStarted);
     if (httpStatus >= 400) {
-      throw new Error("目标站点返回 HTTP " + httpStatus + "。代理隧道和 TLS 已建立，但目标请求未成功。");
+      throw new Error(
+        "目标站点返回 HTTP " + httpStatus + "。代理隧道和 TLS 已建立，但目标请求未成功。"
+      );
     }
     phase = "complete";
     success = true;
@@ -266,8 +309,11 @@ async function probeCandidate(candidate: ProxyCandidate, targetUrl: URL, targetH
     if (tcpMs === null && tcpStarted !== null && phase === "TCP") {
       tcpMs = roundedMs(performance.now() - tcpStarted);
     }
-    if (handshakeMs === null && handshakeStarted !== null &&
-        (phase === "PROXY_TLS" || phase === "PROXY_HANDSHAKE")) {
+    if (
+      handshakeMs === null &&
+      handshakeStarted !== null &&
+      (phase === "PROXY_TLS" || phase === "PROXY_HANDSHAKE")
+    ) {
       handshakeMs = roundedMs(performance.now() - handshakeStarted);
     }
     if (targetMs === null && targetStarted !== null && phase.startsWith("TARGET")) {
@@ -275,12 +321,24 @@ async function probeCandidate(candidate: ProxyCandidate, targetUrl: URL, targetH
     }
   } finally {
     clearTimeout(deadlineTimer);
-    try { targetTls?.destroy(); } catch { /* ignore cleanup errors */ }
+    try {
+      targetTls?.destroy();
+    } catch {
+      /* ignore cleanup errors */
+    }
     if (proxyTls && proxyTls !== targetTls) {
-      try { proxyTls.destroy(); } catch { /* ignore cleanup errors */ }
+      try {
+        proxyTls.destroy();
+      } catch {
+        /* ignore cleanup errors */
+      }
     }
     if (socket && socket !== proxyTls && socket !== targetTls) {
-      try { socket.destroy(); } catch { /* ignore cleanup errors */ }
+      try {
+        socket.destroy();
+      } catch {
+        /* ignore cleanup errors */
+      }
     }
   }
 
@@ -325,16 +383,26 @@ async function establishHttpConnectTunnel(
   targetHost: string,
   targetPort: number
 ): Promise<void> {
-  const auth = candidate.username !== undefined
-    ? "Proxy-Authorization: Basic " +
-      Buffer.from(candidate.username + ":" + (candidate.password ?? ""), "utf8").toString("base64") + "\r\n"
-    : "";
+  const auth =
+    candidate.username !== undefined
+      ? "Proxy-Authorization: Basic " +
+        Buffer.from(candidate.username + ":" + (candidate.password ?? ""), "utf8").toString(
+          "base64"
+        ) +
+        "\r\n"
+      : "";
   const responsePromise = readHttpHeader(socket, IO_TIMEOUT_MS);
   const targetAuthority = formatHostPort(targetHost, targetPort);
   socket.write(
-    "CONNECT " + targetAuthority + " HTTP/1.1\r\n" +
-    "Host: " + targetAuthority + "\r\n" +
-    "Proxy-Connection: Keep-Alive\r\n" + auth + "\r\n"
+    "CONNECT " +
+      targetAuthority +
+      " HTTP/1.1\r\n" +
+      "Host: " +
+      targetAuthority +
+      "\r\n" +
+      "Proxy-Connection: Keep-Alive\r\n" +
+      auth +
+      "\r\n"
   );
   const response = await responsePromise;
   const match = /^HTTP\/\d(?:\.\d)?\s+(\d{3})/i.exec(response);
@@ -361,10 +429,13 @@ async function establishSocks5Tunnel(
   if (methodResponse[1] === 2 && wantsAuth) {
     const username = Buffer.from(candidate.username ?? "", "utf8");
     const password = Buffer.from(candidate.password ?? "", "utf8");
-    if (username.length > 255 || password.length > 255) throw new Error("SOCKS5 用户名或密码过长。");
+    if (username.length > 255 || password.length > 255)
+      throw new Error("SOCKS5 用户名或密码过长。");
     const authPacket = Buffer.concat([
-      Buffer.from([1, username.length]), username,
-      Buffer.from([password.length]), password,
+      Buffer.from([1, username.length]),
+      username,
+      Buffer.from([password.length]),
+      password,
     ]);
     const authPromise = readExact(socket, 2, IO_TIMEOUT_MS);
     socket.write(authPacket);
@@ -373,9 +444,11 @@ async function establishSocks5Tunnel(
       throw new Error("SOCKS5 用户名或密码认证失败。");
     }
   } else if (methodResponse[1] !== 0) {
-    throw new Error(methodResponse[1] === 2
-      ? "SOCKS5 代理要求用户名/密码，但配置中未提供认证信息。"
-      : "SOCKS5 代理没有接受支持的认证方式（method " + methodResponse[1] + "）。");
+    throw new Error(
+      methodResponse[1] === 2
+        ? "SOCKS5 代理要求用户名/密码，但配置中未提供认证信息。"
+        : "SOCKS5 代理没有接受支持的认证方式（method " + methodResponse[1] + "）。"
+    );
   }
 
   const domain = Buffer.from(targetHost, "ascii");
@@ -391,8 +464,14 @@ async function establishSocks5Tunnel(
   if (reply[0] !== 5) throw new Error("SOCKS5 代理返回了无效响应。");
   if (reply[1] !== 0) {
     const reasons: Record<number, string> = {
-      1: "一般失败", 2: "规则不允许连接", 3: "网络不可达", 4: "目标主机不可达",
-      5: "目标连接被拒绝", 6: "TTL 超时", 7: "不支持的命令", 8: "不支持的地址类型",
+      1: "一般失败",
+      2: "规则不允许连接",
+      3: "网络不可达",
+      4: "目标主机不可达",
+      5: "目标连接被拒绝",
+      6: "TTL 超时",
+      7: "不支持的命令",
+      8: "不支持的地址类型",
     };
     throw new Error("SOCKS5 目标连接失败：" + (reasons[reply[1]] || "错误码 " + reply[1]) + "。");
   }
@@ -413,7 +492,10 @@ async function establishSocks4Tunnel(
     throw new Error("检测环境无法将目标域名解析为 IPv4，无法进行 SOCKS4 测试。");
   }
   const octets = address.split(".").map(Number);
-  if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+  if (
+    octets.length !== 4 ||
+    octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)
+  ) {
     throw new Error("目标 DNS 未返回有效的 IPv4 地址，无法进行 SOCKS4 测试。");
   }
   const userId = Buffer.from("genpac-runner", "ascii");
@@ -428,7 +510,9 @@ async function establishSocks4Tunnel(
   if (reply[0] !== 0 && reply[0] !== 4) throw new Error("SOCKS4 代理返回了无效响应。");
   if (reply[1] !== 90) {
     const reasons: Record<number, string> = {
-      91: "请求被拒绝或失败", 92: "无法连接到 identd", 93: "identd 用户不匹配",
+      91: "请求被拒绝或失败",
+      92: "无法连接到 identd",
+      93: "identd 用户不匹配",
     };
     throw new Error("SOCKS4 目标连接失败：" + (reasons[reply[1]] || "响应码 " + reply[1]) + "。");
   }
@@ -455,7 +539,9 @@ async function establishSocks4aTunnel(
   if (reply[0] !== 0 && reply[0] !== 4) throw new Error("SOCKS4a 代理返回了无效响应。");
   if (reply[1] !== 90) {
     const reasons: Record<number, string> = {
-      91: "请求被拒绝或失败", 92: "无法连接到 identd", 93: "identd 用户不匹配",
+      91: "请求被拒绝或失败",
+      92: "无法连接到 identd",
+      93: "identd 用户不匹配",
     };
     throw new Error("SOCKS4a 目标连接失败：" + (reasons[reply[1]] || "响应码 " + reply[1]) + "。");
   }
@@ -625,7 +711,8 @@ function readHttpHeader(socket: Duplex, timeoutMs: number): Promise<string> {
       const index = received.indexOf("\r\n\r\n");
       if (index >= 0) finish(undefined, received.subarray(0, index).toString("utf8"));
     };
-    const onError = (error: Error): void => finish(new Error("读取 HTTP 响应失败：" + error.message));
+    const onError = (error: Error): void =>
+      finish(new Error("读取 HTTP 响应失败：" + error.message));
     const onClose = (): void => finish(new Error("连接在返回 HTTP 响应头前关闭。"));
     socket.on("data", onData);
     socket.once("error", onError);
@@ -639,10 +726,14 @@ function formatHostPort(host: string, port: number): string {
 
 function isLoopbackHost(host: string): boolean {
   const normalized = host.toLowerCase().replace(/^\[|\]$/g, "");
-  if (normalized === "localhost" || normalized === "::1" || normalized === "0:0:0:0:0:0:0:1") return true;
+  if (normalized === "localhost" || normalized === "::1" || normalized === "0:0:0:0:0:0:0:1")
+    return true;
   const parts = normalized.split(".");
-  return parts.length === 4 && Number(parts[0]) === 127 &&
-    parts.every((part) => /^\d+$/.test(part) && Number(part) >= 0 && Number(part) <= 255);
+  return (
+    parts.length === 4 &&
+    Number(parts[0]) === 127 &&
+    parts.every((part) => /^\d+$/.test(part) && Number(part) >= 0 && Number(part) <= 255)
+  );
 }
 
 function roundedMs(value: number): number {

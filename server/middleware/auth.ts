@@ -106,7 +106,10 @@ export function clearLoginFailures(req: Request): void {
 }
 
 function isLoopbackHostname(hostname: string): boolean {
-  const host = hostname.trim().toLowerCase().replace(/^\[|\]$/g, "");
+  const host = hostname
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "");
   if (!host) return false;
   if (host === "localhost" || host.endsWith(".localhost")) return true;
   if (host === "127.0.0.1" || host.startsWith("127.")) return true;
@@ -125,7 +128,9 @@ export function assertSameOrigin(req: Request): string | null {
   if (!origin) return null;
   try {
     const incoming = new URL(origin);
-    const hostHeader = String(req.headers.host || "").trim().toLowerCase();
+    const hostHeader = String(req.headers.host || "")
+      .trim()
+      .toLowerCase();
     if (!hostHeader) return null;
     const originHost = incoming.host.toLowerCase();
     const hostNameOnly = hostHeader.split(":")[0];

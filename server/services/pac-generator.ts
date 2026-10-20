@@ -8,10 +8,7 @@ import { notifyFailure, notifySuccess } from "./webhook";
 import { APP_VERSION } from "../version";
 import { t } from "../i18n";
 import type { AppLocale, AppSettings } from "../db/settings";
-import {
-  buildRemoteListPac,
-  fetchAndParseRemoteList,
-} from "./remote-list";
+import { buildRemoteListPac, fetchAndParseRemoteList } from "./remote-list";
 
 export interface GenerateResult {
   success: boolean;
@@ -42,20 +39,29 @@ export function validatePacProxyString(value: string): string | null {
     return "代理项之间请使用分号分隔，不能包含空代理项。";
   }
 
-  const hostnamePattern = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*\.?$/i;
+  const hostnamePattern =
+    /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*\.?$/i;
 
   for (const [index, entry] of entries.entries()) {
     if (/^DIRECT$/i.test(entry)) continue;
 
     const match = entry.match(/^(PROXY|HTTP|HTTPS|SOCKS|SOCKS4|SOCKS5)\s+(\S+)$/i);
     if (!match) {
-      return "第 " + (index + 1) + " 项“" + entry + "”格式无效。请使用 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 或 DIRECT 指令。";
+      return (
+        "第 " +
+        (index + 1) +
+        " 项“" +
+        entry +
+        "”格式无效。请使用 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 或 DIRECT 指令。"
+      );
     }
 
     const endpoint = match[2];
     const endpointMatch = endpoint.match(/^(?:\[([^\]]+)\]|([^:\[\]\s]+)):(\d{1,5})$/);
     if (!endpointMatch) {
-      return "第 " + (index + 1) + " 项代理地址格式无效，请使用 host:port；IPv6 地址请写成 [IPv6]:port。";
+      return (
+        "第 " + (index + 1) + " 项代理地址格式无效，请使用 host:port；IPv6 地址请写成 [IPv6]:port。"
+      );
     }
 
     const host = endpointMatch[1] ?? endpointMatch[2] ?? "";
@@ -70,8 +76,8 @@ export function validatePacProxyString(value: string): string | null {
       }
     } else {
       const looksLikeIpv4 = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host);
-      const validHost = host.length <= 253 &&
-        (looksLikeIpv4 ? isIP(host) === 4 : hostnamePattern.test(host));
+      const validHost =
+        host.length <= 253 && (looksLikeIpv4 ? isIP(host) === 4 : hostnamePattern.test(host));
       if (!validHost) {
         return "第 " + (index + 1) + " 项的代理主机名或 IP 地址无效。";
       }
@@ -80,7 +86,6 @@ export function validatePacProxyString(value: string): string | null {
 
   return null;
 }
-
 
 async function compressPac(content: string): Promise<string> {
   const result = await minify(content, {
@@ -113,12 +118,20 @@ function stripPacMetaHeaders(content: string): string {
  * 写入或刷新 PAC 文件元数据头。
  * 真正生成时传入 generatedAt，便于运维查看规则产出时间；只读刷新时省略以保留已有时间戳。
  */
-function withPacVersionHeader(content: string, generatedAt?: Date | null, locale: AppLocale = "zh_CN"): string {
+function withPacVersionHeader(
+  content: string,
+  generatedAt?: Date | null,
+  locale: AppLocale = "zh_CN"
+): string {
   const existingGenerated =
-    content.match(/^\/\/ genpac-runner (?:Generated at:|生成时间[:：])\s*(.+)\s*$/im)?.[1]?.trim() || "";
+    content
+      .match(/^\/\/ genpac-runner (?:Generated at:|生成时间[:：])\s*(.+)\s*$/im)?.[1]
+      ?.trim() || "";
   const body = stripPacMetaHeaders(content);
-  const versionLabel = locale === "en_US" ? "// genpac-runner version: " : "// genpac-runner 版本：";
-  const timeLabel = locale === "en_US" ? "// genpac-runner Generated at: " : "// genpac-runner 生成时间：";
+  const versionLabel =
+    locale === "en_US" ? "// genpac-runner version: " : "// genpac-runner 版本：";
+  const timeLabel =
+    locale === "en_US" ? "// genpac-runner Generated at: " : "// genpac-runner 生成时间：";
   const lines = [versionLabel + APP_VERSION];
   const stamp = generatedAt ? formatPacGeneratedAt(generatedAt, locale) : existingGenerated;
   if (stamp) lines.push(timeLabel + stamp);
@@ -215,12 +228,18 @@ async function runRemoteMode(
   );
   const generatedAt = new Date();
   const source = withPacVersionHeader(pac, generatedAt, settings.locale);
-  const output = settings.pacCompress ? withPacVersionHeader(await compressPac(pac), generatedAt, settings.locale) : source;
+  const output = settings.pacCompress
+    ? withPacVersionHeader(await compressPac(pac), generatedAt, settings.locale)
+    : source;
   const sourcePath = path.join(path.dirname(outFile), "proxy.source.pac");
   fs.writeFileSync(sourcePath, source, "utf8");
   fs.writeFileSync(outFile, output, "utf8");
   const formatKey =
-    parsed.format === "gfwlist-base64" ? "format.gfwlist" : parsed.format === "abp" ? "format.abp" : "format.plain";
+    parsed.format === "gfwlist-base64"
+      ? "format.gfwlist"
+      : parsed.format === "abp"
+        ? "format.abp"
+        : "format.plain";
   const formatLabel = t(settings.locale, formatKey);
   const message = t(settings.locale, "gen.success.remote", {
     format: formatLabel,
@@ -255,10 +274,7 @@ async function runRemoteMode(
   };
 }
 
-export async function generatePac(
-  database: AppDatabase,
-  dataDir: string
-): Promise<GenerateResult> {
+export async function generatePac(database: AppDatabase, dataDir: string): Promise<GenerateResult> {
   const settings = getSettings(database);
   const pacPath = path.join(dataDir, "proxy.pac");
   fs.mkdirSync(dataDir, { recursive: true });

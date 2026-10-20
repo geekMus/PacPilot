@@ -34,7 +34,8 @@ export function isBlockedIpAddress(host: string): boolean {
 
   const normalized = host.toLowerCase().replace(/^\[|\]$/g, "");
   if (normalized === "::1" || normalized === "::") return true;
-  if (normalized.startsWith("fe80:") || normalized.startsWith("fc") || normalized.startsWith("fd")) return true;
+  if (normalized.startsWith("fe80:") || normalized.startsWith("fc") || normalized.startsWith("fd"))
+    return true;
   if (normalized.startsWith("::ffff:")) {
     return isBlockedIpAddress(normalized.slice(7));
   }
@@ -45,7 +46,8 @@ export function isBlockedHostname(hostname: string): boolean {
   const host = hostname.trim().toLowerCase().replace(/\.$/, "");
   if (!host) return true;
   if (BLOCKED_HOSTNAMES.has(host)) return true;
-  if (host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal")) return true;
+  if (host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal"))
+    return true;
   if (isBlockedIpAddress(host)) return true;
   return false;
 }
@@ -53,7 +55,12 @@ export function isBlockedHostname(hostname: string): boolean {
 function isLoopbackOrMetadata(hostname: string): boolean {
   const host = hostname.trim().toLowerCase().replace(/\.$/, "");
   if (!host) return true;
-  if (host === "localhost" || host.endsWith(".localhost") || host === "metadata.google.internal" || host === "metadata.goog") {
+  if (
+    host === "localhost" ||
+    host.endsWith(".localhost") ||
+    host === "metadata.google.internal" ||
+    host === "metadata.goog"
+  ) {
     return true;
   }
   if (isBlockedIpAddress(host)) {
@@ -100,5 +107,3 @@ export function assertSafeHttpUrl(
   }
   return null;
 }
-
-

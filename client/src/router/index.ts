@@ -85,8 +85,7 @@ function applyDocumentTitle(pageTitle?: unknown): void {
   document.title = page ? `${page} · ${APP_BRAND}` : APP_BRAND;
 }
 
-const PASSWORD_CHANGE_TOAST =
-  "请先修改默认管理密码后，再使用其他管理功能。";
+const PASSWORD_CHANGE_TOAST = "请先修改默认管理密码后，再使用其他管理功能。";
 
 router.beforeEach(async (to, from) => {
   if (!isAdminAppRoute(to.path)) return true;

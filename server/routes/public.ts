@@ -19,18 +19,11 @@ function sendPac(
   const pac = readPacFile(dataDir, locale) || fallback;
 
   // 公共状态页是 PAC 文件的主要 UI 入口；默认在浏览器中查看，?download=1 时才触发下载。
-  const asDownload =
-    req.query.download === "1" || req.query.download === "true";
+  const asDownload = req.query.download === "1" || req.query.download === "true";
 
   if (asDownload) {
-    res.setHeader(
-      "Content-Type",
-      "application/x-ns-proxy-autoconfig; charset=utf-8"
-    );
-    res.setHeader(
-      "Content-Disposition",
-      'attachment; filename="proxy.pac"'
-    );
+    res.setHeader("Content-Type", "application/x-ns-proxy-autoconfig; charset=utf-8");
+    res.setHeader("Content-Disposition", 'attachment; filename="proxy.pac"');
   } else {
     // text/plain + inline：多数浏览器会直接展示源码，而不是下载
     res.setHeader("Content-Type", "text/plain; charset=utf-8");

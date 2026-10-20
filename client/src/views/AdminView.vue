@@ -100,10 +100,20 @@ const form = reactive({
 
 function defaultWebhookConfig(): WebhookConfig {
   return {
-    provider: "custom", url: "", method: "POST", headers: "{}", body: "",
-    dingTalkSecret: "", dingTalkMessageType: "text",
-    testBody: JSON.stringify({ ok: "{{ok}}", event: "{{event}}", message: "{{message}}", timestamp: "{{timestamp}}" }, null, 2),
-    messageTemplate: "genpac-runner 通知\n事件：{{event}}\n状态：{{status}}\n时间：{{timestamp}}\n详情：{{message}}",
+    provider: "custom",
+    url: "",
+    method: "POST",
+    headers: "{}",
+    body: "",
+    dingTalkSecret: "",
+    dingTalkMessageType: "text",
+    testBody: JSON.stringify(
+      { ok: "{{ok}}", event: "{{event}}", message: "{{message}}", timestamp: "{{timestamp}}" },
+      null,
+      2
+    ),
+    messageTemplate:
+      "genpac-runner 通知\n事件：{{event}}\n状态：{{status}}\n时间：{{timestamp}}\n详情：{{message}}",
     testMessageTemplate: "genpac-runner 测试通知\n时间：{{timestamp}}\n结果：{{message}}",
   };
 }
@@ -118,8 +128,12 @@ function normalizedWebhookConfig(
     url: value?.url ?? legacyUrl,
     body: value?.body ?? legacyBody,
     testBody: value?.testBody ?? defaultWebhookConfig().testBody,
-    messageTemplate: value?.messageTemplate?.trim() ? value.messageTemplate : defaultWebhookConfig().messageTemplate,
-    testMessageTemplate: value?.testMessageTemplate?.trim() ? value.testMessageTemplate : defaultWebhookConfig().testMessageTemplate,
+    messageTemplate: value?.messageTemplate?.trim()
+      ? value.messageTemplate
+      : defaultWebhookConfig().messageTemplate,
+    testMessageTemplate: value?.testMessageTemplate?.trim()
+      ? value.testMessageTemplate
+      : defaultWebhookConfig().testMessageTemplate,
   };
 }
 
@@ -147,14 +161,20 @@ const commonTimeZones = [
 ] as const;
 
 function isValidTimeZone(value: string): boolean {
-  try { new Intl.DateTimeFormat("en-US", { timeZone: value.trim() }).format(new Date()); return true; }
-  catch { return false; }
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value.trim() }).format(new Date());
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 const filteredTimeZones = computed(() => {
   const query = timezoneQuery.value.trim().toLowerCase();
   if (!query) return commonTimeZones;
-  return commonTimeZones.filter((zone) => zone.value.toLowerCase().includes(query) || zone.label.toLowerCase().includes(query));
+  return commonTimeZones.filter(
+    (zone) => zone.value.toLowerCase().includes(query) || zone.label.toLowerCase().includes(query)
+  );
 });
 function selectTimeZone(value: string) {
   form.timezone = value;
@@ -163,7 +183,9 @@ function selectTimeZone(value: string) {
   mobileTimezoneOpen.value = false;
 }
 function closeTimezoneMenu() {
-  window.setTimeout(() => { timezoneMenuOpen.value = false; }, 140);
+  window.setTimeout(() => {
+    timezoneMenuOpen.value = false;
+  }, 140);
 }
 function openMobileTimezonePicker() {
   timezoneQuery.value = "";
@@ -177,16 +199,18 @@ async function scrollToCurrentSection(): Promise<void> {
   document.querySelector(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-watch(() => route.hash, (hash) => {
-  if (hash) void scrollToCurrentSection();
-});
+watch(
+  () => route.hash,
+  (hash) => {
+    if (hash) void scrollToCurrentSection();
+  }
+);
 
 const modeHint = computed(() =>
   form.mode === "custom"
     ? "使用直连 / 黑名单列表，默认走代理；内网始终直连。"
     : "从远程规则列表生成 PAC；匹配到代理域名时走代理，例外及未命中域名直连。自定义规则优先。"
 );
-
 
 const cronPresets = [
   { label: "关闭", value: "", hint: "不定时更新" },
@@ -242,16 +266,25 @@ function jsonBodyError(raw: string): string {
   }
 }
 
-type WebhookFieldErrors = { url: string; headers: string; body: string; testBody: string; secret: string };
+type WebhookFieldErrors = {
+  url: string;
+  headers: string;
+  body: string;
+  testBody: string;
+  secret: string;
+};
 
 function validateWebhookDraft(config: WebhookConfig, label: string): WebhookFieldErrors {
   const errors: WebhookFieldErrors = { url: "", headers: "", body: "", testBody: "", secret: "" };
   if (config.provider === "custom") {
     const url = config.url.trim();
     const rawHeaders = config.headers.trim();
-    const hasCustomRequest = Boolean(url || config.body.trim() || (rawHeaders && rawHeaders !== "{}"));
+    const hasCustomRequest = Boolean(
+      url || config.body.trim() || (rawHeaders && rawHeaders !== "{}")
+    );
     if (url && !looksLikeUrl(url)) errors.url = label + "需要有效的 HTTP(S) URL。";
-    else if (!url && hasCustomRequest) errors.url = label + "配置了请求 Body 或额外请求头，需要填写 Webhook URL。";
+    else if (!url && hasCustomRequest)
+      errors.url = label + "配置了请求 Body 或额外请求头，需要填写 Webhook URL。";
     const bodyError = jsonBodyError(config.body);
     if (bodyError) errors.body = label + "请求 Body：" + bodyError;
     const testBodyError = jsonBodyError(config.testBody);
@@ -259,15 +292,21 @@ function validateWebhookDraft(config: WebhookConfig, label: string): WebhookFiel
     if (rawHeaders) {
       try {
         const headers: unknown = JSON.parse(rawHeaders);
-        if (!headers || typeof headers !== "object" || Array.isArray(headers)) errors.headers = label + "额外请求头必须是 JSON 对象。";
+        if (!headers || typeof headers !== "object" || Array.isArray(headers))
+          errors.headers = label + "额外请求头必须是 JSON 对象。";
         else {
           for (const [name, value] of Object.entries(headers as Record<string, unknown>)) {
             if (!name.trim() || typeof value !== "string") {
               errors.headers = label + "请求头必须是名称和值均为字符串的 JSON 对象。";
               break;
             }
-            if (/^(host|content-length|connection|transfer-encoding|content-type)$/i.test(name) || /[\r\n]/.test(value)) {
-              errors.headers = label + "请求头包含不允许覆盖的传输字段或换行字符；Content-Type 固定为 application/json。";
+            if (
+              /^(host|content-length|connection|transfer-encoding|content-type)$/i.test(name) ||
+              /[\r\n]/.test(value)
+            ) {
+              errors.headers =
+                label +
+                "请求头包含不允许覆盖的传输字段或换行字符；Content-Type 固定为 application/json。";
               break;
             }
           }
@@ -278,10 +317,14 @@ function validateWebhookDraft(config: WebhookConfig, label: string): WebhookFiel
     }
   } else if (config.provider === "dingtalk") {
     if (config.url.trim()) {
-      if (!looksLikeUrl(config.url.trim())) errors.url = label + "钉钉 URL 必须是有效的 HTTP(S) 地址。";
-      else if (!new URL(config.url.trim()).searchParams.has("access_token")) errors.url = label + "钉钉 URL 缺少 access_token。";
-      if (!config.dingTalkSecret.trim()) errors.secret = label + "钉钉机器人必须填写 Secret 加签密钥。";
-    } else if (config.dingTalkSecret.trim()) errors.url = label + "填写 Secret 前，请先填写机器人 Webhook URL。";
+      if (!looksLikeUrl(config.url.trim()))
+        errors.url = label + "钉钉 URL 必须是有效的 HTTP(S) 地址。";
+      else if (!new URL(config.url.trim()).searchParams.has("access_token"))
+        errors.url = label + "钉钉 URL 缺少 access_token。";
+      if (!config.dingTalkSecret.trim())
+        errors.secret = label + "钉钉机器人必须填写 Secret 加签密钥。";
+    } else if (config.dingTalkSecret.trim())
+      errors.url = label + "填写 Secret 前，请先填写机器人 Webhook URL。";
   }
   return errors;
 }
@@ -297,7 +340,10 @@ function validDomainOrIPv4(host: string): boolean {
     return host.split(".").every((part) => /^(0|[1-9]\d{0,2})$/.test(part) && Number(part) <= 255);
   }
   const labelPattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i;
-  return host.replace(/\.$/, "").split(".").every((part) => labelPattern.test(part));
+  return host
+    .replace(/\.$/, "")
+    .split(".")
+    .every((part) => labelPattern.test(part));
 }
 
 function validatePacProxyString(rawValue: string): string | null {
@@ -312,11 +358,19 @@ function validatePacProxyString(rawValue: string): string | null {
     if (/^DIRECT$/i.test(entry)) continue;
     const match = entry.match(/^(PROXY|HTTP|HTTPS|SOCKS|SOCKS4|SOCKS5)\s+(\S+)$/i);
     if (!match) {
-      return "第 " + (index + 1) + " 项“" + entry.slice(0, 80) + "”格式无效。请使用 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 或 DIRECT 指令。";
+      return (
+        "第 " +
+        (index + 1) +
+        " 项“" +
+        entry.slice(0, 80) +
+        "”格式无效。请使用 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 或 DIRECT 指令。"
+      );
     }
     const endpointMatch = match[2].match(/^(?:\[([^\]]+)\]|([^:\[\]\s]+)):(\d{1,5})$/);
     if (!endpointMatch) {
-      return "第 " + (index + 1) + " 项代理地址格式无效，请使用 host:port；IPv6 地址请写成 [IPv6]:port。";
+      return (
+        "第 " + (index + 1) + " 项代理地址格式无效，请使用 host:port；IPv6 地址请写成 [IPv6]:port。"
+      );
     }
     const host = endpointMatch[1] ?? endpointMatch[2] ?? "";
     const port = Number(endpointMatch[3]);
@@ -324,8 +378,11 @@ function validatePacProxyString(rawValue: string): string | null {
       return "第 " + (index + 1) + " 项端口无效，端口范围必须是 1–65535。";
     }
     if (endpointMatch[1]) {
-      try { new URL("http://[" + host + "]:" + port + "/"); }
-      catch { return "第 " + (index + 1) + " 项的 IPv6 地址无效。"; }
+      try {
+        new URL("http://[" + host + "]:" + port + "/");
+      } catch {
+        return "第 " + (index + 1) + " 项的 IPv6 地址无效。";
+      }
     } else if (!validDomainOrIPv4(host)) {
       return "第 " + (index + 1) + " 项的代理主机名或 IP 地址无效。";
     }
@@ -334,15 +391,21 @@ function validatePacProxyString(rawValue: string): string | null {
 }
 
 function validateDomainRules(rawValue: string, label: string): string | null {
-  const analysis = analyzeDomainRules(label === "直连列表" ? rawValue : "", label === "黑名单" ? rawValue : "");
-  const firstError = [...analysis.direct.diagnostics, ...analysis.block.diagnostics].find((item) => item.severity === "error");
+  const analysis = analyzeDomainRules(
+    label === "直连列表" ? rawValue : "",
+    label === "黑名单" ? rawValue : ""
+  );
+  const firstError = [...analysis.direct.diagnostics, ...analysis.block.diagnostics].find(
+    (item) => item.severity === "error"
+  );
   return firstError ? label + "第 " + firstError.line + " 行：" + firstError.message : null;
 }
 
 function validateProxyTestUrl(rawValue: string): string | null {
   const value = rawValue.trim();
   if (!value) return "代理测试地址不能为空，请到「网络监控」页设置。";
-  if (/[\u0000-\u0020\u007f]/.test(value)) return "代理测试地址不能包含空白或控制字符，请检查 URL 编码。";
+  if (/[\u0000-\u0020\u007f]/.test(value))
+    return "代理测试地址不能包含空白或控制字符，请检查 URL 编码。";
   try {
     const url = new URL(value);
     if (url.protocol !== "https:" || !url.hostname || url.username || url.password || url.hash) {
@@ -357,8 +420,12 @@ function validateProxyTestUrl(rawValue: string): string | null {
 function looksLikeUrl(s: string): boolean {
   try {
     const u = new URL(s);
-    return (u.protocol === "http:" || u.protocol === "https:") &&
-      Boolean(u.hostname) && !u.username && !u.password;
+    return (
+      (u.protocol === "http:" || u.protocol === "https:") &&
+      Boolean(u.hostname) &&
+      !u.username &&
+      !u.password
+    );
   } catch {
     return false;
   }
@@ -368,7 +435,8 @@ const pacProxyError = computed(() => validatePacProxyString(form.pacProxy));
 const listUrlError = computed(() => {
   if (form.mode !== "remote") return "";
   if (!form.listUrl.trim()) return "远程列表模式需要填写规则列表 URL。";
-  if (!looksLikeUrl(form.listUrl.trim())) return "规则列表 URL 格式无效，请使用完整的 HTTP(S) 地址，且不要嵌入用户名或密码。";
+  if (!looksLikeUrl(form.listUrl.trim()))
+    return "规则列表 URL 格式无效，请使用完整的 HTTP(S) 地址，且不要嵌入用户名或密码。";
   return "";
 });
 const ruleAnalysis = computed(() => analyzeDomainRules(form.directListText, form.blockListText));
@@ -376,8 +444,10 @@ const directRuleDiagnostics = computed(() => ruleAnalysis.value.direct.diagnosti
 const blockRuleDiagnostics = computed(() => ruleAnalysis.value.block.diagnostics);
 const directListError = computed(() => validateDomainRules(form.directListText, "直连列表"));
 const blockListError = computed(() => validateDomainRules(form.blockListText, "黑名单"));
-const timezoneError = computed(() => isValidTimeZone(form.timezone) ? "" : "时区无效，请使用有效的 IANA 时区名称，例如 Asia/Tokyo。");
-const cronError = computed(() => form.cronSchedule.trim() ? cronParse.value.error : "");
+const timezoneError = computed(() =>
+  isValidTimeZone(form.timezone) ? "" : "时区无效，请使用有效的 IANA 时区名称，例如 Asia/Tokyo。"
+);
+const cronError = computed(() => (form.cronSchedule.trim() ? cronParse.value.error : ""));
 const webhookValidation = computed(() => ({
   success: validateWebhookDraft(form.webhookSuccessConfig, "成功通知"),
   failure: validateWebhookDraft(form.webhookFailureConfig, "失败通知"),
@@ -413,7 +483,11 @@ const validationTargets = computed<ValidationTarget[]>(() => {
   for (const channel of channels) {
     for (const field of ["url", "headers", "body", "testBody", "secret"] as const) {
       const message = channel.errors[field];
-      if (message) targets.push({ key: channel.key + "-" + (field === "testBody" ? "test-body" : field), message });
+      if (message)
+        targets.push({
+          key: channel.key + "-" + (field === "testBody" ? "test-body" : field),
+          message,
+        });
     }
   }
   return targets;
@@ -423,10 +497,14 @@ async function jumpToFirstError(): Promise<void> {
   const first = validationTargets.value[0];
   if (!first) return;
   await nextTick();
-  const element = document.querySelector<HTMLElement>('[data-validation-target="' + first.key + '"]');
+  const element = document.querySelector<HTMLElement>(
+    '[data-validation-target="' + first.key + '"]'
+  );
   if (!element) return;
   element.scrollIntoView({ behavior: "smooth", block: "center" });
-  const control = element.querySelector<HTMLElement>('input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [contenteditable="true"]');
+  const control = element.querySelector<HTMLElement>(
+    'input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [contenteditable="true"]'
+  );
   control?.focus({ preventScroll: true });
 }
 
@@ -435,8 +513,6 @@ function handleFloatingSaveClick(): void {
 }
 
 const canSubmit = computed(() => formErrors.value.length === 0 && !saving.value);
-
-
 
 function applySettings(s: AppSettings) {
   form.mode = s.mode;
@@ -454,8 +530,16 @@ function applySettings(s: AppSettings) {
   form.webhookSuccessBody = s.webhookSuccessBody;
   form.webhookFailureUrl = s.webhookFailureUrl;
   form.webhookFailureBody = s.webhookFailureBody;
-  form.webhookSuccessConfig = normalizedWebhookConfig(s.webhookSuccessConfig, s.webhookSuccessUrl, s.webhookSuccessBody);
-  form.webhookFailureConfig = normalizedWebhookConfig(s.webhookFailureConfig, s.webhookFailureUrl, s.webhookFailureBody);
+  form.webhookSuccessConfig = normalizedWebhookConfig(
+    s.webhookSuccessConfig,
+    s.webhookSuccessUrl,
+    s.webhookSuccessBody
+  );
+  form.webhookFailureConfig = normalizedWebhookConfig(
+    s.webhookFailureConfig,
+    s.webhookFailureUrl,
+    s.webhookFailureBody
+  );
 }
 
 function toPayload(): AppSettings {
@@ -554,7 +638,12 @@ async function saveAndGenerate() {
     const workflow = await api.saveAndGenerate(payload);
     savedSettingsSnapshot.value = submittedSnapshot;
     showFlash("配置保存成功");
-    notify(workflow.status === "pending" ? `工作流已加入等待队列（执行编号 #${workflow.workflowId}）` : `工作流已启动（执行编号 #${workflow.workflowId}）`, "success");
+    notify(
+      workflow.status === "pending"
+        ? `工作流已加入等待队列（执行编号 #${workflow.workflowId}）`
+        : `工作流已启动（执行编号 #${workflow.workflowId}）`,
+      "success"
+    );
     // 日志/状态刷新只是辅助操作，不能反过来影响已经成功启动的任务。
     await refreshLogs().catch(() => null);
     const latestProbe = await api.genpacStatus().catch(() => null);
@@ -579,7 +668,9 @@ async function testWebhook(kind: "success" | "failure") {
     state.message = "请先填写通知目标 URL。";
     return;
   }
-  const validationErrors = webhookErrorMessages(validateWebhookDraft(config, kind === "success" ? "成功通知" : "失败通知"));
+  const validationErrors = webhookErrorMessages(
+    validateWebhookDraft(config, kind === "success" ? "成功通知" : "失败通知")
+  );
   if (validationErrors.length) {
     state.ok = false;
     state.message = validationErrors.join("\n");
@@ -608,8 +699,14 @@ async function testWebhook(kind: "success" | "failure") {
 async function changeAdminPassword() {
   flash.value = "";
   error.value = "";
-  if (!passwordForm.currentPassword) { error.value = "请输入当前管理密码。"; return; }
-  if (passwordForm.newPassword !== passwordForm.confirmPassword) { error.value = "两次输入的新密码不一致。"; return; }
+  if (!passwordForm.currentPassword) {
+    error.value = "请输入当前管理密码。";
+    return;
+  }
+  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    error.value = "两次输入的新密码不一致。";
+    return;
+  }
   passwordSaving.value = true;
   try {
     await api.changePassword({
@@ -627,428 +724,660 @@ async function changeAdminPassword() {
     passwordSaving.value = false;
   }
 }
-
 </script>
 
 <template>
-  <AdminLayout active="settings" title="配置设置" subtitle="管理 PAC 生成方式、代理规则、定时任务与通知渠道。">
+  <AdminLayout
+    active="settings"
+    title="配置设置"
+    subtitle="管理 PAC 生成方式、代理规则、定时任务与通知渠道。"
+  >
     <div class="admin-page">
-
-    <section v-if="loading" class="state-card" aria-live="polite">
-      <span class="spinner" aria-hidden="true"></span>
-      <div>
-        <strong>正在加载配置</strong>
-        <p>正在读取当前设置、生成记录与引擎状态。</p>
-      </div>
-    </section>
-    <div v-if="flash" class="banner" :class="flashOk ? 'ok' : 'bad'">
-      <span class="banner-icon" aria-hidden="true"><AppIcon :name="flashOk ? 'circle-check' : 'circle-alert'" :size="15" /></span>
-      <pre class="banner-text">{{ flash }}</pre>
-    </div>
-    <div v-if="error" class="banner bad">
-      <span class="banner-icon" aria-hidden="true"><AppIcon name="circle-alert" :size="15" /></span>
-      <pre class="banner-text">{{ error }}</pre>
-    </div>
-
-    <template v-if="!loading && !error">
-      <section id="security" class="card security-card">
-        <div class="card-head">
-          <div>
-            <h2>管理密码</h2>
-            <p class="card-sub">密码保存在本地数据库，不再通过环境变量配置。</p>
-          </div>
+      <section v-if="loading" class="state-card" aria-live="polite">
+        <span class="spinner" aria-hidden="true"></span>
+        <div>
+          <strong>正在加载配置</strong>
+          <p>正在读取当前设置、生成记录与引擎状态。</p>
         </div>
-        <div v-if="securityStatus.isDefaultPassword" class="password-warning" role="alert">
-          <strong>安全提醒：当前仍使用默认密码 password</strong>
-          <p>建议将默认密码改成只有你知道的密码，避免其他人通过默认密码进入管理后台。新密码不限制长度或复杂度，由你自行决定。</p>
-        </div>
-        <div v-if="securityStatus.mustChangePassword" class="password-warning" role="alert">
-          <strong>需要设置新密码</strong>
-          <p>当前使用的是容器命令生成的一次性临时密码。完成修改前，其他管理功能会保持锁定。</p>
-        </div>
-        <form class="password-change-form" @submit.prevent="changeAdminPassword">
-          <div class="field">
-            <label for="current-admin-password">当前管理密码</label>
-            <input id="current-admin-password" v-model="passwordForm.currentPassword" type="password" autocomplete="current-password" required />
-          </div>
-          <div class="field">
-            <label for="new-admin-password">新管理密码</label>
-            <input id="new-admin-password" v-model="passwordForm.newPassword" type="password" autocomplete="new-password" required placeholder="输入新密码（不限制长度或复杂度）" />
-          </div>
-          <div class="field">
-            <label for="confirm-admin-password">确认新密码</label>
-            <input id="confirm-admin-password" v-model="passwordForm.confirmPassword" type="password" autocomplete="new-password" required />
-          </div>
-          <div class="actions">
-            <button type="submit" class="btn primary" :class="{ 'is-loading': passwordSaving }" :disabled="passwordSaving" :title="passwordSaving ? '正在修改管理密码，请稍候' : '修改管理密码'">
-              {{ passwordSaving ? "正在修改…" : "修改管理密码" }}
-            </button>
-          </div>
-        </form>
-        <p class="field-hint">忘记密码时，可根据部署方式重置：本机开发运行 <code>bun run reset:admin-password:development</code>；Linux、macOS、Windows 的非容器生产部署运行 <code>bun run reset:admin-password:production</code>；Docker 部署仍可在容器内运行原重置命令。脚本会显示实际数据库路径，且不会在数据库不存在时创建空库。<a href="https://github.com/geekMus/genpac-runner#常见问题" target="_blank" rel="noopener noreferrer">查看完整重置说明 ↗</a></p>
       </section>
+      <div v-if="flash" class="banner" :class="flashOk ? 'ok' : 'bad'">
+        <span class="banner-icon" aria-hidden="true"
+          ><AppIcon :name="flashOk ? 'circle-check' : 'circle-alert'" :size="15"
+        /></span>
+        <pre class="banner-text">{{ flash }}</pre>
+      </div>
+      <div v-if="error" class="banner bad">
+        <span class="banner-icon" aria-hidden="true"
+          ><AppIcon name="circle-alert" :size="15"
+        /></span>
+        <pre class="banner-text">{{ error }}</pre>
+      </div>
 
-      <form id="settings-form" v-if="!securityStatus.mustChangePassword" class="stack" :inert="saving" :aria-busy="saving" @submit.prevent="saveAndGenerate">
-        <!-- 常规设置 -->
-        <section id="general" class="card">
+      <template v-if="!loading && !error">
+        <section id="security" class="card security-card">
           <div class="card-head">
-            <div class="card-title">
-              <span class="icon-badge" aria-hidden="true"><AppIcon name="calendar-clock" :size="18" /></span>
-              <div>
-                <h2>常规设置</h2>
-                <p class="card-sub">常规选项保存在数据库中，不需要编辑 Docker 环境变量。</p>
-              </div>
+            <div>
+              <h2>管理密码</h2>
+              <p class="card-sub">密码保存在本地数据库，不再通过环境变量配置。</p>
             </div>
           </div>
-          <div class="field" data-validation-target="timezone">
-            <label for="timezone">时区</label>
-            <div class="timezone-picker desktop-timezone-picker">
-              <input id="timezone" v-model="form.timezone" autocomplete="off" spellcheck="false"
-                placeholder="搜索时区名称或代码，例如中国标准时间、Asia/Tokyo"
-                :aria-invalid="Boolean(timezoneError)"
-                @focus="timezoneMenuOpen = true; timezoneQuery = ''"
-                @input="timezoneQuery = form.timezone"
-                @blur="closeTimezoneMenu"
-                @keydown.esc="timezoneMenuOpen = false" />
-              <div v-if="timezoneMenuOpen" class="timezone-options-menu" role="listbox" aria-label="时区建议">
-                <button v-for="zone in filteredTimeZones" :key="zone.value" type="button" role="option"
-                  :aria-selected="form.timezone === zone.value" class="timezone-option"
-                  @pointerdown.prevent="selectTimeZone(zone.value)">
-                  <span>{{ zone.label }}</span><code>{{ zone.value }}</code>
-                </button>
-                <p v-if="filteredTimeZones.length === 0" class="timezone-no-results">没有匹配项；可以直接输入有效的 IANA 时区名称。</p>
-              </div>
-            </div>
-            <button type="button" class="mobile-timezone-trigger" @click="openMobileTimezonePicker">
-              <span>{{ form.timezone || "选择时区" }}</span>
-              <span class="mobile-timezone-trigger-icon" aria-hidden="true"><AppIcon name="chevron-down" :size="17" /></span>
-            </button>
-            <p class="field-hint">可按地区名称或 IANA 时区代码搜索，也可直接输入有效的时区代码。该设置统一用于定时任务、运行记录和 Webhook 通知的时间显示。</p>
-            <p v-if="timezoneError" class="field-error" role="alert">{{ timezoneError }}</p>
+          <div v-if="securityStatus.isDefaultPassword" class="password-warning" role="alert">
+            <strong>安全提醒：当前仍使用默认密码 password</strong>
+            <p>
+              建议将默认密码改成只有你知道的密码，避免其他人通过默认密码进入管理后台。新密码不限制长度或复杂度，由你自行决定。
+            </p>
           </div>
-
-          <div v-if="mobileTimezoneOpen" class="timezone-sheet-backdrop" @click.self="mobileTimezoneOpen = false">
-            <section class="timezone-sheet" role="dialog" aria-modal="true" aria-labelledby="mobile-timezone-title" @keydown.esc="mobileTimezoneOpen = false">
-              <header class="timezone-sheet-head">
-                <h3 id="mobile-timezone-title">选择时区</h3>
-                <button type="button" class="timezone-sheet-close" aria-label="关闭时区选择" @click="mobileTimezoneOpen = false"><AppIcon name="x" :size="18" /></button>
-              </header>
-              <input v-model="timezoneQuery" class="timezone-sheet-search" type="search" autocomplete="off"
-                placeholder="搜索时区名称或代码，如 Asia/Tokyo" @keydown.enter.prevent />
-              <div class="timezone-sheet-options" role="listbox" aria-label="时区建议">
-                <button v-for="zone in filteredTimeZones" :key="zone.value" type="button" role="option"
-                  :aria-selected="form.timezone === zone.value" class="timezone-option"
-                  @click="selectTimeZone(zone.value)">
-                  <span>{{ zone.label }}</span><code>{{ zone.value }}</code>
-                </button>
-                <button v-if="timezoneQuery.trim() && isValidTimeZone(timezoneQuery) && !commonTimeZones.some(zone => zone.value.toLowerCase() === timezoneQuery.trim().toLowerCase())"
-                  type="button" role="option" class="timezone-option timezone-custom-option"
-                  @click="selectTimeZone(timezoneQuery.trim())">
-                  <span>使用自定义时区</span><code>{{ timezoneQuery.trim() }}</code>
-                </button>
-                <p v-if="filteredTimeZones.length === 0 && !isValidTimeZone(timezoneQuery)" class="timezone-no-results">没有匹配项。请输入有效的 IANA 时区名称。</p>
-              </div>
-              <p class="timezone-sheet-hint">选择后会填入配置，保存后生效。也可输入其他有效的 IANA 时区代码。</p>
-            </section>
+          <div v-if="securityStatus.mustChangePassword" class="password-warning" role="alert">
+            <strong>需要设置新密码</strong>
+            <p>当前使用的是容器命令生成的一次性临时密码。完成修改前，其他管理功能会保持锁定。</p>
           </div>
-          <div class="chip-row timezone-presets">
-            <button v-for="zone in commonTimeZones.slice(0, 6)" :key="zone.value" type="button" class="chip"
-              :class="{ active: form.timezone === zone.value }" @click="form.timezone = zone.value">{{ zone.label }}</button>
-          </div>
-        </section>
-
-        <!-- 模式 -->
-        <section id="mode" class="card">
-          <div class="card-head">
-            <div class="card-title">
-              <span class="icon-badge" aria-hidden="true">
-                <AppIcon name="workflow" :size="18" />
-              </span>
-              <div>
-                <h2>启动模式</h2>
-                <p class="card-sub">选择 PAC 如何生成</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="mode-grid">
-            <label class="mode-card" :class="{ active: form.mode === 'custom' }">
-              <input v-model="form.mode" type="radio" value="custom" />
-              <div class="mode-card-body">
-                <div class="mode-top">
-                  <span class="mode-name">自定义规则</span>
-                  <span class="tag">推荐</span>
-                </div>
-                <p class="mode-desc">直连列表、黑名单与默认代理，适合本机快速配置。</p>
-              </div>
-            </label>
-            <label class="mode-card" :class="{ active: form.mode === 'remote' }">
-              <input v-model="form.mode" type="radio" value="remote" />
-              <div class="mode-card-body">
-                <div class="mode-top">
-                  <span class="mode-name">远程规则列表</span>
-                  <span class="tag">Bun 内置</span>
-                </div>
-                <p class="mode-desc">从远程规则列表生成；匹配到代理域名时走代理，例外及未命中域名直连。</p>
-              </div>
-            </label>
-          </div>
-
-          <p class="hint-line">{{ modeHint }}</p>
-
-          <div
-            v-if="form.mode === 'remote' && genpacProbe"
-            class="probe"
-            :class="genpacProbe.available ? 'ok' : 'warn'"
-          >
-            <strong>{{ genpacProbe.available ? "远程列表引擎就绪" : "引擎状态异常" }}</strong>
-            <span>{{ genpacProbe.detail }}</span>
-            <span v-if="!genpacProbe.available" class="probe-help">
-              请检查列表 URL 是否可访问，或改用「自定义规则」模式。
-            </span>
-          </div>
-        </section>
-
-        <!-- 代理 -->
-        <section id="proxy" class="card">
-          <div class="card-head">
-            <div class="card-title">
-              <span class="icon-badge" aria-hidden="true">
-                <AppIcon name="globe" :size="18" />
-              </span>
-              <div>
-                <h2>代理与远程列表</h2>
-                <p class="card-sub">设置默认代理字符串，并指定远程规则列表来源</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="field" data-validation-target="pac-proxy">
-            <label for="pacProxy">PAC 代理字符串</label>
-            <input
-              id="pacProxy"
-              v-model="form.pacProxy"
-              :aria-invalid="Boolean(pacProxyError)"
-              placeholder="SOCKS5 127.0.0.1:1080; DIRECT"
-            />
-            <p class="field-hint">每个代理项用分号分隔。支持 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 和 DIRECT；代理地址必须填写端口，例如 SOCKS5 127.0.0.1:1080; DIRECT。</p>
-            <p v-if="pacProxyError" class="field-error" role="alert">{{ pacProxyError }}</p>
-          </div>
-          <div class="field" :class="{ 'is-disabled': form.mode !== 'remote' }" data-validation-target="list-url">
-            <label for="listUrl">规则列表 URL <span class="lab-hint">GFWList / 域名型 AutoProxy、ABP / 明文域名</span></label>
-            <input id="listUrl" v-model="form.listUrl" :disabled="form.mode !== 'remote'" :aria-disabled="form.mode !== 'remote'" :aria-invalid="Boolean(listUrlError)" placeholder="https://example.com/list.txt" />
-            <p class="field-hint">按提取出的域名进行匹配；URL 路径、资源类型等复杂过滤条件不会保留。<span v-if="form.mode !== 'remote'" class="disabled-hint">切换到远程规则列表模式后可编辑。</span></p>
-            <p v-if="listUrlError" class="field-error" role="alert">{{ listUrlError }}</p>
-          </div>
-          <div class="checks">
-            <label class="check">
-              <input v-model="form.pacCompress" type="checkbox" />
-              <span>压缩 PAC</span>
-            </label>
-          </div>
-          <p class="field-hint">开启后，无论启动模式和规则来源，生成完成的 PAC 都会去除注释与多余缩进；关闭后保留完整的可读格式。</p>
-        </section>
-
-        <!-- 规则列表 -->
-        <section id="rules" class="card">
-          <div class="card-head">
-            <div class="card-title">
-              <span class="icon-badge" aria-hidden="true">
-                <AppIcon name="list-checks" :size="18" />
-              </span>
-              <div>
-                <h2>自定义规则</h2>
-                <p class="card-sub">直连与黑名单在「自定义」和「远程列表」两种模式下都会生效</p>
-              </div>
-            </div>
-          </div>
-
-          <details class="help">
-            <summary>如何配置？生效顺序说明</summary>
-            <div class="help-body">
-              <p><strong>写法：</strong>每行填写一条域名规则。<code>example.com</code> 仅匹配该域名本身；<code>*.example.com</code> 仅匹配其子域名；<code>**.example.com</code> 同时匹配主域名和所有子域名。自定义直连与黑名单列表不支持注释行，请只填写规则，不要添加说明文字。</p>
-              <p><strong>直连列表：</strong>命中后返回 <code>DIRECT</code>（不走代理）。</p>
-              <p><strong>黑名单：</strong>命中后返回 <code>PROXY 0.0.0.0:0</code>，让客户端连接不可用的代理地址以阻止访问；具体提示取决于客户端。</p>
-              <p><strong>匹配优先级（两种模式相同）：</strong></p>
-              <ol>
-                <li>localhost、无点号主机名、IPv4 回环与 RFC 1918 私网地址 → 直连</li>
-                <li>黑名单 → 拒绝</li>
-                <li>直连列表 → 直连</li>
-                <li>若为远程列表模式：再匹配远程规则（列表中的域名走代理，列表内例外直连）</li>
-                <li>自定义模式剩余流量走「PAC 代理字符串」；远程列表模式剩余流量默认直连</li>
-              </ol>
-            </div>
-          </details>
-
-          <div class="split editors">
-            <div class="field" data-validation-target="direct-list">
-              <label>直连列表</label>
-              <DomainListEditor
-                v-model="form.directListText"
-                :height="320"
-                :invalid="Boolean(directListError)"
-                :diagnostics="directRuleDiagnostics"
-                placeholder="example.com&#10;*.example.org&#10;**.example.net"
+          <form class="password-change-form" @submit.prevent="changeAdminPassword">
+            <div class="field">
+              <label for="current-admin-password">当前管理密码</label>
+              <input
+                id="current-admin-password"
+                v-model="passwordForm.currentPassword"
+                type="password"
+                autocomplete="current-password"
+                required
               />
-              <p v-if="directListError" class="field-error" role="alert">{{ directListError }}</p>
             </div>
-            <div class="field" data-validation-target="block-list">
-              <label>黑名单</label>
-              <DomainListEditor
-                v-model="form.blockListText"
-                :height="320"
-                :invalid="Boolean(blockListError)"
-                :diagnostics="blockRuleDiagnostics"
-                placeholder="ads.example.com"
+            <div class="field">
+              <label for="new-admin-password">新管理密码</label>
+              <input
+                id="new-admin-password"
+                v-model="passwordForm.newPassword"
+                type="password"
+                autocomplete="new-password"
+                required
+                placeholder="输入新密码（不限制长度或复杂度）"
               />
-              <p v-if="blockListError" class="field-error" role="alert">{{ blockListError }}</p>
             </div>
-          </div>
-          <div v-if="ruleAnalysis.totalErrors || ruleAnalysis.totalWarnings" class="rule-analysis-summary" aria-live="polite">
-            <div class="rule-analysis-title">规则检查：{{ ruleAnalysis.totalErrors }} 个错误，{{ ruleAnalysis.totalWarnings }} 条提示</div>
-            <p v-if="ruleAnalysis.totalErrors" class="field-error">请先修正规则格式错误；格式错误会阻止保存。</p>
-            <p v-if="ruleAnalysis.totalWarnings" class="field-hint">提示包含重复、可能冗余及直连/黑名单匹配范围重叠。重叠不会自动修改；黑名单优先于直连列表。</p>
-          </div>
-        </section>
-
-        <!-- 定时与 webhook -->
-        <section id="schedule" class="card">
-          <div class="card-head">
-            <div class="card-title">
-              <span class="icon-badge" aria-hidden="true">
-                <AppIcon name="calendar-clock" :size="18" />
-              </span>
-              <div>
-                <h2>定时与 Webhook</h2>
-                <p class="card-sub">均可选。定时任务按计划生成 PAC；Webhook 在生成成功或失败时发送通知，HTTP 方法按渠道配置（钉钉固定使用 POST）。</p>
-              </div>
+            <div class="field">
+              <label for="confirm-admin-password">确认新密码</label>
+              <input
+                id="confirm-admin-password"
+                v-model="passwordForm.confirmPassword"
+                type="password"
+                autocomplete="new-password"
+                required
+              />
             </div>
-          </div>
-
-          <div class="sub-block">
-            <div class="sub-title">定时生成</div>
-            <div class="chip-row" role="group" aria-label="Cron 预设">
+            <div class="actions">
               <button
-                v-for="p in cronPresets"
-                :key="p.label"
-                type="button"
-                class="chip"
-                :class="{ active: form.cronSchedule.trim() === p.value }"
-                @click="applyCronPreset(p.value)"
+                type="submit"
+                class="btn primary"
+                :class="{ 'is-loading': passwordSaving }"
+                :disabled="passwordSaving"
+                :title="passwordSaving ? '正在修改管理密码，请稍候' : '修改管理密码'"
               >
-                {{ p.label }}
+                {{ passwordSaving ? "正在修改…" : "修改管理密码" }}
               </button>
             </div>
-            <div class="field" data-validation-target="cron">
-              <label for="cron">Cron 表达式 <span class="lab-hint">5 段 · 分 时 日 月 周</span></label>
-              <input
-                id="cron"
-                v-model="form.cronSchedule"
-                class="mono"
-                :aria-invalid="Boolean(cronError)"
-                spellcheck="false"
-                autocomplete="off"
-                placeholder="例如 0 */3 * * *"
-              />
-              <p class="field-hint" :class="{ 'field-error': Boolean(cronError) }" :aria-live="cronError ? 'polite' : undefined">{{ cronHint }}</p>
-            </div>
-          </div>
-
-                    <div class="webhook-grid">
-            <WebhookChannelEditor
-              title="成功时通知"
-              kind="success"
-              :model-value="form.webhookSuccessConfig"
-              :pending="webhookTestState.success.pending"
-              :result-message="webhookTestState.success.message"
-              :result-ok="webhookTestState.success.ok"
-              :validation-errors="webhookValidation.success"
-              @update:model-value="form.webhookSuccessConfig = $event"
-              @test="testWebhook('success')"
-            />
-            <WebhookChannelEditor
-              title="失败时通知"
-              kind="failure"
-              :model-value="form.webhookFailureConfig"
-              :pending="webhookTestState.failure.pending"
-              :result-message="webhookTestState.failure.message"
-              :result-ok="webhookTestState.failure.ok"
-              :validation-errors="webhookValidation.failure"
-              @update:model-value="form.webhookFailureConfig = $event"
-              @test="testWebhook('failure')"
-            />
-          </div>
+          </form>
+          <p class="field-hint">
+            忘记密码时，可根据部署方式重置：本机开发运行
+            <code>bun run reset:admin-password:development</code>；Linux、macOS、Windows
+            的非容器生产部署运行 <code>bun run reset:admin-password:production</code>；Docker
+            部署仍可在容器内运行原重置命令。脚本会显示实际数据库路径，且不会在数据库不存在时创建空库。<a
+              href="https://github.com/geekMus/genpac-runner#常见问题"
+              target="_blank"
+              rel="noopener noreferrer"
+              >查看完整重置说明 ↗</a
+            >
+          </p>
         </section>
 
+        <form
+          id="settings-form"
+          v-if="!securityStatus.mustChangePassword"
+          class="stack"
+          :inert="saving"
+          :aria-busy="saving"
+          @submit.prevent="saveAndGenerate"
+        >
+          <!-- 常规设置 -->
+          <section id="general" class="card">
+            <div class="card-head">
+              <div class="card-title">
+                <span class="icon-badge" aria-hidden="true"
+                  ><AppIcon name="calendar-clock" :size="18"
+                /></span>
+                <div>
+                  <h2>常规设置</h2>
+                  <p class="card-sub">常规选项保存在数据库中，不需要编辑 Docker 环境变量。</p>
+                </div>
+              </div>
+            </div>
+            <div class="field" data-validation-target="timezone">
+              <label for="timezone">时区</label>
+              <div class="timezone-picker desktop-timezone-picker">
+                <input
+                  id="timezone"
+                  v-model="form.timezone"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="搜索时区名称或代码，例如中国标准时间、Asia/Tokyo"
+                  :aria-invalid="Boolean(timezoneError)"
+                  @focus="
+                    timezoneMenuOpen = true;
+                    timezoneQuery = '';
+                  "
+                  @input="timezoneQuery = form.timezone"
+                  @blur="closeTimezoneMenu"
+                  @keydown.esc="timezoneMenuOpen = false"
+                />
+                <div
+                  v-if="timezoneMenuOpen"
+                  class="timezone-options-menu"
+                  role="listbox"
+                  aria-label="时区建议"
+                >
+                  <button
+                    v-for="zone in filteredTimeZones"
+                    :key="zone.value"
+                    type="button"
+                    role="option"
+                    :aria-selected="form.timezone === zone.value"
+                    class="timezone-option"
+                    @pointerdown.prevent="selectTimeZone(zone.value)"
+                  >
+                    <span>{{ zone.label }}</span
+                    ><code>{{ zone.value }}</code>
+                  </button>
+                  <p v-if="filteredTimeZones.length === 0" class="timezone-no-results">
+                    没有匹配项；可以直接输入有效的 IANA 时区名称。
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="mobile-timezone-trigger"
+                @click="openMobileTimezonePicker"
+              >
+                <span>{{ form.timezone || "选择时区" }}</span>
+                <span class="mobile-timezone-trigger-icon" aria-hidden="true"
+                  ><AppIcon name="chevron-down" :size="17"
+                /></span>
+              </button>
+              <p class="field-hint">
+                可按地区名称或 IANA
+                时区代码搜索，也可直接输入有效的时区代码。该设置统一用于定时任务、运行记录和 Webhook
+                通知的时间显示。
+              </p>
+              <p v-if="timezoneError" class="field-error" role="alert">{{ timezoneError }}</p>
+            </div>
 
-        <div class="actions-block">
-          <div v-if="formErrors.length" class="validation-box">
-            <div class="validation-title">请先修正以下问题后再保存</div>
-            <ul>
-              <li v-for="(e, i) in formErrors" :key="i">{{ e }}</li>
-            </ul>
+            <div
+              v-if="mobileTimezoneOpen"
+              class="timezone-sheet-backdrop"
+              @click.self="mobileTimezoneOpen = false"
+            >
+              <section
+                class="timezone-sheet"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="mobile-timezone-title"
+                @keydown.esc="mobileTimezoneOpen = false"
+              >
+                <header class="timezone-sheet-head">
+                  <h3 id="mobile-timezone-title">选择时区</h3>
+                  <button
+                    type="button"
+                    class="timezone-sheet-close"
+                    aria-label="关闭时区选择"
+                    @click="mobileTimezoneOpen = false"
+                  >
+                    <AppIcon name="x" :size="18" />
+                  </button>
+                </header>
+                <input
+                  v-model="timezoneQuery"
+                  class="timezone-sheet-search"
+                  type="search"
+                  autocomplete="off"
+                  placeholder="搜索时区名称或代码，如 Asia/Tokyo"
+                  @keydown.enter.prevent
+                />
+                <div class="timezone-sheet-options" role="listbox" aria-label="时区建议">
+                  <button
+                    v-for="zone in filteredTimeZones"
+                    :key="zone.value"
+                    type="button"
+                    role="option"
+                    :aria-selected="form.timezone === zone.value"
+                    class="timezone-option"
+                    @click="selectTimeZone(zone.value)"
+                  >
+                    <span>{{ zone.label }}</span
+                    ><code>{{ zone.value }}</code>
+                  </button>
+                  <button
+                    v-if="
+                      timezoneQuery.trim() &&
+                      isValidTimeZone(timezoneQuery) &&
+                      !commonTimeZones.some(
+                        (zone) => zone.value.toLowerCase() === timezoneQuery.trim().toLowerCase()
+                      )
+                    "
+                    type="button"
+                    role="option"
+                    class="timezone-option timezone-custom-option"
+                    @click="selectTimeZone(timezoneQuery.trim())"
+                  >
+                    <span>使用自定义时区</span><code>{{ timezoneQuery.trim() }}</code>
+                  </button>
+                  <p
+                    v-if="filteredTimeZones.length === 0 && !isValidTimeZone(timezoneQuery)"
+                    class="timezone-no-results"
+                  >
+                    没有匹配项。请输入有效的 IANA 时区名称。
+                  </p>
+                </div>
+                <p class="timezone-sheet-hint">
+                  选择后会填入配置，保存后生效。也可输入其他有效的 IANA 时区代码。
+                </p>
+              </section>
+            </div>
+            <div class="chip-row timezone-presets">
+              <button
+                v-for="zone in commonTimeZones.slice(0, 6)"
+                :key="zone.value"
+                type="button"
+                class="chip"
+                :class="{ active: form.timezone === zone.value }"
+                @click="form.timezone = zone.value"
+              >
+                {{ zone.label }}
+              </button>
+            </div>
+          </section>
+
+          <!-- 模式 -->
+          <section id="mode" class="card">
+            <div class="card-head">
+              <div class="card-title">
+                <span class="icon-badge" aria-hidden="true">
+                  <AppIcon name="workflow" :size="18" />
+                </span>
+                <div>
+                  <h2>启动模式</h2>
+                  <p class="card-sub">选择 PAC 如何生成</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="mode-grid">
+              <label class="mode-card" :class="{ active: form.mode === 'custom' }">
+                <input v-model="form.mode" type="radio" value="custom" />
+                <div class="mode-card-body">
+                  <div class="mode-top">
+                    <span class="mode-name">自定义规则</span>
+                    <span class="tag">推荐</span>
+                  </div>
+                  <p class="mode-desc">直连列表、黑名单与默认代理，适合本机快速配置。</p>
+                </div>
+              </label>
+              <label class="mode-card" :class="{ active: form.mode === 'remote' }">
+                <input v-model="form.mode" type="radio" value="remote" />
+                <div class="mode-card-body">
+                  <div class="mode-top">
+                    <span class="mode-name">远程规则列表</span>
+                    <span class="tag">Bun 内置</span>
+                  </div>
+                  <p class="mode-desc">
+                    从远程规则列表生成；匹配到代理域名时走代理，例外及未命中域名直连。
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            <p class="hint-line">{{ modeHint }}</p>
+
+            <div
+              v-if="form.mode === 'remote' && genpacProbe"
+              class="probe"
+              :class="genpacProbe.available ? 'ok' : 'warn'"
+            >
+              <strong>{{ genpacProbe.available ? "远程列表引擎就绪" : "引擎状态异常" }}</strong>
+              <span>{{ genpacProbe.detail }}</span>
+              <span v-if="!genpacProbe.available" class="probe-help">
+                请检查列表 URL 是否可访问，或改用「自定义规则」模式。
+              </span>
+            </div>
+          </section>
+
+          <!-- 代理 -->
+          <section id="proxy" class="card">
+            <div class="card-head">
+              <div class="card-title">
+                <span class="icon-badge" aria-hidden="true">
+                  <AppIcon name="globe" :size="18" />
+                </span>
+                <div>
+                  <h2>代理与远程列表</h2>
+                  <p class="card-sub">设置默认代理字符串，并指定远程规则列表来源</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="field" data-validation-target="pac-proxy">
+              <label for="pacProxy">PAC 代理字符串</label>
+              <input
+                id="pacProxy"
+                v-model="form.pacProxy"
+                :aria-invalid="Boolean(pacProxyError)"
+                placeholder="SOCKS5 127.0.0.1:1080; DIRECT"
+              />
+              <p class="field-hint">
+                每个代理项用分号分隔。支持 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 和
+                DIRECT；代理地址必须填写端口，例如 SOCKS5 127.0.0.1:1080; DIRECT。
+              </p>
+              <p v-if="pacProxyError" class="field-error" role="alert">{{ pacProxyError }}</p>
+            </div>
+            <div
+              class="field"
+              :class="{ 'is-disabled': form.mode !== 'remote' }"
+              data-validation-target="list-url"
+            >
+              <label for="listUrl"
+                >规则列表 URL
+                <span class="lab-hint">GFWList / 域名型 AutoProxy、ABP / 明文域名</span></label
+              >
+              <input
+                id="listUrl"
+                v-model="form.listUrl"
+                :disabled="form.mode !== 'remote'"
+                :aria-disabled="form.mode !== 'remote'"
+                :aria-invalid="Boolean(listUrlError)"
+                placeholder="https://example.com/list.txt"
+              />
+              <p class="field-hint">
+                按提取出的域名进行匹配；URL 路径、资源类型等复杂过滤条件不会保留。<span
+                  v-if="form.mode !== 'remote'"
+                  class="disabled-hint"
+                  >切换到远程规则列表模式后可编辑。</span
+                >
+              </p>
+              <p v-if="listUrlError" class="field-error" role="alert">{{ listUrlError }}</p>
+            </div>
+            <div class="checks">
+              <label class="check">
+                <input v-model="form.pacCompress" type="checkbox" />
+                <span>压缩 PAC</span>
+              </label>
+            </div>
+            <p class="field-hint">
+              开启后，无论启动模式和规则来源，生成完成的 PAC
+              都会去除注释与多余缩进；关闭后保留完整的可读格式。
+            </p>
+          </section>
+
+          <!-- 规则列表 -->
+          <section id="rules" class="card">
+            <div class="card-head">
+              <div class="card-title">
+                <span class="icon-badge" aria-hidden="true">
+                  <AppIcon name="list-checks" :size="18" />
+                </span>
+                <div>
+                  <h2>自定义规则</h2>
+                  <p class="card-sub">直连与黑名单在「自定义」和「远程列表」两种模式下都会生效</p>
+                </div>
+              </div>
+            </div>
+
+            <details class="help">
+              <summary>如何配置？生效顺序说明</summary>
+              <div class="help-body">
+                <p>
+                  <strong>写法：</strong>每行填写一条域名规则。<code>example.com</code>
+                  仅匹配该域名本身；<code>*.example.com</code> 仅匹配其子域名；<code
+                    >**.example.com</code
+                  >
+                  同时匹配主域名和所有子域名。自定义直连与黑名单列表不支持注释行，请只填写规则，不要添加说明文字。
+                </p>
+                <p><strong>直连列表：</strong>命中后返回 <code>DIRECT</code>（不走代理）。</p>
+                <p>
+                  <strong>黑名单：</strong>命中后返回
+                  <code>PROXY 0.0.0.0:0</code
+                  >，让客户端连接不可用的代理地址以阻止访问；具体提示取决于客户端。
+                </p>
+                <p><strong>匹配优先级（两种模式相同）：</strong></p>
+                <ol>
+                  <li>localhost、无点号主机名、IPv4 回环与 RFC 1918 私网地址 → 直连</li>
+                  <li>黑名单 → 拒绝</li>
+                  <li>直连列表 → 直连</li>
+                  <li>若为远程列表模式：再匹配远程规则（列表中的域名走代理，列表内例外直连）</li>
+                  <li>自定义模式剩余流量走「PAC 代理字符串」；远程列表模式剩余流量默认直连</li>
+                </ol>
+              </div>
+            </details>
+
+            <div class="split editors">
+              <div class="field" data-validation-target="direct-list">
+                <label>直连列表</label>
+                <DomainListEditor
+                  v-model="form.directListText"
+                  :height="320"
+                  :invalid="Boolean(directListError)"
+                  :diagnostics="directRuleDiagnostics"
+                  placeholder="example.com&#10;*.example.org&#10;**.example.net"
+                />
+                <p v-if="directListError" class="field-error" role="alert">{{ directListError }}</p>
+              </div>
+              <div class="field" data-validation-target="block-list">
+                <label>黑名单</label>
+                <DomainListEditor
+                  v-model="form.blockListText"
+                  :height="320"
+                  :invalid="Boolean(blockListError)"
+                  :diagnostics="blockRuleDiagnostics"
+                  placeholder="ads.example.com"
+                />
+                <p v-if="blockListError" class="field-error" role="alert">{{ blockListError }}</p>
+              </div>
+            </div>
+            <div
+              v-if="ruleAnalysis.totalErrors || ruleAnalysis.totalWarnings"
+              class="rule-analysis-summary"
+              aria-live="polite"
+            >
+              <div class="rule-analysis-title">
+                规则检查：{{ ruleAnalysis.totalErrors }} 个错误，{{
+                  ruleAnalysis.totalWarnings
+                }}
+                条提示
+              </div>
+              <p v-if="ruleAnalysis.totalErrors" class="field-error">
+                请先修正规则格式错误；格式错误会阻止保存。
+              </p>
+              <p v-if="ruleAnalysis.totalWarnings" class="field-hint">
+                提示包含重复、可能冗余及直连/黑名单匹配范围重叠。重叠不会自动修改；黑名单优先于直连列表。
+              </p>
+            </div>
+          </section>
+
+          <!-- 定时与 webhook -->
+          <section id="schedule" class="card">
+            <div class="card-head">
+              <div class="card-title">
+                <span class="icon-badge" aria-hidden="true">
+                  <AppIcon name="calendar-clock" :size="18" />
+                </span>
+                <div>
+                  <h2>定时与 Webhook</h2>
+                  <p class="card-sub">
+                    均可选。定时任务按计划生成 PAC；Webhook 在生成成功或失败时发送通知，HTTP
+                    方法按渠道配置（钉钉固定使用 POST）。
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="sub-block">
+              <div class="sub-title">定时生成</div>
+              <div class="chip-row" role="group" aria-label="Cron 预设">
+                <button
+                  v-for="p in cronPresets"
+                  :key="p.label"
+                  type="button"
+                  class="chip"
+                  :class="{ active: form.cronSchedule.trim() === p.value }"
+                  @click="applyCronPreset(p.value)"
+                >
+                  {{ p.label }}
+                </button>
+              </div>
+              <div class="field" data-validation-target="cron">
+                <label for="cron"
+                  >Cron 表达式 <span class="lab-hint">5 段 · 分 时 日 月 周</span></label
+                >
+                <input
+                  id="cron"
+                  v-model="form.cronSchedule"
+                  class="mono"
+                  :aria-invalid="Boolean(cronError)"
+                  spellcheck="false"
+                  autocomplete="off"
+                  placeholder="例如 0 */3 * * *"
+                />
+                <p
+                  class="field-hint"
+                  :class="{ 'field-error': Boolean(cronError) }"
+                  :aria-live="cronError ? 'polite' : undefined"
+                >
+                  {{ cronHint }}
+                </p>
+              </div>
+            </div>
+
+            <div class="webhook-grid">
+              <WebhookChannelEditor
+                title="成功时通知"
+                kind="success"
+                :model-value="form.webhookSuccessConfig"
+                :pending="webhookTestState.success.pending"
+                :result-message="webhookTestState.success.message"
+                :result-ok="webhookTestState.success.ok"
+                :validation-errors="webhookValidation.success"
+                @update:model-value="form.webhookSuccessConfig = $event"
+                @test="testWebhook('success')"
+              />
+              <WebhookChannelEditor
+                title="失败时通知"
+                kind="failure"
+                :model-value="form.webhookFailureConfig"
+                :pending="webhookTestState.failure.pending"
+                :result-message="webhookTestState.failure.message"
+                :result-ok="webhookTestState.failure.ok"
+                :validation-errors="webhookValidation.failure"
+                @update:model-value="form.webhookFailureConfig = $event"
+                @test="testWebhook('failure')"
+              />
+            </div>
+          </section>
+
+          <div class="actions-block">
+            <div v-if="formErrors.length" class="validation-box">
+              <div class="validation-title">请先修正以下问题后再保存</div>
+              <ul>
+                <li v-for="(e, i) in formErrors" :key="i">{{ e }}</li>
+              </ul>
+            </div>
+            <p class="actions-hint">
+              修改配置后，右下角会出现快捷保存按钮；成功生成 PAC 后按钮会自动隐藏。
+            </p>
           </div>
-          <p class="actions-hint">
-            修改配置后，右下角会出现快捷保存按钮；成功生成 PAC 后按钮会自动隐藏。
-          </p>
-        </div>
-      </form>
+        </form>
 
-      <section id="logs" class="card">
-        <div class="card-head">
-          <div class="card-title">
-            <span class="icon-badge" aria-hidden="true">
-              <AppIcon name="chart" :size="18" />
-            </span>
-            <div>
-              <h2>最近生成记录</h2>
-              <p class="card-sub">已加载 {{ logs.length }} / {{ logTotal }} 条</p>
+        <section id="logs" class="card">
+          <div class="card-head">
+            <div class="card-title">
+              <span class="icon-badge" aria-hidden="true">
+                <AppIcon name="chart" :size="18" />
+              </span>
+              <div>
+                <h2>最近生成记录</h2>
+                <p class="card-sub">已加载 {{ logs.length }} / {{ logTotal }} 条</p>
+              </div>
             </div>
           </div>
-        </div>
-        <VirtualTable
-          :items="logs"
-          item-key="id"
-          :col-span="4"
-          :row-height="58"
-          height="420px"
-          min-width="700px"
-          :has-more="logHasMore"
-          :loading="logLoadingMore"
-          :error="logLoadError"
-          empty-text="暂无生成记录"
-          :load-more="loadMoreLogs"
-        >
-          <template #columns><col style="width:145px" /><col style="width:78px" /><col style="width:120px" /><col style="width:357px" /></template>
-          <template #header><tr><th>时间</th><th>结果</th><th>模式</th><th>信息</th></tr></template>
-          <template #row="{ item: l }">
-            <tr>
-              <td class="nowrap">{{ l.created_at }}</td>
-              <td><span class="pill" :class="l.success ? 'ok' : 'bad'">{{ l.success ? "成功" : "失败" }}</span></td>
-              <td>{{ l.mode }}</td>
-              <td class="msg"><TextDetail :text="l.message || ''" label="生成记录信息" /></td>
-            </tr>
-          </template>
-        </VirtualTable>
-      </section>
+          <VirtualTable
+            :items="logs"
+            item-key="id"
+            :col-span="4"
+            :row-height="58"
+            height="420px"
+            min-width="700px"
+            :has-more="logHasMore"
+            :loading="logLoadingMore"
+            :error="logLoadError"
+            empty-text="暂无生成记录"
+            :load-more="loadMoreLogs"
+          >
+            <template #columns
+              ><col style="width: 145px" />
+              <col style="width: 78px" />
+              <col style="width: 120px" />
+              <col style="width: 357px"
+            /></template>
+            <template #header
+              ><tr>
+                <th>时间</th>
+                <th>结果</th>
+                <th>模式</th>
+                <th>信息</th>
+              </tr></template
+            >
+            <template #row="{ item: l }">
+              <tr>
+                <td class="nowrap">{{ l.created_at }}</td>
+                <td>
+                  <span class="pill" :class="l.success ? 'ok' : 'bad'">{{
+                    l.success ? "成功" : "失败"
+                  }}</span>
+                </td>
+                <td>{{ l.mode }}</td>
+                <td class="msg"><TextDetail :text="l.message || ''" label="生成记录信息" /></td>
+              </tr>
+            </template>
+          </VirtualTable>
+        </section>
 
-      <button
-        v-if="!securityStatus.mustChangePassword && hasUnsavedSettings"
-        form="settings-form"
-        :type="canSubmit ? 'submit' : 'button'"
-        class="floating-save-button"
-        :class="{ 'is-loading': saving, 'has-errors': formErrors.length > 0 && !saving }"
-        :disabled="saving"
-        :aria-busy="saving"
-        :aria-invalid="formErrors.length > 0 ? 'true' : undefined"
-        :aria-label="saving ? '正在保存并生成 PAC' : formErrors.length ? '配置存在校验问题，点击定位到错误' : '保存并生成 PAC'"
-        :title="saving ? '正在保存并生成 PAC' : formErrors.length ? '配置存在校验问题，点击定位到错误' : '保存并生成 PAC'"
-        @click="handleFloatingSaveClick"
-      >
-        <AppIcon :name="saving ? 'loader-circle' : formErrors.length ? 'circle-alert' : 'save'" :size="21" :class="{ 'save-spinner': saving }" />
-      </button>
-    </template>
-    <AppFooter />
+        <button
+          v-if="!securityStatus.mustChangePassword && hasUnsavedSettings"
+          form="settings-form"
+          :type="canSubmit ? 'submit' : 'button'"
+          class="floating-save-button"
+          :class="{ 'is-loading': saving, 'has-errors': formErrors.length > 0 && !saving }"
+          :disabled="saving"
+          :aria-busy="saving"
+          :aria-invalid="formErrors.length > 0 ? 'true' : undefined"
+          :aria-label="
+            saving
+              ? '正在保存并生成 PAC'
+              : formErrors.length
+                ? '配置存在校验问题，点击定位到错误'
+                : '保存并生成 PAC'
+          "
+          :title="
+            saving
+              ? '正在保存并生成 PAC'
+              : formErrors.length
+                ? '配置存在校验问题，点击定位到错误'
+                : '保存并生成 PAC'
+          "
+          @click="handleFloatingSaveClick"
+        >
+          <AppIcon
+            :name="saving ? 'loader-circle' : formErrors.length ? 'circle-alert' : 'save'"
+            :size="21"
+            :class="{ 'save-spinner': saving }"
+          />
+        </button>
+      </template>
+      <AppFooter />
     </div>
   </AdminLayout>
 </template>
@@ -1058,7 +1387,6 @@ async function changeAdminPassword() {
   min-width: 0;
   padding-bottom: 90px;
 }
-
 
 .floating-save-button {
   position: fixed;
@@ -1077,9 +1405,15 @@ async function changeAdminPassword() {
   -webkit-text-fill-color: var(--accent-contrast);
   box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 28%, transparent);
   cursor: pointer;
-  transition: background .15s, border-color .15s, box-shadow .15s, transform .15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s,
+    transform 0.15s;
 }
-.floating-save-button svg { flex: 0 0 auto; }
+.floating-save-button svg {
+  flex: 0 0 auto;
+}
 .floating-save-button:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
@@ -1128,22 +1462,33 @@ async function changeAdminPassword() {
   transform: none;
 }
 .admin-logout-button {
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  min-height:34px;
-  padding:0 11px;
-  border:1px solid var(--line);
-  border-radius:8px;
-  background:var(--surface);
-  color:var(--text);
-  font:inherit;
-  font-size:11px;
-  font-weight:700;
-  cursor:pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
 }
-.admin-logout-button:hover { border-color:var(--accent); color:var(--accent); }
-#security,#general,#mode,#proxy,#rules,#schedule,#logs { scroll-margin-top: 110px; }
+.admin-logout-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+#security,
+#general,
+#mode,
+#proxy,
+#rules,
+#schedule,
+#logs {
+  scroll-margin-top: 110px;
+}
 .state-card {
   display: flex;
   align-items: flex-start;
@@ -1170,14 +1515,19 @@ async function changeAdminPassword() {
   border: 2px solid var(--line);
   border-top-color: var(--accent);
   border-radius: 50%;
-  animation: admin-spin .8s linear infinite;
+  animation: admin-spin 0.8s linear infinite;
   flex: 0 0 auto;
 }
 @keyframes admin-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .spinner { animation-duration: .01ms; animation-iteration-count: 1; }
+  .spinner {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
 }
 .banner {
   display: flex;
@@ -1275,7 +1625,9 @@ h2 {
   background: var(--surface-2);
   padding: 14px;
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 .mode-card input {
   position: absolute;
@@ -1283,7 +1635,7 @@ h2 {
   pointer-events: none;
 }
 .mode-card:not(.active):hover {
-  border-color: color-mix(in srgb,var(--accent) 48%,var(--line));
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--line));
   background: var(--surface);
 }
 .mode-card.active {
@@ -1294,11 +1646,16 @@ h2 {
 .mode-card.active .mode-name {
   color: var(--accent);
 }
-.mode-card:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
-.mode-card:active { transform:translateY(1px); }
+.mode-card:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.mode-card:active {
+  transform: translateY(1px);
+}
 .check:not(.is-disabled):hover {
-  border-color:color-mix(in srgb,var(--accent) 40%,var(--line));
-  background:color-mix(in srgb,var(--accent) 5%,var(--surface-2));
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface-2));
 }
 .mode-top {
   display: flex;
@@ -1380,7 +1737,9 @@ textarea {
   color: var(--text);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 input:focus,
 textarea:focus {
@@ -1444,7 +1803,9 @@ textarea {
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 .btn:hover:not(:disabled) {
   background: var(--surface-2);
@@ -1466,9 +1827,9 @@ textarea {
   color: var(--accent-contrast);
 }
 .btn:not(.primary):active:not(:disabled) {
-  background:var(--accent-soft);
-  border-color:var(--accent);
-  color:var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .admin-logout-button:active:not(:disabled),
 .chip:active:not(:disabled),
@@ -1490,17 +1851,23 @@ textarea {
   color: var(--accent-contrast) !important;
   -webkit-text-fill-color: var(--accent-contrast);
   font-weight: 750;
-  letter-spacing: .01em;
-  box-shadow: 0 5px 14px color-mix(in srgb,var(--accent) 22%,transparent);
-  transition: background .15s, box-shadow .15s, transform .15s;
+  letter-spacing: 0.01em;
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--accent) 22%, transparent);
+  transition:
+    background 0.15s,
+    box-shadow 0.15s,
+    transform 0.15s;
 }
-.admin-page .actions .btn-save svg { flex: 0 0 auto; }
-.admin-page .actions .btn-save:hover:not(:disabled),.admin-page .actions .btn-save:active:not(:disabled) {
+.admin-page .actions .btn-save svg {
+  flex: 0 0 auto;
+}
+.admin-page .actions .btn-save:hover:not(:disabled),
+.admin-page .actions .btn-save:active:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
   color: var(--accent-contrast) !important;
   -webkit-text-fill-color: var(--accent-contrast);
-  box-shadow: 0 7px 18px color-mix(in srgb,var(--accent) 28%,transparent);
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--accent) 28%, transparent);
   filter: none;
   transform: translateY(-1px);
 }
@@ -1509,12 +1876,12 @@ textarea {
   outline-offset: 3px;
 }
 .admin-page .actions .btn-save:active:not(:disabled) {
-  background:var(--accent-active);
-  border-color:var(--accent-active);
-  color:var(--accent-contrast) !important;
-  -webkit-text-fill-color:var(--accent-contrast);
-  box-shadow:0 2px 6px color-mix(in srgb,var(--accent) 20%,transparent);
-  transform:translateY(0);
+  background: var(--accent-active);
+  border-color: var(--accent-active);
+  color: var(--accent-contrast) !important;
+  -webkit-text-fill-color: var(--accent-contrast);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--accent) 20%, transparent);
+  transform: translateY(0);
 }
 .admin-page .actions .btn-save:disabled {
   opacity: 1;
@@ -1534,8 +1901,16 @@ textarea {
   -webkit-text-fill-color: var(--accent-contrast);
   box-shadow: none;
 }
-.save-spinner { width: 17px; height: 17px; animation: save-spin .8s linear infinite; }
-@keyframes save-spin { to { transform: rotate(360deg); } }
+.save-spinner {
+  width: 17px;
+  height: 17px;
+  animation: save-spin 0.8s linear infinite;
+}
+@keyframes save-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .btn.ghost {
   background: transparent;
 }
@@ -1548,10 +1923,14 @@ textarea {
   box-shadow: none;
   cursor: not-allowed;
 }
-.field.is-disabled label { color: var(--control-disabled-text); }
+.field.is-disabled label {
+  color: var(--control-disabled-text);
+}
 .field.is-disabled .field-hint,
 .field.is-disabled .disabled-hint,
-.field.is-disabled .lab-hint { color: var(--control-disabled-text); }
+.field.is-disabled .lab-hint {
+  color: var(--control-disabled-text);
+}
 .admin-page .field.is-disabled input:disabled,
 .admin-page .field.is-disabled select:disabled,
 .admin-page .field.is-disabled textarea:disabled {
@@ -1569,8 +1948,13 @@ textarea {
   background: var(--control-disabled-bg);
   cursor: not-allowed;
 }
-.check.is-disabled span { color: var(--control-disabled-text); }
-.check.is-disabled input { cursor: not-allowed; accent-color:var(--control-disabled-text); }
+.check.is-disabled span {
+  color: var(--control-disabled-text);
+}
+.check.is-disabled input {
+  cursor: not-allowed;
+  accent-color: var(--control-disabled-text);
+}
 .linkish {
   background: transparent;
   border: 0;
@@ -1630,7 +2014,9 @@ tr:last-child td {
   color: var(--red);
 }
 @media (max-width: 720px) {
-  .admin-page { padding-bottom: 100px; }
+  .admin-page {
+    padding-bottom: 100px;
+  }
   .floating-save-button {
     right: 16px;
     bottom: max(16px, env(safe-area-inset-bottom));
@@ -1668,7 +2054,9 @@ tr:last-child td {
   align-items: center;
   gap: 8px;
 }
-.help summary::-webkit-details-marker { display: none; }
+.help summary::-webkit-details-marker {
+  display: none;
+}
 .help summary::before {
   content: "›";
   display: inline-block;
@@ -1685,22 +2073,37 @@ tr:last-child td {
   color: var(--muted);
   line-height: 1.55;
 }
-.help-body p { margin: 0 0 10px; }
+.help-body p {
+  margin: 0 0 10px;
+}
 .help-body ol {
   margin: 0;
   padding-left: 1.25em;
 }
-.help-body li { margin-bottom: 4px; }
+.help-body li {
+  margin-bottom: 4px;
+}
 .split.editors {
   align-items: start;
 }
 .split.editors .field {
   margin-bottom: 0;
 }
-.rule-analysis-summary { margin-top: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); }
-.rule-analysis-title { font-size: 13px; font-weight: 700; }
-.rule-analysis-summary .field-hint, .rule-analysis-summary .field-error { margin-top: 4px; }
-
+.rule-analysis-summary {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.rule-analysis-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+.rule-analysis-summary .field-hint,
+.rule-analysis-summary .field-error {
+  margin-top: 4px;
+}
 
 .sub-block {
   margin-bottom: var(--space-4);
@@ -1728,7 +2131,10 @@ tr:last-child td {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
 }
 .chip:hover {
   border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
@@ -1853,14 +2259,17 @@ textarea.body-area {
   border-radius: 50%;
   flex-shrink: 0;
 }
-.dot.ok { background: var(--green); }
-.dot.bad { background: var(--red); }
+.dot.ok {
+  background: var(--green);
+}
+.dot.bad {
+  background: var(--red);
+}
 @media (max-width: 720px) {
   .webhook-grid {
     grid-template-columns: 1fr;
   }
 }
-
 
 .actions-block {
   margin: 8px 0 12px;
@@ -1892,56 +2301,338 @@ textarea.body-area {
   color: var(--muted);
 }
 
-.security-card { margin-bottom: 18px; }
-.password-warning { margin: 0 0 14px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--line)); border-radius: var(--radius-sm); background: var(--warn-soft); color: var(--text); font-size: 13px; }
-.password-warning p { margin: 5px 0 0; color: var(--muted); line-height: 1.5; }
-.password-change-form { max-width: 620px; }
-.password-change-form .actions { margin-top: 10px; }
-.timezone-presets { margin: 8px 0 0; }
-.timezone-picker { position:relative; }
-.timezone-options-menu { position:absolute; z-index:30; top:calc(100% + 5px); left:0; right:0; max-height:270px; overflow:auto; padding:5px; border:1px solid var(--line); border-radius:10px; background:var(--surface); box-shadow:var(--shadow); }
-.timezone-option { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:44px; padding:9px 10px; border:0; border-radius:7px; background:transparent; color:var(--text); text-align:left; cursor:pointer; }
-.timezone-option:hover,.timezone-option[aria-selected="true"] { background:var(--accent-soft); color:var(--accent); }
-.timezone-option span { font-size:12px; }
-.timezone-option code { color:var(--muted); font-size:11px; white-space:nowrap; }
-.timezone-no-results { margin:0; padding:12px 10px; color:var(--muted); font-size:12px; }
-.mobile-timezone-trigger { display:none; }
-.timezone-sheet-backdrop { display:none; }
-@media (max-width:720px) {
-  .desktop-timezone-picker { display:none; }
-  .mobile-timezone-trigger { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:46px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:var(--text); font:inherit; text-align:left; }
-  .mobile-timezone-trigger span:first-child { overflow-wrap:anywhere; }
-  .mobile-timezone-trigger-icon { display:grid; place-items:center; color:var(--muted); }
-  .timezone-sheet-backdrop { display:flex; position:fixed; z-index:1000; inset:0; align-items:flex-end; justify-content:center; padding:0; background:rgba(0,0,0,.48); }
-  .timezone-sheet { display:flex; flex-direction:column; width:100%; max-height:min(82dvh,720px); padding:16px 16px max(16px,env(safe-area-inset-bottom)); border-radius:18px 18px 0 0; border:1px solid var(--line); border-bottom:0; background:var(--surface); box-shadow:0 -8px 32px rgba(0,0,0,.18); }
-  .timezone-sheet-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
-  .timezone-sheet-head h3 { margin:0; font-size:16px; }
-  .timezone-sheet-close { display:grid; place-items:center; flex:0 0 36px; width:36px; height:36px; border:0; border-radius:8px; background:var(--surface-2); color:var(--text); font-size:24px; line-height:1; }
-  .timezone-sheet-search { flex:0 0 auto; width:100%; min-height:44px; margin-bottom:10px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:var(--text); font:inherit; font-size:16px; }
-  .timezone-sheet-options { min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
-  .timezone-sheet .timezone-option { min-height:48px; }
-  .timezone-sheet .timezone-option code { overflow-wrap:anywhere; white-space:normal; text-align:right; }
-  .timezone-custom-option { border-top:1px solid var(--line); margin-top:4px; }
-  .timezone-sheet-hint { margin:10px 0 0; color:var(--muted); font-size:12px; line-height:1.45; }
+.security-card {
+  margin-bottom: 18px;
+}
+.password-warning {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--line));
+  border-radius: var(--radius-sm);
+  background: var(--warn-soft);
+  color: var(--text);
+  font-size: 13px;
+}
+.password-warning p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.password-change-form {
+  max-width: 620px;
+}
+.password-change-form .actions {
+  margin-top: 10px;
+}
+.timezone-presets {
+  margin: 8px 0 0;
+}
+.timezone-picker {
+  position: relative;
+}
+.timezone-options-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  max-height: 270px;
+  overflow: auto;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.timezone-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.timezone-option:hover,
+.timezone-option[aria-selected="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.timezone-option span {
+  font-size: 12px;
+}
+.timezone-option code {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.timezone-no-results {
+  margin: 0;
+  padding: 12px 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.mobile-timezone-trigger {
+  display: none;
+}
+.timezone-sheet-backdrop {
+  display: none;
+}
+@media (max-width: 720px) {
+  .desktop-timezone-picker {
+    display: none;
+  }
+  .mobile-timezone-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface-2);
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+  }
+  .mobile-timezone-trigger span:first-child {
+    overflow-wrap: anywhere;
+  }
+  .mobile-timezone-trigger-icon {
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+  }
+  .timezone-sheet-backdrop {
+    display: flex;
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.48);
+  }
+  .timezone-sheet {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-height: min(82dvh, 720px);
+    padding: 16px 16px max(16px, env(safe-area-inset-bottom));
+    border-radius: 18px 18px 0 0;
+    border: 1px solid var(--line);
+    border-bottom: 0;
+    background: var(--surface);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.18);
+  }
+  .timezone-sheet-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .timezone-sheet-head h3 {
+    margin: 0;
+    font-size: 16px;
+  }
+  .timezone-sheet-close {
+    display: grid;
+    place-items: center;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 24px;
+    line-height: 1;
+  }
+  .timezone-sheet-search {
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 44px;
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface-2);
+    color: var(--text);
+    font: inherit;
+    font-size: 16px;
+  }
+  .timezone-sheet-options {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .timezone-sheet .timezone-option {
+    min-height: 48px;
+  }
+  .timezone-sheet .timezone-option code {
+    overflow-wrap: anywhere;
+    white-space: normal;
+    text-align: right;
+  }
+  .timezone-custom-option {
+    border-top: 1px solid var(--line);
+    margin-top: 4px;
+  }
+  .timezone-sheet-hint {
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.45;
+  }
 }
 
-.storage-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-bottom:18px; }
-.storage-metric { display:grid; gap:7px; min-width:0; padding:14px; border:1px solid var(--line); border-radius:9px; background:var(--surface-2); }
-.storage-metric span,.storage-metric small { color:var(--muted); font-size:11px; }
-.storage-metric strong { color:var(--text); font-size:21px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
-.storage-metric small { line-height:1.5; }
-.retention-setting { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:15px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
-.retention-copy strong { color:var(--text); font-size:13px; }
-.retention-copy p,.storage-note { margin:6px 0 0; color:var(--muted); font-size:11px; line-height:1.6; }
-.retention-control select { min-height:40px; min-width:140px; padding:0 10px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--text); font:inherit; }
-.storage-counts { display:flex; flex-wrap:wrap; gap:8px; margin-top:13px; }
-.storage-counts span { padding:5px 8px; border-radius:6px; background:var(--surface-2); color:var(--muted); font-size:10px; }
-.storage-actions { display:flex; flex-wrap:wrap; gap:9px; margin-top:16px; }
-.storage-actions button { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:38px; padding:0 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:var(--text); font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
-.storage-actions button:disabled { opacity:.55; cursor:not-allowed; }
-.storage-actions .danger-action { border-color:color-mix(in srgb,var(--red) 40%,var(--line)); color:var(--red); }
-.storage-note { margin-top:12px; }
-.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
-@media(max-width:600px) { .storage-metrics { grid-template-columns:1fr; } .storage-metric { padding:12px; } .storage-metric strong { font-size:19px; } .retention-setting { align-items:flex-start; flex-direction:column; } .retention-control,.retention-control select { width:100%; } .storage-actions { display:grid; grid-template-columns:1fr; } }
-
+.storage-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.storage-metric {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-2);
+}
+.storage-metric span,
+.storage-metric small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.storage-metric strong {
+  color: var(--text);
+  font-size: 21px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.storage-metric small {
+  line-height: 1.5;
+}
+.retention-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.retention-copy strong {
+  color: var(--text);
+  font-size: 13px;
+}
+.retention-copy p,
+.storage-note {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.retention-control select {
+  min-height: 40px;
+  min-width: 140px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.storage-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 13px;
+}
+.storage-counts span {
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 10px;
+}
+.storage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 16px;
+}
+.storage-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.storage-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.storage-actions .danger-action {
+  border-color: color-mix(in srgb, var(--red) 40%, var(--line));
+  color: var(--red);
+}
+.storage-note {
+  margin-top: 12px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (max-width: 600px) {
+  .storage-metrics {
+    grid-template-columns: 1fr;
+  }
+  .storage-metric {
+    padding: 12px;
+  }
+  .storage-metric strong {
+    font-size: 19px;
+  }
+  .retention-setting {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .retention-control,
+  .retention-control select {
+    width: 100%;
+  }
+  .storage-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
 </style>

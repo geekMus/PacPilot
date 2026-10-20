@@ -45,7 +45,8 @@ export default {
     passwordChanged: "管理密码已修改，请使用新密码登录。",
     connectFailed: "暂时无法连接服务，请检查后端状态。",
     hint: "默认密码为 password，首次登录后请立即修改。",
-    footnote: "请勿在公共设备上保存管理密码。密码重置会生成一次性临时密码，登录后需立即设置新密码。",
+    footnote:
+      "请勿在公共设备上保存管理密码。密码重置会生成一次性临时密码，登录后需立即设置新密码。",
     resetHelp: "查看跨平台密码重置说明 ↗",
     titleButton: "登录管理后台",
     needPassword: "请输入管理员密码后登录",

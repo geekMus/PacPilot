@@ -51,6 +51,7 @@ Invoke-WebRequest https://raw.githubusercontent.com/geekMus/genpac-runner/main/d
 - 容器内部端口、监听地址和数据目录属于运行参数，分别固定为 `17321`、`0.0.0.0` 和 `/data`；端口映射与数据持久化挂载仍在 `docker-compose.yml` 中按需启用。
 
 Compose 不再声明 `ADMIN_PASSWORD`、`SESSION_SECRET` 或 `TZ`。管理员密码仅由后台管理与一次性密码重置命令设置；旧版 `ADMIN_PASSWORD` 环境变量不再导入或控制管理员凭据。升级后若无法使用默认密码登录，请按下方的密码重置说明生成一次性临时密码。
+
 ### 4. 拉取镜像并启动
 
 本项目的多架构预构建镜像发布在 GitHub Container Registry：
@@ -78,8 +79,6 @@ docker compose up -d
 未涉及 `package.json` 的普通提交或合并不会自动触发镜像工作流；`main` 分支上的 `package.json` 发生变更时会运行版本检查。只有版本号发生符合规则的有效变化才会推送镜像；如果只是修改依赖或其他字段、但没有改变 `version`，仍会执行构建验证，但不会发布镜像。发布新版本时请将 `version` 更新为当天的 `YYYY.MM.DD`，同日后续修订使用递增的 `-rN` 后缀。其他分支的普通提交不会自动触发；手动运行仅验证构建，不会推送镜像。
 
 首次发布后，需要在 GitHub 的 **Packages** 中把 `genpac-runner` 容器包的可见性设置为 **Public**，其他人才能无需登录直接拉取。GitHub 容器包首次发布时默认是 Private；发布工作流会自动将包关联到此仓库。
-
-
 
 ### 5. 打开网页
 
@@ -218,9 +217,10 @@ bun run dev
 
 开发服务器默认监听后端 `17321`，前端开发页面为 `http://127.0.0.1:5173`。生产构建可运行 `bun run typecheck
 
-```bash
+`````bash
 # 格式化源码（Prettier）
 bun run format
 # 仅检查格式是否符合规范
 bun run format:check
 ```` 检查类型，再运行 `bun run build` 并执行 `bun start`。业务设置、时区和管理密码保存在 SQLite，不通过环境变量维护。
+`````

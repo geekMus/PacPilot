@@ -4,4 +4,8 @@ import ToastHost from "./components/ToastHost.vue";
 <template>
   <div class="app-shell"><RouterView /><ToastHost /></div>
 </template>
-<style>.app-shell { min-height:100vh; }</style>
+<style>
+.app-shell {
+  min-height: 100vh;
+}
+</style>

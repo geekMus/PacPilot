@@ -21,9 +21,7 @@ const env: Record<string, string | undefined> = {
   HOST: process.env.HOST || "0.0.0.0",
 };
 
-console.log(
-  `[dev] profile=development DATA_DIR=${env.DATA_DIR} PORT=${env.PORT}`
-);
+console.log(`[dev] profile=development DATA_DIR=${env.DATA_DIR} PORT=${env.PORT}`);
 console.log(
   "[dev] 管理后台凭据保存在 DATA_DIR 指向的 SQLite 数据库中；新数据库初始密码为 password。"
 );
@@ -35,15 +33,12 @@ const server = Bun.spawn(["bun", "--hot", "server/index.ts"], {
   env,
 });
 
-const client = Bun.spawn(
-  ["bunx", "--bun", "vite", "--config", "client/vite.config.ts"],
-  {
-    stdout: "inherit",
-    stderr: "inherit",
-    stdin: "inherit",
-    env,
-  }
-);
+const client = Bun.spawn(["bunx", "--bun", "vite", "--config", "client/vite.config.ts"], {
+  stdout: "inherit",
+  stderr: "inherit",
+  stdin: "inherit",
+  env,
+});
 
 const shutdown = () => {
   server.kill();

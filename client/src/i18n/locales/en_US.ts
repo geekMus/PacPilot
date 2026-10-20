@@ -2,7 +2,8 @@ export default {
   app: {
     name: "genpac-runner",
     language: "Language",
-    languageHint: "Applies to the admin UI and PAC file comments. API errors and server logs remain English.",
+    languageHint:
+      "Applies to the admin UI and PAC file comments. API errors and server logs remain English.",
     zh: "中文",
     en: "English",
   },
@@ -45,7 +46,8 @@ export default {
     passwordChanged: "Admin password updated. Sign in with the new password.",
     connectFailed: "Unable to reach the service. Check that the backend is running.",
     hint: "Default password is password. Change it immediately after first login.",
-    footnote: "Do not save the admin password on shared devices. Password reset issues a one-time temporary password; set a new password right after signing in.",
+    footnote:
+      "Do not save the admin password on shared devices. Password reset issues a one-time temporary password; set a new password right after signing in.",
     resetHelp: "Cross-platform password reset instructions ↗",
     titleButton: "Sign in to admin",
     needPassword: "Enter the admin password to continue",

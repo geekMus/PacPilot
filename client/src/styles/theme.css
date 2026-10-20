@@ -32,8 +32,9 @@
   --page-max: 880px;
   --page-pad: 20px;
   --touch: 40px;
-  --font: "Inter", "Segoe UI", system-ui, -apple-system, "PingFang SC",
-    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font:
+    "Inter", "Segoe UI", system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
 }
 
@@ -155,7 +156,10 @@ select {
   filter: none;
 }
 
-:root button.is-loading:disabled:not(.primary):not(.btn-save):not(.login-submit):not(.dash-button):not(.monitor-button):not(.action-button) {
+:root
+  button.is-loading:disabled:not(.primary):not(.btn-save):not(.login-submit):not(.dash-button):not(
+    .monitor-button
+  ):not(.action-button) {
   color: var(--text);
   -webkit-text-fill-color: var(--text);
   background-color: var(--surface);
@@ -244,7 +248,10 @@ code {
   letter-spacing: 0.01em;
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
   white-space: nowrap;
 }
 

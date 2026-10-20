@@ -67,7 +67,10 @@ export function requestMonitoringMiddleware(database: AppDatabase) {
           response_content_type: responseType,
         });
       } catch (error) {
-        console.warn("[monitor] 无法写入访问记录:", error instanceof Error ? error.message : String(error));
+        console.warn(
+          "[monitor] 无法写入访问记录:",
+          error instanceof Error ? error.message : String(error)
+        );
       }
     };
 
@@ -80,7 +83,12 @@ export function requestMonitoringMiddleware(database: AppDatabase) {
 function shouldRecord(path: string): boolean {
   // 监控、存储刷新与日志清理接口不计入访问统计，避免统计/清理操作反过来污染自身结果。
   if (path.startsWith("/api/admin/monitor/")) return false;
-  if (path === "/api/admin/storage" || path === "/api/admin/logs/cleanup" || path === "/api/admin/logs/clear") return false;
+  if (
+    path === "/api/admin/storage" ||
+    path === "/api/admin/logs/cleanup" ||
+    path === "/api/admin/logs/clear"
+  )
+    return false;
   // 静态资源与浏览器图标请求很多，但不代表独立页面访问。
   if (path.startsWith("/assets/") || path === "/favicon.ico") return false;
   if (/\.(?:js|mjs|css|map|png|jpe?g|gif|webp|svg|ico|woff2?|ttf)$/i.test(path)) return false;
@@ -109,8 +117,14 @@ function normalizeAddress(address: string): string {
 
 function headerValue(req: Request, name: string): string {
   const raw = req.headers[name];
-  if (Array.isArray(raw)) return raw.join(", ").replace(/[\r\n\t]/g, " ").trim();
-  return String(raw || "").replace(/[\r\n\t]/g, " ").trim();
+  if (Array.isArray(raw))
+    return raw
+      .join(", ")
+      .replace(/[\r\n\t]/g, " ")
+      .trim();
+  return String(raw || "")
+    .replace(/[\r\n\t]/g, " ")
+    .trim();
 }
 
 function extractQuery(req: Request): string {
@@ -127,7 +141,10 @@ function collectHeaders(req: Request): string {
   for (const [name, value] of Object.entries(req.headers)) {
     if (value === undefined) continue;
     const text = Array.isArray(value) ? value.join(", ") : String(value);
-    out[name.toLowerCase()] = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 2048);
+    out[name.toLowerCase()] = text
+      .replace(/[\r\n\t]/g, " ")
+      .trim()
+      .slice(0, 2048);
   }
   try {
     const json = JSON.stringify(out);

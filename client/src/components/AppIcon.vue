@@ -50,14 +50,17 @@ import {
   Zap,
 } from "@lucide/vue";
 
-const props = withDefaults(defineProps<{
-  name: string;
-  size?: number;
-  strokeWidth?: number;
-}>(), {
-  size: 18,
-  strokeWidth: 1.9,
-});
+const props = withDefaults(
+  defineProps<{
+    name: string;
+    size?: number;
+    strokeWidth?: number;
+  }>(),
+  {
+    size: 18,
+    strokeWidth: 1.9,
+  }
+);
 
 const iconMap = {
   activity: Activity,

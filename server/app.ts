@@ -9,10 +9,7 @@ import { publicRoutes } from "./routes/public";
 import { adminRoutes } from "./routes/admin";
 import { requestMonitoringMiddleware } from "./services/request-monitor";
 
-export function createApp(
-  env: EnvConfig,
-  database: AppDatabase
-): express.Application {
+export function createApp(env: EnvConfig, database: AppDatabase): express.Application {
   const app = express();
 
   app.disable("x-powered-by");
@@ -50,9 +47,7 @@ export function createApp(
 
   const sendSpa = (_req: express.Request, res: express.Response) => {
     if (!fs.existsSync(indexHtml)) {
-      res.status(503).type("text/plain").send(
-        "Frontend not built. Run: bun run build"
-      );
+      res.status(503).type("text/plain").send("Frontend not built. Run: bun run build");
       return;
     }
     res.sendFile(indexHtml);

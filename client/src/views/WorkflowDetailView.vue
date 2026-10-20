@@ -42,8 +42,7 @@ const sources: Record<string, string> = {
   "save-and-generate": "保存并生成",
 };
 
-const isActiveStatus = (status: string | undefined) =>
-  status === "pending" || status === "running";
+const isActiveStatus = (status: string | undefined) => status === "pending" || status === "running";
 
 const label = (v: string) => statuses[v] || v;
 const sourceLabel = (v: string) => sources[v] || v;
@@ -123,9 +122,7 @@ async function copyStageDetail(): Promise<void> {
 }
 
 function durationLabel(s: WorkflowStage) {
-  const ms =
-    s.duration_ms ??
-    (s.started_at ? Date.now() - new Date(s.started_at).getTime() : null);
+  const ms = s.duration_ms ?? (s.started_at ? Date.now() - new Date(s.started_at).getTime() : null);
   if (ms === null) return "—";
   if (ms < 1000) return ms + " ms";
   if (ms < 60000) return (ms / 1000).toFixed(1) + " 秒";
@@ -450,9 +447,7 @@ onUnmounted(() => {
                   <span>耗时</span>
                   <strong>
                     {{
-                      selectedStage.duration_ms == null
-                        ? "—"
-                        : selectedStage.duration_ms + " ms"
+                      selectedStage.duration_ms == null ? "—" : selectedStage.duration_ms + " ms"
                     }}
                   </strong>
                 </div>

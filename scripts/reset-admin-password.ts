@@ -7,24 +7,26 @@ import { resetAdminPassword } from "../server/services/admin-credentials";
 type RuntimeProfile = "development" | "production";
 
 function printUsage(): void {
-  console.log([
-    "genpac-runner 管理员密码重置",
-    "",
-    "用法：",
-    "  bun run reset:admin-password",
-    "  bun run reset:admin-password:development",
-    "  bun run reset:admin-password:production",
-    "  bun run scripts/reset-admin-password.ts --production --data-dir \"/absolute/path/to/data\"",
-    "",
-    "参数：",
-    "  --development   使用本机开发配置（读取开发环境 .env）",
-    "  --production    使用非容器生产环境的默认数据目录规则",
-    "  --data-dir PATH 显式指定数据库所在的数据目录（目录内必须已有 genpac.db）",
-    "  --help           显示此帮助",
-    "",
-    "Docker 容器内仍可运行：",
-    "  bun run /app/scripts/reset-admin-password.ts",
-  ].join("\n"));
+  console.log(
+    [
+      "genpac-runner 管理员密码重置",
+      "",
+      "用法：",
+      "  bun run reset:admin-password",
+      "  bun run reset:admin-password:development",
+      "  bun run reset:admin-password:production",
+      '  bun run scripts/reset-admin-password.ts --production --data-dir "/absolute/path/to/data"',
+      "",
+      "参数：",
+      "  --development   使用本机开发配置（读取开发环境 .env）",
+      "  --production    使用非容器生产环境的默认数据目录规则",
+      "  --data-dir PATH 显式指定数据库所在的数据目录（目录内必须已有 genpac.db）",
+      "  --help           显示此帮助",
+      "",
+      "Docker 容器内仍可运行：",
+      "  bun run /app/scripts/reset-admin-password.ts",
+    ].join("\n")
+  );
 }
 
 const args = process.argv.slice(2);
@@ -84,9 +86,10 @@ try {
   // 避免路径不正确时通过 getDb() 新建另一份数据库并误报重置成功。
   if (!fs.existsSync(databasePath)) {
     throw new Error(
-      "未找到现有数据库：" + databasePath +
-      "\n为避免误重置到新建的空数据库，操作已取消。" +
-      "\n请确认工作目录、DATA_DIR 或 --data-dir 与运行中的服务一致。"
+      "未找到现有数据库：" +
+        databasePath +
+        "\n为避免误重置到新建的空数据库，操作已取消。" +
+        "\n请确认工作目录、DATA_DIR 或 --data-dir 与运行中的服务一致。"
     );
   }
 
@@ -100,7 +103,9 @@ try {
     console.log("运行模式：" + env.runtimeProfile);
     console.log("数据目录：" + dataDir);
     console.log("数据库文件：" + databasePath);
-    console.log("请使用临时密码登录后台，并立即设置自己的新密码。完成修改前，其他管理操作会被锁定。");
+    console.log(
+      "请使用临时密码登录后台，并立即设置自己的新密码。完成修改前，其他管理操作会被锁定。"
+    );
   } finally {
     closeDb();
   }

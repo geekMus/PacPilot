@@ -44,7 +44,10 @@ function parseJson(raw: string, label: string, allowArray = false): string | nul
 export function validateWebhookConfig(input: WebhookConfig): string[] {
   const config = normalizeWebhookConfig(input);
   const errors: string[] = [];
-  const urlError = urlValidationError(config.url, config.provider === "dingtalk" ? "钉钉机器人 URL" : "Webhook URL");
+  const urlError = urlValidationError(
+    config.url,
+    config.provider === "dingtalk" ? "钉钉机器人 URL" : "Webhook URL"
+  );
   if (urlError) errors.push(urlError);
 
   if (config.provider === "custom") {
@@ -61,8 +64,13 @@ export function validateWebhookConfig(input: WebhookConfig): string[] {
           errors.push("请求头需要使用“名称: 字符串值”的 JSON 对象。");
           break;
         }
-        if (/^(host|content-length|connection|transfer-encoding|content-type)$/i.test(name) || /[\r\n]/.test(value)) {
-          errors.push("请求头包含不允许覆盖的传输字段或换行字符；Content-Type 固定为 application/json。");
+        if (
+          /^(host|content-length|connection|transfer-encoding|content-type)$/i.test(name) ||
+          /[\r\n]/.test(value)
+        ) {
+          errors.push(
+            "请求头包含不允许覆盖的传输字段或换行字符；Content-Type 固定为 application/json。"
+          );
           break;
         }
       }
@@ -81,12 +89,19 @@ export function validateWebhookConfig(input: WebhookConfig): string[] {
   return errors;
 }
 
-function buildContext(kind: EventKind, message?: string, timeZone = "Asia/Shanghai"): MessageContext {
+function buildContext(
+  kind: EventKind,
+  message?: string,
+  timeZone = "Asia/Shanghai"
+): MessageContext {
   const ok = kind === "success";
   return {
     event: kind === "test" ? "webhook.test" : ok ? "pac.generated" : "pac.generation_failed",
     ok: kind === "test" ? true : kind === "success",
-    message: kind === "test" ? "测试通知请求已触发。" : message || (ok ? "PAC 已成功生成。" : "PAC 生成失败。"),
+    message:
+      kind === "test"
+        ? "测试通知请求已触发。"
+        : message || (ok ? "PAC 已成功生成。" : "PAC 生成失败。"),
     timestamp: new Date().toLocaleString("zh-CN", { timeZone }),
   };
 }
@@ -104,14 +119,18 @@ function templateValues(context: MessageContext): Record<string, string> {
 /** 通知模板中可用 {{event}}、{{status}}、{{message}}、{{timestamp}}、{{ok}}。 */
 function renderMessage(template: string, context: MessageContext): string {
   const values = templateValues(context);
-  return template.replace(/\{\{\s*(event|status|message|timestamp|ok)\s*\}\}/g, (_match, key: string) => values[key] ?? "");
+  return template.replace(
+    /\{\{\s*(event|status|message|timestamp|ok)\s*\}\}/g,
+    (_match, key: string) => values[key] ?? ""
+  );
 }
 
 /** 自定义 JSON 请求体的模板变量需放在 JSON 字符串值中，以保留合法转义。 */
 function renderCustomBody(template: string, context: MessageContext): string {
   const values = templateValues(context);
-  return template.replace(/\{\{\s*(event|status|message|timestamp|ok)\s*\}\}/g, (_match, key: string) =>
-    JSON.stringify(values[key] ?? "").slice(1, -1)
+  return template.replace(
+    /\{\{\s*(event|status|message|timestamp|ok)\s*\}\}/g,
+    (_match, key: string) => JSON.stringify(values[key] ?? "").slice(1, -1)
   );
 }
 
@@ -121,8 +140,12 @@ function getLegacyConfig(settings: AppSettings, kind: "success" | "failure"): We
     : normalizeWebhookConfig(undefined, settings.webhookFailureUrl, settings.webhookFailureBody);
 }
 
-export function getNotificationConfig(settings: AppSettings, kind: "success" | "failure"): WebhookConfig {
-  const configured = kind === "success" ? settings.webhookSuccessConfig : settings.webhookFailureConfig;
+export function getNotificationConfig(
+  settings: AppSettings,
+  kind: "success" | "failure"
+): WebhookConfig {
+  const configured =
+    kind === "success" ? settings.webhookSuccessConfig : settings.webhookFailureConfig;
   if (configured) return normalizeWebhookConfig(configured);
   return getLegacyConfig(settings, kind);
 }
@@ -131,23 +154,25 @@ async function readProviderResponse(response: Response): Promise<Record<string, 
   try {
     const value: unknown = await response.json();
     return value && typeof value === "object" && !Array.isArray(value)
-      ? value as Record<string, unknown>
+      ? (value as Record<string, unknown>)
       : null;
   } catch {
     return null;
   }
 }
 
-function providerMessage(body: Record<string, unknown> | null, status: number): WebhookDeliveryResult {
+function providerMessage(
+  body: Record<string, unknown> | null,
+  status: number
+): WebhookDeliveryResult {
   const errcode = body?.errcode;
-  const providerRejected =
-    body?.ok === false ||
-    (errcode !== undefined && String(errcode) !== "0");
-  const apiMessage = typeof body?.description === "string"
-    ? body.description
-    : typeof body?.errmsg === "string"
-      ? body.errmsg
-      : "";
+  const providerRejected = body?.ok === false || (errcode !== undefined && String(errcode) !== "0");
+  const apiMessage =
+    typeof body?.description === "string"
+      ? body.description
+      : typeof body?.errmsg === "string"
+        ? body.errmsg
+        : "";
   if (status >= 200 && status < 300 && !providerRejected) {
     return { success: true, status, message: "目标端点已接受请求。" };
   }
@@ -158,21 +183,26 @@ function requestFailure(error: unknown, provider: string): WebhookDeliveryResult
   const message = error instanceof Error ? error.message : String(error);
   return {
     success: false,
-    message: message.toLowerCase().includes("timeout") || message.toLowerCase().includes("aborted")
-      ? provider + "请求超时（" + WEBHOOK_TIMEOUT_MS / 1000 + " 秒）。"
-      : provider + "请求失败：" + message,
+    message:
+      message.toLowerCase().includes("timeout") || message.toLowerCase().includes("aborted")
+        ? provider + "请求超时（" + WEBHOOK_TIMEOUT_MS / 1000 + " 秒）。"
+        : provider + "请求失败：" + message,
   };
 }
 
-async function sendCustom(config: WebhookConfig, context: MessageContext): Promise<WebhookDeliveryResult> {
+async function sendCustom(
+  config: WebhookConfig,
+  context: MessageContext
+): Promise<WebhookDeliveryResult> {
   const errors = validateWebhookConfig(config);
   if (errors.length) return { success: false, message: errors.join("\n") };
   try {
     const headers = JSON.parse(config.headers || "{}") as Record<string, string>;
     const defaults = createDefaultWebhookConfig();
-    const configuredBody = context.event === "webhook.test"
-      ? (config.testBody.trim() || config.body.trim() || defaults.body || defaults.testBody)
-      : (config.body.trim() || defaults.body || defaults.testBody);
+    const configuredBody =
+      context.event === "webhook.test"
+        ? config.testBody.trim() || config.body.trim() || defaults.body || defaults.testBody
+        : config.body.trim() || defaults.body || defaults.testBody;
     const payload = renderCustomBody(configuredBody, context);
     const response = await fetch(config.url.trim(), {
       method: config.method,
@@ -188,7 +218,10 @@ async function sendCustom(config: WebhookConfig, context: MessageContext): Promi
   }
 }
 
-async function sendDingTalk(config: WebhookConfig, context: MessageContext): Promise<WebhookDeliveryResult> {
+async function sendDingTalk(
+  config: WebhookConfig,
+  context: MessageContext
+): Promise<WebhookDeliveryResult> {
   const errors = validateWebhookConfig(config);
   if (errors.length) return { success: false, message: errors.join("\n") };
 
@@ -196,21 +229,26 @@ async function sendDingTalk(config: WebhookConfig, context: MessageContext): Pro
   const secret = config.dingTalkSecret.trim();
   const timestamp = String(Date.now());
   const stringToSign = timestamp + "\n" + secret;
-  const signature = createHmac("sha256", secret)
-    .update(stringToSign, "utf8")
-    .digest("base64");
+  const signature = createHmac("sha256", secret).update(stringToSign, "utf8").digest("base64");
   target.searchParams.set("timestamp", timestamp);
   target.searchParams.set("sign", signature);
 
   const defaults = createDefaultWebhookConfig();
-  const template = context.event === "webhook.test"
-    ? (config.testMessageTemplate.trim() || defaults.testMessageTemplate)
-    : (config.messageTemplate.trim() || defaults.messageTemplate);
+  const template =
+    context.event === "webhook.test"
+      ? config.testMessageTemplate.trim() || defaults.testMessageTemplate
+      : config.messageTemplate.trim() || defaults.messageTemplate;
   const content = renderMessage(template, context);
-  const markdownTitle = content.split(/\r?\n/).map((line) => line.trim()).find(Boolean)?.slice(0, 64) || context.event;
-  const payload = config.dingTalkMessageType === "markdown"
-    ? { msgtype: "markdown", markdown: { title: markdownTitle, text: content } }
-    : { msgtype: "text", text: { content } };
+  const markdownTitle =
+    content
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find(Boolean)
+      ?.slice(0, 64) || context.event;
+  const payload =
+    config.dingTalkMessageType === "markdown"
+      ? { msgtype: "markdown", markdown: { title: markdownTitle, text: content } }
+      : { msgtype: "text", text: { content } };
 
   try {
     const response = await fetch(target, {
@@ -240,7 +278,10 @@ export async function sendWebhook(
     : sendCustom(config, context);
 }
 
-export async function sendWebhookTest(config: WebhookConfig, timeZone = "Asia/Shanghai"): Promise<WebhookDeliveryResult> {
+export async function sendWebhookTest(
+  config: WebhookConfig,
+  timeZone = "Asia/Shanghai"
+): Promise<WebhookDeliveryResult> {
   return sendWebhook(config, "test", undefined, timeZone);
 }
 
@@ -265,8 +306,16 @@ async function notify(
 }
 
 export async function notifySuccess(settings: AppSettings): Promise<WebhookDeliveryResult | null> {
-  return notify(getNotificationConfig(settings, "success"), "success", undefined, settings.timezone);
+  return notify(
+    getNotificationConfig(settings, "success"),
+    "success",
+    undefined,
+    settings.timezone
+  );
 }
-export async function notifyFailure(settings: AppSettings, message?: string): Promise<WebhookDeliveryResult | null> {
+export async function notifyFailure(
+  settings: AppSettings,
+  message?: string
+): Promise<WebhookDeliveryResult | null> {
   return notify(getNotificationConfig(settings, "failure"), "failure", message, settings.timezone);
 }

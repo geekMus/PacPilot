@@ -6,22 +6,25 @@ import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
 import { json } from "@codemirror/lang-json";
 
-const props = withDefaults(defineProps<{
-  modelValue: string;
-  placeholder?: string;
-  height?: number;
-  singleLine?: boolean;
-  language?: "json" | "text";
-  ariaLabel?: string;
-  invalid?: boolean;
-}>(), {
-  placeholder: "",
-  height: 160,
-  singleLine: false,
-  language: "text",
-  ariaLabel: "文本编辑器",
-  invalid: false,
-});
+const props = withDefaults(
+  defineProps<{
+    modelValue: string;
+    placeholder?: string;
+    height?: number;
+    singleLine?: boolean;
+    language?: "json" | "text";
+    ariaLabel?: string;
+    invalid?: boolean;
+  }>(),
+  {
+    placeholder: "",
+    height: 160,
+    singleLine: false,
+    language: "text",
+    ariaLabel: "文本编辑器",
+    invalid: false,
+  }
+);
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 const host = ref<HTMLDivElement | null>(null);
 let view: EditorView | null = null;
@@ -98,12 +101,15 @@ onBeforeUnmount(() => {
   view?.destroy();
   view = null;
 });
-watch(() => props.modelValue, (value) => {
-  if (!view) return;
-  const current = view.state.doc.toString();
-  const next = value || "";
-  if (current !== next) view.dispatch({ changes: { from: 0, to: current.length, insert: next } });
-});
+watch(
+  () => props.modelValue,
+  (value) => {
+    if (!view) return;
+    const current = view.state.doc.toString();
+    const next = value || "";
+    if (current !== next) view.dispatch({ changes: { from: 0, to: current.length, insert: next } });
+  }
+);
 </script>
 
 <template>
@@ -121,7 +127,9 @@ watch(() => props.modelValue, (value) => {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--bg);
-  transition: border-color .15s, box-shadow .15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 .cm-field-frame:focus-within {
   border-color: var(--accent);
@@ -132,14 +140,23 @@ watch(() => props.modelValue, (value) => {
   border-color: var(--red);
   box-shadow: 0 0 0 3px var(--red-soft);
 }
-.cm-field-frame.single-line { height: 40px; }
-.cm-field-host { width: 100%; }
-.cm-field-host :deep(.cm-editor) { width: 100%; background: transparent; }
+.cm-field-frame.single-line {
+  height: 40px;
+}
+.cm-field-host {
+  width: 100%;
+}
+.cm-field-host :deep(.cm-editor) {
+  width: 100%;
+  background: transparent;
+}
 .cm-field-host :deep(.cm-scroller) {
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
-.cm-field-host :deep(.cm-scroller::-webkit-scrollbar) { width: var(--scrollbar-size); }
+.cm-field-host :deep(.cm-scroller::-webkit-scrollbar) {
+  width: var(--scrollbar-size);
+}
 .cm-field-host :deep(.cm-scroller::-webkit-scrollbar-thumb) {
   background: var(--scrollbar-thumb);
   border-radius: 999px;
