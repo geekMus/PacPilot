@@ -225,13 +225,11 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
     }
     try {
       const workflowId = startPacWorkflow(database, env.dataDir, "save-and-generate");
-      res
-        .status(202)
-        .json({
-          settings: saved.settings,
-          workflowId,
-          status: getWorkflowRun(database, workflowId)?.status ?? "pending",
-        });
+      res.status(202).json({
+        settings: saved.settings,
+        workflowId,
+        status: getWorkflowRun(database, workflowId)?.status ?? "pending",
+      });
     } catch (e) {
       res.status(409).json({ error: e instanceof Error ? e.message : String(e) });
     }
@@ -283,12 +281,10 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
     try {
       const result = clearWorkflowHistory(database);
       if (result.activeRuns > 0) {
-        res
-          .status(409)
-          .json({
-            error: "仍有工作流在等待或执行中，不能清空执行历史。请等所有任务结束后重试。",
-            activeRuns: result.activeRuns,
-          });
+        res.status(409).json({
+          error: "仍有工作流在等待或执行中，不能清空执行历史。请等所有任务结束后重试。",
+          activeRuns: result.activeRuns,
+        });
         return;
       }
       if (result.deletedRuns > 0) database.exec("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");

@@ -609,9 +609,7 @@ onUnmounted(() => {
             </div>
             <span class="panel-count"
               >峰值
-              {{
-                Math.max(0, ...(summary?.pacRequestTrend ?? []).map((item) => item.requests))
-              }}
+              {{ Math.max(0, ...(summary?.pacRequestTrend ?? []).map((item) => item.requests)) }}
               次/小时</span
             >
           </div>
@@ -710,9 +708,7 @@ onUnmounted(() => {
             </div>
             <span class="panel-count"
               >峰值
-              {{
-                Math.max(0, ...(summary?.requestTrend ?? []).map((item) => item.requests))
-              }}
+              {{ Math.max(0, ...(summary?.requestTrend ?? []).map((item) => item.requests)) }}
               次/小时</span
             >
           </div>

@@ -1184,9 +1184,7 @@ async function changeAdminPassword() {
               aria-live="polite"
             >
               <div class="rule-analysis-title">
-                规则检查：{{ ruleAnalysis.totalErrors }} 个错误，{{
-                  ruleAnalysis.totalWarnings
-                }}
+                规则检查：{{ ruleAnalysis.totalErrors }} 个错误，{{ ruleAnalysis.totalWarnings }}
                 条提示
               </div>
               <p v-if="ruleAnalysis.totalErrors" class="field-error">
