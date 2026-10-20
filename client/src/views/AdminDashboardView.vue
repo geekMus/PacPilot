@@ -108,6 +108,14 @@ onMounted(() => { void loadOverview(); });
     </template>
 
     <div class="dashboard-view">
+      <section v-if="loading && !settings" class="dash-loading" aria-live="polite">
+        <span class="spinner" aria-hidden="true"></span>
+        <div>
+          <strong>正在读取系统总览</strong>
+          <p>正在加载 PAC 状态、配置摘要与生成记录。</p>
+        </div>
+      </section>
+
       <div class="welcome-row">
         <div>
           <h2>常用操作</h2>
@@ -229,6 +237,32 @@ onMounted(() => { void loadOverview(); });
 
 <style scoped>
 .dashboard-view { min-width: 0; }
+.dash-loading {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px;
+  margin-bottom: 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--muted);
+}
+.dash-loading strong { display: block; color: var(--text); font-size: 14px; }
+.dash-loading p { margin: 5px 0 0; font-size: 13px; }
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: dash-spin .8s linear infinite;
+  flex: 0 0 auto;
+}
+@keyframes dash-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: .01ms; animation-iteration-count: 1; }
+}
 .welcome-row { display:flex; align-items:flex-end; justify-content:space-between; gap:18px; margin-bottom:18px; }
 .welcome-row h2 { margin:0; font-size:clamp(22px,2.5vw,28px); line-height:1.2; letter-spacing:-.04em; }
 .quick-actions { display:flex; flex-wrap:wrap; gap:8px; }

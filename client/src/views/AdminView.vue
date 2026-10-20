@@ -629,7 +629,13 @@ async function changeAdminPassword() {
   <AdminLayout active="settings" title="配置设置" subtitle="管理 PAC 生成方式、代理规则、定时任务与通知渠道。">
     <div class="admin-page">
 
-    <p v-if="loading" class="state-msg">加载中…</p>
+    <section v-if="loading" class="state-card" aria-live="polite">
+      <span class="spinner" aria-hidden="true"></span>
+      <div>
+        <strong>正在加载配置</strong>
+        <p>正在读取当前设置、生成记录与引擎状态。</p>
+      </div>
+    </section>
     <div v-if="flash" class="banner" :class="flashOk ? 'ok' : 'bad'">
       <span class="banner-icon" aria-hidden="true"><AppIcon :name="flashOk ? 'circle-check' : 'circle-alert'" :size="15" /></span>
       <pre class="banner-text">{{ flash }}</pre>
@@ -1133,8 +1139,40 @@ async function changeAdminPassword() {
 }
 .admin-logout-button:hover { border-color:var(--accent); color:var(--accent); }
 #security,#general,#mode,#proxy,#rules,#schedule,#logs { scroll-margin-top: 110px; }
-.state-msg {
+.state-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px;
+  margin-bottom: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.state-card strong {
+  display: block;
+  font-size: 14px;
+  color: var(--text);
+}
+.state-card p {
+  margin: 5px 0 0;
   color: var(--muted);
+  font-size: 13px;
+}
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: admin-spin .8s linear infinite;
+  flex: 0 0 auto;
+}
+@keyframes admin-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: .01ms; animation-iteration-count: 1; }
 }
 .banner {
   display: flex;

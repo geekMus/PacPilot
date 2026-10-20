@@ -308,8 +308,14 @@ onUnmounted(stopPolling);
           <div v-if="current.error" class="workflow-error-detail"><strong>错误详情</strong><pre>{{ current.error }}</pre></div>
         </template>
         <div v-else class="empty-current">
-          <AppIcon name="check-circle-2" :size="26" />
-          <strong>{{ loading ? "正在读取工作流状态…" : "当前没有正在执行的工作流" }}</strong>
+          <template v-if="loading">
+            <span class="spinner" aria-hidden="true"></span>
+            <strong>正在读取工作流状态…</strong>
+          </template>
+          <template v-else>
+            <AppIcon name="check-circle-2" :size="26" />
+            <strong>当前没有正在执行的工作流</strong>
+          </template>
         </div>
       </section>
 
@@ -509,7 +515,19 @@ td { padding:13px 12px; border-bottom:1px solid var(--line); color:var(--text); 
 .workflow-alert { display:grid; gap:6px; padding:14px; border:1px solid var(--line); border-radius:10px; font-size:12px; }
 .workflow-alert.error { border-color:var(--red); color:var(--red); }
 .workflow-alert button { justify-self:start; color:inherit; }
- .spinning { animation:spin .9s linear infinite; }
+.spinning { animation:spin .9s linear infinite; }
+.spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  flex: 0 0 auto;
+}
 @keyframes spin { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: .01ms; animation-iteration-count: 1; }
+}
 @media(max-width:700px) { .workflow-history .panel-heading { flex-wrap:wrap; } .workflow-history .panel-heading > div:first-child { min-width:0; } .history-heading-actions { width:100%; justify-content:space-between; } .panel { padding:15px; } .current-meta { grid-template-columns:repeat(2,minmax(0,1fr)); } .panel-heading h2 { font-size:17px; } .table-scroll { margin-inline:-4px; } table { min-width:680px; } .name-trigger { max-width:105px; } .date-trigger { max-width:135px; } .duration-trigger { max-width:72px; } .result-trigger { max-width:105px; } .actions-cell { width:100px; min-width:100px; } }
 </style>
