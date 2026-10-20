@@ -136,18 +136,21 @@ bun run scripts/reset-admin-password.ts --production --data-dir "C:\genpac\data"
 ## 开发检查
 
 ```bash
-# 服务端与客户端 TypeScript 检查
+# 根目录脚本、共享代码、服务端与客户端 TypeScript 检查
 bun run typecheck
 
-# 完整项目检查：类型检查、客户端生产构建、运行时冒烟检查
+# 完整项目检查：类型检查、客户端生产构建、静态翻译检查
 bun run check
+
+# 仅检查翻译目录与客户端静态翻译 key
+bun run check:i18n
 
 # 仅格式检查 / 格式化
 bun run format:check
 bun run format
 ```
 
-`bun run check` 会验证中英文翻译目录的键和占位符，并检查客户端源码中使用的静态 I18N key 是否都存在。运行时冒烟检查使用内存 SQLite 和系统临时目录；完成后会关闭服务、数据库并清理临时文件。
+`bun run check` 会检查根目录脚本、共享代码、服务端和客户端 TypeScript，构建客户端生产版本，并验证中英文翻译目录的键和占位符一致，以及客户端源码中使用的静态 I18N key 是否都存在。此命令不启动服务或执行数据库检查。
 
 ## 版本与镜像
 

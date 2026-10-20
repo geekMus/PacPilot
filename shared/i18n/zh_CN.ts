@@ -46,17 +46,6 @@ export default {
     abp: "AutoProxy / ABP",
     plain: "明文域名列表",
   },
-  pac: {
-    body: {
-      customIntro: "// genpac-runner 生成的 PAC（自定义规则模式）",
-      customPolicy: "// 本机和内网地址优先直连；黑名单优先于自定义直连，其余请求使用默认代理",
-      customLists: "// 自定义黑名单与直连规则",
-      customProxy: "// 默认代理策略（多个代理选项使用分号分隔）",
-      remoteIntro: "// genpac-runner 生成的 PAC（远程规则列表与自定义规则）",
-      remoteStats: "// 远程代理域名：{proxy} 条；远程例外直连：{direct} 条",
-      remoteCustomStats: "// 自定义黑名单：{block} 条；自定义直连：{direct} 条",
-    },
-  },
   nav: {
     dashboard: "系统总览",
     settings: "配置管理",
