@@ -99,6 +99,18 @@ body {
   letter-spacing: 0.01em;
 }
 
+html:has(dialog[open], [aria-modal="true"], .sidebar-backdrop),
+body:has(dialog[open], [aria-modal="true"], .sidebar-backdrop) {
+  overflow: hidden;
+}
+
+dialog[open],
+[aria-modal="true"],
+.dialog-backdrop,
+.timezone-sheet-backdrop {
+  overscroll-behavior: contain;
+}
+
 a {
   color: var(--accent);
   text-decoration: none;
