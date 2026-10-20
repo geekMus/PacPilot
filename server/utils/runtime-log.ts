@@ -10,11 +10,10 @@ function isDevelopmentRuntime(): boolean {
 
 export function runtimeLog(
   level: RuntimeLogLevel,
-  developmentMessage: string,
-  productionMessage: string,
+  chineseMessage: string,
   ...details: unknown[]
 ): void {
   const development = isDevelopmentRuntime();
-  const message = development ? `[开发环境] ${developmentMessage}` : productionMessage;
+  const message = development ? `[开发环境] ${chineseMessage}` : chineseMessage;
   console[level](message, ...details);
 }

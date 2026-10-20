@@ -29,29 +29,21 @@ async function main(): Promise<void> {
   const logCleanupTimer = setInterval(cleanupLogs, 24 * 60 * 60 * 1000);
   logCleanupTimer.unref();
 
-  runtimeLog("log", "genpac-runner 服务启动中…", "[boot] genpac-runner starting...");
+  runtimeLog("log", "genpac-runner 服务启动中…");
   runtimeLog(
     "log",
-    `运行模式：${env.runtimeProfile === "development" ? "开发环境" : env.runtimeProfile}`,
-    `[boot] profile=${env.runtimeProfile}`
+    `运行模式：${env.runtimeProfile === "development" ? "开发环境" : env.runtimeProfile}`
   );
-  runtimeLog("log", `数据目录：${env.dataDir}`, `[boot] dataDir=${env.dataDir}`);
-  runtimeLog("log", `监听地址：${env.host}:${env.port}`, `[boot] listen=${env.host}:${env.port}`);
-  runtimeLog("log", "管理后台：已启用", "[boot] admin=enabled");
+  runtimeLog("log", `数据目录：${env.dataDir}`);
+  runtimeLog("log", `监听地址：${env.host}:${env.port}`);
+  runtimeLog("log", "管理后台：已启用");
   if (initialAdminPassword) {
     runtimeLog(
       "warn",
-      `首次启动生成的管理员密码（可在后台修改）：\n${initialAdminPassword}\n能够读取此日志的人也能看到该密码，请妥善保护日志。`,
-      "\n[security] Initial admin password (you may change it in admin settings):\n" +
-        `${initialAdminPassword}\n` +
-        "[security] Anyone with access to these logs can read this password. Keep the logs private.\n"
+      `首次启动生成的管理员密码（可在后台修改）：\n${initialAdminPassword}\n能够读取此日志的人也能看到该密码，请妥善保护日志。`
     );
   } else if (adminCredentialsMissing) {
-    runtimeLog(
-      "error",
-      "无法初始化管理员凭据，管理后台将无法登录。",
-      "[admin] Admin credentials could not be initialized; sign-in will remain unavailable."
-    );
+    runtimeLog("error", "无法初始化管理员凭据，管理后台将无法登录。");
   }
 
   const app = createApp(env, database);
@@ -61,34 +53,17 @@ async function main(): Promise<void> {
       env.host === "0.0.0.0" || env.host === "::"
         ? `http://127.0.0.1:${env.port}`
         : `http://${env.host}:${env.port}`;
-    runtimeLog(
-      "log",
-      `服务已监听：${env.host}:${env.port}`,
-      `[boot] listening on ${env.host}:${env.port}`
-    );
-    runtimeLog("log", `PAC 文件：${local}/proxy.pac`, `[boot] PAC    -> ${local}/proxy.pac`);
-    runtimeLog("log", `状态页面：${local}/`, `[boot] status -> ${local}/`);
-    runtimeLog("log", `管理后台：${local}/admin`, `[boot] admin  -> ${local}/admin`);
+    runtimeLog("log", `服务已监听：${env.host}:${env.port}`);
+    runtimeLog("log", `PAC 文件：${local}/proxy.pac`);
+    runtimeLog("log", `状态页面：${local}/`);
+    runtimeLog("log", `管理后台：${local}/admin`);
     if (!firstStart && !adminCredentialsMissing) {
       // Start listening first so the admin UI can observe the startup workflow in real time.
       void runPacWorkflow(database, env.dataDir, "startup")
         .then(({ generation }) => {
-          if (!generation.success)
-            runtimeLog(
-              "warn",
-              `启动时 PAC 生成失败：${generation.message}`,
-              "[boot] initial PAC generation failed:",
-              generation.message
-            );
+          if (!generation.success) runtimeLog("warn", `启动时 PAC 生成失败：${generation.message}`);
         })
-        .catch((error) =>
-          runtimeLog(
-            "error",
-            "启动时 PAC 工作流失败：",
-            "[boot] initial PAC workflow failed:",
-            error
-          )
-        )
+        .catch((error) => runtimeLog("error", "启动时 PAC 工作流失败：", error))
         .finally(() => reschedule(database, env.dataDir));
     }
   });
@@ -99,14 +74,10 @@ async function main(): Promise<void> {
     if (err.code === "EADDRINUSE") {
       runtimeLog(
         "error",
-        `端口 ${env.port} 已被占用。\n  - 更换端口：在开发环境 .env 或进程环境中设置 PORT=8081 后重试\n  - Windows 查看占用：netstat -ano | findstr :${env.port}\n  - Linux/macOS 查看占用：lsof -i :${env.port} 或 ss -tlnp | grep ${env.port}`,
-        `[boot] 端口 ${env.port} 已被占用。\n` +
-          `  - 换端口: 在开发环境 .env 或进程环境中设置 PORT=8081 后重试\n` +
-          `  - Windows 查占用: netstat -ano | findstr :${env.port}\n` +
-          `  - Linux/macOS: lsof -i :${env.port}  或  ss -tlnp | grep ${env.port}`
+        `端口 ${env.port} 已被占用。\n  - 更换端口：在开发环境 .env 或进程环境中设置 PORT=8081 后重试\n  - Windows 查看占用：netstat -ano | findstr :${env.port}\n  - Linux/macOS 查看占用：lsof -i :${env.port} 或 ss -tlnp | grep ${env.port}`
       );
     } else {
-      runtimeLog("error", "服务发生错误：", "[boot] server error:", err);
+      runtimeLog("error", "服务发生错误：", err);
     }
     stopScheduler();
     clearInterval(logCleanupTimer);
@@ -115,7 +86,7 @@ async function main(): Promise<void> {
   });
 
   const shutdown = (): void => {
-    runtimeLog("log", "服务正在关闭…", "[boot] shutting down...");
+    runtimeLog("log", "服务正在关闭…");
     stopScheduler();
     clearInterval(logCleanupTimer);
     server.close(() => {
@@ -129,6 +100,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  runtimeLog("error", "服务启动失败：", "[boot] fatal:", err);
+  runtimeLog("error", "服务启动失败：", err);
   process.exit(1);
 });

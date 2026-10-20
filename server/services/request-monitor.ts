@@ -71,7 +71,6 @@ export function requestMonitoringMiddleware(database: AppDatabase) {
         runtimeLog(
           "warn",
           "无法写入访问记录：",
-          "[monitor] 无法写入访问记录:",
           error instanceof Error ? error.message : String(error)
         );
       }

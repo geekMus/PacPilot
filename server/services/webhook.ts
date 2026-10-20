@@ -295,17 +295,9 @@ async function notify(
     duration_ms: Math.max(0, Date.now() - started),
   };
   if (!enriched.success) {
-    runtimeLog(
-      "error",
-      `Webhook（${config.provider}）发送失败：${enriched.message}`,
-      "[webhook] " + config.provider + ": " + enriched.message
-    );
+    runtimeLog("error", `Webhook（${config.provider}）发送失败：${enriched.message}`);
   } else {
-    runtimeLog(
-      "info",
-      `Webhook（${config.provider}）发送成功（HTTP ${enriched.status}）`,
-      "[webhook] " + config.provider + " delivered (HTTP " + enriched.status + ")"
-    );
+    runtimeLog("info", `Webhook（${config.provider}）发送成功（HTTP ${enriched.status}）`);
   }
   return enriched;
 }
