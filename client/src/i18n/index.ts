@@ -2,16 +2,14 @@ import { createI18n } from "vue-i18n";
 import zh_CN from "./locales/zh_CN";
 import en_US from "./locales/en_US";
 
-/** 界面与生成物语言，采用常见区域码（下划线形式）。 */
+/** 界面与生成物语言：仅 zh_CN / en_US。 */
 export type AppLocale = "zh_CN" | "en_US";
 
 const STORAGE_KEY = "genpac-runner-locale";
 
 export function resolveLocale(raw: unknown): AppLocale {
-  const value = String(raw || "").trim().toLowerCase().replace(/-/g, "_");
-  // 兼容旧版 zh / en
-  if (value === "en" || value === "en_us" || value === "english") return "en_US";
-  return "zh_CN";
+  const value = String(raw || "").trim();
+  return value === "en_US" ? "en_US" : "zh_CN";
 }
 
 export function readStoredLocale(): AppLocale {

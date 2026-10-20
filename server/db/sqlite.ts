@@ -242,10 +242,8 @@ export function recentLogs(
 
 function normalizeTimeZone(value:string):string {try{new Intl.DateTimeFormat("en-US",{timeZone:value.trim()}).format(new Date());return value.trim();}catch{return DEFAULT_SETTINGS.timezone;}}
 function normalizeLocale(raw: unknown): import("./settings").AppLocale {
-  const value = String(raw || "").trim().toLowerCase().replace(/-/g, "_");
-  // 兼容旧值 en/zh 以及 en-US / zh-CN 等写法
-  if (value === "en" || value === "en_us" || value === "english") return "en_US";
-  return "zh_CN";
+  const value = String(raw || "").trim();
+  return value === "en_US" ? "en_US" : "zh_CN";
 }
 
 function normalizeSettings(

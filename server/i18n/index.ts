@@ -84,7 +84,6 @@ export function t(
 }
 
 export function resolveLocale(raw: unknown): AppLocale {
-  const value = String(raw || "").trim().toLowerCase().replace(/-/g, "_");
-  if (value === "en" || value === "en_us" || value === "english") return "en_US";
-  return "zh_CN";
+  const value = String(raw || "").trim();
+  return value === "en_US" ? "en_US" : "zh_CN";
 }
