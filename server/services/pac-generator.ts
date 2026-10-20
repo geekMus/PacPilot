@@ -2,11 +2,11 @@ import fs from "fs";
 import { minify } from "terser";
 import path from "path";
 import { isIP } from "node:net";
-import type { AppDatabase, LocalizedText } from "../db/sqlite";
+import type { AppDatabase } from "../db/sqlite";
 import { appendGenerationLog, getSettings } from "../db/sqlite";
 import { notifyFailure, notifySuccess } from "./webhook";
 import { APP_VERSION } from "../version";
-import { t } from "../i18n";
+import { t } from "../../shared/i18n";
 import type { AppLocale, AppSettings } from "../db/settings";
 import { buildRemoteListPac, fetchAndParseRemoteList } from "./remote-list";
 
@@ -14,8 +14,8 @@ export interface GenerateResult {
   success: boolean;
   mode: string;
   message: string;
-  messageKey?: string;
-  messageParams?: Record<string, string | number>;
+  resultCode: string;
+  resultData?: Record<string, string | number | boolean>;
   pacPath: string;
   /** Structured diagnostics for workflow stage detail panels. */
   detail?: Record<string, unknown>;
@@ -117,7 +117,10 @@ function formatPacGeneratedAt(
 function stripPacMetaHeaders(content: string): string {
   return content
     .replace(/^\/\/ genpac-runner (?:version:|版本[:：]).*(?:\r?\n|$)/gim, "")
-    .replace(/^\/\/ genpac-runner (?:PAC generated at:|Generated at:|PAC 生成时间[:：]|生成时间[:：]).*(?:\r?\n|$)/gim, "")
+    .replace(
+      /^\/\/ genpac-runner (?:PAC generated at:|Generated at:|PAC 生成时间[:：]|生成时间[:：]).*(?:\r?\n|$)/gim,
+      ""
+    )
     .replace(/^\n+/, "");
 }
 
@@ -133,15 +136,15 @@ function withPacVersionHeader(
 ): string {
   const existingGenerated =
     content
-      .match(/^\/\/ genpac-runner (?:PAC generated at:|Generated at:|PAC 生成时间[:：]|生成时间[:：])\s*(.+)\s*$/im)?.[1]
+      .match(
+        /^\/\/ genpac-runner (?:PAC generated at:|Generated at:|PAC 生成时间[:：]|生成时间[:：])\s*(.+)\s*$/im
+      )?.[1]
       ?.trim() || "";
   const body = stripPacMetaHeaders(content);
   const versionLabel =
     locale === "en_US" ? "// genpac-runner version: " : "// genpac-runner 版本：";
   const timeLabel =
-    locale === "en_US"
-      ? "// genpac-runner PAC generated at: "
-      : "// genpac-runner PAC 生成时间：";
+    locale === "en_US" ? "// genpac-runner PAC generated at: " : "// genpac-runner PAC 生成时间：";
   const lines = [versionLabel + APP_VERSION];
   const stamp = generatedAt
     ? formatPacGeneratedAt(generatedAt, locale, timeZone)
@@ -223,7 +226,12 @@ export async function probeGenpac(): Promise<EngineProbe> {
 async function runRemoteMode(
   settings: AppSettings,
   outFile: string
-): Promise<{ message: string; messageKey: string; messageParams: Record<string, number>; detail: Record<string, unknown> }> {
+): Promise<{
+  message: string;
+  resultCode: string;
+  resultData: Record<string, number | boolean>;
+  detail: Record<string, unknown>;
+}> {
   if (!settings.listUrl) {
     throw new Error("Remote list mode requires listUrl to be configured.");
   }
@@ -254,17 +262,17 @@ async function runRemoteMode(
         : "format.plain";
   const formatSuffix =
     parsed.format === "gfwlist-base64" ? "gfwlist" : parsed.format === "abp" ? "abp" : "plain";
-  const messageKey = `gen.success.remote.${formatSuffix}`;
-  const messageParams = {
+  const resultCode = `remote.${formatSuffix}`;
+  const resultData = {
     proxy: parsed.proxyHosts.length,
     direct: parsed.directHosts.length,
   };
   const formatLabel = t(settings.locale, formatKey);
-  const message = t(settings.locale, messageKey, messageParams);
+  const message = t(settings.locale, `gen.success.${resultCode}`, resultData);
   return {
     message,
-    messageKey,
-    messageParams,
+    resultCode,
+    resultData,
     detail: {
       mode: "remote",
       pac_proxy: settings.pacProxy,
@@ -301,29 +309,38 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
     if (proxyError) throw new Error(proxyError);
 
     let message: string;
-    let messageKey: string;
-    let messageParams: Record<string, string | number> = {};
+    let resultCode: string;
+    let resultData: Record<string, string | number | boolean> = {};
     let detail: Record<string, unknown>;
     if (settings.mode === "remote") {
       const remote = await runRemoteMode(settings, pacPath);
       message = remote.message;
-      messageKey = remote.messageKey;
-      messageParams = remote.messageParams;
+      resultCode = remote.resultCode;
+      resultData = remote.resultData;
       detail = remote.detail;
     } else {
       const customPac = buildCustomPac(settings);
       const generatedAt = new Date();
-      const source = withPacVersionHeader(customPac, generatedAt, settings.locale, settings.timezone);
+      const source = withPacVersionHeader(
+        customPac,
+        generatedAt,
+        settings.locale,
+        settings.timezone
+      );
       const output = settings.pacCompress
-        ? withPacVersionHeader(await compressPac(customPac), generatedAt, settings.locale, settings.timezone)
+        ? withPacVersionHeader(
+            await compressPac(customPac),
+            generatedAt,
+            settings.locale,
+            settings.timezone
+          )
         : source;
       const sourcePath = path.join(dataDir, "proxy.source.pac");
       fs.writeFileSync(sourcePath, source, "utf8");
       fs.writeFileSync(pacPath, output, "utf8");
-      messageKey = settings.pacCompress
-        ? "gen.success.custom.compressed"
-        : "gen.success.custom.uncompressed";
-      message = t(settings.locale, messageKey);
+      resultCode = settings.pacCompress ? "custom.compressed" : "custom.uncompressed";
+      resultData = { compressed: Boolean(settings.pacCompress) };
+      message = t(settings.locale, `gen.success.${resultCode}`);
       detail = {
         mode: "custom",
         pac_proxy: settings.pacProxy,
@@ -342,8 +359,7 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
       };
     }
 
-    const persistedMessage: LocalizedText = { key: messageKey, params: messageParams };
-    appendGenerationLog(database, true, settings.mode, persistedMessage);
+    appendGenerationLog(database, true, settings.mode, resultCode, resultData);
     const webhook = await notifySuccess(settings);
     if (webhook) detail = { ...detail, webhook };
     console.log(`[PAC] ${message}; file: ${pacPath}`);
@@ -351,8 +367,8 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
       success: true,
       mode: settings.mode,
       message,
-      messageKey,
-      messageParams,
+      resultCode,
+      resultData,
       pacPath,
       detail,
     };
@@ -362,13 +378,14 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
       err && typeof err === "object" && "fetchMeta" in err
         ? (err as { fetchMeta?: unknown }).fetchMeta
         : undefined;
-    appendGenerationLog(database, false, settings.mode, message);
+    appendGenerationLog(database, false, settings.mode, "failed", {}, message);
     const webhook = await notifyFailure(settings, message);
     console.error(`[PAC] generation failed: ${message}`);
     return {
       success: false,
       mode: settings.mode,
       message,
+      resultCode: "failed",
       pacPath,
       detail: {
         mode: settings.mode,

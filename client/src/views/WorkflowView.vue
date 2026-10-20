@@ -11,11 +11,6 @@ import VirtualTable from "../components/VirtualTable.vue";
 import SelectField from "../components/SelectField.vue";
 import { useToast } from "../composables/useToast";
 const { t, locale } = useI18n();
-const localizedText = (
-  text: string | null | undefined,
-  key: string | undefined,
-  params?: Record<string, string | number>
-) => (key ? t(key, params ?? {}) : text ?? "");
 
 const router = useRouter();
 const { notify } = useToast();
@@ -72,20 +67,21 @@ const filteredRuns = computed(() =>
   )
 );
 const statusNames: Record<string, string> = {
-  pending: t("workflowPage.k0"),
-  running: t("workflowPage.k1"),
-  succeeded: t("workflowPage.k2"),
-  failed: t("workflowPage.k3"),
-  cancelled: t("workflowPage.k4"),
+  pending: "workflowPage.k0",
+  running: "workflowPage.k1",
+  succeeded: "workflowPage.k2",
+  failed: "workflowPage.k3",
+  cancelled: "workflowPage.k4",
 };
 const sourceNames: Record<string, string> = {
-  startup: t("workflowPage.k5"),
-  scheduled: t("workflowPage.k6"),
-  manual: t("workflowPage.k7"),
-  "save-and-generate": t("workflowPage.k8"),
+  startup: "workflowPage.k5",
+  scheduled: "workflowPage.k6",
+  manual: "workflowPage.k7",
+  "save-and-generate": "workflowPage.k8",
 };
-const statusLabel = (status: string) => statusNames[status] ?? status;
-const sourceLabel = (source: string) => sourceNames[source] ?? source;
+const statusLabel = (status: string) => (statusNames[status] ? t(statusNames[status]) : status);
+const stageLabel = (stage: string) => t(`workflow.stageNames.${stage}`);
+const sourceLabel = (source: string) => (sourceNames[source] ? t(sourceNames[source]) : source);
 const modeLabel = (mode: string) =>
   mode === "remote" ? t("workflowPage.k9") : mode === "custom" ? t("workflowPage.k10") : mode || "—";
 const durationLabel = (run: WorkflowRun) => {
@@ -128,10 +124,7 @@ async function load(silent = false, resetHistory = false) {
               : run.status === "failed"
                 ? t("workflowPage.runFailed", {
                     id: run.id,
-                    detail:
-                      localizedText(run.error, run.error_key, run.error_params) ||
-                      localizedText(run.message, run.message_key, run.message_params) ||
-                      t("workflowPage.k11"),
+                    detail: run.error || t("workflowPage.k11"),
                   })
                 : t("workflowPage.runCancelled", { id: run.id });
           notify(
@@ -382,13 +375,12 @@ onUnmounted(stopPolling);
             <div class="current-copy">
               <strong>{{ sourceLabel(current.source) }}</strong>
               <span>{{
-                localizedText(current.stage, current.stage_key, current.stage_params) ||
-                t("workflowPage.k21")
+                stageLabel(current.stage) || t("workflowPage.k21")
               }}</span>
             </div>
           </div>
           <p class="current-message">
-            {{ localizedText(current.message, current.message_key, current.message_params) }}
+            {{ statusLabel(current.status) }}
           </p>
           <div class="current-meta">
             <div>
@@ -449,9 +441,9 @@ onUnmounted(stopPolling);
               </div>
             </div>
           </div>
-          <div v-if="current.error || current.error_key" class="workflow-error-detail">
+          <div v-if="current.error" class="workflow-error-detail">
             <strong>{{ t("workflowPage.k57") }}</strong>
-            <pre>{{ localizedText(current.error, current.error_key, current.error_params) }}</pre>
+            <pre>{{ current.error }}</pre>
           </div>
         </template>
         <div v-else class="empty-current">
@@ -490,8 +482,7 @@ onUnmounted(stopPolling);
               </div>
               <p>
                 {{
-                  localizedText(run.stage, run.stage_key, run.stage_params) ||
-                  localizedText(run.message, run.message_key, run.message_params) ||
+                  stageLabel(run.stage) ||
                   t("workflowPage.k0")
                 }}
               </p>

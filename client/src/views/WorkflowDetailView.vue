@@ -8,11 +8,6 @@ import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
 import { useToast } from "../composables/useToast";
 const { t, locale } = useI18n();
-const localizedText = (
-  text: string | null | undefined,
-  key: string | undefined,
-  params?: Record<string, string | number>
-) => (key ? t(key, params ?? {}) : text ?? "");
 
 const route = useRoute();
 const router = useRouter();
@@ -35,24 +30,25 @@ const stageDetailDialog = ref<HTMLDialogElement | null>(null);
 const stageDetailCopyState = ref("");
 
 const statuses: Record<string, string> = {
-  pending: t("workflowDetailPage.k0"),
-  running: t("workflowDetailPage.k1"),
-  succeeded: t("workflowDetailPage.k2"),
-  failed: t("workflowDetailPage.k3"),
-  cancelled: t("workflowDetailPage.k4"),
-  skipped: t("workflowDetailPage.k5"),
+  pending: "workflowDetailPage.k0",
+  running: "workflowDetailPage.k1",
+  succeeded: "workflowDetailPage.k2",
+  failed: "workflowDetailPage.k3",
+  cancelled: "workflowDetailPage.k4",
+  skipped: "workflowDetailPage.k5",
 };
 const sources: Record<string, string> = {
-  startup: t("workflowDetailPage.k6"),
-  scheduled: t("workflowDetailPage.k7"),
-  manual: t("workflowDetailPage.k8"),
-  "save-and-generate": t("workflowDetailPage.k9"),
+  startup: "workflowDetailPage.k6",
+  scheduled: "workflowDetailPage.k7",
+  manual: "workflowDetailPage.k8",
+  "save-and-generate": "workflowDetailPage.k9",
 };
 
 const isActiveStatus = (status: string | undefined) => status === "pending" || status === "running";
 
-const label = (v: string) => statuses[v] || v;
-const sourceLabel = (v: string) => sources[v] || v;
+const label = (v: string) => (statuses[v] ? t(statuses[v]) : v);
+const sourceLabel = (v: string) => (sources[v] ? t(sources[v]) : v);
+const stageLabel = (key: string) => t(`workflow.stageNames.${key}`);
 const dateLabel = (v: string | null) =>
   v ? new Date(v).toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN") : "—";
 
@@ -110,15 +106,15 @@ async function copyStageDetail(): Promise<void> {
   if (!stage) return;
   const text = [
     t("workflowDetailPage.stageName", {
-      name: localizedText(stage.name, stage.name_key, stage.name_params),
+      name: stageLabel(stage.stage_key),
     }),
     t("workflowDetailPage.stageKey", { key: stage.stage_key }),
     `${t("workflowDetailPage.k33")}：${label(stage.status)}`,
     t("workflowDetailPage.stageMsg", {
-      msg: localizedText(stage.message, stage.message_key, stage.message_params) || "—",
+      msg: label(stage.status),
     }),
     t("workflowDetailPage.stageErr", {
-      err: localizedText(stage.error, stage.error_key, stage.error_params) || "—",
+      err: stage.error || "—",
     }),
     t("workflowDetailPage.stageStart", { time: dateLabel(stage.started_at) }),
     t("workflowDetailPage.stageEnd", { time: dateLabel(stage.finished_at) }),
@@ -183,10 +179,7 @@ async function load() {
           : next.run.status === "failed"
             ? t("workflowDetailPage.runFailed", {
                 id: next.run.id,
-                detail:
-                  localizedText(next.run.error, next.run.error_key, next.run.error_params) ||
-                  localizedText(next.run.message, next.run.message_key, next.run.message_params) ||
-                  t("workflowDetailPage.k14"),
+                detail: next.run.error || t("workflowDetailPage.k14"),
               })
             : t("workflowDetailPage.runCancelled", { id: next.run.id });
       notify(
@@ -355,14 +348,13 @@ onUnmounted(() => {
           <strong>{{ t("workflow.result") }}</strong>
           <p>
             {{
-              localizedText(detail.run.message, detail.run.message_key, detail.run.message_params) ||
-              t("workflowDetailPage.k16")
+              label(detail.run.status)
             }}
           </p>
         </div>
-        <div v-if="detail.run.error || detail.run.error_key" class="failure-message">
+        <div v-if="detail.run.error" class="failure-message">
           <strong><AppIcon name="circle-alert" :size="16" /> {{ t("workflowDetailPage.k26") }}</strong>
-          <pre>{{ localizedText(detail.run.error, detail.run.error_key, detail.run.error_params) }}</pre>
+          <pre>{{ detail.run.error }}</pre>
         </div>
       </section>
 
@@ -396,15 +388,14 @@ onUnmounted(() => {
                     :title='t("workflowDetailPage.k17")'
                     @click="openStageDetail(stage)"
                   >
-                    {{ localizedText(stage.name, stage.name_key, stage.name_params) }}
+                    {{ stageLabel(stage.stage_key) }}
                   </button>
                 </div>
                 <span class="status" :class="stage.status">{{ label(stage.status) }}</span>
               </div>
               <p>
                 {{
-                  localizedText(stage.message, stage.message_key, stage.message_params) ||
-                  t("workflowDetailPage.k18")
+                  label(stage.status)
                 }}
               </p>
               <div class="stage-meta">
@@ -413,9 +404,9 @@ onUnmounted(() => {
                 <span>{{ t("workflowDetailPage.k34") }}：{{ durationLabel(stage) }}</span>
               </div>
               <pre
-                v-if="stage.error || stage.error_key"
+                v-if="stage.error"
                 class="stage-error"
-              >{{ localizedText(stage.error, stage.error_key, stage.error_params) }}</pre>
+              >{{ stage.error }}</pre>
             </div>
           </li>
           <li v-if="!detail.stages.length" class="no-stages">
@@ -444,7 +435,7 @@ onUnmounted(() => {
               <p class="stage-detail-kicker">STAGE · {{ selectedStage.stage_key }}</p>
               <h2>
                 {{
-                  localizedText(selectedStage.name, selectedStage.name_key, selectedStage.name_params)
+                  stageLabel(selectedStage.stage_key)
                 }}
               </h2>
             </div>
@@ -466,14 +457,8 @@ onUnmounted(() => {
             {{ stageDetailCopyState }}
           </p>
           <div class="stage-detail-body">
-            <p v-if="selectedStage.message || selectedStage.message_key" class="stage-detail-message">
-              {{
-                localizedText(
-                  selectedStage.message,
-                  selectedStage.message_key,
-                  selectedStage.message_params
-                )
-              }}
+            <p class="stage-detail-message">
+              {{ label(selectedStage.status) }}
             </p>
             <section class="stage-detail-section">
               <h3 class="stage-detail-section-title">{{ t("workflowDetailPage.k32") }}</h3>
@@ -504,15 +489,9 @@ onUnmounted(() => {
                 </div>
               </div>
             </section>
-            <section v-if="selectedStage.error || selectedStage.error_key" class="stage-detail-section">
+            <section v-if="selectedStage.error" class="stage-detail-section">
               <h3 class="stage-detail-section-title">{{ t("workflowDetailPage.k35") }}</h3>
-              <pre class="stage-detail-pre is-error">{{
-                localizedText(
-                  selectedStage.error,
-                  selectedStage.error_key,
-                  selectedStage.error_params
-                )
-              }}</pre>
+              <pre class="stage-detail-pre is-error">{{ selectedStage.error }}</pre>
             </section>
             <section class="stage-detail-section">
               <h3 class="stage-detail-section-title">{{ t("workflowDetailPage.k36") }}</h3>

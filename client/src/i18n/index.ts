@@ -1,16 +1,9 @@
 import { createI18n } from "vue-i18n";
-import zh_CN from "./locales/zh_CN";
-import en_US from "./locales/en_US";
+import { catalogs, resolveLocale, type AppLocale } from "../../../shared/i18n";
 
-/** 界面与生成物语言：仅 zh_CN / en_US。 */
-export type AppLocale = "zh_CN" | "en_US";
+export { resolveLocale, type AppLocale };
 
 const STORAGE_KEY = "genpac-runner-locale";
-
-export function resolveLocale(raw: unknown): AppLocale {
-  const value = String(raw || "").trim();
-  return value === "en_US" ? "en_US" : "zh_CN";
-}
 
 export function readStoredLocale(): AppLocale {
   try {
@@ -36,7 +29,7 @@ export const i18n = createI18n({
   legacy: false,
   locale: readStoredLocale(),
   fallbackLocale: "zh_CN",
-  messages: { zh_CN, en_US },
+  messages: catalogs,
 });
 
 export function setAppLocale(locale: AppLocale): void {

@@ -1,9 +1,11 @@
+import { t, type AppLocale } from "../../shared/i18n";
+export type { AppLocale } from "../../shared/i18n";
+
 /**
  * 业务配置模型（持久化到 SQLite）。
- * 通知端点按渠道分开存储，旧版 URL/Body 字段在读取时自动迁移。
+ * 通知端点按成功和失败渠道分开存储。
  */
 export type GenerationMode = "custom" | "remote";
-export type AppLocale = "zh_CN" | "en_US";
 export type WebhookProvider = "custom" | "dingtalk";
 export type WebhookMethod = "POST" | "PUT" | "PATCH";
 export type DingTalkMessageType = "text" | "markdown";
@@ -38,13 +40,9 @@ export const DEFAULT_TASK_BODY = JSON.stringify(
   null,
   2
 );
-export const DEFAULT_TASK_MESSAGE_TEMPLATE =
-  "genpac-runner 通知\n事件：{{event}}\n状态：{{status}}\n时间：{{timestamp}}\n详情：{{message}}";
-export const DEFAULT_TEST_MESSAGE_TEMPLATE =
-  "genpac-runner 测试通知\n时间：{{timestamp}}\n结果：{{message}}";
 export const DEFAULT_TEST_BODY = DEFAULT_TASK_BODY;
 
-export function createDefaultWebhookConfig(): WebhookConfig {
+export function createDefaultWebhookConfig(locale: AppLocale = "zh_CN"): WebhookConfig {
   return {
     provider: "custom",
     url: "",
@@ -54,24 +52,20 @@ export function createDefaultWebhookConfig(): WebhookConfig {
     dingTalkSecret: "",
     dingTalkMessageType: "text",
     testBody: DEFAULT_TEST_BODY,
-    messageTemplate: DEFAULT_TASK_MESSAGE_TEMPLATE,
-    testMessageTemplate: DEFAULT_TEST_MESSAGE_TEMPLATE,
+    messageTemplate: t(locale, "settings.defaultMessageTemplate"),
+    testMessageTemplate: t(locale, "settings.testMessageTemplate"),
   };
 }
 
-export function normalizeWebhookConfig(
-  input: unknown,
-  legacyUrl = "",
-  legacyBody = ""
-): WebhookConfig {
-  const defaults = createDefaultWebhookConfig();
+export function normalizeWebhookConfig(input: unknown, locale: AppLocale = "zh_CN"): WebhookConfig {
+  const defaults = createDefaultWebhookConfig(locale);
   const raw = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
   return {
     provider: raw.provider === "dingtalk" ? "dingtalk" : "custom",
-    url: String(raw.url ?? legacyUrl).trim(),
+    url: String(raw.url ?? "").trim(),
     method: raw.method === "PUT" || raw.method === "PATCH" ? raw.method : "POST",
     headers: String(raw.headers ?? defaults.headers),
-    body: String(raw.body ?? legacyBody),
+    body: String(raw.body ?? ""),
     dingTalkSecret: String(raw.dingTalkSecret ?? ""),
     dingTalkMessageType: raw.dingTalkMessageType === "markdown" ? "markdown" : "text",
     testBody: String(raw.testBody ?? defaults.testBody),
@@ -90,17 +84,12 @@ export interface AppSettings {
   cronSchedule: string;
   /** IANA timezone used by scheduled tasks and displayed timestamps. */
   timezone: string;
-  /** UI and generated-file language. API errors and server logs stay English. */
+  /** Language used by the admin UI and generated PAC comments. */
   locale: AppLocale;
   /** HTTPS URL requested through each proxy during connectivity checks. */
   proxyTestUrl: string;
   /** Automatically delete operational logs older than this many days; 0 disables automatic cleanup. */
   logRetentionDays: number;
-  /** Legacy fields retained for smooth migration from earlier versions. */
-  webhookSuccessUrl: string;
-  webhookSuccessBody: string;
-  webhookFailureUrl: string;
-  webhookFailureBody: string;
   webhookSuccessConfig: WebhookConfig;
   webhookFailureConfig: WebhookConfig;
 }
@@ -119,10 +108,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   locale: "zh_CN",
   proxyTestUrl: "https://www.google.com/generate_204",
   logRetentionDays: 30,
-  webhookSuccessUrl: "",
-  webhookSuccessBody: "",
-  webhookFailureUrl: "",
-  webhookFailureBody: "",
   webhookSuccessConfig: { ...DEFAULT_WEBHOOK },
   webhookFailureConfig: { ...DEFAULT_WEBHOOK },
 };

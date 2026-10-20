@@ -4,7 +4,7 @@
  */
 
 import { assertSafeHttpUrl } from "../utils/url-safety";
-import { t } from "../i18n";
+import { t } from "../../shared/i18n";
 
 export interface RemoteListFetchMeta {
   url: string;

@@ -20,11 +20,6 @@ import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
 import TextDetail from "../components/TextDetail.vue";
 
 const { t, locale } = useI18n();
-const localizedText = (
-  text: string | null | undefined,
-  key: string | undefined,
-  params?: Record<string, string | number>
-) => (key ? t(key, params ?? {}) : text ?? "");
 const router = useRouter();
 const loading = ref(true);
 const refreshing = ref(false);
@@ -50,6 +45,11 @@ const latestLog = computed(() => logs.value[0] ?? null);
 
 function modeForLog(value: string): string {
   return value === "remote" ? t("dashboard.remoteRuleList") : value === "custom" ? t("dashboard.customRulesLabel") : value;
+}
+function generationLogText(entry: GenerationLog): string {
+  return entry.success
+    ? t(`gen.success.${entry.result_code}`, entry.detail)
+    : entry.error || t("common.failed");
 }
 function formatStatusDate(value: string | undefined): string {
   if (!value) return t("common.noRecords");
@@ -213,21 +213,10 @@ onMounted(() => {
         <span
           ><strong>{{
             t("dashboard.workflowRunning", {
-              stage:
-                localizedText(
-                  currentWorkflow.stage,
-                  currentWorkflow.stage_key,
-                  currentWorkflow.stage_params
-                ) || t("common.preparing"),
+              stage: t(`workflow.stageNames.${currentWorkflow.stage}`),
             })
           }}</strong
-          ><small>{{
-            localizedText(
-              currentWorkflow.message,
-              currentWorkflow.message_key,
-              currentWorkflow.message_params
-            )
-          }} · {{ t("dashboard.clickLiveProgress") }}</small></span
+          ><small>{{ t("dashboard.clickLiveProgress") }}</small></span
         >
       </RouterLink>
       <div v-if="session?.isDefaultPassword" class="dashboard-alert is-warning" role="alert">
@@ -366,7 +355,7 @@ onMounted(() => {
               </thead>
               <tbody>
                 <tr v-for="entry in logs" :key="entry.id">
-                  <td class="nowrap">{{ entry.created_at }}</td>
+                  <td class="nowrap">{{ formatStatusDate(entry.created_at) }}</td>
                   <td>
                     <span class="result-pill" :class="entry.success ? 'good' : 'bad'"
                       ><AppIcon :name="entry.success ? 'circle-check' : 'circle-x'" :size="13" />{{
@@ -377,7 +366,7 @@ onMounted(() => {
                   <td>{{ modeForLog(entry.mode) }}</td>
                   <td class="log-message">
                     <TextDetail
-                      :text="localizedText(entry.message, entry.message_key, entry.message_params)"
+                      :text="generationLogText(entry)"
                       :label="t('dashboard.genLogLabel')"
                     />
                   </td>

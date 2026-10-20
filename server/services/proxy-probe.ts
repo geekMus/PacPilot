@@ -8,22 +8,19 @@ import { recordProxyProbe, type ProxyProbeInput } from "../db/monitoring";
 
 export const DEFAULT_PROXY_TEST_URL = "https://www.google.com/generate_204";
 
-export type ProxyProbeErrorParams = Record<string, string | number>;
-
 export class ProxyProbeError extends Error {
   constructor(
-    readonly messageKey: string,
-    readonly messageParams: ProxyProbeErrorParams = {}
+    readonly code: string,
+    readonly detail = ""
   ) {
-    super(messageKey);
+    super(code);
     this.name = "ProxyProbeError";
   }
 }
 
 export interface ProxyProbeWarning {
-  message: string;
-  messageKey: string;
-  messageParams: ProxyProbeErrorParams;
+  code: string;
+  detail: string;
 }
 
 /** Validate an administrator-configured HTTPS test URL before opening a proxy tunnel. */
@@ -71,9 +68,8 @@ export interface ProxyProbeResult {
   targetMs: number | null;
   httpStatus: number | null;
   phase: string;
-  error: string;
-  errorKey: string;
-  errorParams: ProxyProbeErrorParams;
+  errorCode: string;
+  errorDetail: string;
   isLoopback: boolean;
 }
 
@@ -100,8 +96,8 @@ export async function testConfiguredProxies(
   if (parsed.candidates.length === 0) {
     const warning = parsed.warnings[0];
     throw new ProxyProbeError(
-      warning?.messageKey ?? "monitor.probeErrors.noProxyNodes",
-      warning?.messageParams
+      warning?.code ?? "monitor.probeErrors.noProxyNodes",
+      warning?.detail
     );
   }
 
@@ -124,9 +120,8 @@ export async function testConfiguredProxies(
       target_ms: result.targetMs,
       http_status: result.httpStatus,
       phase: result.phase,
-      error: result.error,
-      error_key: result.errorKey,
-      error_params: result.errorParams,
+      error_code: result.errorCode,
+      error_detail: result.errorDetail,
     };
     recordProxyProbe(database, item);
   }
@@ -163,11 +158,10 @@ function parsePacProxy(raw: string): {
 
     const match = /^(PROXY|HTTP|HTTPS|SOCKS|SOCKS4|SOCKS4A|SOCKS5)\s+(.+)$/i.exec(piece);
     if (!match) {
-      const messageParams = { entry: piece.slice(0, 80) };
+      const detail = piece.slice(0, 80);
       warnings.push({
-        message: "",
-        messageKey: "monitor.probeErrors.unrecognizedEntry",
-        messageParams,
+        code: "monitor.probeErrors.unrecognizedEntry",
+        detail,
       });
       continue;
     }
@@ -186,25 +180,23 @@ function parsePacProxy(raw: string): {
     } catch (error) {
       if (error instanceof ProxyProbeError) {
         warnings.push({
-          message: "",
-          messageKey: error.messageKey,
-          messageParams: error.messageParams,
+          code: error.code,
+          detail: error.detail,
         });
       } else {
         warnings.push({
-          message: error instanceof Error ? error.message.slice(0, 200) : String(error).slice(0, 200),
-          messageKey: "",
-          messageParams: {},
+          code: "",
+          detail: error instanceof Error ? error.message.slice(0, 200) : String(error).slice(0, 200),
         });
       }
     }
   }
 
   if (pieces.length === 0) {
-    warnings.push({ message: "", messageKey: "monitor.probeErrors.proxyStringEmpty", messageParams: {} });
+    warnings.push({ code: "monitor.probeErrors.proxyStringEmpty", detail: "" });
   }
   if (candidates.length === 0 && warnings.length === 0) {
-    warnings.push({ message: "", messageKey: "monitor.probeErrors.onlyDirect", messageParams: {} });
+    warnings.push({ code: "monitor.probeErrors.onlyDirect", detail: "" });
   }
   return { candidates, ignoredDirectEntries, warnings };
 }
@@ -242,18 +234,14 @@ function parseProxyAddress(kind: ProxyKind, rawAddress: string): ProxyCandidate 
   } else {
     const separator = address.lastIndexOf(":");
     if (separator <= 0)
-      throw new ProxyProbeError("monitor.probeErrors.proxyPortMissing", {
-        address: address.slice(0, 100),
-      });
+      throw new ProxyProbeError("monitor.probeErrors.proxyPortMissing", address.slice(0, 100));
     host = address.slice(0, separator);
     portText = address.slice(separator + 1);
   }
 
   const port = Number(portText);
   if (!host || !Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new ProxyProbeError("monitor.probeErrors.proxyAddressInvalid", {
-      address: address.slice(0, 100),
-    });
+    throw new ProxyProbeError("monitor.probeErrors.proxyAddressInvalid", address.slice(0, 100));
   }
 
   return { kind, host, port, username, password };
@@ -279,9 +267,8 @@ async function probeCandidate(
   let targetStarted: number | null = null;
   let httpStatus: number | null = null;
   let phase = "TCP";
-  let error = "";
-  let errorKey = "";
-  let errorParams: ProxyProbeErrorParams = {};
+  let errorCode = "";
+  let errorDetail = "";
   let success = false;
   let overallTimeoutExpired = false;
   const deadlineTimer = setTimeout(() => {
@@ -343,18 +330,18 @@ async function probeCandidate(
     httpStatus = Number(statusMatch[1]);
     targetMs = roundedMs(performance.now() - targetStarted);
     if (httpStatus >= 400) {
-      throw new ProxyProbeError("monitor.probeErrors.targetHttpStatus", { status: httpStatus });
+      throw new ProxyProbeError("monitor.probeErrors.targetHttpStatus", String(httpStatus));
     }
     phase = "complete";
     success = true;
   } catch (caught) {
     if (overallTimeoutExpired) {
-      errorKey = "monitor.probeErrors.totalTimeout";
+      errorCode = "monitor.probeErrors.totalTimeout";
     } else if (caught instanceof ProxyProbeError) {
-      errorKey = caught.messageKey;
-      errorParams = caught.messageParams;
+      errorCode = caught.code;
+      errorDetail = caught.detail;
     } else {
-      error = readableError(caught);
+      errorDetail = readableError(caught);
     }
     if (tcpMs === null && tcpStarted !== null && phase === "TCP") {
       tcpMs = roundedMs(performance.now() - tcpStarted);
@@ -404,9 +391,8 @@ async function probeCandidate(
     targetMs,
     httpStatus,
     phase,
-    error,
-    errorKey,
-    errorParams,
+    errorCode,
+    errorDetail,
     isLoopback: isLoopbackHost(candidate.host),
   };
 }
@@ -461,7 +447,7 @@ async function establishHttpConnectTunnel(
   if (!match) throw new ProxyProbeError("monitor.probeErrors.connectStatusInvalid");
   const status = Number(match[1]);
   if (status < 200 || status >= 300) {
-    throw new ProxyProbeError("monitor.probeErrors.connectHttpStatus", { status });
+    throw new ProxyProbeError("monitor.probeErrors.connectHttpStatus", String(status));
   }
 }
 
@@ -501,7 +487,7 @@ async function establishSocks5Tunnel(
       methodResponse[1] === 2
         ? "monitor.probeErrors.socks5AuthRequired"
         : "monitor.probeErrors.socks5AuthMethodUnsupported",
-      methodResponse[1] === 2 ? {} : { method: methodResponse[1] }
+      methodResponse[1] === 2 ? "" : String(methodResponse[1])
     );
   }
 
@@ -517,7 +503,7 @@ async function establishSocks5Tunnel(
   const reply = await replyPromise;
   if (reply[0] !== 5) throw new ProxyProbeError("monitor.probeErrors.socks5ResponseInvalid");
   if (reply[1] !== 0) {
-    throw new ProxyProbeError("monitor.probeErrors.socks5ConnectFailed", { code: reply[1] });
+    throw new ProxyProbeError("monitor.probeErrors.socks5ConnectFailed", String(reply[1]));
   }
   if (![1, 3, 4].includes(reply[3]))
     throw new ProxyProbeError("monitor.probeErrors.socks5AddressTypeUnknown");
@@ -555,7 +541,7 @@ async function establishSocks4Tunnel(
   if (reply[0] !== 0 && reply[0] !== 4)
     throw new ProxyProbeError("monitor.probeErrors.socks4ResponseInvalid");
   if (reply[1] !== 90) {
-    throw new ProxyProbeError("monitor.probeErrors.socks4ConnectFailed", { code: reply[1] });
+    throw new ProxyProbeError("monitor.probeErrors.socks4ConnectFailed", String(reply[1]));
   }
 }
 
@@ -580,7 +566,7 @@ async function establishSocks4aTunnel(
   if (reply[0] !== 0 && reply[0] !== 4)
     throw new ProxyProbeError("monitor.probeErrors.socks4aResponseInvalid");
   if (reply[1] !== 90) {
-    throw new ProxyProbeError("monitor.probeErrors.socks4aConnectFailed", { code: reply[1] });
+    throw new ProxyProbeError("monitor.probeErrors.socks4aConnectFailed", String(reply[1]));
   }
 }
 
@@ -610,7 +596,7 @@ function connectTcp(host: string, port: number, timeoutMs: number): Promise<Sock
       settled = true;
       cleanup();
       reject(
-        new ProxyProbeError("monitor.probeErrors.tcpFailed", { error: error.message })
+        new ProxyProbeError("monitor.probeErrors.tcpFailed", error.message)
       );
     };
     socket.once("connect", onConnect);
@@ -649,7 +635,7 @@ function connectTls(socket: Duplex, servername: string, timeoutMs: number): Prom
       settled = true;
       cleanup();
       reject(
-        new ProxyProbeError("monitor.probeErrors.tlsFailed", { error: error.message })
+        new ProxyProbeError("monitor.probeErrors.tlsFailed", error.message)
       );
     };
     secureSocket.once("secureConnect", onSecure);
@@ -691,7 +677,7 @@ function readSocks5Reply(socket: Duplex, timeoutMs: number): Promise<Buffer> {
       if (received.length >= expected) finish(undefined, received.subarray(0, expected));
     };
     const onError = (error: Error): void =>
-      finish(new ProxyProbeError("monitor.probeErrors.socks5ConnectionInterrupted", { error: error.message }));
+      finish(new ProxyProbeError("monitor.probeErrors.socks5ConnectionInterrupted", error.message));
     const onClose = (): void =>
       finish(new ProxyProbeError("monitor.probeErrors.socks5ConnectionClosed"));
     socket.on("data", onData);
@@ -726,7 +712,7 @@ function readExact(socket: Duplex, count: number, timeoutMs: number): Promise<Bu
       if (received.length >= count) finish(undefined, received.subarray(0, count));
     };
     const onError = (error: Error): void =>
-      finish(new ProxyProbeError("monitor.probeErrors.proxyConnectionInterrupted", { error: error.message }));
+      finish(new ProxyProbeError("monitor.probeErrors.proxyConnectionInterrupted", error.message));
     const onClose = (): void => finish(new ProxyProbeError("monitor.probeErrors.proxyConnectionClosed"));
     socket.on("data", onData);
     socket.once("error", onError);
@@ -765,7 +751,7 @@ function readHttpHeader(socket: Duplex, timeoutMs: number): Promise<string> {
       if (index >= 0) finish(undefined, received.subarray(0, index).toString("utf8"));
     };
     const onError = (error: Error): void =>
-      finish(new ProxyProbeError("monitor.probeErrors.httpReadFailed", { error: error.message }));
+      finish(new ProxyProbeError("monitor.probeErrors.httpReadFailed", error.message));
     const onClose = (): void =>
       finish(new ProxyProbeError("monitor.probeErrors.httpHeaderConnectionClosed"));
     socket.on("data", onData);

@@ -10,8 +10,7 @@ import {
   encodeWorkflowStageDetail,
 } from "../db/sqlite";
 import { generatePac, type GenerateResult } from "./pac-generator";
-
-const localized = (key: string) => ({ key });
+import { t } from "../../shared/i18n";
 
 export type WorkflowSource = "startup" | "scheduled" | "manual" | "save-and-generate";
 export interface PacWorkflowResult {
@@ -30,10 +29,11 @@ interface QueueItem {
 const queues = new Map<string, QueueItem[]>();
 const runningTypes = new Set<string>();
 const PAC_WORKFLOW_TYPE = "pac-generation";
-const cancelledResult = (): GenerateResult => ({
+const cancelledResult = (locale: string): GenerateResult => ({
   success: false,
   mode: "",
-  message: "任务在等待期间被取消",
+  message: t(locale, "serverErrors.workflowCancelled"),
+  resultCode: "cancelled",
   pacPath: "",
 });
 
@@ -49,8 +49,7 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
   try {
     updateWorkflowRun(database, id, {
       status: "running",
-      stage: localized("workflow.stage.running"),
-      message: localized("workflow.stage.runningMsg"),
+      stage: "prepare",
       started_at: startedAt.toISOString(),
     });
     const prepareDetail = encodeWorkflowStageDetail({
@@ -66,36 +65,13 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
       webhook_failure_configured: Boolean(settings.webhookFailureConfig?.url?.trim()),
       data_dir: item.dataDir,
     });
-    const prepareStage = startWorkflowStage(
-      database,
-      id,
-      "prepare",
-      localized("workflow.prepare.name"),
-      localized("workflow.prepare.start"),
-      prepareDetail
-    );
+    const prepareStage = startWorkflowStage(database, id, "prepare", prepareDetail);
     activeStageId = prepareStage;
-    finishWorkflowStage(
-      database,
-      prepareStage,
-      "succeeded",
-      localized("workflow.prepare.done"),
-      "",
-      prepareDetail
-    );
+    finishWorkflowStage(database, prepareStage, "succeeded", "", prepareDetail);
     activeStageId = null;
 
-    const generationStage = startWorkflowStage(
-      database,
-      id,
-      "generate-pac",
-      localized("workflow.generate.name"),
-      localized(
-        settings.mode === "remote"
-          ? "workflow.generate.start.remote"
-          : "workflow.generate.start.custom"
-      )
-    );
+    const generationStage = startWorkflowStage(database, id, "generate-pac");
+    updateWorkflowRun(database, id, { stage: "generate-pac" });
     activeStageId = generationStage;
     const generation = await generatePac(database, item.dataDir);
     const finishedAt = new Date();
@@ -104,20 +80,13 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
       database,
       generationStage,
       generation.success ? "succeeded" : "failed",
-      generation.success && generation.messageKey
-        ? { key: generation.messageKey, params: generation.messageParams }
-        : generation.message,
       generation.success ? "" : generation.message,
       generationDetail
     );
     activeStageId = null;
     updateWorkflowRun(database, id, {
       status: generation.success ? "succeeded" : "failed",
-      stage: localized(generation.success ? "workflow.stage.done" : "workflow.stage.failed"),
-      message:
-        generation.success && generation.messageKey
-          ? { key: generation.messageKey, params: generation.messageParams }
-          : generation.message,
+      stage: generation.success ? "done" : "failed",
       error: generation.success ? "" : generation.message,
       finished_at: finishedAt.toISOString(),
       duration_ms: Math.max(0, finishedAt.getTime() - startedAt.getTime()),
@@ -132,15 +101,13 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
           database,
           activeStageId,
           "failed",
-          localized("workflow.stage.abnormal"),
           message,
           encodeWorkflowStageDetail({ error: message })
         );
       }
       updateWorkflowRun(database, id, {
         status: "failed",
-        stage: localized("workflow.stage.exception"),
-        message: localized("workflow.stage.exceptionMsg"),
+        stage: "exception",
         error: message,
         finished_at: finishedAt.toISOString(),
         duration_ms: Math.max(0, finishedAt.getTime() - startedAt.getTime()),
@@ -161,7 +128,7 @@ function pumpQueue(type: string): void {
         const item = queue.shift()!;
         const run = getWorkflowRun(item.database, item.workflowId);
         if (!run || run.status !== "pending") {
-          item.resolve(cancelledResult());
+          item.resolve(cancelledResult(getSettings(item.database).locale));
           continue;
         }
         try {

@@ -15,7 +15,7 @@ async function main(): Promise<void> {
   const cleanupLogs = (): void => {
     const deleted = cleanupOperationalLogs(database);
     if (deleted.generationLogs + deleted.accessEvents + deleted.proxyProbeRuns > 0) {
-      database.exec("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
+      database.run("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
     }
   };
   cleanupLogs();

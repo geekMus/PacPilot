@@ -1,3 +1,5 @@
+import { i18n } from "../i18n";
+
 export interface Meta {
   adminEnabled: boolean;
   version: string;
@@ -50,14 +52,10 @@ export interface AppSettings {
   directList: string[];
   cronSchedule: string;
   timezone: string;
-  /** UI and generated PAC comments language. */
+  /** Language used by the admin UI and generated PAC comments. */
   locale: "zh_CN" | "en_US";
   proxyTestUrl: string;
   logRetentionDays: number;
-  webhookSuccessUrl: string;
-  webhookSuccessBody: string;
-  webhookFailureUrl: string;
-  webhookFailureBody: string;
   webhookSuccessConfig: WebhookConfig;
   webhookFailureConfig: WebhookConfig;
 }
@@ -72,9 +70,9 @@ export interface GenerationLog {
   id: number;
   success: boolean;
   mode: string;
-  message: string | null;
-  message_key: string;
-  message_params: Record<string, string | number>;
+  result_code: string;
+  detail: Record<string, string | number | boolean>;
+  error: string;
   created_at: string;
 }
 export interface GenerateResult {
@@ -82,6 +80,7 @@ export interface GenerateResult {
   success: boolean;
   mode: string;
   message: string;
+  resultCode: string;
   pacPath: string;
 }
 
@@ -101,15 +100,8 @@ export interface WorkflowRun {
   source: string;
   status: WorkflowStatus;
   stage: string;
-  stage_key: string;
-  stage_params: Record<string, string | number>;
   mode: string;
-  message: string;
-  message_key: string;
-  message_params: Record<string, string | number>;
   error: string;
-  error_key: string;
-  error_params: Record<string, string | number>;
   created_at: string;
   started_at: string | null;
   finished_at: string | null;
@@ -119,16 +111,8 @@ export interface WorkflowStage {
   id: number;
   run_id: number;
   stage_key: string;
-  name: string;
-  name_key: string;
-  name_params: Record<string, string | number>;
   status: "pending" | "running" | "succeeded" | "failed" | "skipped";
-  message: string;
-  message_key: string;
-  message_params: Record<string, string | number>;
   error: string;
-  error_key: string;
-  error_params: Record<string, string | number>;
   /** JSON string with request/config/output diagnostics when available. */
   detail?: string;
   started_at: string | null;
@@ -249,9 +233,8 @@ export interface ProxyProbeResult {
   targetMs: number | null;
   httpStatus: number | null;
   phase: string;
-  error: string;
-  errorKey: string;
-  errorParams: Record<string, string | number>;
+  errorCode: string;
+  errorDetail: string;
   isLoopback: boolean;
 }
 
@@ -262,9 +245,8 @@ export interface ProxyProbeBatch {
   results: ProxyProbeResult[];
   ignoredDirectEntries: number;
   parseWarnings: Array<{
-    message: string;
-    messageKey: string;
-    messageParams: Record<string, string | number>;
+    code: string;
+    detail: string;
   }>;
   limited: boolean;
 }
@@ -282,16 +264,15 @@ export interface ProxyProbeRecord {
   target_ms: number | null;
   http_status: number | null;
   phase: string;
-  error: string;
-  error_key: string;
-  error_params: Record<string, string | number>;
+  error_code: string;
+  error_detail: string;
 }
 
 export class ApiError extends Error {
   constructor(
     message: string,
-    readonly messageKey = "",
-    readonly messageParams: Record<string, string | number> = {}
+    readonly code = "",
+    readonly detail = ""
   ) {
     super(message);
     this.name = "ApiError";
@@ -306,19 +287,19 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     let msg = res.statusText;
-    let messageKey = "";
-    let messageParams: Record<string, string | number> = {};
+    let code = "";
+    let detail = "";
     try {
       const data = (await res.json()) as {
         error?: string;
         message?: string;
-        errorKey?: string;
-        errorParams?: Record<string, string | number>;
+        errorCode?: string;
+        errorDetail?: string;
       };
       if (data.error) msg = data.error;
       else if (data.message) msg = data.message;
-      messageKey = data.errorKey ?? "";
-      messageParams = data.errorParams ?? {};
+      code = data.errorCode ?? "";
+      detail = data.errorDetail ?? "";
     } catch {
       // Non-JSON error responses retain their HTTP status text.
     }
@@ -327,14 +308,13 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     // A 404 means the browser is talking to an older backend process/build,
     // not that the submitted settings are invalid.
     if (res.status === 404 && url === "/api/admin/settings/save-and-generate") {
-      msg =
-        "The backend does not expose the save-and-generate endpoint (frontend/backend version mismatch). Stop old genpac-runner processes, update to latest main, and restart from the project root. Ensure the Vite proxy PORT matches the backend PORT. This request did not save or generate; verify settings and retry.";
+      msg = i18n.global.t("serverErrors.versionMismatch");
     }
     if (res.status === 428 || msg === "password_change_required") {
-      msg = "Change the default admin password before continuing.";
+      msg = i18n.global.t("serverErrors.passwordChangeRequired");
     }
 
-    throw new ApiError(msg, messageKey, messageParams);
+    throw new ApiError(msg, code, detail);
   }
   return (await res.json()) as T;
 }
