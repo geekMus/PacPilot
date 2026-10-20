@@ -1,11 +1,14 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { api, type WorkflowDetail, type WorkflowStage } from "../api/client";
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
+import ConfirmPopover from "../components/ConfirmPopover.vue";
 import { useToast } from "../composables/useToast";
+const { t, locale } = useI18n();
 
 const route = useRoute();
 const router = useRouter();
@@ -28,25 +31,27 @@ const stageDetailDialog = ref<HTMLDialogElement | null>(null);
 const stageDetailCopyState = ref("");
 
 const statuses: Record<string, string> = {
-  pending: "等待执行",
-  running: "执行中",
-  succeeded: "成功",
-  failed: "失败",
-  cancelled: "已取消",
-  skipped: "已跳过",
+  pending: "workflowDetailPage.k0",
+  running: "workflowDetailPage.k1",
+  succeeded: "workflowDetailPage.k2",
+  failed: "workflowDetailPage.k3",
+  cancelled: "workflowDetailPage.k4",
+  skipped: "workflowDetailPage.k5",
 };
 const sources: Record<string, string> = {
-  startup: "服务启动",
-  scheduled: "定时任务",
-  manual: "手动生成",
-  "save-and-generate": "保存并生成",
+  startup: "workflowDetailPage.k6",
+  scheduled: "workflowDetailPage.k7",
+  manual: "workflowDetailPage.k8",
+  "save-and-generate": "workflowDetailPage.k9",
 };
 
 const isActiveStatus = (status: string | undefined) => status === "pending" || status === "running";
 
-const label = (v: string) => statuses[v] || v;
-const sourceLabel = (v: string) => sources[v] || v;
-const dateLabel = (v: string | null) => (v ? new Date(v).toLocaleString() : "—");
+const label = (v: string) => (statuses[v] ? t(statuses[v]) : v);
+const sourceLabel = (v: string) => (sources[v] ? t(sources[v]) : v);
+const stageLabel = (key: string) => t(`workflow.stageNames.${key}`);
+const dateLabel = (v: string | null) =>
+  v ? new Date(v).toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN") : "—";
 
 function stopPolling() {
   if (pollHandle) clearInterval(pollHandle);
@@ -67,7 +72,7 @@ function syncPolling() {
 }
 
 function formatStageDetail(raw: string | undefined | null): string {
-  if (!raw || !String(raw).trim()) return "（无详细记录）";
+  if (!raw || !String(raw).trim()) return t("workflowDetailPage.k10");
   try {
     return JSON.stringify(JSON.parse(raw), null, 2);
   } catch {
@@ -101,23 +106,29 @@ async function copyStageDetail(): Promise<void> {
   const stage = selectedStage.value;
   if (!stage) return;
   const text = [
-    `阶段：${stage.name}`,
-    `键：${stage.stage_key}`,
-    `状态：${label(stage.status)}`,
-    `说明：${stage.message || "—"}`,
-    `错误：${stage.error || "—"}`,
-    `开始：${dateLabel(stage.started_at)}`,
-    `结束：${dateLabel(stage.finished_at)}`,
-    `耗时：${stage.duration_ms == null ? "—" : stage.duration_ms + " ms"}`,
+    t("workflowDetailPage.stageName", {
+      name: stageLabel(stage.stage_key),
+    }),
+    t("workflowDetailPage.stageKey", { key: stage.stage_key }),
+    `${t("workflowDetailPage.k33")}：${label(stage.status)}`,
+    t("workflowDetailPage.stageMsg", {
+      msg: label(stage.status),
+    }),
+    t("workflowDetailPage.stageErr", {
+      err: stage.error || "—",
+    }),
+    t("workflowDetailPage.stageStart", { time: dateLabel(stage.started_at) }),
+    t("workflowDetailPage.stageEnd", { time: dateLabel(stage.finished_at) }),
+    `${t("workflowDetailPage.k34")}：${stage.duration_ms == null ? "—" : stage.duration_ms + " ms"}`,
     "",
-    "详情：",
+    t("workflowDetailPage.k11"),
     formatStageDetail(stage.detail),
   ].join("\n");
   try {
     await navigator.clipboard.writeText(text);
-    stageDetailCopyState.value = "已复制到剪贴板";
+    stageDetailCopyState.value = t("workflowDetailPage.k12");
   } catch {
-    stageDetailCopyState.value = "当前环境无法自动复制，请选中文本后手动复制。";
+    stageDetailCopyState.value = t("workflowDetailPage.k13");
   }
 }
 
@@ -125,8 +136,11 @@ function durationLabel(s: WorkflowStage) {
   const ms = s.duration_ms ?? (s.started_at ? Date.now() - new Date(s.started_at).getTime() : null);
   if (ms === null) return "—";
   if (ms < 1000) return ms + " ms";
-  if (ms < 60000) return (ms / 1000).toFixed(1) + " 秒";
-  return Math.floor(ms / 60000) + " 分 " + Math.floor((ms % 60000) / 1000) + " 秒";
+  if (ms < 60000) return t("workflowDetailPage.sec", { n: (ms / 1000).toFixed(1) });
+  return t("workflowDetailPage.minSec", {
+    m: Math.floor(ms / 60000),
+    s: Math.floor((ms % 60000) / 1000),
+  });
 }
 
 function stageIconName(status: string): string {
@@ -149,11 +163,6 @@ async function load() {
       await router.replace("/admin/login");
       return;
     }
-    if (session.mustChangePassword) {
-      stopPolling();
-      await router.replace("/admin/settings");
-      return;
-    }
     const next = await api.workflowDetail(requestedId);
     if (requestedId !== Number(route.params.id)) return;
     if (
@@ -165,10 +174,13 @@ async function load() {
     ) {
       const message =
         next.run.status === "succeeded"
-          ? `工作流 #${next.run.id} 已执行完成`
+          ? t("workflowDetailPage.runCompleted", { id: next.run.id })
           : next.run.status === "failed"
-            ? `工作流 #${next.run.id} 执行失败：${next.run.error || next.run.message || "请查看执行详情"}`
-            : `工作流 #${next.run.id} 已取消排队`;
+            ? t("workflowDetailPage.runFailed", {
+                id: next.run.id,
+                detail: next.run.error || t("workflowDetailPage.k14"),
+              })
+            : t("workflowDetailPage.runCancelled", { id: next.run.id });
       notify(
         message,
         next.run.status === "succeeded"
@@ -205,13 +217,13 @@ async function deleteRun() {
   if (!detail.value || deleting.value || !confirmingDelete.value) return;
   const run = detail.value.run;
   if (run.status === "running" || run.status === "pending") {
-    notify("等待中或执行中的工作流不能删除。", "warning");
+    notify(t("workflowDetailPage.k15"), "warning");
     return;
   }
   deleting.value = true;
   try {
     await api.deleteWorkflow(run.id);
-    notify(`工作流执行记录 #${run.id} 已删除`, "success");
+    notify(t("workflowDetailPage.deletedRun", { id: run.id }), "success");
     await router.replace("/admin/workflows");
   } catch (e) {
     notify(e instanceof Error ? e.message : String(e), "error");
@@ -270,22 +282,22 @@ onUnmounted(() => {
 <template>
   <AdminLayout
     active="workflow"
-    title="工作流详情"
-    subtitle="查看本次执行的整体状态、各阶段结果与失败原因。"
+    :title="t('workflow.detailTitle')"
+    :subtitle="t('workflow.detailSubtitle')"
   >
     <div class="detail-page">
       <div v-if="error" class="error-panel" role="alert">
-        <strong>读取执行详情失败</strong>
+        <strong>{{ t("workflow.loadDetailFailed") }}</strong>
         <span>{{ error }}</span>
-        <button type="button" @click="load()">重试</button>
+        <button type="button" @click="load()">{{ t("common.retry") }}</button>
       </div>
 
       <section v-if="detail" class="detail-panel">
         <div class="panel-heading">
           <div>
             <p class="eyebrow">EXECUTION #{{ detail.run.id }}</p>
-            <h2>PAC 生成工作流</h2>
-            <p class="muted">固定工作流标识：pac-generation</p>
+            <h2>{{ t("workflow.pacGeneration") }}</h2>
+            <p class="muted">{{ t("workflow.fixedId") }}</p>
           </div>
           <span class="status" :class="detail.run.status">
             <AppIcon
@@ -299,32 +311,34 @@ onUnmounted(() => {
         </div>
         <div class="meta-grid">
           <div>
-            <span>执行编号</span>
+            <span>{{ t("workflow.runId") }}</span>
             <strong>#{{ detail.run.id }}</strong>
           </div>
           <div>
-            <span>触发方式</span>
+            <span>{{ t("workflow.trigger") }}</span>
             <strong>{{ sourceLabel(detail.run.source) }}</strong>
           </div>
           <div>
-            <span>生成模式</span>
-            <strong>{{ detail.run.mode === "remote" ? "远程规则" : "自定义规则" }}</strong>
+            <span>{{ t("workflow.generateMode") }}</span>
+            <strong>{{
+              detail.run.mode === "remote" ? t("workflow.remoteMode") : t("workflow.customMode")
+            }}</strong>
           </div>
           <div>
-            <span>开始时间</span>
+            <span>{{ t("workflow.startTime") }}</span>
             <strong>{{ dateLabel(detail.run.started_at || detail.run.created_at) }}</strong>
           </div>
           <div>
-            <span>结束时间</span>
+            <span>{{ t("workflow.endTime") }}</span>
             <strong>{{ dateLabel(detail.run.finished_at) }}</strong>
           </div>
           <div>
-            <span>总耗时</span>
+            <span>{{ t("workflow.totalDuration") }}</span>
             <strong>
               {{
                 detail.run.duration_ms == null
                   ? detail.run.status === "running"
-                    ? "执行中"
+                    ? t("common.running")
                     : "—"
                   : detail.run.duration_ms + " ms"
               }}
@@ -332,11 +346,15 @@ onUnmounted(() => {
           </div>
         </div>
         <div class="result-message">
-          <strong>执行结果</strong>
-          <p>{{ detail.run.message || "暂无结果信息" }}</p>
+          <strong>{{ t("workflow.result") }}</strong>
+          <p>
+            {{ label(detail.run.status) }}
+          </p>
         </div>
         <div v-if="detail.run.error" class="failure-message">
-          <strong><AppIcon name="circle-alert" :size="16" /> 失败原因</strong>
+          <strong
+            ><AppIcon name="circle-alert" :size="16" /> {{ t("workflowDetailPage.k26") }}</strong
+          >
           <pre>{{ detail.run.error }}</pre>
         </div>
       </section>
@@ -345,12 +363,14 @@ onUnmounted(() => {
         <div class="panel-heading">
           <div>
             <p class="eyebrow">STAGE TIMELINE</p>
-            <h2>阶段执行情况</h2>
+            <h2>{{ t("workflowDetailPage.k27") }}</h2>
             <p class="muted">
-              阶段记录由服务端持久化，刷新页面不会丢失。点击阶段名称可查看请求与配置等详细信息。
+              {{ t("workflowDetailPage.k28") }}
             </p>
           </div>
-          <span class="muted">{{ detail.stages.length }} 个阶段</span>
+          <span class="muted">{{
+            t("workflowDetailPage.stageCount", { n: detail.stages.length })
+          }}</span>
         </div>
         <ol class="stage-list">
           <li v-for="(stage, index) in detail.stages" :key="stage.id" class="stage-item">
@@ -364,44 +384,52 @@ onUnmounted(() => {
             <div class="stage-body">
               <div class="stage-heading">
                 <div class="stage-heading-main">
-                  <span class="stage-number">阶段 {{ index + 1 }}</span>
+                  <span class="stage-number">{{
+                    t("workflowDetailPage.stageIndex", { n: index + 1 })
+                  }}</span>
                   <button
                     type="button"
                     class="stage-name-trigger"
-                    title="查看阶段详情"
+                    :title="t('workflowDetailPage.k17')"
                     @click="openStageDetail(stage)"
                   >
-                    {{ stage.name }}
+                    {{ stageLabel(stage.stage_key) }}
                   </button>
                 </div>
                 <span class="status" :class="stage.status">{{ label(stage.status) }}</span>
               </div>
-              <p>{{ stage.message || "暂无阶段说明" }}</p>
+              <p>
+                {{ label(stage.status) }}
+              </p>
               <div class="stage-meta">
-                <span>开始：{{ dateLabel(stage.started_at) }}</span>
-                <span>结束：{{ dateLabel(stage.finished_at) }}</span>
-                <span>耗时：{{ durationLabel(stage) }}</span>
+                <span>{{
+                  t("workflowDetailPage.stageStart", { time: dateLabel(stage.started_at) })
+                }}</span>
+                <span>{{
+                  t("workflowDetailPage.stageEnd", { time: dateLabel(stage.finished_at) })
+                }}</span>
+                <span>{{ t("workflowDetailPage.k34") }}：{{ durationLabel(stage) }}</span>
               </div>
               <pre v-if="stage.error" class="stage-error">{{ stage.error }}</pre>
             </div>
           </li>
           <li v-if="!detail.stages.length" class="no-stages">
             <AppIcon name="info" :size="17" />
-            此执行记录没有阶段数据（例如升级前创建的历史任务）。
+            {{ t("workflowDetailPage.k29") }}
           </li>
         </ol>
       </section>
 
       <div v-else-if="loading" class="detail-panel loading" aria-live="polite">
         <AppIcon name="loader-circle" :size="20" class="spinning" />
-        正在加载执行详情…
+        {{ t("workflowDetailPage.k30") }}
       </div>
 
       <dialog
         v-if="selectedStage"
         ref="stageDetailDialog"
         class="stage-detail-dialog"
-        aria-label="工作流阶段详情"
+        :aria-label="t('workflowDetailPage.k19')"
         @click="handleStageDetailBackdrop"
         @close="onStageDetailClose"
       >
@@ -409,16 +437,18 @@ onUnmounted(() => {
           <header class="stage-detail-header">
             <div>
               <p class="stage-detail-kicker">STAGE · {{ selectedStage.stage_key }}</p>
-              <h2>{{ selectedStage.name }}</h2>
+              <h2>
+                {{ stageLabel(selectedStage.stage_key) }}
+              </h2>
             </div>
             <div class="stage-detail-actions">
               <button class="stage-detail-btn" type="button" @click="copyStageDetail">
-                <AppIcon name="copy" :size="14" />复制
+                <AppIcon name="copy" :size="14" />{{ t("workflowDetailPage.k31") }}
               </button>
               <button
                 class="stage-detail-btn"
                 type="button"
-                aria-label="关闭"
+                :aria-label="t('workflowDetailPage.k20')"
                 @click="closeStageDetail"
               >
                 <AppIcon name="x" :size="14" />
@@ -429,14 +459,14 @@ onUnmounted(() => {
             {{ stageDetailCopyState }}
           </p>
           <div class="stage-detail-body">
-            <p v-if="selectedStage.message" class="stage-detail-message">
-              {{ selectedStage.message }}
+            <p class="stage-detail-message">
+              {{ label(selectedStage.status) }}
             </p>
             <section class="stage-detail-section">
-              <h3 class="stage-detail-section-title">基本信息</h3>
+              <h3 class="stage-detail-section-title">{{ t("workflowDetailPage.k32") }}</h3>
               <div class="stage-detail-meta">
                 <div class="stage-detail-meta-card">
-                  <span>状态</span>
+                  <span>{{ t("workflowDetailPage.k33") }}</span>
                   <strong>
                     <span class="status" :class="selectedStage.status">
                       {{ label(selectedStage.status) }}
@@ -444,7 +474,7 @@ onUnmounted(() => {
                   </strong>
                 </div>
                 <div class="stage-detail-meta-card">
-                  <span>耗时</span>
+                  <span>{{ t("workflowDetailPage.k34") }}</span>
                   <strong>
                     {{
                       selectedStage.duration_ms == null ? "—" : selectedStage.duration_ms + " ms"
@@ -452,23 +482,23 @@ onUnmounted(() => {
                   </strong>
                 </div>
                 <div class="stage-detail-meta-card">
-                  <span>开始时间</span>
+                  <span>{{ t("workflow.startTime") }}</span>
                   <strong>{{ dateLabel(selectedStage.started_at) }}</strong>
                 </div>
                 <div class="stage-detail-meta-card">
-                  <span>结束时间</span>
+                  <span>{{ t("workflow.endTime") }}</span>
                   <strong>{{ dateLabel(selectedStage.finished_at) }}</strong>
                 </div>
               </div>
             </section>
             <section v-if="selectedStage.error" class="stage-detail-section">
-              <h3 class="stage-detail-section-title">错误信息</h3>
+              <h3 class="stage-detail-section-title">{{ t("workflowDetailPage.k35") }}</h3>
               <pre class="stage-detail-pre is-error">{{ selectedStage.error }}</pre>
             </section>
             <section class="stage-detail-section">
-              <h3 class="stage-detail-section-title">诊断详情</h3>
+              <h3 class="stage-detail-section-title">{{ t("workflowDetailPage.k36") }}</h3>
               <p class="stage-detail-hint">
-                包含配置摘要、远程请求与响应头、输出文件与 Webhook 等结构化记录。
+                {{ t("workflowDetailPage.k37") }}
               </p>
               <pre class="stage-detail-pre">{{ formatStageDetail(selectedStage.detail) }}</pre>
             </section>
@@ -478,84 +508,75 @@ onUnmounted(() => {
 
       <div v-if="detail" class="detail-page-actions">
         <RouterLink class="back-link" to="/admin/workflows">
-          <AppIcon name="arrow-left" :size="16" /> 返回工作流记录
+          <AppIcon name="arrow-left" :size="16" /> {{ t("workflowDetailPage.k38") }}
         </RouterLink>
         <div class="detail-action-group">
-          <div v-if="detail.run.status === 'pending'" class="detail-confirm-anchor">
-            <button
-              class="cancel-button"
-              type="button"
-              :disabled="cancelling"
-              :title="cancelling ? '正在取消工作流，请稍候' : '取消当前等待中的工作流'"
-              @click="
-                confirmingCancel = !confirmingCancel;
-                confirmingDelete = false;
-              "
-            >
-              <AppIcon name="x" :size="15" /> 取消排队
-            </button>
-            <div
-              v-if="confirmingCancel"
-              class="detail-confirm-popover cancel-confirm-popover"
-              role="group"
-            >
-              <strong>取消这条等待任务？</strong>
-              <span>取消后任务不会继续执行，但记录仍会保留。</span>
-              <div>
-                <button type="button" class="confirm-cancel" @click="confirmingCancel = false">
-                  返回
-                </button>
-                <button
-                  type="button"
-                  class="confirm-cancel-action"
-                  :disabled="cancelling"
-                  :title="cancelling ? '正在取消工作流，请稍候' : '确认取消工作流'"
-                  @click="cancelRun"
-                >
-                  确认取消
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="detail-confirm-anchor">
-            <button
-              class="delete-button"
-              type="button"
-              :disabled="
-                deleting || detail.run.status === 'running' || detail.run.status === 'pending'
-              "
-              :title="
-                detail.run.status === 'running' || detail.run.status === 'pending'
-                  ? '等待中或执行中的工作流不能删除'
-                  : deleting
-                    ? '正在删除，请稍候'
-                    : '删除本条执行记录'
-              "
-              @click="
-                confirmingDelete = !confirmingDelete;
-                confirmingCancel = false;
-              "
-            >
-              <AppIcon name="trash-2" :size="15" /> 删除记录
-            </button>
-            <div v-if="confirmingDelete" class="detail-confirm-popover" role="group">
-              <strong>删除本条执行记录？</strong>
-              <span>删除后无法恢复，阶段时间线也会一并清除。</span>
-              <div>
-                <button type="button" class="confirm-cancel" @click="confirmingDelete = false">
-                  返回
-                </button>
-                <button
-                  type="button"
-                  class="confirm-delete"
-                  :disabled="deleting"
-                  @click="deleteRun"
-                >
-                  确认删除
-                </button>
-              </div>
-            </div>
-          </div>
+          <ConfirmPopover
+            v-if="detail.run.status === 'pending'"
+            :open="confirmingCancel"
+            :title="t('workflowDetailPage.k40')"
+            :description="t('workflowDetailPage.k41')"
+            :confirm-text="t('workflowDetailPage.k43')"
+            :cancel-text="t('workflowDetailPage.k42')"
+            :busy-text="t('workflowDetailPage.cancellingTitle')"
+            tone="warning"
+            :busy="cancelling"
+            @update:open="confirmingCancel = $event"
+            @confirm="cancelRun"
+          >
+            <template #trigger="{ toggle }">
+              <button
+                class="cancel-button"
+                type="button"
+                :disabled="cancelling"
+                :title="
+                  cancelling
+                    ? t('workflowDetailPage.cancellingTitle')
+                    : t('workflowDetailPage.cancelQueuedTitle')
+                "
+                @click="
+                  confirmingDelete = false;
+                  toggle();
+                "
+              >
+                <AppIcon name="x" :size="15" /> {{ t("workflowDetailPage.k39") }}
+              </button>
+            </template>
+          </ConfirmPopover>
+          <ConfirmPopover
+            :open="confirmingDelete"
+            :title="t('workflowDetailPage.k45')"
+            :description="t('workflowDetailPage.k46')"
+            :confirm-text="t('workflowDetailPage.k47')"
+            :cancel-text="t('workflowDetailPage.k42')"
+            :busy-text="t('workflowDetailPage.k24')"
+            :busy="deleting"
+            @update:open="confirmingDelete = $event"
+            @confirm="deleteRun"
+          >
+            <template #trigger="{ toggle }">
+              <button
+                class="delete-button"
+                type="button"
+                :disabled="
+                  deleting || detail.run.status === 'running' || detail.run.status === 'pending'
+                "
+                :title="
+                  detail.run.status === 'running' || detail.run.status === 'pending'
+                    ? t('workflowDetailPage.k23')
+                    : deleting
+                      ? t('workflowDetailPage.k24')
+                      : t('workflowDetailPage.k25')
+                "
+                @click="
+                  confirmingCancel = false;
+                  toggle();
+                "
+              >
+                <AppIcon name="trash-2" :size="15" /> {{ t("workflowDetailPage.k44") }}
+              </button>
+            </template>
+          </ConfirmPopover>
         </div>
       </div>
     </div>
@@ -868,65 +889,6 @@ onUnmounted(() => {
 .cancel-button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
-}
-.detail-confirm-anchor {
-  position: relative;
-}
-.detail-confirm-popover {
-  position: absolute;
-  z-index: 30;
-  right: 0;
-  top: calc(100% + 7px);
-  width: 245px;
-  padding: 13px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
-}
-.cancel-confirm-popover {
-  border-color: color-mix(in srgb, var(--amber, #d97706) 35%, var(--line));
-}
-.detail-confirm-popover strong,
-.detail-confirm-popover span {
-  display: block;
-}
-.detail-confirm-popover strong {
-  font-size: 12px;
-  color: var(--text);
-}
-.detail-confirm-popover span {
-  margin-top: 5px;
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--muted);
-}
-.detail-confirm-popover > div {
-  display: flex;
-  justify-content: flex-end;
-  gap: 7px;
-  margin-top: 12px;
-}
-.detail-confirm-popover button {
-  min-height: 29px;
-  padding: 0 9px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--surface-2);
-  color: var(--text);
-  font: inherit;
-  font-size: 11px;
-  cursor: pointer;
-}
-.detail-confirm-popover .confirm-delete {
-  background: var(--red);
-  border-color: var(--red);
-  color: white;
-}
-.detail-confirm-popover .confirm-cancel-action {
-  background: var(--amber-soft, #fff3dc);
-  border-color: color-mix(in srgb, var(--amber, #d97706) 40%, var(--line));
-  color: var(--amber, #b45309);
 }
 .spinning {
   animation: spin 0.9s linear infinite;

@@ -2,19 +2,13 @@ import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import type { AppDatabase } from "../db/sqlite";
 
 const AUTH_KEY = "admin-auth";
-const DEFAULT_PASSWORD = "password";
 const HASH_BYTES = 64;
 /** Explicit scrypt cost (kept explicit for auditability). */
 const SCRYPT_N = 16384;
 const SCRYPT_R = 8;
 const SCRYPT_P = 1;
 
-export interface AdminSecurityStatus {
-  isDefaultPassword: boolean;
-  mustChangePassword: boolean;
-}
-
-interface AdminAuthRecord extends AdminSecurityStatus {
+interface AdminAuthRecord {
   passwordHash: string;
   salt: string;
   sessionSecret: string;
@@ -30,11 +24,13 @@ function readRecord(database: AppDatabase): AdminAuthRecord | null {
     if (
       typeof v.passwordHash === "string" &&
       typeof v.salt === "string" &&
-      typeof v.sessionSecret === "string" &&
-      typeof v.isDefaultPassword === "boolean" &&
-      typeof v.mustChangePassword === "boolean"
+      typeof v.sessionSecret === "string"
     ) {
-      return v as AdminAuthRecord;
+      return {
+        passwordHash: v.passwordHash,
+        salt: v.salt,
+        sessionSecret: v.sessionSecret,
+      };
     }
   } catch {
     /* ignore malformed row */
@@ -58,50 +54,34 @@ function hashPassword(password: string, salt: string): string {
   }).toString("hex");
 }
 
-function passwordRecord(password: string, flags: AdminSecurityStatus): AdminAuthRecord {
+function passwordRecord(password: string): AdminAuthRecord {
   const salt = randomBytes(16).toString("hex");
   return {
     passwordHash: hashPassword(password, salt),
     salt,
     // Rotating the session secret invalidates every existing admin cookie.
     sessionSecret: randomBytes(32).toString("base64url"),
-    ...flags,
   };
 }
 
-export function ensureAdminAuth(database: AppDatabase): AdminSecurityStatus {
-  const existing = readRecord(database);
-  if (existing) {
-    return {
-      isDefaultPassword: existing.isDefaultPassword,
-      // Always require a change while the well-known default password is in use.
-      mustChangePassword: existing.mustChangePassword || existing.isDefaultPassword,
-    };
-  }
-  const record = passwordRecord(DEFAULT_PASSWORD, {
-    isDefaultPassword: true,
-    mustChangePassword: true,
-  });
-  writeRecord(database, record);
-  return {
-    isDefaultPassword: record.isDefaultPassword,
-    mustChangePassword: record.mustChangePassword,
-  };
+export function isAdminCredentialsMissing(database: AppDatabase): boolean {
+  return readRecord(database) === null;
+}
+
+export function createInitialAdminCredentials(database: AppDatabase): string | null {
+  return database.transaction(() => {
+    if (readRecord(database)) return null;
+
+    const initialPassword = randomBytes(18).toString("base64url");
+    writeRecord(database, passwordRecord(initialPassword));
+    return initialPassword;
+  })();
 }
 
 function getRecord(database: AppDatabase): AdminAuthRecord {
-  ensureAdminAuth(database);
   const record = readRecord(database);
-  if (!record) throw new Error("无法读取管理员凭据");
+  if (!record) throw new Error("Admin credentials are not initialized.");
   return record;
-}
-
-export function getAdminSecurityStatus(database: AppDatabase): AdminSecurityStatus {
-  const record = getRecord(database);
-  return {
-    isDefaultPassword: record.isDefaultPassword,
-    mustChangePassword: record.mustChangePassword || record.isDefaultPassword,
-  };
 }
 
 export function getAdminSessionSecret(database: AppDatabase): string {
@@ -110,7 +90,8 @@ export function getAdminSessionSecret(database: AppDatabase): string {
 
 export function verifyAdminPassword(database: AppDatabase, password: string): boolean {
   if (typeof password !== "string" || password.length === 0) return false;
-  const record = getRecord(database);
+  const record = readRecord(database);
+  if (!record) return false;
   const actual = Buffer.from(hashPassword(password, record.salt), "hex");
   const expected = Buffer.from(record.passwordHash, "hex");
   return expected.length === actual.length && timingSafeEqual(actual, expected);
@@ -130,26 +111,11 @@ export function changeAdminPassword(
   if (newPassword === currentPassword) {
     throw new Error("新密码不能与当前密码相同。");
   }
-  if (newPassword === DEFAULT_PASSWORD) {
-    throw new Error("新密码不能使用系统默认密码 password。");
-  }
-  writeRecord(
-    database,
-    passwordRecord(newPassword, {
-      isDefaultPassword: false,
-      mustChangePassword: false,
-    })
-  );
+  writeRecord(database, passwordRecord(newPassword));
 }
 
 export function resetAdminPassword(database: AppDatabase): string {
   const temporary = randomBytes(18).toString("base64url");
-  writeRecord(
-    database,
-    passwordRecord(temporary, {
-      isDefaultPassword: false,
-      mustChangePassword: true,
-    })
-  );
+  writeRecord(database, passwordRecord(temporary));
   return temporary;
 }

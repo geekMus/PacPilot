@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { useToast } from "../composables/useToast";
 import AppIcon from "./AppIcon.vue";
+const { t } = useI18n();
 const { toasts, dismiss } = useToast();
 const iconNames = {
   success: "check-circle-2",
@@ -10,7 +12,12 @@ const iconNames = {
 } as const;
 </script>
 <template>
-  <div class="toast-host" aria-live="polite" aria-relevant="additions text" aria-label="操作提示">
+  <div
+    class="toast-host"
+    aria-live="polite"
+    aria-relevant="additions text"
+    :aria-label="t('toast.ariaLabel')"
+  >
     <TransitionGroup name="toast" tag="div" class="toast-stack">
       <div
         v-for="toast in toasts"
@@ -21,7 +28,7 @@ const iconNames = {
       >
         <AppIcon :name="iconNames[toast.kind]" :size="18" />
         <span>{{ toast.message }}</span>
-        <button type="button" aria-label="关闭提示" @click="dismiss(toast.id)">
+        <button type="button" :aria-label="t('toast.close')" @click="dismiss(toast.id)">
           <AppIcon name="x" :size="15" />
         </button>
       </div>
@@ -32,14 +39,21 @@ const iconNames = {
 .toast-host {
   position: fixed;
   z-index: 9999;
-  top: 18px;
-  right: 18px;
-  width: min(420px, calc(100vw - 36px));
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  left: max(12px, env(safe-area-inset-left));
+  display: flex;
+  justify-content: flex-end;
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   pointer-events: none;
 }
 .toast-stack {
   display: grid;
   gap: 10px;
+  width: min(420px, 100%);
 }
 .toast-item {
   display: flex;

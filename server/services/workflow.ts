@@ -10,7 +10,7 @@ import {
   encodeWorkflowStageDetail,
 } from "../db/sqlite";
 import { generatePac, type GenerateResult } from "./pac-generator";
-import { t } from "../i18n";
+import { t } from "../../shared/i18n";
 
 export type WorkflowSource = "startup" | "scheduled" | "manual" | "save-and-generate";
 export interface PacWorkflowResult {
@@ -32,7 +32,8 @@ const PAC_WORKFLOW_TYPE = "pac-generation";
 const cancelledResult = (): GenerateResult => ({
   success: false,
   mode: "",
-  message: "任务在等待期间被取消",
+  message: t("zh_CN", "serverErrors.workflowCancelled"),
+  resultCode: "cancelled",
   pacPath: "",
 });
 
@@ -48,8 +49,7 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
   try {
     updateWorkflowRun(database, id, {
       status: "running",
-      stage: t(settings.locale, "workflow.stage.running"),
-      message: t(settings.locale, "workflow.stage.runningMsg"),
+      stage: "prepare",
       started_at: startedAt.toISOString(),
     });
     const prepareDetail = encodeWorkflowStageDetail({
@@ -65,34 +65,13 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
       webhook_failure_configured: Boolean(settings.webhookFailureConfig?.url?.trim()),
       data_dir: item.dataDir,
     });
-    const prepareStage = startWorkflowStage(
-      database,
-      id,
-      "prepare",
-      t(settings.locale, "workflow.prepare.name"),
-      t(settings.locale, "workflow.prepare.start"),
-      prepareDetail
-    );
+    const prepareStage = startWorkflowStage(database, id, "prepare", prepareDetail);
     activeStageId = prepareStage;
-    finishWorkflowStage(
-      database,
-      prepareStage,
-      "succeeded",
-      t(settings.locale, "workflow.prepare.done"),
-      "",
-      prepareDetail
-    );
+    finishWorkflowStage(database, prepareStage, "succeeded", "", prepareDetail);
     activeStageId = null;
 
-    const generationStage = startWorkflowStage(
-      database,
-      id,
-      "generate-pac",
-      t(settings.locale, "workflow.generate.name"),
-      settings.mode === "remote"
-        ? t(settings.locale, "workflow.generate.start.remote")
-        : t(settings.locale, "workflow.generate.start.custom")
-    );
+    const generationStage = startWorkflowStage(database, id, "generate-pac");
+    updateWorkflowRun(database, id, { stage: "generate-pac" });
     activeStageId = generationStage;
     const generation = await generatePac(database, item.dataDir);
     const finishedAt = new Date();
@@ -101,17 +80,13 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
       database,
       generationStage,
       generation.success ? "succeeded" : "failed",
-      generation.message,
       generation.success ? "" : generation.message,
       generationDetail
     );
     activeStageId = null;
     updateWorkflowRun(database, id, {
       status: generation.success ? "succeeded" : "failed",
-      stage: generation.success
-        ? t(settings.locale, "workflow.stage.done")
-        : t(settings.locale, "workflow.stage.failed"),
-      message: generation.message,
+      stage: generation.success ? "done" : "failed",
       error: generation.success ? "" : generation.message,
       finished_at: finishedAt.toISOString(),
       duration_ms: Math.max(0, finishedAt.getTime() - startedAt.getTime()),
@@ -126,15 +101,13 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
           database,
           activeStageId,
           "failed",
-          t(settings.locale, "workflow.stage.abnormal"),
           message,
           encodeWorkflowStageDetail({ error: message })
         );
       }
       updateWorkflowRun(database, id, {
         status: "failed",
-        stage: t(settings.locale, "workflow.stage.exception"),
-        message: t(settings.locale, "workflow.stage.exceptionMsg"),
+        stage: "exception",
         error: message,
         finished_at: finishedAt.toISOString(),
         duration_ms: Math.max(0, finishedAt.getTime() - startedAt.getTime()),

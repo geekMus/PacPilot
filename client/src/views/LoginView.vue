@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { nextTick, ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter, useRoute } from "vue-router";
 import { api } from "../api/client";
@@ -13,20 +13,34 @@ const { notify } = useToast();
 const router = useRouter();
 const route = useRoute();
 const password = ref("");
+const passwordInput = ref<HTMLInputElement | null>(null);
 const notice = ref("");
 const error = ref("");
 const loading = ref(false);
 const adminEnabled = ref<boolean | null>(null);
+const adminCredentialsMissing = ref(false);
 
 onMounted(async () => {
   if (route.query.passwordChanged === "1") notice.value = t("login.passwordChanged");
+  let shouldFocus = true;
   try {
     const meta = await api.meta();
     adminEnabled.value = meta.adminEnabled;
     const session = await api.session();
-    if (session.loggedIn) await router.replace("/admin/dashboard");
+    if (session.adminCredentialsMissing) {
+      adminCredentialsMissing.value = true;
+      shouldFocus = false;
+    } else if (session.loggedIn) {
+      shouldFocus = false;
+      await router.replace("/admin/dashboard");
+    }
   } catch (e) {
     error.value = e instanceof Error ? e.message : t("login.connectFailed");
+  } finally {
+    if (shouldFocus && !adminCredentialsMissing.value && adminEnabled.value !== false) {
+      await nextTick();
+      passwordInput.value?.focus();
+    }
   }
 });
 async function onSubmit() {
@@ -39,16 +53,11 @@ async function onSubmit() {
       "../composables/useAdminSession"
     );
     invalidateAdminSessionCache();
-    const session = await fetchAdminSession(true);
+    await fetchAdminSession(true);
     notify(t("login.success"), "success");
-    if (session.mustChangePassword) {
-      notify("当前仍使用默认密码，请先修改后再使用其他功能。", "warning", 5500);
-      await router.push("/admin/settings");
-    } else {
-      await router.push("/admin/dashboard");
-    }
+    await router.push("/admin/dashboard");
   } catch (e) {
-    error.value = e instanceof Error ? e.message : "登录失败，请重试。";
+    error.value = e instanceof Error ? e.message : t("login.loginFailed");
     notify(error.value, "error");
   } finally {
     loading.value = false;
@@ -58,29 +67,29 @@ async function onSubmit() {
 
 <template>
   <main class="page auth-page">
-    <AppHeader brand="genpac-runner" sub="安全登录">
-      <RouterLink to="/">公共状态页</RouterLink>
+    <AppHeader brand="genpac-runner" :sub="t('login.secureLogin')">
+      <RouterLink to="/">{{ t("nav.publicStatus") }}</RouterLink>
     </AppHeader>
     <section class="auth-layout">
       <div class="auth-intro">
         <div class="page-kicker">ADMINISTRATION</div>
-        <h1 class="page-title">管理你的 PAC 配置</h1>
-        <p>登录后可以切换生成模式、维护直连和黑名单、设置定时生成，并管理 Webhook 通知。</p>
+        <h1 class="page-title">{{ t("login.pageTitle") }}</h1>
+        <p>{{ t("login.pageDesc") }}</p>
         <div class="security-note">
           <span class="security-note-icon" aria-hidden="true"
             ><AppIcon name="shield-check" :size="17" /></span
-          ><span
-            >首次启动默认管理密码为 <code>password</code>；登录后请立即修改。忘记密码时，可根据
-            Docker、本机开发或 Linux、macOS、Windows 的生产部署方式执行对应的重置命令。</span
-          >
+          ><span>{{ t("login.securityNote") }}</span>
         </div>
       </div>
       <section class="login-card">
         <div class="login-mark" aria-hidden="true">
           <AppIcon name="lock-keyhole" :size="25" :stroke-width="1.8" />
         </div>
-        <h2>后台登录</h2>
-        <p class="login-subtitle">输入管理密码以继续</p>
+        <h2>{{ t("login.backendLogin") }}</h2>
+        <p class="login-subtitle">{{ t("login.enterPassword") }}</p>
+        <div v-if="adminCredentialsMissing" class="alert" role="status">
+          {{ t("login.adminCredentialsMissing") }}
+        </div>
         <div v-if="notice" class="alert success-alert" role="status">{{ notice }}</div>
         <div v-if="error" class="alert" :class="{ warning: adminEnabled === false }" role="alert">
           {{ error }}
@@ -89,19 +98,19 @@ async function onSubmit() {
           <label for="pw">{{ t("login.password") }}</label>
           <input
             id="pw"
+            ref="passwordInput"
             v-model="password"
             type="password"
             required
             autocomplete="current-password"
             :placeholder="t('login.passwordPlaceholder')"
-            :disabled="adminEnabled === false"
-            autofocus
+            :disabled="adminCredentialsMissing || adminEnabled === false"
           />
           <button
             type="submit"
             class="login-submit"
             :class="{ 'is-loading': loading }"
-            :disabled="loading || !password || adminEnabled === false"
+            :disabled="loading || !password || adminCredentialsMissing || adminEnabled === false"
             :title="
               loading
                 ? t('login.verifying')

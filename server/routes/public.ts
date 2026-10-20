@@ -5,18 +5,10 @@ import { parsePacStatus } from "../services/pac-parser";
 import { getSettings, type AppDatabase } from "../db/sqlite";
 import { APP_VERSION, PROJECT_URL } from "../version";
 
-function sendPac(
-  req: import("express").Request,
-  res: import("express").Response,
-  dataDir: string,
-  database: AppDatabase
-) {
-  const locale = getSettings(database).locale === "en_US" ? "en_US" : "zh_CN";
+function sendPac(req: import("express").Request, res: import("express").Response, dataDir: string) {
   const fallback =
-    locale === "en_US"
-      ? "// PAC has not been generated yet; temporary policy is DIRECT for all requests.\nfunction FindProxyForURL(url, host){return 'DIRECT';}\n"
-      : "// 尚未生成 PAC；临时回退策略为所有请求直连\nfunction FindProxyForURL(url, host){return 'DIRECT';}\n";
-  const pac = readPacFile(dataDir, locale) || fallback;
+    "// 尚未生成 PAC；临时回退策略为所有请求直连\nfunction FindProxyForURL(url, host){return 'DIRECT';}\n";
+  const pac = readPacFile(dataDir) || fallback;
 
   // 公共状态页是 PAC 文件的主要 UI 入口；默认在浏览器中查看，?download=1 时才触发下载。
   const asDownload = req.query.download === "1" || req.query.download === "true";
@@ -36,7 +28,7 @@ function sendPac(
 export function publicRoutes(env: EnvConfig, database: AppDatabase): Router {
   const router = Router();
 
-  router.get("/proxy.pac", (req, res) => sendPac(req, res, env.dataDir, database));
+  router.get("/proxy.pac", (req, res) => sendPac(req, res, env.dataDir));
 
   router.get("/api/meta", (_req, res) => {
     res.json({

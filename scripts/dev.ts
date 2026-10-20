@@ -22,9 +22,6 @@ const env: Record<string, string | undefined> = {
 };
 
 console.log(`[dev] profile=development DATA_DIR=${env.DATA_DIR} PORT=${env.PORT}`);
-console.log(
-  "[dev] 管理后台凭据保存在 DATA_DIR 指向的 SQLite 数据库中；新数据库初始密码为 password。"
-);
 
 const server = Bun.spawn(["bun", "--hot", "server/index.ts"], {
   stdout: "inherit",

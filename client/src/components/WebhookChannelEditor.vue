@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, useId } from "vue";
+import { useI18n } from "vue-i18n";
 import type { WebhookConfig, WebhookProvider } from "../api/client";
 import AppIcon from "./AppIcon.vue";
 import SelectField from "./SelectField.vue";
 import WebhookBodyEditor from "./WebhookBodyEditor.vue";
 import CodeMirrorField from "./CodeMirrorField.vue";
+const { t } = useI18n();
 
 type WebhookValidationErrors = Partial<
   Record<"url" | "headers" | "body" | "testBody" | "secret", string>
@@ -27,11 +29,11 @@ const config = computed(() => props.modelValue);
 const providerId = useId();
 const showDingTalkSecret = ref(false);
 const providers: { value: WebhookProvider; label: string; description: string }[] = [
-  { value: "custom", label: "自定义 Webhook", description: "对接任意支持 HTTP 请求的服务。" },
+  { value: "custom", label: t("webhookChannel.k0"), description: t("webhookChannel.k1") },
   {
     value: "dingtalk",
-    label: "钉钉机器人",
-    description: "支持文本或 Markdown 消息，并使用 Secret 加签。",
+    label: t("webhookChannel.k2"),
+    description: t("webhookChannel.k3"),
   },
 ];
 
@@ -59,7 +61,7 @@ const testBodySample = JSON.stringify(
   null,
   2
 );
-const testBodyEmptyHint = "留空时回退到任务请求体；任务请求体也留空时使用默认 JSON 请求体。";
+const testBodyEmptyHint = t("webhookChannel.k4");
 
 function update<K extends keyof WebhookConfig>(key: K, value: WebhookConfig[K]) {
   emit("update:modelValue", { ...props.modelValue, [key]: value });
@@ -73,10 +75,10 @@ const channelReady = computed(
     (config.value.provider !== "dingtalk" || Boolean(config.value.dingTalkSecret.trim()))
 );
 const channelStatusText = computed(() => {
-  if (!config.value.url.trim()) return "请填写通知目标 URL";
+  if (!config.value.url.trim()) return t("webhookChannel.k5");
   if (config.value.provider === "dingtalk" && !config.value.dingTalkSecret.trim())
-    return "请填写 Secret 加签密钥";
-  return "已填写通知目标及必填信息";
+    return t("webhookChannel.k6");
+  return t("webhookChannel.k7");
 });
 </script>
 
@@ -93,7 +95,7 @@ const channelStatusText = computed(() => {
         </span>
         <div>
           <h3>{{ title }}</h3>
-          <p>{{ kind === "success" ? "PAC 生成成功后发送" : "PAC 生成失败时发送" }}</p>
+          <p>{{ kind === "success" ? t("webhookChannel.k8") : t("webhookChannel.k9") }}</p>
         </div>
       </div>
       <button
@@ -102,7 +104,11 @@ const channelStatusText = computed(() => {
         :class="{ 'is-loading': pending }"
         :disabled="pending"
         :title="
-          pending ? '正在发送测试通知，请稍候' : !channelReady ? channelStatusText : '发送测试通知'
+          pending
+            ? t('webhookChannel.k10')
+            : !channelReady
+              ? channelStatusText
+              : t('webhookChannel.k11')
         "
         @click="emit('test')"
       >
@@ -111,12 +117,12 @@ const channelStatusText = computed(() => {
           :class="{ 'icon-spinning': pending }"
           :size="14"
         />
-        {{ pending ? "发送中…" : "发送测试" }}
+        {{ pending ? t("webhookChannel.k12") : t("webhookChannel.k13") }}
       </button>
     </div>
 
     <div class="provider-picker">
-      <label :for="providerId">通知平台</label>
+      <label :for="providerId">{{ t("webhookChannel.k27") }}</label>
       <SelectField block
         ><select
           :id="providerId"
@@ -152,7 +158,7 @@ const channelStatusText = computed(() => {
       </div>
       <div class="two-fields">
         <div class="field">
-          <label>HTTP 方法</label>
+          <label>{{ t("webhookChannel.k28") }}</label>
           <SelectField block
             ><select
               :value="config.method"
@@ -165,18 +171,21 @@ const channelStatusText = computed(() => {
           >
         </div>
         <div class="field">
-          <label>Content-Type（固定）</label>
+          <label>{{ t("webhookChannel.k29") }}</label>
           <div class="field-static">application/json</div>
         </div>
       </div>
       <div class="field" :data-validation-target="kind + '-headers'">
-        <label>额外请求头 <span class="label-hint">可选 JSON 对象</span></label>
+        <label
+          >{{ t("webhookChannel.k30") }}
+          <span class="label-hint">{{ t("webhookChannel.k31") }}</span></label
+        >
         <CodeMirrorField
           :model-value="config.headers"
           language="json"
           :height="126"
           :invalid="Boolean(validationErrors?.headers)"
-          aria-label="额外请求头 JSON"
+          :aria-label="t('webhookChannel.k14')"
           placeholder='{"Authorization":"Bearer …"}'
           @update:model-value="update('headers', $event)"
         />
@@ -184,64 +193,68 @@ const channelStatusText = computed(() => {
           {{ validationErrors.headers }}
         </p>
         <p class="field-hint">
-          用于 Authorization、X-API-Key 等请求头。Content-Type 固定为 application/json；不要覆盖
-          Host、Content-Length、Connection 等传输字段。
+          {{ t("webhookChannel.k32") }}
         </p>
       </div>
       <div class="field" :data-validation-target="kind + '-body'">
-        <label>请求 Body <span class="label-hint">JSON，可留空</span></label>
+        <label
+          >{{ t("webhookChannel.k33") }}
+          <span class="label-hint">{{ t("webhookChannel.k34") }}</span></label
+        >
         <WebhookBodyEditor
           :model-value="config.body"
           :height="190"
           :sample="bodySample"
-          empty-hint="留空时使用默认 JSON 请求体。"
+          :empty-hint="t('webhookChannel.k15')"
           :invalid="Boolean(validationErrors?.body)"
-          placeholder="输入 JSON 对象或数组…"
+          :placeholder="t('webhookChannel.k16')"
           @update:model-value="update('body', $event)"
         />
         <p v-if="validationErrors?.body" class="field-error" role="alert">
           {{ validationErrors.body }}
         </p>
         <p class="field-hint">
-          支持模板变量：<code v-pre>{{ event }}</code
+          {{ t("webhookChannel.k35") }}<code v-pre>{{ event }}</code
           >、<code v-pre>{{ status }}</code
           >、<code v-pre>{{ message }}</code
           >、<code v-pre>{{ timestamp }}</code
           >、<code v-pre>{{ ok }}</code
-          >。变量必须放在 JSON 字符串值中；留空时使用默认 JSON 请求体。
+          >{{ t("webhookChannel.k36") }}
         </p>
       </div>
       <div class="field" :data-validation-target="kind + '-test-body'">
-        <label>测试请求 Body <span class="label-hint">仅用于「发送测试」</span></label>
+        <label
+          >{{ t("webhookChannel.k37") }}
+          <span class="label-hint">{{ t("webhookChannel.k38") }}</span></label
+        >
         <WebhookBodyEditor
           :model-value="config.testBody"
           :height="150"
           :sample="testBodySample"
           :empty-hint="testBodyEmptyHint"
           :invalid="Boolean(validationErrors?.testBody)"
-          placeholder="配置测试发送使用的 JSON 对象或数组…"
+          :placeholder="t('webhookChannel.k17')"
           @update:model-value="update('testBody', $event)"
         />
         <p v-if="validationErrors?.testBody" class="field-error" role="alert">
           {{ validationErrors.testBody }}
         </p>
         <p class="field-hint">
-          仅「发送测试」使用此请求体；留空时回退到任务请求体，任务请求体也留空时使用默认 JSON
-          请求体。模板变量必须放在 JSON 字符串值中。
+          {{ t("webhookChannel.k39") }}
         </p>
       </div>
     </template>
 
     <template v-else-if="config.provider === 'dingtalk'">
       <div class="field" :data-validation-target="kind + '-url'">
-        <label>机器人 Webhook 地址</label>
+        <label>{{ t("webhookChannel.k40") }}</label>
         <CodeMirrorField
           :model-value="config.url"
           single-line
           :height="40"
           language="text"
           :invalid="Boolean(validationErrors?.url)"
-          aria-label="钉钉机器人 Webhook 地址"
+          :aria-label="t('webhookChannel.k18')"
           placeholder="https://oapi.dingtalk.com/robot/send?access_token=…"
           @update:model-value="update('url', $event)"
         />
@@ -249,53 +262,60 @@ const channelStatusText = computed(() => {
           {{ validationErrors.url }}
         </p>
         <p class="field-hint">
-          在钉钉群机器人设置中复制完整的 Webhook 地址，URL 包含 access_token。
+          {{ t("webhookChannel.k41") }}
         </p>
       </div>
       <div class="field" :data-validation-target="kind + '-secret'">
-        <label>Secret 加签密钥 <span class="label-hint">必填</span></label>
+        <label
+          >{{ t("webhookChannel.k42") }}
+          <span class="label-hint">{{ t("webhookChannel.k43") }}</span></label
+        >
         <div class="secret-field">
           <input
             :value="config.dingTalkSecret"
             :type="showDingTalkSecret ? 'text' : 'password'"
             :aria-invalid="Boolean(validationErrors?.secret)"
             autocomplete="new-password"
-            placeholder="SEC 开头的密钥"
+            :placeholder="t('webhookChannel.k19')"
             @input="update('dingTalkSecret', inputValue($event))"
           />
           <button
             type="button"
             class="reveal-button"
-            :aria-label="showDingTalkSecret ? '隐藏 Secret' : '显示 Secret'"
+            :aria-label="
+              showDingTalkSecret
+                ? t('webhookChannel.hideSecretLabel')
+                : t('webhookChannel.showSecretLabel')
+            "
             :aria-pressed="showDingTalkSecret"
             @click="showDingTalkSecret = !showDingTalkSecret"
           >
             <AppIcon :name="showDingTalkSecret ? 'eye-off' : 'eye'" :size="14" />
-            {{ showDingTalkSecret ? "隐藏" : "显示" }}
+            {{ showDingTalkSecret ? t("webhookChannel.k21") : t("webhookChannel.k22") }}
           </button>
         </div>
         <p v-if="validationErrors?.secret" class="field-error" role="alert">
           {{ validationErrors.secret }}
         </p>
         <p class="field-hint">
-          本项目仅支持 Secret 加签方式。发送时自动按钉钉规范计算 HMAC-SHA256，并添加 timestamp 与
-          sign 参数。<a
+          {{ t("webhookChannel.k44")
+          }}<a
             href="https://open.dingtalk.com/document/robots/customize-robot-security-settings"
             target="_blank"
             rel="noopener noreferrer"
-            >查看官方安全设置文档 ↗</a
+            >{{ t("webhookChannel.k45") }}</a
           >
         </p>
       </div>
       <div class="field">
-        <label>消息类型</label>
+        <label>{{ t("webhookChannel.k46") }}</label>
         <div class="segmented">
           <button
             type="button"
             :class="{ active: config.dingTalkMessageType === 'text' }"
             @click="update('dingTalkMessageType', 'text')"
           >
-            普通文本
+            {{ t("webhookChannel.k47") }}
           </button>
           <button
             type="button"
@@ -307,35 +327,41 @@ const channelStatusText = computed(() => {
         </div>
       </div>
       <div class="field">
-        <label>任务通知模板 <span class="label-hint">成功 / 失败按当前卡片分别配置</span></label>
+        <label
+          >{{ t("webhookChannel.k48") }}
+          <span class="label-hint">{{ t("webhookChannel.k49") }}</span></label
+        >
         <CodeMirrorField
           :model-value="config.messageTemplate"
           language="text"
           :height="148"
-          aria-label="钉钉任务通知模板"
-          placeholder="事件：{{event}} · 状态：{{status}} · 时间：{{timestamp}} · 详情：{{message}}"
+          :aria-label="t('webhookChannel.k23')"
+          :placeholder="t('webhookChannel.k24')"
           @update:model-value="update('messageTemplate', $event)"
         />
         <p class="field-hint">
-          用于定时任务或手动生成触发的通知。可用变量：<code v-pre>{{ event }}</code
+          {{ t("webhookChannel.k50") }}<code v-pre>{{ event }}</code
           >、<code v-pre>{{ status }}</code
           >、<code v-pre>{{ message }}</code
           >、<code v-pre>{{ timestamp }}</code
           >、<code v-pre>{{ ok }}</code
-          >。状态值为 success、failure 或 test。
+          >{{ t("webhookChannel.k51") }}
         </p>
       </div>
       <div class="field">
-        <label>测试通知模板 <span class="label-hint">仅用于「发送测试」</span></label>
+        <label
+          >{{ t("webhookChannel.k52") }}
+          <span class="label-hint">{{ t("webhookChannel.k38") }}</span></label
+        >
         <CodeMirrorField
           :model-value="config.testMessageTemplate"
           language="text"
           :height="112"
-          aria-label="钉钉测试通知模板"
-          placeholder="测试通知 · 时间：{{timestamp}} · 结果：{{message}}"
+          :aria-label="t('webhookChannel.k25')"
+          :placeholder="t('webhookChannel.k26')"
           @update:model-value="update('testMessageTemplate', $event)"
         />
-        <p class="field-hint">测试发送单独使用此模板，不会调用任务通知模板。</p>
+        <p class="field-hint">{{ t("webhookChannel.k53") }}</p>
       </div>
     </template>
 
@@ -343,7 +369,7 @@ const channelStatusText = computed(() => {
       <span class="configured-dot" :class="{ ready: channelReady }"></span>
       <span>{{ channelStatusText }}</span>
       <span class="footer-spacer"></span>
-      <span class="timeout-note">请求超时：10 秒</span>
+      <span class="timeout-note">{{ t("webhookChannel.k54") }}</span>
     </div>
     <p
       v-if="resultMessage"

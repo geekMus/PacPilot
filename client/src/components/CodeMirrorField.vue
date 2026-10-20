@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { EditorView, keymap, placeholder as cmPlaceholder } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
 import { json } from "@codemirror/lang-json";
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
@@ -21,7 +23,7 @@ const props = withDefaults(
     height: 160,
     singleLine: false,
     language: "text",
-    ariaLabel: "文本编辑器",
+    ariaLabel: "", // i18n
     invalid: false,
   }
 );
@@ -43,7 +45,7 @@ function buildExtensions() {
     ...(props.placeholder ? [cmPlaceholder(props.placeholder)] : []),
     ...(!props.singleLine ? [EditorView.lineWrapping] : []),
     EditorView.contentAttributes.of({
-      "aria-label": props.ariaLabel,
+      "aria-label": props.ariaLabel || t("editor.textEditor"),
       spellcheck: "false",
       autocapitalize: "off",
       autocomplete: "off",

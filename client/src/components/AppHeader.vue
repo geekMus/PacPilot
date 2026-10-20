@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import ThemeSwitcher from "./ThemeSwitcher.vue";
+import { useI18n } from "vue-i18n";
+import UserPreferencesMenu from "./UserPreferencesMenu.vue";
 import BrandMark from "./BrandMark.vue";
 
 defineProps<{ brand?: string; sub?: string }>();
+const { t } = useI18n();
 </script>
 
 <template>
   <header class="topbar">
-    <div class="brand" aria-label="genpac-runner 项目名称">
+    <div class="brand" :aria-label="t('app.projectName')">
       <BrandMark :size="36" />
       <span class="brand-copy">
         <span class="name">{{ brand || "genpac-runner" }}</span>
@@ -15,8 +17,8 @@ defineProps<{ brand?: string; sub?: string }>();
       </span>
     </div>
     <div class="header-tools">
-      <nav class="nav" aria-label="主导航"><slot /></nav>
-      <ThemeSwitcher />
+      <nav class="nav" :aria-label="t('app.mainNav')"><slot /></nav>
+      <UserPreferencesMenu />
     </div>
   </header>
 </template>

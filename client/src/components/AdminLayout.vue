@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { api } from "../api/client";
-import { fetchAdminSession, invalidateAdminSessionCache } from "../composables/useAdminSession";
-import { useToast } from "../composables/useToast";
+import { invalidateAdminSessionCache } from "../composables/useAdminSession";
 import AppIcon from "./AppIcon.vue";
 import { useI18n } from "vue-i18n";
 import BrandMark from "./BrandMark.vue";
-import ThemeSwitcher from "./ThemeSwitcher.vue";
+import UserPreferencesMenu from "./UserPreferencesMenu.vue";
 
 type AdminSection = "dashboard" | "settings" | "system-settings" | "monitor" | "workflow";
 
@@ -20,28 +19,8 @@ defineProps<{
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const { notify } = useToast();
 const menuOpen = ref(false);
 const logoutBusy = ref(false);
-const mustChangePassword = ref(false);
-
-async function refreshSecurityGate(): Promise<void> {
-  try {
-    const session = await fetchAdminSession();
-    mustChangePassword.value = Boolean(session.loggedIn && session.mustChangePassword);
-  } catch {
-    mustChangePassword.value = false;
-  }
-}
-
-function blockedNavTitle(label: string): string {
-  return mustChangePassword.value ? `请先修改默认管理密码后再访问「${label}」` : label;
-}
-
-function onBlockedNav(label: string): void {
-  if (!mustChangePassword.value) return;
-  notify(`请先修改默认管理密码后再访问「${label}」。`, "warning", 4500);
-}
 
 async function logout(): Promise<void> {
   if (logoutBusy.value) return;
@@ -59,15 +38,10 @@ async function logout(): Promise<void> {
   }
 }
 
-onMounted(() => {
-  void refreshSecurityGate();
-});
-
 watch(
   () => route.fullPath,
   () => {
     menuOpen.value = false;
-    void refreshSecurityGate();
   }
 );
 </script>
@@ -78,12 +52,12 @@ watch(
       v-if="menuOpen"
       class="sidebar-backdrop"
       type="button"
-      aria-label="关闭导航菜单"
+      :aria-label="t('layout.closeNav')"
       @click="menuOpen = false"
     ></button>
 
     <aside class="admin-sidebar" :class="{ 'is-open': menuOpen }">
-      <div class="sidebar-brand" aria-label="genpac-runner 项目名称">
+      <div class="sidebar-brand" :aria-label="t('app.projectName')">
         <BrandMark :size="40" />
         <span class="brand-copy">
           <strong>genpac-runner</strong>
@@ -94,11 +68,7 @@ watch(
       <nav class="sidebar-nav" :aria-label="t('layout.adminConsole')">
         <section class="nav-group" aria-labelledby="nav-workbench">
           <p id="nav-workbench" class="nav-caption">{{ t("layout.workbench") }}</p>
-          <p v-if="mustChangePassword" class="nav-lock-note" role="status">
-            {{ t("layout.mustChangePassword") }}
-          </p>
           <RouterLink
-            v-if="!mustChangePassword"
             to="/admin/dashboard"
             class="sidebar-link"
             :class="{ active: active === 'dashboard' }"
@@ -107,19 +77,7 @@ watch(
             <AppIcon name="layout-dashboard" :size="18" />
             <span>{{ t("nav.dashboard") }}</span>
           </RouterLink>
-          <button
-            v-else
-            type="button"
-            class="sidebar-link is-disabled"
-            :title="blockedNavTitle(t('nav.dashboard'))"
-            aria-disabled="true"
-            @click="onBlockedNav(t('nav.dashboard'))"
-          >
-            <AppIcon name="layout-dashboard" :size="18" />
-            <span>{{ t("nav.dashboard") }}</span>
-          </button>
           <RouterLink
-            v-if="!mustChangePassword"
             to="/admin/monitor"
             class="sidebar-link"
             :class="{ active: active === 'monitor' }"
@@ -128,17 +86,6 @@ watch(
             <AppIcon name="activity" :size="18" />
             <span>{{ t("nav.monitor") }}</span>
           </RouterLink>
-          <button
-            v-else
-            type="button"
-            class="sidebar-link is-disabled"
-            :title="blockedNavTitle(t('nav.monitor'))"
-            aria-disabled="true"
-            @click="onBlockedNav(t('nav.monitor'))"
-          >
-            <AppIcon name="activity" :size="18" />
-            <span>{{ t("nav.monitor") }}</span>
-          </button>
           <RouterLink
             to="/admin/settings"
             class="sidebar-link"
@@ -149,7 +96,6 @@ watch(
             <span>{{ t("nav.settings") }}</span>
           </RouterLink>
           <RouterLink
-            v-if="!mustChangePassword"
             to="/admin/workflows"
             class="sidebar-link"
             :class="{ active: active === 'workflow' }"
@@ -158,19 +104,7 @@ watch(
             <AppIcon name="workflow" :size="18" />
             <span>{{ t("nav.workflow") }}</span>
           </RouterLink>
-          <button
-            v-else
-            type="button"
-            class="sidebar-link is-disabled"
-            :title="blockedNavTitle(t('nav.workflow'))"
-            aria-disabled="true"
-            @click="onBlockedNav(t('nav.workflow'))"
-          >
-            <AppIcon name="workflow" :size="18" />
-            <span>{{ t("nav.workflow") }}</span>
-          </button>
           <RouterLink
-            v-if="!mustChangePassword"
             to="/admin/system-settings"
             class="sidebar-link"
             :class="{ active: active === 'system-settings' }"
@@ -179,17 +113,6 @@ watch(
             <AppIcon name="settings-2" :size="18" />
             <span>{{ t("nav.systemSettings") }}</span>
           </RouterLink>
-          <button
-            v-else
-            type="button"
-            class="sidebar-link is-disabled"
-            :title="blockedNavTitle(t('nav.systemSettings'))"
-            aria-disabled="true"
-            @click="onBlockedNav(t('nav.systemSettings'))"
-          >
-            <AppIcon name="settings-2" :size="18" />
-            <span>{{ t("nav.systemSettings") }}</span>
-          </button>
         </section>
 
         <section class="nav-group" aria-labelledby="nav-services">
@@ -203,19 +126,15 @@ watch(
 
       <div class="sidebar-bottom">
         <div class="sidebar-status">
-          <span class="status-dot"></span><span>管理服务已连接</span>
+          <span class="status-dot"></span><span>{{ t("layout.adminConnected") }}</span>
         </div>
-        <span class="sidebar-note">设置保存于本地 SQLite 数据库</span>
-        <div class="sidebar-mobile-controls">
-          <div class="sidebar-theme-group">
-            <span class="sidebar-control-label">外观主题</span>
-            <ThemeSwitcher />
-          </div>
+        <span class="sidebar-note">{{ t("layout.settingsStoredLocal") }}</span>
+        <div class="sidebar-controls">
           <button
             type="button"
             class="sidebar-logout-button"
             :disabled="logoutBusy"
-            :title="logoutBusy ? '正在退出管理员账号，请稍候' : '退出管理员账号'"
+            :title="logoutBusy ? t('layout.loggingOutTitle') : t('layout.logoutTitle')"
             @click="logout"
           >
             <AppIcon
@@ -223,7 +142,7 @@ watch(
               :size="16"
               :class="{ 'icon-spinning': logoutBusy }"
             />
-            {{ logoutBusy ? "正在退出…" : t("nav.logout") }}
+            {{ logoutBusy ? t("layout.loggingOut") : t("nav.logout") }}
           </button>
         </div>
       </div>
@@ -235,7 +154,7 @@ watch(
           class="mobile-menu-toggle"
           type="button"
           :aria-expanded="menuOpen"
-          aria-label="切换导航菜单"
+          :aria-label="t('layout.toggleNav')"
           @click="menuOpen = !menuOpen"
         >
           <AppIcon name="menu" :size="18" />
@@ -247,21 +166,7 @@ watch(
         </div>
         <div class="topbar-actions">
           <slot name="actions"></slot>
-          <button
-            type="button"
-            class="admin-logout-button"
-            :disabled="logoutBusy"
-            :title="logoutBusy ? '正在退出管理员账号，请稍候' : '退出管理员账号'"
-            @click="logout"
-          >
-            <AppIcon
-              :name="logoutBusy ? 'loader-circle' : 'log-out'"
-              :size="15"
-              :class="{ 'icon-spinning': logoutBusy }"
-            />
-            {{ logoutBusy ? "正在退出…" : t("nav.logout") }}
-          </button>
-          <span class="topbar-theme-switcher"><ThemeSwitcher /></span>
+          <UserPreferencesMenu />
         </div>
       </header>
       <main class="admin-content">
@@ -403,10 +308,15 @@ watch(
   padding: 14px 10px 0;
   border-top: 1px solid var(--line);
 }
-.sidebar-mobile-controls {
-  display: none;
+.sidebar-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+  padding-top: 15px;
+  border-top: 1px solid var(--line);
 }
-.sidebar-theme-group {
+.sidebar-preferences-group {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -417,14 +327,6 @@ watch(
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
-}
-.sidebar-theme-group :deep(.theme-switch) {
-  max-width: 100%;
-}
-.sidebar-theme-group :deep(.theme-btn) {
-  min-height: 34px;
-  padding: 0 11px;
-  font-size: 11px;
 }
 .sidebar-logout-button {
   display: flex;
@@ -452,34 +354,6 @@ watch(
 .sidebar-logout-button:disabled {
   opacity: 0.7;
   cursor: progress;
-}
-.admin-logout-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 38px;
-  padding: 0 13px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--text);
-  background: var(--surface);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.admin-logout-button:hover:not(:disabled) {
-  background: var(--surface-2);
-  border-color: color-mix(in srgb, var(--accent) 36%, var(--line));
-}
-.admin-logout-button:disabled {
-  opacity: 0.7;
-  cursor: progress;
-}
-.topbar-theme-switcher {
-  display: inline-flex;
 }
 .sidebar-status {
   display: flex;
@@ -556,8 +430,7 @@ watch(
   min-width: 0;
 }
 .admin-topbar :deep(.dash-button.dash-button),
-.admin-topbar :deep(.monitor-button.monitor-button),
-.admin-topbar :deep(.admin-logout-button.admin-logout-button) {
+.admin-topbar :deep(.monitor-button.monitor-button) {
   min-height: 38px;
   padding-right: 13px;
   padding-left: 13px;
@@ -647,8 +520,7 @@ watch(
   padding: 10px 12px;
 }
 .admin-content :deep(.dash-button.dash-button),
-.admin-content :deep(.monitor-button.monitor-button),
-.admin-content :deep(.admin-logout-button.admin-logout-button) {
+.admin-content :deep(.monitor-button.monitor-button) {
   min-height: 40px;
   padding-right: 14px;
   padding-left: 14px;
@@ -693,18 +565,6 @@ watch(
     transition:
       transform 0.2s ease,
       box-shadow 0.2s ease;
-  }
-  .sidebar-mobile-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    margin-top: 16px;
-    padding-top: 15px;
-    border-top: 1px solid var(--line);
-  }
-  .topbar-actions :deep(.admin-logout-button),
-  .topbar-theme-switcher {
-    display: none;
   }
   .admin-sidebar.is-open {
     transform: translateX(0);
@@ -798,22 +658,11 @@ watch(
     display: none;
   }
   .topbar-actions :deep(.dash-button.dash-button),
-  .topbar-actions :deep(.monitor-button.monitor-button),
-  .topbar-actions :deep(.admin-logout-button.admin-logout-button) {
+  .topbar-actions :deep(.monitor-button.monitor-button) {
     min-height: 36px;
     padding: 0 9px;
     border-radius: 8px;
     font-size: 11px;
-  }
-  .topbar-actions :deep(.theme-switch) {
-    gap: 0;
-    padding: 2px;
-    border-radius: 8px;
-  }
-  .topbar-actions :deep(.theme-btn) {
-    min-height: 30px;
-    padding: 0 6px;
-    font-size: 10px;
   }
   .admin-content {
     --admin-panel-padding: 14px;
@@ -851,9 +700,6 @@ watch(
   .topbar-actions :deep(.monitor-button) {
     padding: 0 7px;
     font-size: 9px;
-  }
-  .topbar-actions :deep(.theme-btn) {
-    padding: 0 5px;
   }
 }
 </style>

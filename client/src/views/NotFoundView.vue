@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import AppHeader from "../components/AppHeader.vue";
 import AppFooter from "../components/AppFooter.vue";
+const { t } = useI18n();
 </script>
 
 <template>
@@ -9,11 +11,13 @@ import AppFooter from "../components/AppFooter.vue";
     <section class="not-found-card">
       <div class="not-found-code">404</div>
       <div class="page-kicker">PAGE NOT FOUND</div>
-      <h1 class="page-title">这个页面不存在</h1>
-      <p>地址可能已失效，或页面已经移动。你可以返回公共状态页，或者进入后台管理。</p>
+      <h1 class="page-title">{{ t("notFound.title") }}</h1>
+      <p>{{ t("notFound.desc") }}</p>
       <div class="not-found-actions">
-        <RouterLink class="action-button primary" to="/">返回公共状态页</RouterLink>
-        <RouterLink class="action-button" to="/admin/dashboard">后台管理</RouterLink>
+        <RouterLink class="action-button primary" to="/">{{ t("notFound.backStatus") }}</RouterLink>
+        <RouterLink class="action-button" to="/admin/dashboard">{{
+          t("notFound.admin")
+        }}</RouterLink>
       </div>
     </section>
     <AppFooter />

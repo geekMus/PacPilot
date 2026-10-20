@@ -134,20 +134,13 @@ function renderCustomBody(template: string, context: MessageContext): string {
   );
 }
 
-function getLegacyConfig(settings: AppSettings, kind: "success" | "failure"): WebhookConfig {
-  return kind === "success"
-    ? normalizeWebhookConfig(undefined, settings.webhookSuccessUrl, settings.webhookSuccessBody)
-    : normalizeWebhookConfig(undefined, settings.webhookFailureUrl, settings.webhookFailureBody);
-}
-
 export function getNotificationConfig(
   settings: AppSettings,
   kind: "success" | "failure"
 ): WebhookConfig {
-  const configured =
-    kind === "success" ? settings.webhookSuccessConfig : settings.webhookFailureConfig;
-  if (configured) return normalizeWebhookConfig(configured);
-  return getLegacyConfig(settings, kind);
+  return normalizeWebhookConfig(
+    kind === "success" ? settings.webhookSuccessConfig : settings.webhookFailureConfig
+  );
 }
 
 async function readProviderResponse(response: Response): Promise<Record<string, unknown> | null> {

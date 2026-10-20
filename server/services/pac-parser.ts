@@ -6,7 +6,6 @@ export type PacMode = "custom" | "remote" | "custom_parse_error" | "other" | "em
 
 export interface PacStatusPayload {
   mode: PacMode;
-  modeLabel: string;
   blockList: string[];
   directList: string[];
   pacProxy: string | null;
@@ -14,8 +13,8 @@ export interface PacStatusPayload {
   remoteDirectList: string[];
   remoteProxyCount: number;
   remoteDirectCount: number;
-  notice: string;
   updatedAt: string;
+  timeZone: string;
   hasPac: boolean;
 }
 
@@ -116,14 +115,12 @@ function parseJsMap(source: string, name: string): string[] | null {
 
 function basePayload(
   mode: PacMode,
-  modeLabel: string,
   updatedAt: string,
-  hasPac: boolean,
-  notice: string
+  timeZone: string,
+  hasPac: boolean
 ): PacStatusPayload {
   return {
     mode,
-    modeLabel,
     blockList: [],
     directList: [],
     pacProxy: null,
@@ -131,8 +128,8 @@ function basePayload(
     remoteDirectList: [],
     remoteProxyCount: 0,
     remoteDirectCount: 0,
-    notice,
     updatedAt,
+    timeZone,
     hasPac,
   };
 }
@@ -142,19 +139,11 @@ export function parsePacStatus(
   tz = "Asia/Shanghai",
   generatedAt: Date | null = null
 ): PacStatusPayload {
-  const updatedAt = generatedAt
-    ? generatedAt.toLocaleString("zh-CN", { timeZone: tz })
-    : "尚未生成";
+  const updatedAt = generatedAt?.toISOString() ?? "";
   const hasPac = Boolean(pac.trim());
 
   if (!hasPac) {
-    return basePayload(
-      "empty",
-      "尚未生成 PAC",
-      updatedAt,
-      false,
-      "还没有生成 proxy.pac。前往配置管理设置规则并生成 PAC。"
-    );
+    return basePayload("empty", updatedAt, tz, false);
   }
 
   const remoteTemplate =
@@ -175,26 +164,10 @@ export function parsePacStatus(
       remoteDirect === null ||
       pacProxy === null
     ) {
-      return basePayload(
-        "custom_parse_error",
-        "远程规则 PAC（摘要解析异常）",
-        updatedAt,
-        hasPac,
-        "识别到远程列表模板，但无法完整读取规则摘要。仍可直接查看 PAC 文件内容；摘要解析失败不代表生成文件中的规则失效。"
-      );
+      return basePayload("custom_parse_error", updatedAt, tz, hasPac);
     }
     return {
-      ...basePayload(
-        "remote",
-        "远程规则列表 + 自定义规则",
-        updatedAt,
-        hasPac,
-        "自定义黑名单 " +
-          blockList.length +
-          " 条、自定义直连 " +
-          directList.length +
-          " 条优先生效；随后匹配远程例外直连与代理列表，其余流量直连。"
-      ),
+      ...basePayload("remote", updatedAt, tz, hasPac),
       blockList,
       directList,
       pacProxy,
@@ -214,33 +187,15 @@ export function parsePacStatus(
     const directList = parseJsArray(pac, "DIRECT_LIST");
     const pacProxy = parseJsString(pac, "PAC_PROXY");
     if (blockList === null || directList === null || pacProxy === null) {
-      return basePayload(
-        "custom_parse_error",
-        "自定义规则 PAC（摘要解析异常）",
-        updatedAt,
-        hasPac,
-        "识别到自定义规则模板，但无法完整读取规则变量。仍可直接查看 PAC 文件内容。"
-      );
+      return basePayload("custom_parse_error", updatedAt, tz, hasPac);
     }
     return {
-      ...basePayload(
-        "custom",
-        "自定义规则",
-        updatedAt,
-        hasPac,
-        "本地/内网地址优先直连；之后检查黑名单与自定义直连列表，其他请求使用默认代理：" + pacProxy
-      ),
+      ...basePayload("custom", updatedAt, tz, hasPac),
       blockList,
       directList,
       pacProxy,
     };
   }
 
-  return basePayload(
-    "other",
-    "第三方或旧版 PAC 模板",
-    updatedAt,
-    hasPac,
-    "当前文件不属于已识别的 genpac-runner 模板，因此无法可靠展示规则数量。可以打开 PAC 文件，检查其实际内容与逻辑。"
-  );
+  return basePayload("other", updatedAt, tz, hasPac);
 }

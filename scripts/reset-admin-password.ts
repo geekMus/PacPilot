@@ -9,7 +9,7 @@ type RuntimeProfile = "development" | "production";
 function printUsage(): void {
   console.log(
     [
-      "genpac-runner 管理员密码重置",
+      "genpac-runner 管理员凭据创建 / 密码重置",
       "",
       "用法：",
       "  bun run reset:admin-password",
@@ -18,6 +18,7 @@ function printUsage(): void {
       '  bun run scripts/reset-admin-password.ts --production --data-dir "/absolute/path/to/data"',
       "",
       "参数：",
+      "  新数据库首次启动会自动生成密码并将其写入日志；此命令用于重置已有凭据。",
       "  --development   使用本机开发配置（读取开发环境 .env）",
       "  --production    使用非容器生产环境的默认数据目录规则",
       "  --data-dir PATH 显式指定数据库所在的数据目录（目录内必须已有 genpac.db）",
@@ -95,17 +96,15 @@ try {
 
   const database = getDb(dataDir);
   try {
-    const temporaryPassword = resetAdminPassword(database);
-    console.log("管理员密码已重置。下面的随机临时密码只显示这一次：");
+    const generatedPassword = resetAdminPassword(database);
+    console.log("管理员凭据已创建或重置。下面的随机密码只显示这一次：");
     console.log("");
-    console.log(temporaryPassword);
+    console.log(generatedPassword);
     console.log("");
     console.log("运行模式：" + env.runtimeProfile);
     console.log("数据目录：" + dataDir);
     console.log("数据库文件：" + databasePath);
-    console.log(
-      "请使用临时密码登录后台，并立即设置自己的新密码。完成修改前，其他管理操作会被锁定。"
-    );
+    console.log("请使用随机密码登录后台。你可以自行决定是否在后台设置中修改密码。");
   } finally {
     closeDb();
   }

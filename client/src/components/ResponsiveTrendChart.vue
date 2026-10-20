@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import * as echarts from "echarts/core";
 import { BarChart, LineChart } from "echarts/charts";
 import { GridComponent, TooltipComponent, LegendComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import type { EChartsType } from "echarts/core";
+const { t, locale } = useI18n();
 
 echarts.use([
   BarChart,
@@ -33,12 +35,13 @@ const props = withDefaults(
   }>(),
   {
     timeZone: "Asia/Shanghai",
-    ariaLabel: "最近 24 小时趋势",
+    ariaLabel: "",
     compact: false,
     mode: "count",
   }
 );
 
+const resolvedAriaLabel = computed(() => props.ariaLabel || t("chart.trend24h"));
 const host = ref<HTMLElement | null>(null);
 const chart = shallowRef<EChartsType | null>(null);
 let resizeObserver: ResizeObserver | undefined;
@@ -67,7 +70,7 @@ function formatHour(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "--:--";
   try {
-    return new Intl.DateTimeFormat("en-GB", {
+    return new Intl.DateTimeFormat(locale.value === "en_US" ? "en-US" : "zh-CN", {
       timeZone: props.timeZone,
       hour: "2-digit",
       minute: "2-digit",
@@ -82,7 +85,7 @@ function formatTimestamp(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   try {
-    return new Intl.DateTimeFormat("zh-CN", {
+    return new Intl.DateTimeFormat(locale.value === "en_US" ? "en-US" : "zh-CN", {
       timeZone: props.timeZone,
       month: "2-digit",
       day: "2-digit",
@@ -146,6 +149,7 @@ function buildOption(): Record<string, unknown> {
 
   const tooltip = {
     trigger: "axis" as const,
+    confine: true,
     backgroundColor: surface,
     borderColor: line,
     borderWidth: 1,
@@ -172,7 +176,9 @@ function buildOption(): Record<string, unknown> {
             "</div>" +
             '<div style="color:' +
             muted +
-            '">平均响应</div>' +
+            '">' +
+            t("chart.avgResponse") +
+            "</div>" +
             "<div>" +
             formatDuration(Number(first?.value) || 0) +
             "</div>"
@@ -206,7 +212,7 @@ function buildOption(): Record<string, unknown> {
       },
       series: [
         {
-          name: "平均响应",
+          name: t("chart.avgResponse"),
           type: "line",
           smooth: true,
           symbol: "circle",
@@ -228,7 +234,7 @@ function buildOption(): Record<string, unknown> {
     grid: baseGrid,
     legend: {
       show: false,
-      data: ["请求", "错误"],
+      data: [t("chart.request"), t("chart.error")],
     },
     tooltip: {
       ...tooltip,
@@ -244,7 +250,10 @@ function buildOption(): Record<string, unknown> {
         if (!point) return "";
         const rows = list
           .map((item) => {
-            const label = item.seriesName === "错误" ? "错误请求" : "请求总量";
+            const label =
+              item.seriesName === t("chart.error")
+                ? t("chart.errorRequest")
+                : t("chart.totalRequests");
             return (
               '<div style="display:flex;justify-content:space-between;gap:16px;margin-top:4px">' +
               "<span>" +
@@ -287,7 +296,7 @@ function buildOption(): Record<string, unknown> {
     },
     series: [
       {
-        name: "请求",
+        name: t("chart.request"),
         type: "bar",
         barMaxWidth: isMobile ? 14 : 18,
         itemStyle: {
@@ -298,7 +307,7 @@ function buildOption(): Record<string, unknown> {
         z: 1,
       },
       {
-        name: "错误",
+        name: t("chart.error"),
         type: "bar",
         barMaxWidth: isMobile ? 14 : 18,
         barGap: "-100%",
@@ -363,7 +372,12 @@ watch(
 </script>
 
 <template>
-  <div class="responsive-trend-chart" :class="{ compact }" role="img" :aria-label="ariaLabel">
+  <div
+    class="responsive-trend-chart"
+    :class="{ compact }"
+    role="img"
+    :aria-label="resolvedAriaLabel"
+  >
     <div ref="host" class="chart-host"></div>
   </div>
 </template>

@@ -23,6 +23,14 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: path.resolve(__dirname, "../dist/client"),
       emptyOutDir: true,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes("node_modules/zrender/")) return "zrender";
+            if (id.includes("node_modules/echarts/")) return "echarts";
+          },
+        },
+      },
     },
   };
 });

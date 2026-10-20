@@ -8,25 +8,38 @@ import { recordProxyProbe, type ProxyProbeInput } from "../db/monitoring";
 
 export const DEFAULT_PROXY_TEST_URL = "https://www.google.com/generate_204";
 
+export class ProxyProbeError extends Error {
+  constructor(
+    readonly code: string,
+    readonly detail = ""
+  ) {
+    super(code);
+    this.name = "ProxyProbeError";
+  }
+}
+
+export interface ProxyProbeWarning {
+  code: string;
+  detail: string;
+}
+
 /** Validate an administrator-configured HTTPS test URL before opening a proxy tunnel. */
 export function parseProxyTestUrl(raw: string): URL {
   const value = String(raw ?? "").trim();
-  if (!value) throw new Error("代理测试地址不能为空。");
+  if (!value) throw new ProxyProbeError("monitor.probeErrors.urlRequired");
   if (/[\u0000-\u0020\u007f]/.test(value))
-    throw new Error("代理测试地址不能包含空白字符或控制字符；请检查 URL 编码。");
+    throw new ProxyProbeError("monitor.probeErrors.urlWhitespace");
 
   let url: URL;
   try {
     url = new URL(value);
   } catch {
-    throw new Error(
-      "代理测试地址格式无效，请填写完整的 HTTPS URL，例如 https://www.google.com/generate_204。"
-    );
+    throw new ProxyProbeError("monitor.probeErrors.urlInvalid");
   }
-  if (url.protocol !== "https:") throw new Error("代理测试地址目前只支持 HTTPS URL。");
+  if (url.protocol !== "https:") throw new ProxyProbeError("monitor.probeErrors.urlHttpsOnly");
   if (!url.hostname || url.username || url.password)
-    throw new Error("代理测试地址必须包含主机名，且不能包含用户名或密码。");
-  if (url.hash) throw new Error("代理测试地址不能包含 URL 片段（# 后的内容）。");
+    throw new ProxyProbeError("monitor.probeErrors.urlCredentials");
+  if (url.hash) throw new ProxyProbeError("monitor.probeErrors.urlFragment");
   return url;
 }
 const MAX_PROXIES_PER_RUN = 5;
@@ -55,7 +68,8 @@ export interface ProxyProbeResult {
   targetMs: number | null;
   httpStatus: number | null;
   phase: string;
-  error: string;
+  errorCode: string;
+  errorDetail: string;
   isLoopback: boolean;
 }
 
@@ -65,7 +79,7 @@ export interface ProxyProbeBatch {
   targetPort: number;
   results: ProxyProbeResult[];
   ignoredDirectEntries: number;
-  parseWarnings: string[];
+  parseWarnings: ProxyProbeWarning[];
   limited: boolean;
 }
 
@@ -80,10 +94,8 @@ export async function testConfiguredProxies(
   const targetPath = (targetUrl.pathname || "/") + targetUrl.search;
   const parsed = parsePacProxy(pacProxy);
   if (parsed.candidates.length === 0) {
-    throw new Error(
-      parsed.warnings[0] ||
-        "PAC 代理字符串中没有可测试的代理指令；DIRECT 不需要进行代理连通性检测。"
-    );
+    const warning = parsed.warnings[0];
+    throw new ProxyProbeError(warning?.code ?? "monitor.probeErrors.noProxyNodes", warning?.detail);
   }
 
   const candidates = parsed.candidates.slice(0, MAX_PROXIES_PER_RUN);
@@ -105,7 +117,8 @@ export async function testConfiguredProxies(
       target_ms: result.targetMs,
       http_status: result.httpStatus,
       phase: result.phase,
-      error: result.error,
+      error_code: result.errorCode,
+      error_detail: result.errorDetail,
     };
     recordProxyProbe(database, item);
   }
@@ -124,10 +137,10 @@ export async function testConfiguredProxies(
 function parsePacProxy(raw: string): {
   candidates: ProxyCandidate[];
   ignoredDirectEntries: number;
-  warnings: string[];
+  warnings: ProxyProbeWarning[];
 } {
   const candidates: ProxyCandidate[] = [];
-  const warnings: string[] = [];
+  const warnings: ProxyProbeWarning[] = [];
   let ignoredDirectEntries = 0;
   const pieces = raw
     .split(";")
@@ -142,7 +155,11 @@ function parsePacProxy(raw: string): {
 
     const match = /^(PROXY|HTTP|HTTPS|SOCKS|SOCKS4|SOCKS4A|SOCKS5)\s+(.+)$/i.exec(piece);
     if (!match) {
-      warnings.push("无法识别的 PAC 代理条目：" + piece.slice(0, 80));
+      const detail = piece.slice(0, 80);
+      warnings.push({
+        code: "monitor.probeErrors.unrecognizedEntry",
+        detail,
+      });
       continue;
     }
 
@@ -158,13 +175,26 @@ function parsePacProxy(raw: string): {
       )
         candidates.push(candidate);
     } catch (error) {
-      warnings.push((error instanceof Error ? error.message : String(error)).slice(0, 200));
+      if (error instanceof ProxyProbeError) {
+        warnings.push({
+          code: error.code,
+          detail: error.detail,
+        });
+      } else {
+        warnings.push({
+          code: "",
+          detail:
+            error instanceof Error ? error.message.slice(0, 200) : String(error).slice(0, 200),
+        });
+      }
     }
   }
 
-  if (pieces.length === 0) warnings.push("PAC 代理字符串为空。");
+  if (pieces.length === 0) {
+    warnings.push({ code: "monitor.probeErrors.proxyStringEmpty", detail: "" });
+  }
   if (candidates.length === 0 && warnings.length === 0) {
-    warnings.push("PAC 代理字符串中只有 DIRECT，没有可测试的代理节点。");
+    warnings.push({ code: "monitor.probeErrors.onlyDirect", detail: "" });
   }
   return { candidates, ignoredDirectEntries, warnings };
 }
@@ -185,8 +215,7 @@ function parseProxyAddress(kind: ProxyKind, rawAddress: string): ProxyCandidate 
       const credentials = address.slice(0, at);
       address = address.slice(at + 1);
       const separator = credentials.indexOf(":");
-      if (separator <= 0)
-        throw new Error("代理认证信息格式无效，请使用 username:password@host:port。");
+      if (separator <= 0) throw new ProxyProbeError("monitor.probeErrors.proxyAuthFormat");
       username = decodeURIComponent(credentials.slice(0, separator));
       password = decodeURIComponent(credentials.slice(separator + 1));
     }
@@ -196,19 +225,20 @@ function parseProxyAddress(kind: ProxyKind, rawAddress: string): ProxyCandidate 
   let portText = "";
   if (address.startsWith("[")) {
     const match = /^\[([^\]]+)\]:(\d+)$/.exec(address);
-    if (!match) throw new Error("IPv6 代理地址必须使用 [地址]:端口 格式。");
+    if (!match) throw new ProxyProbeError("monitor.probeErrors.proxyIpv6Format");
     host = match[1];
     portText = match[2];
   } else {
     const separator = address.lastIndexOf(":");
-    if (separator <= 0) throw new Error("代理地址缺少端口：" + address.slice(0, 100));
+    if (separator <= 0)
+      throw new ProxyProbeError("monitor.probeErrors.proxyPortMissing", address.slice(0, 100));
     host = address.slice(0, separator);
     portText = address.slice(separator + 1);
   }
 
   const port = Number(portText);
   if (!host || !Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error("代理地址或端口无效：" + address.slice(0, 100));
+    throw new ProxyProbeError("monitor.probeErrors.proxyAddressInvalid", address.slice(0, 100));
   }
 
   return { kind, host, port, username, password };
@@ -234,7 +264,8 @@ async function probeCandidate(
   let targetStarted: number | null = null;
   let httpStatus: number | null = null;
   let phase = "TCP";
-  let error = "";
+  let errorCode = "";
+  let errorDetail = "";
   let success = false;
   let overallTimeoutExpired = false;
   const deadlineTimer = setTimeout(() => {
@@ -292,20 +323,23 @@ async function probeCandidate(
     );
     const responseHeader = await headersPromise;
     const statusMatch = /^HTTP\/\d(?:\.\d)?\s+(\d{3})/i.exec(responseHeader);
-    if (!statusMatch) throw new Error("目标站点返回了无法识别的 HTTP 响应。");
+    if (!statusMatch) throw new ProxyProbeError("monitor.probeErrors.targetHttpInvalid");
     httpStatus = Number(statusMatch[1]);
     targetMs = roundedMs(performance.now() - targetStarted);
     if (httpStatus >= 400) {
-      throw new Error(
-        "目标站点返回 HTTP " + httpStatus + "。代理隧道和 TLS 已建立，但目标请求未成功。"
-      );
+      throw new ProxyProbeError("monitor.probeErrors.targetHttpStatus", String(httpStatus));
     }
     phase = "complete";
     success = true;
   } catch (caught) {
-    error = overallTimeoutExpired
-      ? "单个代理的检测总耗时超过 12 秒，已终止。"
-      : readableError(caught);
+    if (overallTimeoutExpired) {
+      errorCode = "monitor.probeErrors.totalTimeout";
+    } else if (caught instanceof ProxyProbeError) {
+      errorCode = caught.code;
+      errorDetail = caught.detail;
+    } else {
+      errorDetail = readableError(caught);
+    }
     if (tcpMs === null && tcpStarted !== null && phase === "TCP") {
       tcpMs = roundedMs(performance.now() - tcpStarted);
     }
@@ -354,7 +388,8 @@ async function probeCandidate(
     targetMs,
     httpStatus,
     phase,
-    error,
+    errorCode,
+    errorDetail,
     isLoopback: isLoopbackHost(candidate.host),
   };
 }
@@ -406,10 +441,10 @@ async function establishHttpConnectTunnel(
   );
   const response = await responsePromise;
   const match = /^HTTP\/\d(?:\.\d)?\s+(\d{3})/i.exec(response);
-  if (!match) throw new Error("代理未返回有效的 HTTP CONNECT 状态行。");
+  if (!match) throw new ProxyProbeError("monitor.probeErrors.connectStatusInvalid");
   const status = Number(match[1]);
   if (status < 200 || status >= 300) {
-    throw new Error("代理 CONNECT 返回 HTTP " + status + "。");
+    throw new ProxyProbeError("monitor.probeErrors.connectHttpStatus", String(status));
   }
 }
 
@@ -424,13 +459,14 @@ async function establishSocks5Tunnel(
   const greetingPromise = readExact(socket, 2, IO_TIMEOUT_MS);
   socket.write(greeting);
   const methodResponse = await greetingPromise;
-  if (methodResponse[0] !== 5) throw new Error("SOCKS5 握手版本不正确。");
+  if (methodResponse[0] !== 5)
+    throw new ProxyProbeError("monitor.probeErrors.socks5VersionInvalid");
 
   if (methodResponse[1] === 2 && wantsAuth) {
     const username = Buffer.from(candidate.username ?? "", "utf8");
     const password = Buffer.from(candidate.password ?? "", "utf8");
     if (username.length > 255 || password.length > 255)
-      throw new Error("SOCKS5 用户名或密码过长。");
+      throw new ProxyProbeError("monitor.probeErrors.socks5CredentialsTooLong");
     const authPacket = Buffer.concat([
       Buffer.from([1, username.length]),
       username,
@@ -441,18 +477,19 @@ async function establishSocks5Tunnel(
     socket.write(authPacket);
     const authResponse = await authPromise;
     if (authResponse[0] !== 1 || authResponse[1] !== 0) {
-      throw new Error("SOCKS5 用户名或密码认证失败。");
+      throw new ProxyProbeError("monitor.probeErrors.socks5AuthFailed");
     }
   } else if (methodResponse[1] !== 0) {
-    throw new Error(
+    throw new ProxyProbeError(
       methodResponse[1] === 2
-        ? "SOCKS5 代理要求用户名/密码，但配置中未提供认证信息。"
-        : "SOCKS5 代理没有接受支持的认证方式（method " + methodResponse[1] + "）。"
+        ? "monitor.probeErrors.socks5AuthRequired"
+        : "monitor.probeErrors.socks5AuthMethodUnsupported",
+      methodResponse[1] === 2 ? "" : String(methodResponse[1])
     );
   }
 
   const domain = Buffer.from(targetHost, "ascii");
-  if (domain.length > 255) throw new Error("测试目标域名过长。");
+  if (domain.length > 255) throw new ProxyProbeError("monitor.probeErrors.targetDomainTooLong");
   const request = Buffer.concat([
     Buffer.from([5, 1, 0, 3, domain.length]),
     domain,
@@ -461,21 +498,12 @@ async function establishSocks5Tunnel(
   const replyPromise = readSocks5Reply(socket, IO_TIMEOUT_MS);
   socket.write(request);
   const reply = await replyPromise;
-  if (reply[0] !== 5) throw new Error("SOCKS5 代理返回了无效响应。");
+  if (reply[0] !== 5) throw new ProxyProbeError("monitor.probeErrors.socks5ResponseInvalid");
   if (reply[1] !== 0) {
-    const reasons: Record<number, string> = {
-      1: "一般失败",
-      2: "规则不允许连接",
-      3: "网络不可达",
-      4: "目标主机不可达",
-      5: "目标连接被拒绝",
-      6: "TTL 超时",
-      7: "不支持的命令",
-      8: "不支持的地址类型",
-    };
-    throw new Error("SOCKS5 目标连接失败：" + (reasons[reply[1]] || "错误码 " + reply[1]) + "。");
+    throw new ProxyProbeError("monitor.probeErrors.socks5ConnectFailed", String(reply[1]));
   }
-  if (![1, 3, 4].includes(reply[3])) throw new Error("SOCKS5 响应使用了未知地址类型。");
+  if (![1, 3, 4].includes(reply[3]))
+    throw new ProxyProbeError("monitor.probeErrors.socks5AddressTypeUnknown");
 }
 
 async function establishSocks4Tunnel(
@@ -489,14 +517,14 @@ async function establishSocks4Tunnel(
     const resolved = await dns.lookup(targetHost, { family: 4 });
     address = resolved.address;
   } catch {
-    throw new Error("检测环境无法将目标域名解析为 IPv4，无法进行 SOCKS4 测试。");
+    throw new ProxyProbeError("monitor.probeErrors.socks4DnsFailed");
   }
   const octets = address.split(".").map(Number);
   if (
     octets.length !== 4 ||
     octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)
   ) {
-    throw new Error("目标 DNS 未返回有效的 IPv4 地址，无法进行 SOCKS4 测试。");
+    throw new ProxyProbeError("monitor.probeErrors.socks4DnsInvalid");
   }
   const userId = Buffer.from("genpac-runner", "ascii");
   const request = Buffer.concat([
@@ -507,14 +535,10 @@ async function establishSocks4Tunnel(
   const replyPromise = readExact(socket, 8, IO_TIMEOUT_MS);
   socket.write(request);
   const reply = await replyPromise;
-  if (reply[0] !== 0 && reply[0] !== 4) throw new Error("SOCKS4 代理返回了无效响应。");
+  if (reply[0] !== 0 && reply[0] !== 4)
+    throw new ProxyProbeError("monitor.probeErrors.socks4ResponseInvalid");
   if (reply[1] !== 90) {
-    const reasons: Record<number, string> = {
-      91: "请求被拒绝或失败",
-      92: "无法连接到 identd",
-      93: "identd 用户不匹配",
-    };
-    throw new Error("SOCKS4 目标连接失败：" + (reasons[reply[1]] || "响应码 " + reply[1]) + "。");
+    throw new ProxyProbeError("monitor.probeErrors.socks4ConnectFailed", String(reply[1]));
   }
 }
 
@@ -536,14 +560,10 @@ async function establishSocks4aTunnel(
   const replyPromise = readExact(socket, 8, IO_TIMEOUT_MS);
   socket.write(request);
   const reply = await replyPromise;
-  if (reply[0] !== 0 && reply[0] !== 4) throw new Error("SOCKS4a 代理返回了无效响应。");
+  if (reply[0] !== 0 && reply[0] !== 4)
+    throw new ProxyProbeError("monitor.probeErrors.socks4aResponseInvalid");
   if (reply[1] !== 90) {
-    const reasons: Record<number, string> = {
-      91: "请求被拒绝或失败",
-      92: "无法连接到 identd",
-      93: "identd 用户不匹配",
-    };
-    throw new Error("SOCKS4a 目标连接失败：" + (reasons[reply[1]] || "响应码 " + reply[1]) + "。");
+    throw new ProxyProbeError("monitor.probeErrors.socks4aConnectFailed", String(reply[1]));
   }
 }
 
@@ -555,7 +575,7 @@ function connectTcp(host: string, port: number, timeoutMs: number): Promise<Sock
       if (settled) return;
       settled = true;
       socket.destroy();
-      reject(new Error("连接代理端口超时。"));
+      reject(new ProxyProbeError("monitor.probeErrors.tcpTimeout"));
     }, timeoutMs);
     const cleanup = (): void => {
       clearTimeout(timer);
@@ -572,7 +592,7 @@ function connectTcp(host: string, port: number, timeoutMs: number): Promise<Sock
       if (settled) return;
       settled = true;
       cleanup();
-      reject(new Error("无法连接代理端口：" + error.message));
+      reject(new ProxyProbeError("monitor.probeErrors.tcpFailed", error.message));
     };
     socket.once("connect", onConnect);
     socket.once("error", onError);
@@ -592,7 +612,7 @@ function connectTls(socket: Duplex, servername: string, timeoutMs: number): Prom
       if (settled) return;
       settled = true;
       secureSocket.destroy();
-      reject(new Error("TLS 握手超时。"));
+      reject(new ProxyProbeError("monitor.probeErrors.tlsTimeout"));
     }, timeoutMs);
     const cleanup = (): void => {
       clearTimeout(timer);
@@ -609,7 +629,7 @@ function connectTls(socket: Duplex, servername: string, timeoutMs: number): Prom
       if (settled) return;
       settled = true;
       cleanup();
-      reject(new Error("TLS 握手失败：" + error.message));
+      reject(new ProxyProbeError("monitor.probeErrors.tlsFailed", error.message));
     };
     secureSocket.once("secureConnect", onSecure);
     secureSocket.once("error", onError);
@@ -621,7 +641,10 @@ function readSocks5Reply(socket: Duplex, timeoutMs: number): Promise<Buffer> {
     let received = Buffer.alloc(0);
     let expected = 4;
     let settled = false;
-    const timer = setTimeout(() => finish(new Error("等待 SOCKS5 目标连接响应超时。")), timeoutMs);
+    const timer = setTimeout(
+      () => finish(new ProxyProbeError("monitor.probeErrors.socks5ResponseTimeout")),
+      timeoutMs
+    );
     const cleanup = (): void => {
       clearTimeout(timer);
       socket.removeListener("data", onData);
@@ -646,8 +669,10 @@ function readSocks5Reply(socket: Duplex, timeoutMs: number): Promise<Buffer> {
       if (received.length >= 5 && received[3] === 3 && expected === 5) expected = 7 + received[4];
       if (received.length >= expected) finish(undefined, received.subarray(0, expected));
     };
-    const onError = (error: Error): void => finish(new Error("SOCKS5 连接中断：" + error.message));
-    const onClose = (): void => finish(new Error("SOCKS5 代理在返回完整响应前关闭了连接。"));
+    const onError = (error: Error): void =>
+      finish(new ProxyProbeError("monitor.probeErrors.socks5ConnectionInterrupted", error.message));
+    const onClose = (): void =>
+      finish(new ProxyProbeError("monitor.probeErrors.socks5ConnectionClosed"));
     socket.on("data", onData);
     socket.once("error", onError);
     socket.once("close", onClose);
@@ -658,7 +683,10 @@ function readExact(socket: Duplex, count: number, timeoutMs: number): Promise<Bu
   return new Promise((resolve, reject) => {
     let received = Buffer.alloc(0);
     let settled = false;
-    const timer = setTimeout(() => finish(new Error("等待代理响应超时。")), timeoutMs);
+    const timer = setTimeout(
+      () => finish(new ProxyProbeError("monitor.probeErrors.proxyResponseTimeout")),
+      timeoutMs
+    );
     const cleanup = (): void => {
       clearTimeout(timer);
       socket.removeListener("data", onData);
@@ -676,8 +704,10 @@ function readExact(socket: Duplex, count: number, timeoutMs: number): Promise<Bu
       received = Buffer.concat([received, Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)]);
       if (received.length >= count) finish(undefined, received.subarray(0, count));
     };
-    const onError = (error: Error): void => finish(new Error("代理连接中断：" + error.message));
-    const onClose = (): void => finish(new Error("代理在返回完整响应前关闭了连接。"));
+    const onError = (error: Error): void =>
+      finish(new ProxyProbeError("monitor.probeErrors.proxyConnectionInterrupted", error.message));
+    const onClose = (): void =>
+      finish(new ProxyProbeError("monitor.probeErrors.proxyConnectionClosed"));
     socket.on("data", onData);
     socket.once("error", onError);
     socket.once("close", onClose);
@@ -688,7 +718,10 @@ function readHttpHeader(socket: Duplex, timeoutMs: number): Promise<string> {
   return new Promise((resolve, reject) => {
     let received = Buffer.alloc(0);
     let settled = false;
-    const timer = setTimeout(() => finish(new Error("等待 HTTP 响应头超时。")), timeoutMs);
+    const timer = setTimeout(
+      () => finish(new ProxyProbeError("monitor.probeErrors.httpHeaderTimeout")),
+      timeoutMs
+    );
     const cleanup = (): void => {
       clearTimeout(timer);
       socket.removeListener("data", onData);
@@ -705,15 +738,16 @@ function readHttpHeader(socket: Duplex, timeoutMs: number): Promise<string> {
     const onData = (chunk: Buffer | string): void => {
       received = Buffer.concat([received, Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)]);
       if (received.length > 16 * 1024) {
-        finish(new Error("HTTP 响应头超过 16 KiB，已终止检测。"));
+        finish(new ProxyProbeError("monitor.probeErrors.httpHeaderTooLarge"));
         return;
       }
       const index = received.indexOf("\r\n\r\n");
       if (index >= 0) finish(undefined, received.subarray(0, index).toString("utf8"));
     };
     const onError = (error: Error): void =>
-      finish(new Error("读取 HTTP 响应失败：" + error.message));
-    const onClose = (): void => finish(new Error("连接在返回 HTTP 响应头前关闭。"));
+      finish(new ProxyProbeError("monitor.probeErrors.httpReadFailed", error.message));
+    const onClose = (): void =>
+      finish(new ProxyProbeError("monitor.probeErrors.httpHeaderConnectionClosed"));
     socket.on("data", onData);
     socket.once("error", onError);
     socket.once("close", onClose);

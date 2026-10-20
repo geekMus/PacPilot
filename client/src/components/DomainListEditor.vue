@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { onMounted, onBeforeUnmount, ref, watch } from "vue";
 import { EditorView, keymap, lineNumbers, highlightActiveLine, Decoration } from "@codemirror/view";
 import { EditorState, StateEffect, StateField } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { oneDark } from "@codemirror/theme-one-dark";
 import type { RuleDiagnostic } from "../utils/domain-rules";
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
@@ -328,30 +330,44 @@ watch(
     <section
       v-if="diagnostics.length"
       class="rule-diagnostic-panel"
-      aria-label="规则检查结果"
+      :aria-label="t('domainList.checkResult')"
       aria-live="polite"
     >
       <div class="rule-diagnostic-heading">
         <div class="rule-diagnostic-title">
           <span class="rule-diagnostic-title-icon" aria-hidden="true">!</span>
-          <strong>规则检查</strong>
-          <span class="rule-diagnostic-total">{{ diagnostics.length }} 条提示</span>
+          <strong>{{ t("domainList.ruleCheck") }}</strong>
+          <span class="rule-diagnostic-total">{{
+            t("domainList.tipsCount", { n: diagnostics.length })
+          }}</span>
         </div>
         <div class="rule-diagnostic-summary">
           <span
             v-if="diagnostics.some((item) => item.severity === 'error')"
             class="diagnostic-count is-error"
-            >{{ diagnostics.filter((item) => item.severity === "error").length }} 个错误</span
+            >{{
+              t("domainList.errorsCount", {
+                n: diagnostics.filter((item) => item.severity === "error").length,
+              })
+            }}</span
           >
           <span
             v-if="diagnostics.some((item) => item.severity === 'warning')"
             class="diagnostic-count is-warning"
-            >{{ diagnostics.filter((item) => item.severity === "warning").length }} 个提醒</span
+            >{{
+              t("domainList.warningsCount", {
+                n: diagnostics.filter((item) => item.severity === "warning").length,
+              })
+            }}</span
           >
           <span
             v-if="diagnostics.some((item) => item.severity === 'info')"
             class="diagnostic-count is-info"
-            >{{ diagnostics.filter((item) => item.severity === "info").length }} 条建议</span
+            >{{
+              t("domainList.infosCount", {
+                n: diagnostics.filter((item) => item.severity === "info").length,
+              })
+            }}</span
           >
         </div>
       </div>
@@ -362,15 +378,15 @@ watch(
           type="button"
           class="rule-diagnostic-item"
           :class="'is-' + item.severity"
-          :title="'定位到第 ' + item.line + ' 行'"
+          :title="t('domainList.jumpToLine', { line: item.line })"
           @click="handleDiagnosticClick($event, item.line)"
         >
-          <span class="rule-diagnostic-line">第 {{ item.line }} 行</span>
+          <span class="rule-diagnostic-line">{{ t("domainList.lineN", { line: item.line }) }}</span>
           <span class="rule-diagnostic-message">{{ item.message }}</span>
-          <span class="rule-diagnostic-jump" aria-hidden="true">定位 ↗</span>
+          <span class="rule-diagnostic-jump" aria-hidden="true">{{ t("domainList.locate") }}</span>
         </button>
       </div>
-      <p class="rule-diagnostic-footer">点击任意规则检查项可跳转到对应行。</p>
+      <p class="rule-diagnostic-footer">{{ t("domainList.clickToJump") }}</p>
     </section>
   </div>
 </template>

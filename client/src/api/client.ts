@@ -1,3 +1,5 @@
+import { i18n, resolveLocale } from "../i18n";
+
 export interface Meta {
   adminEnabled: boolean;
   version: string;
@@ -6,8 +8,7 @@ export interface Meta {
 
 export interface AdminSession {
   loggedIn: boolean;
-  isDefaultPassword: boolean;
-  mustChangePassword: boolean;
+  adminCredentialsMissing: boolean;
 }
 
 export type WebhookProvider = "custom" | "dingtalk";
@@ -29,7 +30,6 @@ export interface WebhookConfig {
 
 export interface PacStatus {
   mode: "custom" | "remote" | "custom_parse_error" | "other" | "empty";
-  modeLabel: string;
   blockList: string[];
   directList: string[];
   pacProxy: string | null;
@@ -37,8 +37,8 @@ export interface PacStatus {
   remoteDirectList: string[];
   remoteProxyCount: number;
   remoteDirectCount: number;
-  notice: string;
   updatedAt: string;
+  timeZone: string;
   hasPac: boolean;
 }
 
@@ -51,14 +51,8 @@ export interface AppSettings {
   directList: string[];
   cronSchedule: string;
   timezone: string;
-  /** UI and generated PAC comments language. */
-  locale: "zh_CN" | "en_US";
   proxyTestUrl: string;
   logRetentionDays: number;
-  webhookSuccessUrl: string;
-  webhookSuccessBody: string;
-  webhookFailureUrl: string;
-  webhookFailureBody: string;
   webhookSuccessConfig: WebhookConfig;
   webhookFailureConfig: WebhookConfig;
 }
@@ -73,7 +67,9 @@ export interface GenerationLog {
   id: number;
   success: boolean;
   mode: string;
-  message: string | null;
+  result_code: string;
+  detail: Record<string, string | number | boolean>;
+  error: string;
   created_at: string;
 }
 export interface GenerateResult {
@@ -81,6 +77,7 @@ export interface GenerateResult {
   success: boolean;
   mode: string;
   message: string;
+  resultCode: string;
   pacPath: string;
 }
 
@@ -101,7 +98,6 @@ export interface WorkflowRun {
   status: WorkflowStatus;
   stage: string;
   mode: string;
-  message: string;
   error: string;
   created_at: string;
   started_at: string | null;
@@ -112,9 +108,7 @@ export interface WorkflowStage {
   id: number;
   run_id: number;
   stage_key: string;
-  name: string;
   status: "pending" | "running" | "succeeded" | "failed" | "skipped";
-  message: string;
   error: string;
   /** JSON string with request/config/output diagnostics when available. */
   detail?: string;
@@ -192,8 +186,6 @@ export interface AccessEvent {
 export interface MonitorSummary {
   generatedAt: string;
   timezone: string;
-  /** UI and generated PAC comments language. */
-  locale: "zh_CN" | "en_US";
   activeRequests: number;
   tcpConnections: number;
   requestsLastHour: number;
@@ -236,7 +228,8 @@ export interface ProxyProbeResult {
   targetMs: number | null;
   httpStatus: number | null;
   phase: string;
-  error: string;
+  errorCode: string;
+  errorDetail: string;
   isLoopback: boolean;
 }
 
@@ -246,7 +239,10 @@ export interface ProxyProbeBatch {
   targetPort: number;
   results: ProxyProbeResult[];
   ignoredDirectEntries: number;
-  parseWarnings: string[];
+  parseWarnings: Array<{
+    code: string;
+    detail: string;
+  }>;
   limited: boolean;
 }
 
@@ -263,37 +259,61 @@ export interface ProxyProbeRecord {
   target_ms: number | null;
   http_status: number | null;
   phase: string;
-  error: string;
+  error_code: string;
+  error_detail: string;
+}
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly code = "",
+    readonly detail = ""
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
 }
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     credentials: "same-origin",
-    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+    headers: {
+      "Content-Type": "application/json",
+      "Accept-Language": resolveLocale(i18n.global.locale.value) === "en_US" ? "en-US" : "zh-CN",
+      ...(init?.headers || {}),
+    },
     ...init,
   });
   if (!res.ok) {
     let msg = res.statusText;
+    let code = "";
+    let detail = "";
     try {
-      const data = (await res.json()) as { error?: string; message?: string };
+      const data = (await res.json()) as {
+        error?: string;
+        message?: string;
+        errorCode?: string;
+        errorDetail?: string;
+      };
       if (data.error) msg = data.error;
       else if (data.message) msg = data.message;
+      code = data.errorCode ?? "";
+      detail = data.errorDetail ?? "";
     } catch {
-      /* ignore non-JSON errors */
+      // Non-JSON error responses retain their HTTP status text.
     }
 
     // This endpoint was added with the server-side save-and-generate workflow.
     // A 404 means the browser is talking to an older backend process/build,
     // not that the submitted settings are invalid.
     if (res.status === 404 && url === "/api/admin/settings/save-and-generate") {
-      msg =
-        "当前后端未提供“保存并生成”接口，前后端代码版本可能不一致。请先停止所有旧的 genpac-runner 开发进程，更新到最新 main，再从项目根目录重新运行 bun run dev。检查终端中的后端监听端口，并确认 client/vite.config.ts 的代理目标 PORT 与后端 PORT 一致。此次请求未能完成保存与生成，请检查配置是否已保存后再重试。";
+      msg = i18n.global.t("serverErrors.versionMismatch");
     }
-    if (res.status === 428 || msg === "password_change_required") {
-      msg = "请先修改默认管理密码后再继续操作。";
+    if (msg === "setup_required") {
+      msg = i18n.global.t("login.adminCredentialsMissing");
     }
 
-    throw new Error(msg);
+    throw new ApiError(msg, code, detail);
   }
   return (await res.json()) as T;
 }

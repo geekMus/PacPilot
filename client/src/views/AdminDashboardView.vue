@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import {
   api,
@@ -11,12 +12,14 @@ import {
   type PacStatus,
   type WorkflowRun,
 } from "../api/client";
+
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
 import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
 import TextDetail from "../components/TextDetail.vue";
 
+const { t, locale } = useI18n();
 const router = useRouter();
 const loading = ref(true);
 const refreshing = ref(false);
@@ -24,7 +27,6 @@ const generating = ref(false);
 const error = ref("");
 const notice = ref("");
 const noticeOkay = ref(true);
-const session = ref<AdminSession | null>(null);
 const settings = ref<AppSettings | null>(null);
 const status = ref<PacStatus | null>(null);
 const logs = ref<GenerationLog[]>([]);
@@ -33,7 +35,9 @@ const engine = ref<GenpacProbe | null>(null);
 const currentWorkflow = ref<WorkflowRun | null>(null);
 
 const modeLabel = computed(() =>
-  settings.value?.mode === "remote" ? "远程规则列表" : "自定义规则"
+  settings.value?.mode === "remote"
+    ? t("dashboard.remoteRuleList")
+    : t("dashboard.customRulesLabel")
 );
 const customRuleCount = computed(
   () => (settings.value?.directList.length ?? 0) + (settings.value?.blockList.length ?? 0)
@@ -41,7 +45,24 @@ const customRuleCount = computed(
 const latestLog = computed(() => logs.value[0] ?? null);
 
 function modeForLog(value: string): string {
-  return value === "remote" ? "远程规则列表" : value === "custom" ? "自定义规则" : value;
+  return value === "remote"
+    ? t("dashboard.remoteRuleList")
+    : value === "custom"
+      ? t("dashboard.customRulesLabel")
+      : value;
+}
+function generationLogText(entry: GenerationLog): string {
+  return entry.success
+    ? t(`gen.success.${entry.result_code}`, entry.detail)
+    : entry.error || t("common.failed");
+}
+function formatStatusDate(value: string | undefined): string {
+  if (!value) return t("common.noRecords");
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN", {
+    timeZone: settings.value?.timezone,
+  });
 }
 
 async function loadOverview(): Promise<void> {
@@ -50,13 +71,8 @@ async function loadOverview(): Promise<void> {
   error.value = "";
   try {
     const nextSession: AdminSession = await api.session();
-    session.value = nextSession;
     if (!nextSession.loggedIn) {
       await router.replace("/admin/login");
-      return;
-    }
-    if (nextSession.mustChangePassword) {
-      await router.replace("/admin/settings");
       return;
     }
 
@@ -90,7 +106,7 @@ async function generateNow(): Promise<void> {
   try {
     const result = await api.generate();
     noticeOkay.value = true;
-    notice.value = `已启动工作流 #${result.workflowId}，可在“工作流”页面查看实时进度。`;
+    notice.value = t("dashboard.workflowStarted", { id: result.workflowId });
     await loadOverview();
   } catch (caught) {
     noticeOkay.value = false;
@@ -106,51 +122,44 @@ onMounted(() => {
 </script>
 
 <template>
-  <AdminLayout
-    active="dashboard"
-    title="系统总览"
-    subtitle="查看 PAC 配置、生成状态、访问情况与常用管理入口。"
-  >
-    <template #actions>
-      <button
-        class="dash-button secondary"
-        :class="{ 'is-loading': refreshing }"
-        type="button"
-        :disabled="refreshing"
-        :title="refreshing ? '正在刷新系统总览，请稍候' : '刷新系统总览'"
-        @click="loadOverview"
-      >
-        <AppIcon
-          :name="refreshing ? 'loader-circle' : 'refresh-cw'"
-          :class="{ 'icon-spinning': refreshing }"
-          :size="15"
-        />
-        {{ refreshing ? "刷新中…" : "刷新数据" }}
-      </button>
-    </template>
-
+  <AdminLayout active="dashboard" :title="t('dashboard.title')" :subtitle="t('dashboard.subtitle')">
     <div class="dashboard-view">
       <section v-if="loading && !settings" class="dash-loading" aria-live="polite">
         <span class="spinner" aria-hidden="true"></span>
         <div>
-          <strong>正在读取系统总览</strong>
-          <p>正在加载 PAC 状态、配置摘要与生成记录。</p>
+          <strong>{{ t("dashboard.loadingTitle") }}</strong>
+          <p>{{ t("dashboard.loadingDesc") }}</p>
         </div>
       </section>
 
       <div class="welcome-row">
         <div>
-          <h2>常用操作</h2>
+          <h2>{{ t("dashboard.quickActions") }}</h2>
         </div>
         <div class="quick-actions">
+          <button
+            type="button"
+            class="dash-button secondary"
+            :class="{ 'is-loading': refreshing }"
+            :disabled="refreshing"
+            :title="refreshing ? t('dashboard.refreshingTitle') : t('dashboard.refreshTitle')"
+            @click="loadOverview"
+          >
+            <AppIcon
+              :name="refreshing ? 'loader-circle' : 'refresh-cw'"
+              :class="{ 'icon-spinning': refreshing }"
+              :size="15"
+            />
+            {{ refreshing ? t("common.refreshing") : t("common.refresh") }}
+          </button>
           <RouterLink to="/admin/settings" class="dash-button secondary"
-            ><AppIcon name="settings" :size="16" />打开配置</RouterLink
+            ><AppIcon name="settings" :size="16" />{{ t("dashboard.openSettings") }}</RouterLink
           >
           <RouterLink to="/admin/monitor" class="dash-button secondary"
-            ><AppIcon name="activity" :size="16" />查看网络监控</RouterLink
+            ><AppIcon name="activity" :size="16" />{{ t("dashboard.viewMonitor") }}</RouterLink
           >
           <RouterLink to="/admin/workflows" class="dash-button secondary"
-            ><AppIcon name="workflow" :size="16" />查看工作流</RouterLink
+            ><AppIcon name="workflow" :size="16" />{{ t("dashboard.viewWorkflow") }}</RouterLink
           >
           <button
             type="button"
@@ -159,10 +168,10 @@ onMounted(() => {
             :disabled="generating || loading"
             :title="
               loading
-                ? '正在读取系统状态，请稍候'
+                ? t('dashboard.readingStatus')
                 : generating
-                  ? 'PAC 生成任务正在启动'
-                  : '立即启动 PAC 生成'
+                  ? t('dashboard.generatingStart')
+                  : t('dashboard.generateNow')
             "
             @click="generateNow"
           >
@@ -171,14 +180,21 @@ onMounted(() => {
               :class="{ 'icon-spinning': generating || loading }"
               :size="16"
             />
-            {{ generating ? "正在生成…" : loading ? "正在读取…" : "立即生成 PAC" }}
+            {{
+              generating
+                ? t("common.generating")
+                : loading
+                  ? t("common.reading")
+                  : t("dashboard.generatePac")
+            }}
           </button>
         </div>
       </div>
 
       <div v-if="error" class="dashboard-alert is-error" role="alert">
-        <strong>读取管理状态失败</strong><span>{{ error }}</span>
-        <button type="button" @click="loadOverview">重新加载</button>
+        <strong>{{ t("dashboard.loadFailed") }}</strong
+        ><span>{{ error }}</span>
+        <button type="button" @click="loadOverview">{{ t("dashboard.reload") }}</button>
       </div>
       <div
         v-if="notice"
@@ -195,66 +211,71 @@ onMounted(() => {
       >
         <AppIcon name="workflow" :size="18" />
         <span
-          ><strong>工作流正在执行：{{ currentWorkflow.stage || "准备中" }}</strong
-          ><small>{{ currentWorkflow.message }} · 点击查看实时进度</small></span
+          ><strong>{{
+            t("dashboard.workflowRunning", {
+              stage: t(`workflow.stageNames.${currentWorkflow.stage}`),
+            })
+          }}</strong
+          ><small>{{ t("dashboard.clickLiveProgress") }}</small></span
         >
       </RouterLink>
-      <div v-if="session?.isDefaultPassword" class="dashboard-alert is-warning" role="alert">
-        <strong>安全提醒</strong><span>当前仍使用默认管理密码 password。</span>
-        <RouterLink to="/admin/settings#security">立即修改</RouterLink>
-      </div>
-
-      <section class="overview-metrics" aria-label="关键状态">
+      <section class="overview-metrics" :aria-label="t('dashboard.keyStatus')">
         <article class="overview-metric">
           <div class="metric-top">
-            <span class="metric-label">PAC 文件状态</span
+            <span class="metric-label">{{ t("dashboard.pacFileStatus") }}</span
             ><span class="metric-icon is-file"
               ><AppIcon name="file-check" :size="18" :stroke-width="1.8"
             /></span>
           </div>
           <strong class="metric-value" :class="status?.hasPac ? 'value-good' : 'value-warning'">{{
-            loading ? "读取中…" : status?.hasPac ? "已生成" : "尚未生成"
+            loading
+              ? t("common.reading")
+              : status?.hasPac
+                ? t("common.generated")
+                : t("common.notYetGenerated")
           }}</strong>
           <span class="metric-note">{{
-            status?.hasPac ? "已存在可供客户端获取的规则文件" : "请保存配置并生成 PAC 文件"
+            status?.hasPac ? t("dashboard.hasPacNote") : t("dashboard.noPacNote")
           }}</span>
         </article>
         <article class="overview-metric">
           <div class="metric-top">
-            <span class="metric-label">当前生成模式</span
+            <span class="metric-label">{{ t("dashboard.currentMode") }}</span
             ><span class="metric-icon is-route"
               ><AppIcon name="route" :size="18" :stroke-width="1.8"
             /></span>
           </div>
-          <strong class="metric-value">{{ loading ? "读取中…" : modeLabel }}</strong>
+          <strong class="metric-value">{{ loading ? t("common.reading") : modeLabel }}</strong>
           <span class="metric-note">{{
             settings?.mode === "remote"
-              ? "按远程列表匹配域名规则"
-              : "使用自定义直连、黑名单及默认代理"
+              ? t("dashboard.modeRemoteHint")
+              : t("dashboard.modeCustomHint")
           }}</span>
         </article>
         <article class="overview-metric">
           <div class="metric-top">
-            <span class="metric-label">自定义规则</span
+            <span class="metric-label">{{ t("dashboard.customRules") }}</span
             ><span class="metric-icon is-rules"
               ><AppIcon name="list-checks" :size="18" :stroke-width="1.8"
             /></span>
           </div>
           <strong class="metric-value">{{ customRuleCount }}</strong>
-          <span class="metric-note"
-            >直连 {{ settings?.directList.length ?? 0 }} 条 · 黑名单
-            {{ settings?.blockList.length ?? 0 }} 条</span
-          >
+          <span class="metric-note">{{
+            t("dashboard.directBlockCountInline", {
+              direct: settings?.directList.length ?? 0,
+              block: settings?.blockList.length ?? 0,
+            })
+          }}</span>
         </article>
         <article class="overview-metric">
           <div class="metric-top">
-            <span class="metric-label">近 1 小时请求</span
+            <span class="metric-label">{{ t("dashboard.requests1h") }}</span
             ><span class="metric-icon is-activity"
               ><AppIcon name="activity" :size="18" :stroke-width="1.8"
             /></span>
           </div>
           <strong class="metric-value">{{ monitor ? monitor.requestsLastHour : "—" }}</strong>
-          <span class="metric-note">网页、PAC 与 API 请求，不代表代理转发流量</span>
+          <span class="metric-note">{{ t("dashboard.requests1hNote") }}</span>
         </article>
       </section>
 
@@ -262,54 +283,71 @@ onMounted(() => {
         <article class="dashboard-panel">
           <header class="panel-header">
             <div>
-              <h3>当前配置</h3>
-              <p>系统正在使用的主要设置</p>
+              <h3>{{ t("dashboard.currentConfig") }}</h3>
+              <p>{{ t("dashboard.currentConfigDesc") }}</p>
             </div>
             <RouterLink to="/admin/settings"
-              >编辑配置 <AppIcon name="arrow-up-right" :size="13"
+              >{{ t("dashboard.editConfig") }} <AppIcon name="arrow-up-right" :size="13"
             /></RouterLink>
           </header>
           <div class="config-details">
             <div class="config-detail">
-              <span>生成模式</span><strong>{{ modeLabel }}</strong>
+              <span>{{ t("dashboard.generateMode") }}</span
+              ><strong>{{ modeLabel }}</strong>
             </div>
             <div class="config-detail">
-              <span>配置时区</span><strong>{{ settings?.timezone || "—" }}</strong>
+              <span>{{ t("dashboard.timezone") }}</span
+              ><strong>{{ settings?.timezone || "—" }}</strong>
             </div>
             <div class="config-detail">
-              <span>默认代理</span><code>{{ settings?.pacProxy || "—" }}</code>
+              <span>{{ t("dashboard.defaultProxy") }}</span
+              ><code>{{ settings?.pacProxy || "—" }}</code>
             </div>
             <div class="config-detail">
-              <span>定时生成</span
-              ><strong>{{ settings?.cronSchedule ? settings.cronSchedule : "已关闭" }}</strong>
-            </div>
-            <div class="config-detail">
-              <span>远程规则地址</span
-              ><code>{{ settings?.mode === "remote" ? settings.listUrl : "当前未启用" }}</code>
-            </div>
-            <div class="config-detail">
-              <span>生成引擎</span
-              ><strong :class="engine?.available ? 'value-good' : 'value-warning'">{{
-                engine ? (engine.available ? "可用" : "需检查") : "未检测"
-              }}</strong>
-            </div>
-            <div class="config-detail">
-              <span>最近生成时间</span
+              <span>{{ t("dashboard.scheduledGen") }}</span
               ><strong>{{
-                latestLog ? latestLog.created_at : status?.updatedAt || "暂无记录"
+                settings?.cronSchedule ? settings.cronSchedule : t("dashboard.closed")
               }}</strong>
             </div>
             <div class="config-detail">
-              <span>生成结果</span
+              <span>{{ t("dashboard.remoteRuleUrl") }}</span
+              ><code>{{
+                settings?.mode === "remote" ? settings.listUrl : t("dashboard.notEnabled")
+              }}</code>
+            </div>
+            <div class="config-detail">
+              <span>{{ t("dashboard.engine") }}</span
+              ><strong :class="engine?.available ? 'value-good' : 'value-warning'">{{
+                engine
+                  ? engine.available
+                    ? t("common.available")
+                    : t("common.needCheck")
+                  : t("common.notDetected")
+              }}</strong>
+            </div>
+            <div class="config-detail">
+              <span>{{ t("dashboard.lastGenerated") }}</span
+              ><strong>{{
+                latestLog ? latestLog.created_at : formatStatusDate(status?.updatedAt)
+              }}</strong>
+            </div>
+            <div class="config-detail">
+              <span>{{ t("dashboard.genResult") }}</span
               ><strong
                 :class="latestLog?.success ? 'value-good' : latestLog ? 'value-warning' : ''"
-                >{{ latestLog ? (latestLog.success ? "成功" : "失败") : "暂无记录" }}</strong
+                >{{
+                  latestLog
+                    ? latestLog.success
+                      ? t("common.success")
+                      : t("common.failed")
+                    : t("common.noRecords")
+                }}</strong
               >
             </div>
           </div>
           <div class="panel-footer-links">
             <RouterLink to="/"
-              >打开公共状态页 <AppIcon name="arrow-up-right" :size="13"
+              >{{ t("dashboard.openPublicStatus") }} <AppIcon name="arrow-up-right" :size="13"
             /></RouterLink>
           </div>
         </article>
@@ -317,43 +355,46 @@ onMounted(() => {
         <article class="dashboard-panel">
           <header class="panel-header">
             <div>
-              <h3>最近生成记录</h3>
-              <p>最近 6 条记录，便于快速定位失败原因</p>
+              <h3>{{ t("dashboard.recentGenLogs") }}</h3>
+              <p>{{ t("dashboard.recentGenLogsDesc") }}</p>
             </div>
             <RouterLink to="/admin/settings#logs"
-              >查看记录 <AppIcon name="arrow-up-right" :size="13"
+              >{{ t("dashboard.viewLogs") }} <AppIcon name="arrow-up-right" :size="13"
             /></RouterLink>
           </header>
           <div v-if="logs.length" class="table-scroll">
             <table class="recent-table">
               <thead>
                 <tr>
-                  <th>时间</th>
-                  <th>结果</th>
-                  <th>模式</th>
-                  <th>信息</th>
+                  <th>{{ t("dashboard.colTime") }}</th>
+                  <th>{{ t("dashboard.colResult") }}</th>
+                  <th>{{ t("dashboard.colMode") }}</th>
+                  <th>{{ t("dashboard.colMessage") }}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="entry in logs" :key="entry.id">
-                  <td class="nowrap">{{ entry.created_at }}</td>
+                  <td class="nowrap">{{ formatStatusDate(entry.created_at) }}</td>
                   <td>
                     <span class="result-pill" :class="entry.success ? 'good' : 'bad'"
                       ><AppIcon :name="entry.success ? 'circle-check' : 'circle-x'" :size="13" />{{
-                        entry.success ? "成功" : "失败"
+                        entry.success ? t("common.success") : t("common.failed")
                       }}</span
                     >
                   </td>
                   <td>{{ modeForLog(entry.mode) }}</td>
                   <td class="log-message">
-                    <TextDetail :text="entry.message || ''" label="生成记录信息" />
+                    <TextDetail
+                      :text="generationLogText(entry)"
+                      :label="t('dashboard.genLogLabel')"
+                    />
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
           <div v-else class="panel-empty">
-            {{ loading ? "正在读取生成记录…" : "暂无生成记录。" }}
+            {{ loading ? t("dashboard.readingGenLogs") : t("dashboard.noGenLogs") }}
           </div>
         </article>
       </section>
@@ -361,26 +402,26 @@ onMounted(() => {
       <section class="dashboard-panel activity-panel">
         <header class="panel-header">
           <div>
-            <h3>近 24 小时访问趋势</h3>
-            <p>按小时汇总应用收到的请求；柱形为请求量，叠色为错误。悬停可查看具体时段。</p>
+            <h3>{{ t("dashboard.trend24h") }}</h3>
+            <p>{{ t("dashboard.trend24hDesc") }}</p>
           </div>
           <RouterLink to="/admin/monitor"
-            >详细监控 <AppIcon name="arrow-up-right" :size="13"
+            >{{ t("dashboard.detailMonitor") }} <AppIcon name="arrow-up-right" :size="13"
           /></RouterLink>
         </header>
         <ResponsiveTrendChart
           v-if="monitor?.requestTrend?.length"
           :points="monitor.requestTrend"
           :time-zone="settings?.timezone || 'Asia/Shanghai'"
-          aria-label="近 24 小时访问趋势"
+          :aria-label="t('dashboard.trendAria')"
           compact
         />
-        <div v-else class="panel-empty">暂无访问趋势数据；服务收到请求后会逐步形成统计。</div>
+        <div v-else class="panel-empty">{{ t("dashboard.noTrendData") }}</div>
         <div class="trend-legend">
-          <span><i class="trend-swatch"></i>请求量</span
-          ><span><i class="trend-swatch errors"></i>错误请求</span>
+          <span><i class="trend-swatch"></i>{{ t("dashboard.requestVolume") }}</span
+          ><span><i class="trend-swatch errors"></i>{{ t("dashboard.errorRequests") }}</span>
           <span class="trend-note"
-            >当前活动请求 {{ monitor?.activeRequests ?? "—" }} · 近 24 小时错误率
+            >{{ t("dashboard.activeAndErrorRate", { active: monitor?.activeRequests ?? "—" }) }}
             {{ monitor ? monitor.errorRate.toFixed(1) + "%" : "—" }}</span
           >
         </div>

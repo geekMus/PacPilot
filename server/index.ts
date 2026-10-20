@@ -4,18 +4,23 @@ import { createApp } from "./app";
 import { runPacWorkflow } from "./services/workflow";
 import { cleanupOperationalLogs, markInterruptedWorkflows } from "./db/sqlite";
 import { reschedule, stopScheduler } from "./services/scheduler";
-import { ensureAdminAuth } from "./services/admin-credentials";
+import {
+  createInitialAdminCredentials,
+  isAdminCredentialsMissing,
+} from "./services/admin-credentials";
 import { trackTcpConnection } from "./services/request-monitor";
 
 async function main(): Promise<void> {
   const env = loadEnv();
   const database = getDb(env.dataDir);
-  const adminSecurity = ensureAdminAuth(database);
+  const firstStart = isAdminCredentialsMissing(database);
+  const initialAdminPassword = createInitialAdminCredentials(database);
+  const adminCredentialsMissing = isAdminCredentialsMissing(database);
   markInterruptedWorkflows(database);
   const cleanupLogs = (): void => {
     const deleted = cleanupOperationalLogs(database);
     if (deleted.generationLogs + deleted.accessEvents + deleted.proxyProbeRuns > 0) {
-      database.exec("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
+      database.run("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
     }
   };
   cleanupLogs();
@@ -27,8 +32,17 @@ async function main(): Promise<void> {
   console.log(`[boot] dataDir=${env.dataDir}`);
   console.log(`[boot] listen=${env.host}:${env.port}`);
   console.log("[boot] admin=enabled");
-  if (adminSecurity.isDefaultPassword)
-    console.warn("[security] 当前仍使用默认管理密码 password，请登录后台立即修改。");
+  if (initialAdminPassword) {
+    console.warn(
+      "\n[security] Initial admin password (you may change it in admin settings):\n" +
+        `${initialAdminPassword}\n` +
+        "[security] Anyone with access to these logs can read this password. Keep the logs private.\n"
+    );
+  } else if (adminCredentialsMissing) {
+    console.error(
+      "[admin] Admin credentials could not be initialized; sign-in will remain unavailable."
+    );
+  }
 
   const app = createApp(env, database);
 
@@ -41,14 +55,16 @@ async function main(): Promise<void> {
     console.log(`[boot] PAC    -> ${local}/proxy.pac`);
     console.log(`[boot] status -> ${local}/`);
     console.log(`[boot] admin  -> ${local}/admin`);
-    // Start listening first so the admin UI can observe the startup workflow in real time.
-    void runPacWorkflow(database, env.dataDir, "startup")
-      .then(({ generation }) => {
-        if (!generation.success)
-          console.warn("[boot] initial PAC generation failed:", generation.message);
-      })
-      .catch((error) => console.error("[boot] initial PAC workflow failed:", error))
-      .finally(() => reschedule(database, env.dataDir));
+    if (!firstStart && !adminCredentialsMissing) {
+      // Start listening first so the admin UI can observe the startup workflow in real time.
+      void runPacWorkflow(database, env.dataDir, "startup")
+        .then(({ generation }) => {
+          if (!generation.success)
+            console.warn("[boot] initial PAC generation failed:", generation.message);
+        })
+        .catch((error) => console.error("[boot] initial PAC workflow failed:", error))
+        .finally(() => reschedule(database, env.dataDir));
+    }
   });
 
   server.on("connection", trackTcpConnection);

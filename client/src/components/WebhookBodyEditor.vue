@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { EditorView, highlightActiveLine, keymap, lineNumbers } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { json } from "@codemirror/lang-json";
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
@@ -19,7 +21,6 @@ const props = withDefaults(
     placeholder: "",
     sample: "",
     height: 220,
-    emptyHint: "留空时使用默认 JSON 请求体。",
     invalid: false,
   }
 );
@@ -30,14 +31,14 @@ let themeObserver: MutationObserver | null = null;
 
 const jsonStatus = computed(() => {
   const raw = props.modelValue.trim();
-  if (!raw) return { kind: "empty", text: props.emptyHint };
+  if (!raw) return { kind: "empty", text: props.emptyHint ?? t("webhookBody.k0") };
   try {
     const value: unknown = JSON.parse(raw);
     if (value === null || typeof value !== "object")
-      return { kind: "invalid", text: "JSON 顶层必须是对象或数组。" };
-    return { kind: "valid", text: "JSON 格式正确" };
+      return { kind: "invalid", text: t("webhookBody.k1") };
+    return { kind: "valid", text: t("webhookBody.k2") };
   } catch {
-    return { kind: "invalid", text: "JSON 语法错误，请检查括号、引号和逗号。" };
+    return { kind: "invalid", text: t("webhookBody.k3") };
   }
 });
 const canFormat = computed(() => jsonStatus.value.kind === "valid");
@@ -94,7 +95,7 @@ function formatJson() {
   try {
     replaceDocument(JSON.stringify(JSON.parse(props.modelValue), null, 2));
   } catch {
-    // 状态栏已提示格式错误；格式化操作不修改原文。
+    // The status bar already reports invalid JSON; formatting leaves the source unchanged.
   }
 }
 function insertSample() {
@@ -132,13 +133,13 @@ watch(
           type="button"
           class="editor-action"
           :disabled="!canFormat"
-          :title="canFormat ? '格式化 JSON' : jsonStatus.text"
+          :title="canFormat ? t('webhookBody.k4') : jsonStatus.text"
           @click="formatJson"
         >
-          格式化
+          {{ t("webhookBody.k5") }}
         </button>
         <button v-if="sample" type="button" class="editor-action" @click="insertSample">
-          填入示例
+          {{ t("webhookBody.k6") }}
         </button>
       </div>
     </div>

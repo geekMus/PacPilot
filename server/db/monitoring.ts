@@ -38,7 +38,8 @@ export interface ProxyProbeInput {
   target_ms: number | null;
   http_status: number | null;
   phase: string;
-  error: string;
+  error_code: string;
+  error_detail: string;
 }
 
 export interface ProxyProbeRecord extends Omit<ProxyProbeInput, "success"> {
@@ -296,8 +297,8 @@ export function recordProxyProbe(database: AppDatabase, item: ProxyProbeInput): 
   database
     .query(
       "INSERT INTO proxy_probe_runs " +
-        "(tested_at, proxy_label, proxy_host, proxy_port, target_host, success, tcp_ms, handshake_ms, target_ms, http_status, phase, error) " +
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        "(tested_at, proxy_label, proxy_host, proxy_port, target_host, success, tcp_ms, handshake_ms, target_ms, http_status, phase, error_code, error_detail) " +
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     )
     .run(
       item.tested_at,
@@ -311,7 +312,8 @@ export function recordProxyProbe(database: AppDatabase, item: ProxyProbeInput): 
       item.target_ms,
       item.http_status,
       item.phase,
-      item.error.slice(0, 500)
+      item.error_code,
+      item.error_detail.slice(0, 500)
     );
 
   maybePruneMonitoringData(database);
@@ -327,7 +329,7 @@ export function listProxyProbeRuns(
   const cursor = Math.max(0, Math.trunc(beforeId) || 0);
   const where = cursor > 0 ? " WHERE id < ?" : "";
   const query =
-    "SELECT id, tested_at, proxy_label, proxy_host, proxy_port, target_host, success, tcp_ms, handshake_ms, target_ms, http_status, phase, error " +
+    "SELECT id, tested_at, proxy_label, proxy_host, proxy_port, target_host, success, tcp_ms, handshake_ms, target_ms, http_status, phase, error_code, error_detail " +
     "FROM proxy_probe_runs" +
     where +
     " ORDER BY id DESC LIMIT ?";

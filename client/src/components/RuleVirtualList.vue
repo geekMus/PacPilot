@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { computed, ref, watch } from "vue";
 import TextDetail from "./TextDetail.vue";
+const { t } = useI18n();
 
 interface RuleEntry {
   domain: string;
@@ -41,9 +43,25 @@ const offsetY = computed(() => startIndex.value * props.rowHeight);
 
 function sourceClass(source?: string): string {
   if (!source) return "source-neutral";
-  if (source.includes("黑名单")) return "source-block";
-  if (source.includes("自定义")) return "source-custom";
-  if (source.includes("远程")) return "source-remote";
+  const s = source.toLowerCase();
+  if (
+    source.includes(t("status.sourceCustomBlock")) ||
+    source.includes(t("common.blacklist")) ||
+    s.includes("block")
+  )
+    return "source-block";
+  if (
+    source.includes(t("status.sourceCustomDirect")) ||
+    source.includes(t("common.custom")) ||
+    s.includes("custom")
+  )
+    return "source-custom";
+  if (
+    source.includes(t("status.sourceRemoteException")) ||
+    source.includes(t("common.remote")) ||
+    s.includes("remote")
+  )
+    return "source-remote";
   return "source-neutral";
 }
 
@@ -66,7 +84,7 @@ watch(
     class="virtual-list"
     :style="{ height: viewportHeight + 'px' }"
     role="list"
-    aria-label="域名规则列表"
+    :aria-label="t('common.domainRules')"
     @scroll="onScroll"
   >
     <div v-if="items.length" class="virtual-canvas" :style="{ height: totalHeight + 'px' }">
@@ -78,7 +96,7 @@ watch(
           :style="{ height: rowHeight + 'px' }"
           role="listitem"
         >
-          <TextDetail :text="item.domain" label="域名规则" class="domain-detail"
+          <TextDetail :text="item.domain" :label="t('common.domainRules')" class="domain-detail"
             ><code>{{ item.domain }}</code></TextDetail
           >
           <span v-if="item.source" class="row-source" :class="sourceClass(item.source)">{{
@@ -147,7 +165,8 @@ watch(
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  max-width: 124px;
+  max-width: min(124px, 40%);
+  overflow: hidden;
   padding: 3px 7px;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -157,6 +176,7 @@ watch(
   font-weight: 700;
   line-height: 1.35;
   text-align: center;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .row-source.source-custom {

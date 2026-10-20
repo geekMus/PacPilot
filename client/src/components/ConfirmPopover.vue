@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, toRef, watch } from "vue";
+import { useI18n } from "vue-i18n";
+import { useViewportPanel } from "../composables/useViewportPanel";
 
 const props = withDefaults(
   defineProps<{
@@ -16,9 +18,9 @@ const props = withDefaults(
     busy?: boolean;
   }>(),
   {
-    confirmText: "确认",
-    cancelText: "返回",
-    busyText: "处理中…",
+    confirmText: "",
+    cancelText: "",
+    busyText: "",
     tone: "danger",
     align: "end",
     disabled: false,
@@ -27,27 +29,37 @@ const props = withDefaults(
   }
 );
 
+const { t } = useI18n();
+const resolvedConfirmText = computed(() => props.confirmText || t("common.confirm"));
+const resolvedCancelText = computed(() => props.cancelText || t("common.back"));
+const resolvedBusyText = computed(() => props.busyText || t("common.processing"));
+const resolvedDisabledReason = computed(
+  () => props.disabledReason || props.description || t("common.conditionNotMet")
+);
+
 const emit = defineEmits<{
   "update:open": [value: boolean];
   confirm: [];
 }>();
 const root = ref<HTMLElement | null>(null);
-const placement = ref<"top" | "bottom">("bottom");
+const panel = ref<HTMLElement | null>(null);
+const { style: panelStyle } = useViewportPanel(root, panel, toRef(props, "open"), {
+  align: props.align,
+  maxWidth: 285,
+});
 
 function toggle() {
   if (props.disabled || props.busy) return;
-  const opening = !props.open;
-  if (opening) {
-    const rect = root.value?.getBoundingClientRect();
-    placement.value = rect && rect.bottom + 190 > window.innerHeight ? "top" : "bottom";
-  }
-  emit("update:open", opening);
+  emit("update:open", !props.open);
 }
 function close() {
   if (!props.busy) emit("update:open", false);
 }
 function onDocumentPointerDown(event: PointerEvent) {
-  if (!root.value || root.value.contains(event.target as Node)) return;
+  const target = event.target;
+  if (!(target instanceof Node) || root.value?.contains(target) || panel.value?.contains(target)) {
+    return;
+  }
   close();
 }
 function onDocumentKeyDown(event: KeyboardEvent) {
@@ -79,43 +91,47 @@ onBeforeUnmount(detachListeners);
 <template>
   <div ref="root" class="confirm-anchor" @click.stop>
     <slot name="trigger" :toggle="toggle" :open="props.open" />
-    <div
-      v-if="props.open"
-      class="confirm-popover"
-      :class="['tone-' + props.tone, 'align-' + props.align, 'placement-' + placement]"
-      role="group"
-      aria-label="确认操作"
-      @click.stop
-    >
-      <strong>{{ props.title }}</strong>
-      <span>{{ props.description }}</span>
-      <div class="confirm-actions">
-        <button
-          type="button"
-          class="confirm-cancel"
-          :disabled="props.busy"
-          :title="props.busy ? props.busyText : props.cancelText"
-          @click="close"
-        >
-          {{ props.cancelText }}
-        </button>
-        <button
-          type="button"
-          :class="props.tone === 'warning' ? 'confirm-warning' : 'confirm-danger'"
-          :disabled="props.disabled || props.busy"
-          :title="
-            props.busy
-              ? props.busyText
-              : props.disabled
-                ? props.disabledReason || props.description || '当前条件不满足，暂时无法执行'
-                : props.confirmText
-          "
-          @click="emit('confirm')"
-        >
-          {{ props.busy ? props.busyText : props.confirmText }}
-        </button>
+    <Teleport to="body">
+      <div
+        v-if="props.open"
+        ref="panel"
+        class="confirm-popover"
+        :class="['tone-' + props.tone]"
+        :style="panelStyle"
+        role="group"
+        :aria-label="t('common.confirmAction')"
+        @click.stop
+      >
+        <strong>{{ props.title }}</strong>
+        <span>{{ props.description }}</span>
+        <div class="confirm-actions">
+          <button
+            type="button"
+            class="confirm-cancel"
+            :disabled="props.busy"
+            :title="props.busy ? resolvedBusyText : resolvedCancelText"
+            @click="close"
+          >
+            {{ resolvedCancelText }}
+          </button>
+          <button
+            type="button"
+            :class="props.tone === 'warning' ? 'confirm-warning' : 'confirm-danger'"
+            :disabled="props.disabled || props.busy"
+            :title="
+              props.busy
+                ? resolvedBusyText
+                : props.disabled
+                  ? resolvedDisabledReason
+                  : resolvedConfirmText
+            "
+            @click="emit('confirm')"
+          >
+            {{ props.busy ? resolvedBusyText : resolvedConfirmText }}
+          </button>
+        </div>
       </div>
-    </div>
+    </Teleport>
   </div>
 </template>
 
@@ -126,11 +142,9 @@ onBeforeUnmount(detachListeners);
   max-width: 100%;
 }
 .confirm-popover {
-  position: absolute;
   z-index: 40;
-  right: 0;
-  top: calc(100% + 7px);
-  width: min(285px, calc(100vw - 40px));
+  width: 285px;
+  box-sizing: border-box;
   padding: 13px;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -138,16 +152,8 @@ onBeforeUnmount(detachListeners);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
   text-align: left;
 }
-.confirm-popover.align-start {
-  left: 0;
-  right: auto;
-}
 .confirm-popover.tone-warning {
   border-color: color-mix(in srgb, var(--amber, #d97706) 35%, var(--line));
-}
-.confirm-popover.placement-top {
-  top: auto;
-  bottom: calc(100% + 7px);
 }
 .confirm-popover strong,
 .confirm-popover span {
@@ -208,10 +214,5 @@ onBeforeUnmount(detachListeners);
 .confirm-warning:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-@media (max-width: 480px) {
-  .confirm-popover {
-    width: min(285px, calc(100vw - 36px));
-  }
 }
 </style>
