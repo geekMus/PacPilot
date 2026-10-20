@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { useToast } from "../composables/useToast";
 import AppIcon from "./AppIcon.vue";
+const { t } = useI18n();
 const { toasts, dismiss } = useToast();
 const iconNames = {
   success: "check-circle-2",
@@ -10,7 +12,7 @@ const iconNames = {
 } as const;
 </script>
 <template>
-  <div class="toast-host" aria-live="polite" aria-relevant="additions text" aria-label="操作提示">
+  <div class="toast-host" aria-live="polite" aria-relevant="additions text" :aria-label="t('toast.ariaLabel')">
     <TransitionGroup name="toast" tag="div" class="toast-stack">
       <div
         v-for="toast in toasts"
@@ -21,7 +23,7 @@ const iconNames = {
       >
         <AppIcon :name="iconNames[toast.kind]" :size="18" />
         <span>{{ toast.message }}</span>
-        <button type="button" aria-label="关闭提示" @click="dismiss(toast.id)">
+        <button type="button" :aria-label="t('toast.close')" @click="dismiss(toast.id)">
           <AppIcon name="x" :size="15" />
         </button>
       </div>

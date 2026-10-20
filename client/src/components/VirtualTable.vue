@@ -1,5 +1,6 @@
 <script setup lang="ts" generic="T">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 
 const props = withDefaults(
   defineProps<{
@@ -24,7 +25,7 @@ const props = withDefaults(
     hasMore: false,
     loading: false,
     error: "",
-    emptyText: "暂无记录",
+    emptyText: "",
   }
 );
 const scroller = ref<HTMLElement | null>(null);
@@ -155,34 +156,34 @@ onUnmounted(() => resizeObserver?.disconnect());
         <tr v-if="loading" class="virtual-state-row">
           <td :colspan="colSpan">
             <span class="virtual-state"
-              ><span class="virtual-spinner"></span>正在加载更多记录…</span
+              ><span class="virtual-spinner"></span>{{ t("virtualTable.loadingMore") }}</span
             >
           </td>
         </tr>
         <tr v-else-if="error" class="virtual-state-row">
           <td :colspan="colSpan">
             <div class="virtual-state is-error">
-              {{ error }} <button type="button" @click="retry">重试</button>
+              {{ error }} <button type="button" @click="retry">{{ t("common.retry") }}</button>
             </div>
           </td>
         </tr>
         <tr v-else-if="!items.length" class="virtual-state-row">
           <td :colspan="colSpan">
             <div class="virtual-empty-state">
-              <span>{{ emptyText }}</span>
-              <button v-if="hasMore" type="button" @click="retry">加载下一批记录</button>
+              <span>{{ resolvedEmptyText }}</span>
+              <button v-if="hasMore" type="button" @click="retry">{{ t("virtualTable.loadNextBatch") }}</button>
             </div>
           </td>
         </tr>
         <tr v-else-if="!hasMore" class="virtual-state-row">
           <td :colspan="colSpan">
-            <span class="virtual-state is-muted">已加载全部 {{ items.length }} 条记录</span>
+            <span class="virtual-state is-muted">{{ t("virtualTable.loadedAll", { n: items.length }) }}</span>
           </td>
         </tr>
         <tr v-else class="virtual-state-row">
           <td :colspan="colSpan">
             <span class="virtual-state is-muted"
-              >继续向下滚动，或 <button type="button" @click="retry">加载下一批记录</button></span
+              >{{ t("virtualTable.scrollOrLoad") }} <button type="button" @click="retry">{{ t("virtualTable.loadNextBatch") }}</button></span
             >
           </td>
         </tr>

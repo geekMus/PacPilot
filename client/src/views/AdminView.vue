@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, computed, nextTick, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter, useRoute } from "vue-router";
 import {
+const { t } = useI18n();
   api,
   type AppSettings,
   type GenerationLog,
@@ -113,8 +115,8 @@ function defaultWebhookConfig(): WebhookConfig {
       2
     ),
     messageTemplate:
-      "genpac-runner 通知\n事件：{{event}}\n状态：{{status}}\n时间：{{timestamp}}\n详情：{{message}}",
-    testMessageTemplate: "genpac-runner 测试通知\n时间：{{timestamp}}\n结果：{{message}}",
+      t("settings.defaultMessageTemplate"),
+    testMessageTemplate: t("settings.testMessageTemplate"),
   };
 }
 function normalizedWebhookConfig(
@@ -138,26 +140,26 @@ function normalizedWebhookConfig(
 }
 
 const commonTimeZones = [
-  { value: "Asia/Shanghai", label: "中国标准时间（UTC+08:00）" },
-  { value: "Asia/Taipei", label: "中国台湾 · 台北" },
-  { value: "Asia/Hong_Kong", label: "中国香港" },
-  { value: "Asia/Tokyo", label: "日本 · 东京" },
-  { value: "Asia/Seoul", label: "韩国 · 首尔" },
-  { value: "Asia/Singapore", label: "新加坡" },
-  { value: "Asia/Bangkok", label: "泰国 · 曼谷" },
-  { value: "Asia/Kolkata", label: "印度 · 加尔各答" },
-  { value: "Asia/Dubai", label: "阿联酋 · 迪拜" },
-  { value: "Europe/London", label: "英国 · 伦敦" },
-  { value: "Europe/Paris", label: "法国 · 巴黎" },
-  { value: "Europe/Berlin", label: "德国 · 柏林" },
-  { value: "America/New_York", label: "美国东部 · 纽约" },
-  { value: "America/Chicago", label: "美国中部 · 芝加哥" },
-  { value: "America/Denver", label: "美国山地 · 丹佛" },
-  { value: "America/Los_Angeles", label: "美国西部 · 洛杉矶" },
-  { value: "America/Toronto", label: "加拿大 · 多伦多" },
-  { value: "Australia/Sydney", label: "澳大利亚 · 悉尼" },
-  { value: "Pacific/Auckland", label: "新西兰 · 奥克兰" },
-  { value: "Etc/UTC", label: "协调世界时 · UTC" },
+  { value: "Asia/Shanghai", labelKey: "settings.tzShanghai" },
+  { value: "Asia/Taipei", labelKey: "settings.tzTaipei" },
+  { value: "Asia/Hong_Kong", labelKey: "settings.tzHongKong" },
+  { value: "Asia/Tokyo", labelKey: "settings.tzTokyo" },
+  { value: "Asia/Seoul", labelKey: "settings.tzSeoul" },
+  { value: "Asia/Singapore", labelKey: "settings.tzSingapore" },
+  { value: "Asia/Bangkok", labelKey: "settings.tzBangkok" },
+  { value: "Asia/Kolkata", labelKey: "settings.tzKolkata" },
+  { value: "Asia/Dubai", labelKey: "settings.tzDubai" },
+  { value: "Europe/London", labelKey: "settings.tzLondon" },
+  { value: "Europe/Paris", labelKey: "settings.tzParis" },
+  { value: "Europe/Berlin", labelKey: "settings.tzBerlin" },
+  { value: "America/New_York", labelKey: "settings.tzNewYork" },
+  { value: "America/Chicago", labelKey: "settings.tzChicago" },
+  { value: "America/Denver", labelKey: "settings.tzDenver" },
+  { value: "America/Los_Angeles", labelKey: "settings.tzLosAngeles" },
+  { value: "America/Toronto", labelKey: "settings.tzToronto" },
+  { value: "Australia/Sydney", labelKey: "settings.tzSydney" },
+  { value: "Pacific/Auckland", labelKey: "settings.tzAuckland" },
+  { value: "Etc/UTC", labelKey: "settings.tzUTC" },
 ] as const;
 
 function isValidTimeZone(value: string): boolean {
@@ -173,7 +175,9 @@ const filteredTimeZones = computed(() => {
   const query = timezoneQuery.value.trim().toLowerCase();
   if (!query) return commonTimeZones;
   return commonTimeZones.filter(
-    (zone) => zone.value.toLowerCase().includes(query) || zone.label.toLowerCase().includes(query)
+    (zone) =>
+      zone.value.toLowerCase().includes(query) ||
+      String(t(t(zone.labelKey)Key)).toLowerCase().includes(query)
   );
 });
 function selectTimeZone(value: string) {
@@ -208,24 +212,24 @@ watch(
 
 const modeHint = computed(() =>
   form.mode === "custom"
-    ? "使用直连 / 黑名单列表，默认走代理；内网始终直连。"
-    : "从远程规则列表生成 PAC；匹配到代理域名时走代理，例外及未命中域名直连。自定义规则优先。"
+    ? t("settings.modeCustomHint")
+    : t("settings.modeRemoteHint")
 );
 
 const cronPresets = [
-  { label: "关闭", value: "", hint: "不定时更新" },
-  { label: "每小时", value: "0 * * * *", hint: "每小时整点" },
-  { label: "每 3 小时", value: "0 */3 * * *", hint: "每 3 小时" },
-  { label: "每天 0 点", value: "0 0 * * *", hint: "每天 00:00" },
-  { label: "每天 6 点", value: "0 6 * * *", hint: "每天 06:00" },
-  { label: "每周一 0 点", value: "0 0 * * 1", hint: "每周一 00:00" },
+  { labelKey: "settings.cronOff", value: "", hintKey: "settings.cronOffHint" },
+  { labelKey: "settings.cronHourly", value: "0 * * * *", hintKey: "settings.cronHourlyHint" },
+  { labelKey: "settings.cron3h", value: "0 */3 * * *", hintKey: "settings.cron3hHint" },
+  { labelKey: "settings.cronDaily0", value: "0 0 * * *", hintKey: "settings.cronDaily0Hint" },
+  { labelKey: "settings.cronDaily6", value: "0 6 * * *", hintKey: "settings.cronDaily6Hint" },
+  { labelKey: "settings.cronWeekly", value: "0 0 * * 1", hintKey: "settings.cronWeeklyHint" },
 ] as const;
 
 function parseCronDescription(expr: string): { description: string; error: string } {
   const value = expr.trim();
   if (!value) return { description: "", error: "" };
   if (value.split(/\s+/).length !== 5) {
-    return { description: "", error: "请使用标准的 5 段格式：分 时 日 月 周。" };
+    return { description: "", error: t("settings.cronFormatError") };
   }
   try {
     CronExpressionParser.parse(value);
@@ -239,15 +243,15 @@ function parseCronDescription(expr: string): { description: string; error: strin
       error: "",
     };
   } catch {
-    return { description: "", error: "无法解析该表达式，请检查字段范围和语法。" };
+    return { description: "", error: t("settings.cronParseError") };
   }
 }
 
 const cronParse = computed(() => parseCronDescription(form.cronSchedule));
 const cronHint = computed(() => {
-  if (!form.cronSchedule.trim()) return "已关闭定时任务；保存后不会按计划自动生成 PAC。";
-  if (cronParse.value.error) return `表达式无效：${cronParse.value.error}`;
-  return `计划说明：${cronParse.value.description}。按所选时区 ${form.timezone} 执行。`;
+  if (!form.cronSchedule.trim()) return t("settings.cronDisabledMsg");
+  if (cronParse.value.error) return t("settings.cronInvalidMsg", { error: cronParse.value.error });
+  return t("settings.cronPlanMsg", { description: cronParse.value.description, timezone: form.timezone });
 });
 
 function applyCronPreset(value: string) {
@@ -259,10 +263,10 @@ function jsonBodyError(raw: string): string {
   if (!s) return "";
   try {
     const value: unknown = JSON.parse(s);
-    if (value === null || typeof value !== "object") return "JSON 顶层必须是对象或数组。";
+    if (value === null || typeof value !== "object") return t("settings.jsonTopLevel");
     return "";
   } catch {
-    return "JSON 格式错误，请检查括号、引号和逗号。";
+    return t("settings.jsonFormatError");
   }
 }
 
@@ -282,22 +286,22 @@ function validateWebhookDraft(config: WebhookConfig, label: string): WebhookFiel
     const hasCustomRequest = Boolean(
       url || config.body.trim() || (rawHeaders && rawHeaders !== "{}")
     );
-    if (url && !looksLikeUrl(url)) errors.url = label + "需要有效的 HTTP(S) URL。";
+    if (url && !looksLikeUrl(url)) errors.url = t("settings.webhookNeedUrl", { label });
     else if (!url && hasCustomRequest)
-      errors.url = label + "配置了请求 Body 或额外请求头，需要填写 Webhook URL。";
+      errors.url = t("settings.webhookNeedUrlForBody", { label });
     const bodyError = jsonBodyError(config.body);
-    if (bodyError) errors.body = label + "请求 Body：" + bodyError;
+    if (bodyError) errors.body = t("settings.webhookBodyError", { label, error: bodyError });
     const testBodyError = jsonBodyError(config.testBody);
-    if (testBodyError) errors.testBody = label + "测试请求 Body：" + testBodyError;
+    if (testBodyError) errors.testBody = t("settings.webhookTestBodyError", { label, error: testBodyError });
     if (rawHeaders) {
       try {
         const headers: unknown = JSON.parse(rawHeaders);
         if (!headers || typeof headers !== "object" || Array.isArray(headers))
-          errors.headers = label + "额外请求头必须是 JSON 对象。";
+          errors.headers = t("settings.webhookHeadersError", { label });
         else {
           for (const [name, value] of Object.entries(headers as Record<string, unknown>)) {
             if (!name.trim() || typeof value !== "string") {
-              errors.headers = label + "请求头必须是名称和值均为字符串的 JSON 对象。";
+              errors.headers = t("settings.headersMustStrings", { label });
               break;
             }
             if (
@@ -306,25 +310,25 @@ function validateWebhookDraft(config: WebhookConfig, label: string): WebhookFiel
             ) {
               errors.headers =
                 label +
-                "请求头包含不允许覆盖的传输字段或换行字符；Content-Type 固定为 application/json。";
+                t("settings.headersTransport");
               break;
             }
           }
         }
       } catch {
-        errors.headers = label + "额外请求头 JSON 语法错误，请检查括号、引号和逗号。";
+        errors.headers = t("settings.headersJsonError", { label });
       }
     }
   } else if (config.provider === "dingtalk") {
     if (config.url.trim()) {
       if (!looksLikeUrl(config.url.trim()))
-        errors.url = label + "钉钉 URL 必须是有效的 HTTP(S) 地址。";
+        errors.url = t("settings.dingTalkUrl", { label });
       else if (!new URL(config.url.trim()).searchParams.has("access_token"))
-        errors.url = label + "钉钉 URL 缺少 access_token。";
+        errors.url = t("settings.dingTalkToken", { label });
       if (!config.dingTalkSecret.trim())
-        errors.secret = label + "钉钉机器人必须填写 Secret 加签密钥。";
+        errors.secret = t("settings.dingTalkSecret", { label });
     } else if (config.dingTalkSecret.trim())
-      errors.url = label + "填写 Secret 前，请先填写机器人 Webhook URL。";
+      errors.url = t("settings.dingTalkSecretNeedsUrl", { label });
   }
   return errors;
 }
@@ -348,43 +352,35 @@ function validDomainOrIPv4(host: string): boolean {
 
 function validatePacProxyString(rawValue: string): string | null {
   const raw = rawValue.trim();
-  if (!raw) return "请填写 PAC 代理字符串。";
+  if (!raw) return t("settings.pacProxyRequired");
   const entries = raw.split(";").map((entry) => entry.trim());
   while (entries.length > 0 && entries[entries.length - 1] === "") entries.pop();
   if (entries.length === 0 || entries.some((entry) => !entry)) {
-    return "代理项之间请使用分号分隔，不能包含空代理项。";
+    return t("settings.proxySemicolon");
   }
   for (const [index, entry] of entries.entries()) {
     if (/^DIRECT$/i.test(entry)) continue;
     const match = entry.match(/^(PROXY|HTTP|HTTPS|SOCKS|SOCKS4|SOCKS5)\s+(\S+)$/i);
     if (!match) {
-      return (
-        "第 " +
-        (index + 1) +
-        " 项“" +
-        entry.slice(0, 80) +
-        "”格式无效。请使用 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 或 DIRECT 指令。"
-      );
+      return t("settings.proxyItemInvalid", { n: index + 1, item: entry.slice(0, 80) });
     }
     const endpointMatch = match[2].match(/^(?:\[([^\]]+)\]|([^:\[\]\s]+)):(\d{1,5})$/);
     if (!endpointMatch) {
-      return (
-        "第 " + (index + 1) + " 项代理地址格式无效，请使用 host:port；IPv6 地址请写成 [IPv6]:port。"
-      );
+      return t("settings.proxyHostInvalid", { n: index + 1 });
     }
     const host = endpointMatch[1] ?? endpointMatch[2] ?? "";
     const port = Number(endpointMatch[3]);
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
-      return "第 " + (index + 1) + " 项端口无效，端口范围必须是 1–65535。";
+      return t("settings.proxyPortInvalid", { n: index + 1 });
     }
     if (endpointMatch[1]) {
       try {
         new URL("http://[" + host + "]:" + port + "/");
       } catch {
-        return "第 " + (index + 1) + " 项的 IPv6 地址无效。";
+        return t("settings.proxyIpv6Invalid", { n: index + 1 });
       }
     } else if (!validDomainOrIPv4(host)) {
-      return "第 " + (index + 1) + " 项的代理主机名或 IP 地址无效。";
+      return t("settings.proxyHostnameInvalid", { n: index + 1 });
     }
   }
   return null;
@@ -392,28 +388,28 @@ function validatePacProxyString(rawValue: string): string | null {
 
 function validateDomainRules(rawValue: string, label: string): string | null {
   const analysis = analyzeDomainRules(
-    label === "直连列表" ? rawValue : "",
-    label === "黑名单" ? rawValue : ""
+    label === t("settings.directList") ? rawValue : "",
+    label === t("settings.blockList") ? rawValue : ""
   );
   const firstError = [...analysis.direct.diagnostics, ...analysis.block.diagnostics].find(
     (item) => item.severity === "error"
   );
-  return firstError ? label + "第 " + firstError.line + " 行：" + firstError.message : null;
+  return firstError ? t("settings.domainLineError", { label, line: firstError.line, message: firstError.message }) : null;
 }
 
 function validateProxyTestUrl(rawValue: string): string | null {
   const value = rawValue.trim();
-  if (!value) return "代理测试地址不能为空，请到「网络监控」页设置。";
+  if (!value) return t("settings.probeUrlEmpty");
   if (/[\u0000-\u0020\u007f]/.test(value))
-    return "代理测试地址不能包含空白或控制字符，请检查 URL 编码。";
+    return t("settings.probeUrlWhitespace");
   try {
     const url = new URL(value);
     if (url.protocol !== "https:" || !url.hostname || url.username || url.password || url.hash) {
-      return "代理测试地址必须是完整的 HTTPS URL，且不能包含用户名、密码或 # 片段。";
+      return t("settings.probeUrlHttps");
     }
     return null;
   } catch {
-    return "代理测试地址格式无效，请到「网络监控」页设置完整的 HTTPS URL。";
+    return t("settings.probeUrlInvalid");
   }
 }
 
@@ -434,23 +430,23 @@ function looksLikeUrl(s: string): boolean {
 const pacProxyError = computed(() => validatePacProxyString(form.pacProxy));
 const listUrlError = computed(() => {
   if (form.mode !== "remote") return "";
-  if (!form.listUrl.trim()) return "远程列表模式需要填写规则列表 URL。";
+  if (!form.listUrl.trim()) return t("settings.listUrlRequired");
   if (!looksLikeUrl(form.listUrl.trim()))
-    return "规则列表 URL 格式无效，请使用完整的 HTTP(S) 地址，且不要嵌入用户名或密码。";
+    return t("settings.listUrlInvalid");
   return "";
 });
 const ruleAnalysis = computed(() => analyzeDomainRules(form.directListText, form.blockListText));
 const directRuleDiagnostics = computed(() => ruleAnalysis.value.direct.diagnostics);
 const blockRuleDiagnostics = computed(() => ruleAnalysis.value.block.diagnostics);
-const directListError = computed(() => validateDomainRules(form.directListText, "直连列表"));
-const blockListError = computed(() => validateDomainRules(form.blockListText, "黑名单"));
+const directListError = computed(() => validateDomainRules(form.directListText, t("settings.directList")));
+const blockListError = computed(() => validateDomainRules(form.blockListText, t("settings.blockList")));
 const timezoneError = computed(() =>
-  isValidTimeZone(form.timezone) ? "" : "时区无效，请使用有效的 IANA 时区名称，例如 Asia/Tokyo。"
+  isValidTimeZone(form.timezone) ? "" : t("settings.timezoneInvalid")
 );
 const cronError = computed(() => (form.cronSchedule.trim() ? cronParse.value.error : ""));
 const webhookValidation = computed(() => ({
-  success: validateWebhookDraft(form.webhookSuccessConfig, "成功通知"),
-  failure: validateWebhookDraft(form.webhookFailureConfig, "失败通知"),
+  success: validateWebhookDraft(form.webhookSuccessConfig, t("settings.successChannel")),
+  failure: validateWebhookDraft(form.webhookFailureConfig, t("settings.failureChannel")),
 }));
 
 /** 保存前统一校验；错误列表为空才允许保存和生成 PAC。 */
@@ -461,7 +457,7 @@ const formErrors = computed(() => {
   if (listUrlError.value) errs.push(listUrlError.value);
   if (directListError.value) errs.push(directListError.value);
   if (blockListError.value) errs.push(blockListError.value);
-  if (cronError.value) errs.push("Cron 表达式无效：" + cronError.value);
+  if (cronError.value) errs.push(t("settings.cronInvalid") + cronError.value);
   errs.push(...webhookErrorMessages(webhookValidation.value.success));
   errs.push(...webhookErrorMessages(webhookValidation.value.failure));
   return errs;
@@ -598,7 +594,7 @@ async function load() {
         (): GenpacProbe => ({
           available: false,
           command: null,
-          detail: "无法检测引擎状态",
+          detail: t("settings.engineUnknown"),
         })
       ),
     ]);
@@ -637,11 +633,11 @@ async function saveAndGenerate() {
     // 服务端先持久化配置，再启动独立工作流并立即返回任务 ID。
     const workflow = await api.saveAndGenerate(payload);
     savedSettingsSnapshot.value = submittedSnapshot;
-    showFlash("配置保存成功");
+    showFlash("{{ t("settings.saveSuccess") }}");
     notify(
       workflow.status === "pending"
-        ? `工作流已加入等待队列（执行编号 #${workflow.workflowId}）`
-        : `工作流已启动（执行编号 #${workflow.workflowId}）`,
+        ? t("settings.workflowQueued", { id: workflow.workflowId })
+        : t("settings.workflowStartedId", { id: workflow.workflowId }),
       "success"
     );
     // 日志/状态刷新只是辅助操作，不能反过来影响已经成功启动的任务。
@@ -665,11 +661,11 @@ async function testWebhook(kind: "success" | "failure") {
   const configured = Boolean(config.url.trim());
   if (!configured) {
     state.ok = false;
-    state.message = "请先填写通知目标 URL。";
+    state.message = t("settings.webhookNeedTarget");
     return;
   }
   const validationErrors = webhookErrorMessages(
-    validateWebhookDraft(config, kind === "success" ? "成功通知" : "失败通知")
+    validateWebhookDraft(config, kind === "success" ? t("settings.successChannel") : t("settings.failureChannel"))
   );
   if (validationErrors.length) {
     state.ok = false;
@@ -682,10 +678,10 @@ async function testWebhook(kind: "success" | "failure") {
     const result = await api.testWebhook({ config: { ...config } });
     state.ok = result.success;
     state.message = result.success
-      ? `目标端点已接受测试请求（HTTP ${result.status ?? "未知"}）。`
+      ? t("settings.webhookTestAccepted", { status: result.status ?? t("common.unknown") })
       : result.status
-        ? `测试失败：${result.message}（HTTP ${result.status}）`
-        : `测试失败：${result.message}`;
+        ? t("settings.webhookTestFailed", { detail: `${result.message} (HTTP ${result.status})` })
+        : t("settings.webhookTestFailed", { detail: result.message });
     notify(state.message, result.success ? "success" : "error");
   } catch (e) {
     state.ok = false;
@@ -700,11 +696,11 @@ async function changeAdminPassword() {
   flash.value = "";
   error.value = "";
   if (!passwordForm.currentPassword) {
-    error.value = "请输入当前管理密码。";
+    error.value = t("settings.enterCurrentPassword");
     return;
   }
   if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-    error.value = "两次输入的新密码不一致。";
+    error.value = t("settings.passwordMismatch");
     return;
   }
   passwordSaving.value = true;
@@ -715,10 +711,10 @@ async function changeAdminPassword() {
     });
     const { invalidateAdminSessionCache } = await import("../composables/useAdminSession");
     invalidateAdminSessionCache();
-    notify("管理员密码修改成功，请使用新密码重新登录。", "success");
+    notify(t("settings.passwordChangedOk"), "success");
     await router.replace({ path: "/admin/login", query: { passwordChanged: "1" } });
   } catch (e) {
-    error.value = e instanceof Error ? e.message : "修改密码失败，请重试。";
+    error.value = e instanceof Error ? e.message : t("settings.passwordChangeFailed");
     notify(error.value, "error");
   } finally {
     passwordSaving.value = false;
@@ -729,15 +725,15 @@ async function changeAdminPassword() {
 <template>
   <AdminLayout
     active="settings"
-    title="配置设置"
-    subtitle="管理 PAC 生成方式、代理规则、定时任务与通知渠道。"
+    :title="t('settings.title')"
+    :subtitle="t('settings.subtitle')"
   >
     <div class="admin-page">
       <section v-if="loading" class="state-card" aria-live="polite">
         <span class="spinner" aria-hidden="true"></span>
         <div>
-          <strong>正在加载配置</strong>
-          <p>正在读取当前设置、生成记录与引擎状态。</p>
+          <strong>{{ t("settings.loading") }}</strong>
+          <p>{{ t("settings.loadingDesc") }}</p>
         </div>
       </section>
       <div v-if="flash" class="banner" :class="flashOk ? 'ok' : 'bad'">
@@ -757,23 +753,23 @@ async function changeAdminPassword() {
         <section id="security" class="card security-card">
           <div class="card-head">
             <div>
-              <h2>管理密码</h2>
-              <p class="card-sub">密码保存在本地数据库，不再通过环境变量配置。</p>
+              <h2>{{ t("settings.changePasswordTitle") }}</h2>
+              <p class="card-sub">{{ t("settings.passwordStoredLocal") }}</p>
             </div>
           </div>
           <div v-if="securityStatus.isDefaultPassword" class="password-warning" role="alert">
-            <strong>安全提醒：当前仍使用默认密码 password</strong>
+            <strong>{{ t("settings.defaultPasswordAlert") }}</strong>
             <p>
-              建议将默认密码改成只有你知道的密码，避免其他人通过默认密码进入管理后台。新密码不限制长度或复杂度，由你自行决定。
+              {{ t("settings.defaultPasswordTip") }}
             </p>
           </div>
           <div v-if="securityStatus.mustChangePassword" class="password-warning" role="alert">
-            <strong>需要设置新密码</strong>
-            <p>当前使用的是容器命令生成的一次性临时密码。完成修改前，其他管理功能会保持锁定。</p>
+            <strong>{{ t("settings.needNewPassword") }}</strong>
+            <p>{{ t("settings.tempPasswordNote") }}</p>
           </div>
           <form class="password-change-form" @submit.prevent="changeAdminPassword">
             <div class="field">
-              <label for="current-admin-password">当前管理密码</label>
+              <label for="current-admin-password">{{ t("settings.currentPassword") }}</label>
               <input
                 id="current-admin-password"
                 v-model="passwordForm.currentPassword"
@@ -783,18 +779,18 @@ async function changeAdminPassword() {
               />
             </div>
             <div class="field">
-              <label for="new-admin-password">新管理密码</label>
+              <label for="new-admin-password">{{ t("settings.newPassword") }}</label>
               <input
                 id="new-admin-password"
                 v-model="passwordForm.newPassword"
                 type="password"
                 autocomplete="new-password"
                 required
-                placeholder="输入新密码（不限制长度或复杂度）"
+                :placeholder="t('settings.newPasswordPlaceholder')"
               />
             </div>
             <div class="field">
-              <label for="confirm-admin-password">确认新密码</label>
+              <label for="confirm-admin-password">{{ t("settings.confirmPassword") }}</label>
               <input
                 id="confirm-admin-password"
                 v-model="passwordForm.confirmPassword"
@@ -809,21 +805,18 @@ async function changeAdminPassword() {
                 class="btn primary"
                 :class="{ 'is-loading': passwordSaving }"
                 :disabled="passwordSaving"
-                :title="passwordSaving ? '正在修改管理密码，请稍候' : '修改管理密码'"
+                :title="passwordSaving ? t('settings.changingPasswordTitle') : t('settings.changePasswordTitle')"
               >
-                {{ passwordSaving ? "正在修改…" : "修改管理密码" }}
+                {{ passwordSaving ? t("settings.changingPassword") : t("settings.changePassword") }}
               </button>
             </div>
           </form>
           <p class="field-hint">
-            忘记密码时，可根据部署方式重置：本机开发运行
-            <code>bun run reset:admin-password:development</code>；Linux、macOS、Windows
-            的非容器生产部署运行 <code>bun run reset:admin-password:production</code>；Docker
-            部署仍可在容器内运行原重置命令。脚本会显示实际数据库路径，且不会在数据库不存在时创建空库。<a
+            {{ t("settings.resetHelpFull") }}<a
               href="https://github.com/geekMus/genpac-runner#常见问题"
               target="_blank"
               rel="noopener noreferrer"
-              >查看完整重置说明 ↗</a
+              >{{ t("settings.resetHelpLink") }}</a
             >
           </p>
         </section>
@@ -844,20 +837,20 @@ async function changeAdminPassword() {
                   ><AppIcon name="calendar-clock" :size="18"
                 /></span>
                 <div>
-                  <h2>常规设置</h2>
-                  <p class="card-sub">常规选项保存在数据库中，不需要编辑 Docker 环境变量。</p>
+                  <h2>{{ t("settings.general") }}</h2>
+                  <p class="card-sub">{{ t("settings.generalDesc") }}</p>
                 </div>
               </div>
             </div>
             <div class="field" data-validation-target="timezone">
-              <label for="timezone">时区</label>
+              <label for="timezone">{{ t("settings.timezone") }}</label>
               <div class="timezone-picker desktop-timezone-picker">
                 <input
                   id="timezone"
                   v-model="form.timezone"
                   autocomplete="off"
                   spellcheck="false"
-                  placeholder="搜索时区名称或代码，例如中国标准时间、Asia/Tokyo"
+                  :placeholder="t('settings.timezoneSearch')"
                   :aria-invalid="Boolean(timezoneError)"
                   @focus="
                     timezoneMenuOpen = true;
@@ -871,7 +864,7 @@ async function changeAdminPassword() {
                   v-if="timezoneMenuOpen"
                   class="timezone-options-menu"
                   role="listbox"
-                  aria-label="时区建议"
+                  :aria-label="t('settings.timezoneSuggest')"
                 >
                   <button
                     v-for="zone in filteredTimeZones"
@@ -882,11 +875,11 @@ async function changeAdminPassword() {
                     class="timezone-option"
                     @pointerdown.prevent="selectTimeZone(zone.value)"
                   >
-                    <span>{{ zone.label }}</span
+                    <span>{{ t(t(zone.labelKey)Key) }}</span
                     ><code>{{ zone.value }}</code>
                   </button>
                   <p v-if="filteredTimeZones.length === 0" class="timezone-no-results">
-                    没有匹配项；可以直接输入有效的 IANA 时区名称。
+                    {{ t("settings.timezoneNoMatch") }}
                   </p>
                 </div>
               </div>
@@ -895,15 +888,13 @@ async function changeAdminPassword() {
                 class="mobile-timezone-trigger"
                 @click="openMobileTimezonePicker"
               >
-                <span>{{ form.timezone || "选择时区" }}</span>
+                <span>{{ form.timezone || t("settings.selectTimezone") }}</span>
                 <span class="mobile-timezone-trigger-icon" aria-hidden="true"
                   ><AppIcon name="chevron-down" :size="17"
                 /></span>
               </button>
               <p class="field-hint">
-                可按地区名称或 IANA
-                时区代码搜索，也可直接输入有效的时区代码。该设置统一用于定时任务、运行记录和 Webhook
-                通知的时间显示。
+                {{ t("settings.timezoneHintFull") }}
               </p>
               <p v-if="timezoneError" class="field-error" role="alert">{{ timezoneError }}</p>
             </div>
@@ -921,11 +912,11 @@ async function changeAdminPassword() {
                 @keydown.esc="mobileTimezoneOpen = false"
               >
                 <header class="timezone-sheet-head">
-                  <h3 id="mobile-timezone-title">选择时区</h3>
+                  <h3 id="mobile-timezone-title">{{ t("settings.selectTimezone") }}</h3>
                   <button
                     type="button"
                     class="timezone-sheet-close"
-                    aria-label="关闭时区选择"
+                    :aria-label="t('settings.closeTimezone')"
                     @click="mobileTimezoneOpen = false"
                   >
                     <AppIcon name="x" :size="18" />
@@ -936,10 +927,10 @@ async function changeAdminPassword() {
                   class="timezone-sheet-search"
                   type="search"
                   autocomplete="off"
-                  placeholder="搜索时区名称或代码，如 Asia/Tokyo"
+                  :placeholder="t('settings.timezoneSearchShort')"
                   @keydown.enter.prevent
                 />
-                <div class="timezone-sheet-options" role="listbox" aria-label="时区建议">
+                <div class="timezone-sheet-options" role="listbox" :aria-label="t('settings.timezoneSuggest')">
                   <button
                     v-for="zone in filteredTimeZones"
                     :key="zone.value"
@@ -949,7 +940,7 @@ async function changeAdminPassword() {
                     class="timezone-option"
                     @click="selectTimeZone(zone.value)"
                   >
-                    <span>{{ zone.label }}</span
+                    <span>{{ t(t(zone.labelKey)Key) }}</span
                     ><code>{{ zone.value }}</code>
                   </button>
                   <button
@@ -965,17 +956,17 @@ async function changeAdminPassword() {
                     class="timezone-option timezone-custom-option"
                     @click="selectTimeZone(timezoneQuery.trim())"
                   >
-                    <span>使用自定义时区</span><code>{{ timezoneQuery.trim() }}</code>
+                    <span>{{ t("settings.useCustomTimezone") }}</span><code>{{ timezoneQuery.trim() }}</code>
                   </button>
                   <p
                     v-if="filteredTimeZones.length === 0 && !isValidTimeZone(timezoneQuery)"
                     class="timezone-no-results"
                   >
-                    没有匹配项。请输入有效的 IANA 时区名称。
+                    {{ t("settings.timezoneNoMatchStrict") }}
                   </p>
                 </div>
                 <p class="timezone-sheet-hint">
-                  选择后会填入配置，保存后生效。也可输入其他有效的 IANA 时区代码。
+                  {{ t("settings.timezoneSelectHint") }}
                 </p>
               </section>
             </div>
@@ -988,7 +979,7 @@ async function changeAdminPassword() {
                 :class="{ active: form.timezone === zone.value }"
                 @click="form.timezone = zone.value"
               >
-                {{ zone.label }}
+                {{ t(t(zone.labelKey)Key) }}
               </button>
             </div>
           </section>
@@ -1001,8 +992,8 @@ async function changeAdminPassword() {
                   <AppIcon name="workflow" :size="18" />
                 </span>
                 <div>
-                  <h2>启动模式</h2>
-                  <p class="card-sub">选择 PAC 如何生成</p>
+                  <h2>{{ t("settings.startMode") }}</h2>
+                  <p class="card-sub">{{ t("settings.startModeDesc") }}</p>
                 </div>
               </div>
             </div>
@@ -1012,21 +1003,21 @@ async function changeAdminPassword() {
                 <input v-model="form.mode" type="radio" value="custom" />
                 <div class="mode-card-body">
                   <div class="mode-top">
-                    <span class="mode-name">自定义规则</span>
-                    <span class="tag">推荐</span>
+                    <span class="mode-name">{{ t("settings.customRules") }}</span>
+                    <span class="tag">{{ t("settings.recommended") }}</span>
                   </div>
-                  <p class="mode-desc">直连列表、黑名单与默认代理，适合本机快速配置。</p>
+                  <p class="mode-desc">{{ t("settings.customModeDesc") }}</p>
                 </div>
               </label>
               <label class="mode-card" :class="{ active: form.mode === 'remote' }">
                 <input v-model="form.mode" type="radio" value="remote" />
                 <div class="mode-card-body">
                   <div class="mode-top">
-                    <span class="mode-name">远程规则列表</span>
-                    <span class="tag">Bun 内置</span>
+                    <span class="mode-name">{{ t("settings.remoteRules") }}</span>
+                    <span class="tag">{{ t("settings.bunBuiltin") }}</span>
                   </div>
                   <p class="mode-desc">
-                    从远程规则列表生成；匹配到代理域名时走代理，例外及未命中域名直连。
+                    {{ t("settings.remoteModeDesc") }}
                   </p>
                 </div>
               </label>
@@ -1039,10 +1030,10 @@ async function changeAdminPassword() {
               class="probe"
               :class="genpacProbe.available ? 'ok' : 'warn'"
             >
-              <strong>{{ genpacProbe.available ? "远程列表引擎就绪" : "引擎状态异常" }}</strong>
+              <strong>{{ genpacProbe.available ? t("settings.engineReady") : t("settings.engineAbnormal") }}</strong>
               <span>{{ genpacProbe.detail }}</span>
               <span v-if="!genpacProbe.available" class="probe-help">
-                请检查列表 URL 是否可访问，或改用「自定义规则」模式。
+                {{ t("settings.engineHint") }}
               </span>
             </div>
           </section>
@@ -1055,14 +1046,14 @@ async function changeAdminPassword() {
                   <AppIcon name="globe" :size="18" />
                 </span>
                 <div>
-                  <h2>代理与远程列表</h2>
-                  <p class="card-sub">设置默认代理字符串，并指定远程规则列表来源</p>
+                  <h2>{{ t("settings.proxyAndRemote") }}</h2>
+                  <p class="card-sub">{{ t("settings.proxyAndRemoteDesc") }}</p>
                 </div>
               </div>
             </div>
 
             <div class="field" data-validation-target="pac-proxy">
-              <label for="pacProxy">PAC 代理字符串</label>
+              <label for="pacProxy">{{ t("settings.pacProxy") }}</label>
               <input
                 id="pacProxy"
                 v-model="form.pacProxy"
@@ -1070,8 +1061,7 @@ async function changeAdminPassword() {
                 placeholder="SOCKS5 127.0.0.1:1080; DIRECT"
               />
               <p class="field-hint">
-                每个代理项用分号分隔。支持 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 和
-                DIRECT；代理地址必须填写端口，例如 SOCKS5 127.0.0.1:1080; DIRECT。
+                {{ t("settings.pacProxyHintFull") }}
               </p>
               <p v-if="pacProxyError" class="field-error" role="alert">{{ pacProxyError }}</p>
             </div>
@@ -1081,8 +1071,8 @@ async function changeAdminPassword() {
               data-validation-target="list-url"
             >
               <label for="listUrl"
-                >规则列表 URL
-                <span class="lab-hint">GFWList / 域名型 AutoProxy、ABP / 明文域名</span></label
+                >{{ t("settings.listUrlLabel") }}
+                <span class="lab-hint">{{ t("settings.listUrlLabHint") }}</span></label
               >
               <input
                 id="listUrl"
@@ -1093,10 +1083,10 @@ async function changeAdminPassword() {
                 placeholder="https://example.com/list.txt"
               />
               <p class="field-hint">
-                按提取出的域名进行匹配；URL 路径、资源类型等复杂过滤条件不会保留。<span
+                {{ t("settings.listUrlDescFull") }}<span
                   v-if="form.mode !== 'remote'"
                   class="disabled-hint"
-                  >切换到远程规则列表模式后可编辑。</span
+                  >{{ t("settings.listUrlEditWhenRemote") }}</span
                 >
               </p>
               <p v-if="listUrlError" class="field-error" role="alert">{{ listUrlError }}</p>
@@ -1104,12 +1094,11 @@ async function changeAdminPassword() {
             <div class="checks">
               <label class="check">
                 <input v-model="form.pacCompress" type="checkbox" />
-                <span>压缩 PAC</span>
+                <span>{{ t("settings.compressPac") }}</span>
               </label>
             </div>
             <p class="field-hint">
-              开启后，无论启动模式和规则来源，生成完成的 PAC
-              都会去除注释与多余缩进；关闭后保留完整的可读格式。
+              {{ t("settings.compressPacHintFull") }}
             </p>
           </section>
 
@@ -1121,42 +1110,36 @@ async function changeAdminPassword() {
                   <AppIcon name="list-checks" :size="18" />
                 </span>
                 <div>
-                  <h2>自定义规则</h2>
-                  <p class="card-sub">直连与黑名单在「自定义」和「远程列表」两种模式下都会生效</p>
+                  <h2>{{ t("settings.customRulesTitle") }}</h2>
+                  <p class="card-sub">{{ t("settings.customRulesDesc") }}</p>
                 </div>
               </div>
             </div>
 
             <details class="help">
-              <summary>如何配置？生效顺序说明</summary>
+              <summary>{{ t("settings.howToConfig") }}</summary>
               <div class="help-body">
                 <p>
-                  <strong>写法：</strong>每行填写一条域名规则。<code>example.com</code>
-                  仅匹配该域名本身；<code>*.example.com</code> 仅匹配其子域名；<code
-                    >**.example.com</code
-                  >
-                  同时匹配主域名和所有子域名。自定义直连与黑名单列表不支持注释行，请只填写规则，不要添加说明文字。
+                  {{ t("settings.writing") }} {{ t("settings.writingFull") }}
                 </p>
-                <p><strong>直连列表：</strong>命中后返回 <code>DIRECT</code>（不走代理）。</p>
+                <p><strong>{{ t("settings.directListLabel") }}</strong>{{ t("settings.directHit") }}</p>
                 <p>
-                  <strong>黑名单：</strong>命中后返回
-                  <code>PROXY 0.0.0.0:0</code
-                  >，让客户端连接不可用的代理地址以阻止访问；具体提示取决于客户端。
+                  <strong>{{ t("settings.blockListLabel") }}</strong>{{ t("settings.blockHit") }}
                 </p>
-                <p><strong>匹配优先级（两种模式相同）：</strong></p>
+                <p><strong>{{ t("settings.matchOrder") }}</strong></p>
                 <ol>
-                  <li>localhost、无点号主机名、IPv4 回环与 RFC 1918 私网地址 → 直连</li>
-                  <li>黑名单 → 拒绝</li>
-                  <li>直连列表 → 直连</li>
-                  <li>若为远程列表模式：再匹配远程规则（列表中的域名走代理，列表内例外直连）</li>
-                  <li>自定义模式剩余流量走「PAC 代理字符串」；远程列表模式剩余流量默认直连</li>
+                  <li>{{ t("settings.matchLocal") }}</li>
+                  <li>{{ t("settings.matchBlock") }}</li>
+                  <li>{{ t("settings.matchDirect") }}</li>
+                  <li>{{ t("settings.matchRemote") }}</li>
+                  <li>{{ t("settings.matchCustomRest") }}</li>
                 </ol>
               </div>
             </details>
 
             <div class="split editors">
               <div class="field" data-validation-target="direct-list">
-                <label>直连列表</label>
+                <label>{{ t("settings.directList") }}</label>
                 <DomainListEditor
                   v-model="form.directListText"
                   :height="320"
@@ -1167,7 +1150,7 @@ async function changeAdminPassword() {
                 <p v-if="directListError" class="field-error" role="alert">{{ directListError }}</p>
               </div>
               <div class="field" data-validation-target="block-list">
-                <label>黑名单</label>
+                <label>{{ t("settings.blockList") }}</label>
                 <DomainListEditor
                   v-model="form.blockListText"
                   :height="320"
@@ -1184,14 +1167,13 @@ async function changeAdminPassword() {
               aria-live="polite"
             >
               <div class="rule-analysis-title">
-                规则检查：{{ ruleAnalysis.totalErrors }} 个错误，{{ ruleAnalysis.totalWarnings }}
-                条提示
+                {{ t("settings.ruleCheckSummary", { errors: ruleAnalysis.totalErrors, warnings: ruleAnalysis.totalWarnings }) }}
               </div>
               <p v-if="ruleAnalysis.totalErrors" class="field-error">
-                请先修正规则格式错误；格式错误会阻止保存。
+                {{ t("settings.ruleCheckFixErrors") }}
               </p>
               <p v-if="ruleAnalysis.totalWarnings" class="field-hint">
-                提示包含重复、可能冗余及直连/黑名单匹配范围重叠。重叠不会自动修改；黑名单优先于直连列表。
+                {{ t("settings.ruleCheckHints") }}
               </p>
             </div>
           </section>
@@ -1204,18 +1186,17 @@ async function changeAdminPassword() {
                   <AppIcon name="calendar-clock" :size="18" />
                 </span>
                 <div>
-                  <h2>定时与 Webhook</h2>
+                  <h2>{{ t("settings.scheduleWebhook") }}</h2>
                   <p class="card-sub">
-                    均可选。定时任务按计划生成 PAC；Webhook 在生成成功或失败时发送通知，HTTP
-                    方法按渠道配置（钉钉固定使用 POST）。
+                    {{ t("settings.scheduleWebhookDesc") }}
                   </p>
                 </div>
               </div>
             </div>
 
             <div class="sub-block">
-              <div class="sub-title">定时生成</div>
-              <div class="chip-row" role="group" aria-label="Cron 预设">
+              <div class="sub-title">{{ t("dashboard.scheduledGen") }}</div>
+              <div class="chip-row" role="group" :aria-label="t('settings.cronPreset')">
                 <button
                   v-for="p in cronPresets"
                   :key="p.label"
@@ -1229,7 +1210,7 @@ async function changeAdminPassword() {
               </div>
               <div class="field" data-validation-target="cron">
                 <label for="cron"
-                  >Cron 表达式 <span class="lab-hint">5 段 · 分 时 日 月 周</span></label
+                  >{{ t("settings.cronExpr") }} <span class="lab-hint">{{ t("settings.cronFields") }}</span></label
                 >
                 <input
                   id="cron"
@@ -1238,7 +1219,7 @@ async function changeAdminPassword() {
                   :aria-invalid="Boolean(cronError)"
                   spellcheck="false"
                   autocomplete="off"
-                  placeholder="例如 0 */3 * * *"
+                  :placeholder="t('settings.cronExample')"
                 />
                 <p
                   class="field-hint"
@@ -1252,7 +1233,7 @@ async function changeAdminPassword() {
 
             <div class="webhook-grid">
               <WebhookChannelEditor
-                title="成功时通知"
+                :title="t('settings.successNotify')"
                 kind="success"
                 :model-value="form.webhookSuccessConfig"
                 :pending="webhookTestState.success.pending"
@@ -1263,7 +1244,7 @@ async function changeAdminPassword() {
                 @test="testWebhook('success')"
               />
               <WebhookChannelEditor
-                title="失败时通知"
+                :title="t('settings.failureNotify')"
                 kind="failure"
                 :model-value="form.webhookFailureConfig"
                 :pending="webhookTestState.failure.pending"
@@ -1278,13 +1259,13 @@ async function changeAdminPassword() {
 
           <div class="actions-block">
             <div v-if="formErrors.length" class="validation-box">
-              <div class="validation-title">请先修正以下问题后再保存</div>
+              <div class="validation-title">{{ t("settings.fixBeforeSave") }}</div>
               <ul>
                 <li v-for="(e, i) in formErrors" :key="i">{{ e }}</li>
               </ul>
             </div>
             <p class="actions-hint">
-              修改配置后，右下角会出现快捷保存按钮；成功生成 PAC 后按钮会自动隐藏。
+              {{ t("settings.floatingSaveHint") }}
             </p>
           </div>
         </form>
@@ -1296,8 +1277,8 @@ async function changeAdminPassword() {
                 <AppIcon name="chart" :size="18" />
               </span>
               <div>
-                <h2>最近生成记录</h2>
-                <p class="card-sub">已加载 {{ logs.length }} / {{ logTotal }} 条</p>
+                <h2>{{ t("settings.recentLogs") }}</h2>
+                <p class="card-sub">{{ t("settings.loadedLogs", { loaded: logs.length, total: logTotal }) }}</p>
               </div>
             </div>
           </div>
@@ -1311,7 +1292,7 @@ async function changeAdminPassword() {
             :has-more="logHasMore"
             :loading="logLoadingMore"
             :error="logLoadError"
-            empty-text="暂无生成记录"
+            :empty-text="t('settings.noLogs')"
             :load-more="loadMoreLogs"
           >
             <template #columns
@@ -1322,10 +1303,10 @@ async function changeAdminPassword() {
             /></template>
             <template #header
               ><tr>
-                <th>时间</th>
-                <th>结果</th>
-                <th>模式</th>
-                <th>信息</th>
+                <th>{{ t("settings.colTime") }}</th>
+                <th>{{ t("settings.colResult") }}</th>
+                <th>{{ t("settings.colMode") }}</th>
+                <th>{{ t("settings.colMessage") }}</th>
               </tr></template
             >
             <template #row="{ item: l }">
@@ -1333,11 +1314,11 @@ async function changeAdminPassword() {
                 <td class="nowrap">{{ l.created_at }}</td>
                 <td>
                   <span class="pill" :class="l.success ? 'ok' : 'bad'">{{
-                    l.success ? "成功" : "失败"
+                    l.success ? t("common.success") : t("common.failed")
                   }}</span>
                 </td>
                 <td>{{ l.mode }}</td>
-                <td class="msg"><TextDetail :text="l.message || ''" label="生成记录信息" /></td>
+                <td class="msg"><TextDetail :text="l.message || ''" :label="t('settings.genLogInfo')" /></td>
               </tr>
             </template>
           </VirtualTable>
@@ -1354,17 +1335,17 @@ async function changeAdminPassword() {
           :aria-invalid="formErrors.length > 0 ? 'true' : undefined"
           :aria-label="
             saving
-              ? '正在保存并生成 PAC'
+              ? t('settings.savingAndGenerating')
               : formErrors.length
-                ? '配置存在校验问题，点击定位到错误'
-                : '保存并生成 PAC'
+                ? '{{ t("settings.validationIssues") }}'
+                : '{{ t("settings.saveAndGenerate") }}'
           "
           :title="
             saving
-              ? '正在保存并生成 PAC'
+              ? t('settings.savingAndGenerating')
               : formErrors.length
-                ? '配置存在校验问题，点击定位到错误'
-                : '保存并生成 PAC'
+                ? '{{ t("settings.validationIssues") }}'
+                : '{{ t("settings.saveAndGenerate") }}'
           "
           @click="handleFloatingSaveClick"
         >

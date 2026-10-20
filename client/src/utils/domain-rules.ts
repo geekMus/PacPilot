@@ -1,3 +1,9 @@
+import { i18n } from "../i18n";
+
+function tr(key: string, params?: Record<string, unknown>): string {
+  return String(i18n.global.t(key, params ?? {}));
+}
+
 export type RuleSeverity = "error" | "warning" | "info";
 export interface RuleDiagnostic {
   line: number;
@@ -52,7 +58,7 @@ export function parseDomainRules(raw: string): {
         diagnostics.push({
           line: index + 1,
           severity: "error",
-          message: "不支持此通配符写法；请使用 example.com、*.example.com 或 **.example.com。",
+          message: tr("domainRuleDiag.unsupportedWildcard"),
         });
         continue;
       }
@@ -64,8 +70,7 @@ export function parseDomainRules(raw: string): {
         diagnostics.push({
           line: index + 1,
           severity: "error",
-          message:
-            "域名格式无效。请填写有效的完整域名，不能包含协议、路径、端口或空格；通配符仅用于域名。",
+          message: tr("domainRuleDiag.invalidDomain"),
         });
         continue;
       }
@@ -116,7 +121,7 @@ export function analyzeDomainRules(
           line: rule.line,
           severity: "warning",
           relatedLine: previous.line,
-          message: `与第 ${previous.line} 行重复（${label}），可考虑删除其中一条。`,
+          message: tr("domainRuleDiag.duplicateLine", { line: previous.line, label }),
         });
       else seen.set(key, rule);
     }
@@ -132,7 +137,7 @@ export function analyzeDomainRules(
           line: rule.line,
           severity: "warning",
           relatedLine: covering.line,
-          message: `该规则已被第 ${covering.line} 行覆盖，可能冗余。`,
+          message: tr("domainRuleDiag.coveredByLine", { line: covering.line }),
         });
     }
     const byHost = new Map<string, ParsedDomainRule[]>();
@@ -146,19 +151,19 @@ export function analyzeDomainRules(
           line: exact.line,
           severity: "info",
           relatedLine: subdomains.line,
-          message: `第 ${exact.line} 行与第 ${subdomains.line} 行合并后等价于 **.${host}。`,
+          message: tr("domainRuleDiag.mergeEquivalent", { exact: exact.line, subdomains: subdomains.line, host }),
         });
         diagnostics.push({
           line: subdomains.line,
           severity: "info",
           relatedLine: exact.line,
-          message: `与第 ${exact.line} 行合并后等价于 **.${host}。`,
+          message: tr("domainRuleDiag.mergeWithExact", { line: exact.line, host }),
         });
       }
     }
   }
-  addLocalDiagnostics(directParsed.rules, directDiagnostics, "直连列表");
-  addLocalDiagnostics(blockParsed.rules, blockDiagnostics, "黑名单");
+  addLocalDiagnostics(directParsed.rules, directDiagnostics, tr("domainRuleDiag.directList"));
+  addLocalDiagnostics(blockParsed.rules, blockDiagnostics, tr("domainRuleDiag.blockList"));
   for (const direct of directParsed.rules)
     for (const block of blockParsed.rules) {
       if (!overlaps(direct, block)) continue;
@@ -166,13 +171,13 @@ export function analyzeDomainRules(
         line: direct.line,
         severity: "warning",
         relatedLine: block.line,
-        message: `与黑名单第 ${block.line} 行存在匹配范围重叠；黑名单优先，因此重叠部分会被拦截。`,
+        message: tr("domainRuleDiag.overlapBlock", { line: block.line }),
       });
       blockDiagnostics.push({
         line: block.line,
         severity: "warning",
         relatedLine: direct.line,
-        message: `与直连列表第 ${direct.line} 行存在匹配范围重叠；黑名单优先，因此重叠部分会被拦截。`,
+        message: tr("domainRuleDiag.overlapDirect", { line: direct.line }),
       });
     }
   const count = (items: RuleDiagnostic[], severity: RuleSeverity) =>
