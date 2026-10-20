@@ -78,22 +78,18 @@ onMounted(()=>{void load();});onUnmounted(stopPolling);
 <dialog v-if="selectedStage" ref="stageDetailDialog" class="stage-detail-dialog" aria-label="工作流阶段详情" @click="handleStageDetailBackdrop" @close="onStageDetailClose">
   <div class="stage-detail-shell">
     <header class="stage-detail-header">
-      <div class="stage-detail-title">
+      <div>
         <p class="stage-detail-kicker">STAGE · {{ selectedStage.stage_key }}</p>
         <h2>{{ selectedStage.name }}</h2>
-        <p class="stage-detail-sub">{{ selectedStage.message || "暂无阶段说明" }}</p>
       </div>
       <div class="stage-detail-actions">
-        <button class="stage-detail-btn" type="button" @click="copyStageDetail">
-          <AppIcon name="copy" :size="14" />复制
-        </button>
-        <button class="stage-detail-btn stage-detail-btn-ghost" type="button" aria-label="关闭" @click="closeStageDetail">
-          <AppIcon name="x" :size="14" />
-        </button>
+        <button class="stage-detail-btn" type="button" @click="copyStageDetail"><AppIcon name="copy" :size="14" />复制</button>
+        <button class="stage-detail-btn" type="button" aria-label="关闭" @click="closeStageDetail"><AppIcon name="x" :size="14" /></button>
       </div>
     </header>
     <p v-if="stageDetailCopyState" class="stage-detail-copy" role="status">{{ stageDetailCopyState }}</p>
     <div class="stage-detail-body">
+      <p v-if="selectedStage.message" class="stage-detail-message">{{ selectedStage.message }}</p>
       <section class="stage-detail-section">
         <h3 class="stage-detail-section-title">基本信息</h3>
         <div class="stage-detail-meta">
@@ -260,6 +256,7 @@ onMounted(()=>{void load();});onUnmounted(stopPolling);
   .stage-meta{gap:4px 12px;margin-top:8px;}
 }
 
+
 .stage-detail-dialog{
   width:min(640px, calc(100vw - 24px));
   max-height:min(86dvh, 820px);
@@ -272,14 +269,8 @@ onMounted(()=>{void load();});onUnmounted(stopPolling);
   box-shadow:0 18px 48px color-mix(in srgb, var(--text) 18%, transparent);
   overflow:auto;
 }
-.stage-detail-dialog::backdrop{
-  background:rgba(12, 16, 24, 0.45);
-}
-.stage-detail-shell{
-  display:flex;
-  flex-direction:column;
-  min-height:0;
-}
+.stage-detail-dialog::backdrop{ background:rgba(12, 16, 24, 0.45); }
+.stage-detail-shell{ display:flex; flex-direction:column; min-height:0; }
 .stage-detail-header{
   display:flex;
   align-items:flex-start;
@@ -292,7 +283,6 @@ onMounted(()=>{void load();});onUnmounted(stopPolling);
   background:var(--surface);
   z-index:1;
 }
-.stage-detail-title{min-width:0; flex:1;}
 .stage-detail-kicker{
   margin:0 0 4px;
   color:var(--muted);
@@ -308,40 +298,36 @@ onMounted(()=>{void load();});onUnmounted(stopPolling);
   line-height:1.3;
   overflow-wrap:anywhere;
 }
-.stage-detail-sub{
-  margin:6px 0 0;
-  color:var(--muted);
-  font-size:12px;
-  line-height:1.55;
-  overflow-wrap:anywhere;
-}
 .stage-detail-actions{
   display:flex;
   gap:8px;
   flex:0 0 auto;
+  flex-wrap:nowrap;
 }
 .stage-detail-btn{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  gap:6px;
-  min-height:36px;
-  min-width:36px;
-  padding:0 12px;
+  gap:7px;
+  min-height:38px;
+  min-width:38px;
+  padding:0 14px;
   border:1px solid var(--line);
   border-radius:9px;
-  background:var(--surface-2);
+  background:var(--surface);
   color:var(--text);
   font:inherit;
   font-size:12px;
-  font-weight:650;
+  font-weight:700;
+  white-space:nowrap;
   cursor:pointer;
+  transition:filter .15s, opacity .15s, border-color .15s, color .15s, background .15s;
 }
 .stage-detail-btn:hover{
-  border-color:color-mix(in srgb, var(--accent) 35%, var(--line));
+  background:var(--accent-soft);
+  border-color:var(--accent);
   color:var(--accent);
 }
-.stage-detail-btn-ghost{padding:0;}
 .stage-detail-copy{
   margin:0;
   padding:8px 18px;
@@ -353,7 +339,14 @@ onMounted(()=>{void load();});onUnmounted(stopPolling);
   gap:16px;
   padding:14px 18px 18px;
 }
-.stage-detail-section{display:grid; gap:8px; min-width:0;}
+.stage-detail-message{
+  margin:0;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.55;
+  overflow-wrap:anywhere;
+}
+.stage-detail-section{ display:grid; gap:8px; min-width:0; }
 .stage-detail-section-title{
   margin:0;
   color:var(--muted);
@@ -376,10 +369,7 @@ onMounted(()=>{void load();});onUnmounted(stopPolling);
   gap:4px;
   min-width:0;
 }
-.stage-detail-meta-card span{
-  color:var(--muted);
-  font-size:11px;
-}
+.stage-detail-meta-card span{ color:var(--muted); font-size:11px; }
 .stage-detail-meta-card strong{
   font-size:12px;
   overflow-wrap:anywhere;
@@ -415,20 +405,18 @@ onMounted(()=>{void load();});onUnmounted(stopPolling);
     border-radius:12px;
   }
   .stage-detail-header{
-    flex-wrap:wrap;
     padding:14px 14px 10px;
     gap:10px;
   }
-  .stage-detail-header h2{font-size:16px;}
-  .stage-detail-actions{
-    width:100%;
-    justify-content:flex-end;
+  .stage-detail-header h2{ font-size:16px; }
+  .stage-detail-btn{
+    min-height:36px;
+    min-width:36px;
+    padding:0 12px;
   }
-  .stage-detail-body{padding:12px 14px 16px; gap:14px;}
-  .stage-detail-meta{grid-template-columns:1fr; gap:10px;}
-  .stage-detail-pre{max-height:min(36vh, 240px); font-size:11px;}
-  .stage-detail-copy{padding:8px 14px;}
+  .stage-detail-body{ padding:12px 14px 16px; gap:14px; }
+  .stage-detail-meta{ grid-template-columns:1fr; gap:10px; }
+  .stage-detail-pre{ max-height:min(36vh, 240px); font-size:11px; }
+  .stage-detail-copy{ padding:8px 14px; }
 }
-
-
 </style>
