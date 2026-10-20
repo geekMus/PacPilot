@@ -42,9 +42,6 @@ jobs:
 
       - name: 验证日历版本并判断发布条件
         id: version
-        env:
-          # push 事件的 before 是本次整批提交前的 main HEAD。
-          PUSH_BEFORE_SHA: ${{ github.event.before }}
         shell: bash
         run: |
           set -euo pipefail
@@ -60,17 +57,48 @@ jobs:
             [[ "$normalized" == "$base" ]]
           }
 
+          REGISTRY_TOKEN="$(curl -fsS 'https://ghcr.io/token?scope=repository:geekmus/genpac-runner:pull&service=ghcr.io' | jq -er '.token // .access_token')"
+          MANIFEST_ACCEPT="application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json"
+          MANIFEST_STATUS="$(curl -sS -o "$RUNNER_TEMP/latest-manifest.json" -w '%{http_code}' \
+            -H "Authorization: Bearer $REGISTRY_TOKEN" \
+            -H "Accept: $MANIFEST_ACCEPT" \
+            'https://ghcr.io/v2/geekmus/genpac-runner/manifests/latest')"
+          PREVIOUS_VERSION=""
+          if [[ "$MANIFEST_STATUS" == "200" ]]; then
+            if jq -e '.manifests | type == "array"' "$RUNNER_TEMP/latest-manifest.json" >/dev/null; then
+              IMAGE_MANIFEST_DIGEST="$(jq -er '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == "arm64")][0].digest' "$RUNNER_TEMP/latest-manifest.json")"
+              curl -fsS \
+                -H "Authorization: Bearer $REGISTRY_TOKEN" \
+                -H "Accept: $MANIFEST_ACCEPT" \
+                "https://ghcr.io/v2/geekmus/genpac-runner/manifests/$IMAGE_MANIFEST_DIGEST" \
+                -o "$RUNNER_TEMP/latest-platform-manifest.json"
+            elif jq -e '.config.digest' "$RUNNER_TEMP/latest-manifest.json" >/dev/null; then
+              cp "$RUNNER_TEMP/latest-manifest.json" "$RUNNER_TEMP/latest-platform-manifest.json"
+            else
+              echo "::error::GHCR latest 标签返回了无法识别的镜像清单。"
+              exit 1
+            fi
+
+            CONFIG_DIGEST="$(jq -er '.config.digest' "$RUNNER_TEMP/latest-platform-manifest.json")"
+            PREVIOUS_VERSION="$(curl -fsS \
+              -H "Authorization: Bearer $REGISTRY_TOKEN" \
+              "https://ghcr.io/v2/geekmus/genpac-runner/blobs/$CONFIG_DIGEST" \
+              | jq -r '.config.Labels["org.opencontainers.image.version"] // empty')"
+            if [[ -z "$PREVIOUS_VERSION" ]]; then
+              echo "::error::GHCR latest 镜像缺少 org.opencontainers.image.version 标签，无法判断是否需要发布。"
+              exit 1
+            fi
+          elif [[ "$MANIFEST_STATUS" != "404" ]]; then
+            echo "::error::读取 GHCR latest 镜像失败，HTTP 状态码：$MANIFEST_STATUS"
+            exit 1
+          fi
+
           VERSION="$(jq -r '.version // empty' package.json)"
           if ! is_calendar_version "$VERSION"; then
             echo "::error::package.json.version 必须使用日历版本 YYYY.MM.DD；同日修订可使用 YYYY.MM.DD-r1。"
             exit 1
           fi
 
-          PREVIOUS_VERSION=""
-          if [[ "$GITHUB_EVENT_NAME" == "push" && -n "${PUSH_BEFORE_SHA:-}" && "$PUSH_BEFORE_SHA" != "0000000000000000000000000000000000000000" ]]; then
-            PREVIOUS_VERSION="$(git show "$PUSH_BEFORE_SHA:package.json" 2>/dev/null | jq -r '.version // empty' 2>/dev/null || true)"
-          fi
-          VERSION_TAG="v$VERSION"
           PUBLISH="false"
           PUBLISH_LATEST="false"
           REASON="手动触发：只验证构建，不推送镜像。"
@@ -87,7 +115,11 @@ jobs:
             fi
 
             if [[ "$VERSION" == "$PREVIOUS_VERSION" ]]; then
-              REASON="package.json.version 没有变化，跳过镜像发布。"
+              REASON="当前版本与 GHCR latest 镜像版本相同，跳过镜像发布。"
+            elif [[ -z "$PREVIOUS_VERSION" ]]; then
+              PUBLISH="true"
+              PUBLISH_LATEST="true"
+              REASON="GHCR 尚无 latest 镜像，这是首次发布 $VERSION。"
             elif is_calendar_version "$PREVIOUS_VERSION"; then
               CURRENT_DATE="${VERSION%%-[rR]*}"
               PREVIOUS_DATE="${PREVIOUS_VERSION%%-[rR]*}"
@@ -111,15 +143,10 @@ jobs:
               REASON="检测到旧版本格式 ${PREVIOUS_VERSION:-（无版本）}，允许首次迁移到日历版本 $VERSION。"
             fi
 
-            if [[ "$PUBLISH" == "true" ]] && git rev-parse -q --verify "refs/tags/$VERSION_TAG" >/dev/null; then
-              echo "::error::Git 标签 $VERSION_TAG 已存在，禁止重复发布相同版本。"
-              exit 1
-            fi
           fi
 
           {
             echo "version=$VERSION"
-            echo "version_tag=$VERSION_TAG"
             echo "previous_version=$PREVIOUS_VERSION"
             echo "publish=$PUBLISH"
             echo "publish_latest=$PUBLISH_LATEST"
@@ -127,6 +154,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
           echo "项目版本：$VERSION"
+          echo "最新已发布镜像版本：${PREVIOUS_VERSION:-（尚无 latest 镜像）}"
           echo "发布判断：$REASON"
 
       - name: 生成版本和提交变更摘要
