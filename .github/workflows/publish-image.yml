@@ -57,7 +57,7 @@ jobs:
             [[ "$normalized" == "$base" ]]
           }
 
-          REGISTRY_TOKEN="$(curl -fsS 'https://ghcr.io/token?scope=repository:geekmus/genpac-runner:pull&service=ghcr.io' | jq -er '.token // .access_token')"
+          REGISTRY_TOKEN="$(curl -fsSL 'https://ghcr.io/token?scope=repository:geekmus/genpac-runner:pull&service=ghcr.io' | jq -er '.token // .access_token')"
           MANIFEST_ACCEPT="application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json"
           MANIFEST_STATUS="$(curl -sS -o "$RUNNER_TEMP/latest-manifest.json" -w '%{http_code}' \
             -H "Authorization: Bearer $REGISTRY_TOKEN" \
@@ -67,7 +67,7 @@ jobs:
           if [[ "$MANIFEST_STATUS" == "200" ]]; then
             if jq -e '.manifests | type == "array"' "$RUNNER_TEMP/latest-manifest.json" >/dev/null; then
               IMAGE_MANIFEST_DIGEST="$(jq -er '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == "arm64")][0].digest' "$RUNNER_TEMP/latest-manifest.json")"
-              curl -fsS \
+              curl -fsSL \
                 -H "Authorization: Bearer $REGISTRY_TOKEN" \
                 -H "Accept: $MANIFEST_ACCEPT" \
                 "https://ghcr.io/v2/geekmus/genpac-runner/manifests/$IMAGE_MANIFEST_DIGEST" \
@@ -80,7 +80,7 @@ jobs:
             fi
 
             CONFIG_DIGEST="$(jq -er '.config.digest' "$RUNNER_TEMP/latest-platform-manifest.json")"
-            PREVIOUS_VERSION="$(curl -fsS \
+            PREVIOUS_VERSION="$(curl -fsSL \
               -H "Authorization: Bearer $REGISTRY_TOKEN" \
               "https://ghcr.io/v2/geekmus/genpac-runner/blobs/$CONFIG_DIGEST" \
               | jq -r '.config.Labels["org.opencontainers.image.version"] // empty')"
