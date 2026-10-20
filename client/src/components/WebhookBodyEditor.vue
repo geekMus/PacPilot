@@ -96,7 +96,7 @@ function formatJson() {
   try {
     replaceDocument(JSON.stringify(JSON.parse(props.modelValue), null, 2));
   } catch {
-    // 状态栏已提示格式错误；{{ t("webhookBody.k5") }}操作不修改原文。
+    // 状态栏已提示格式错误；t("webhookBody.k5")操作不修改原文。
   }
 }
 function insertSample() {

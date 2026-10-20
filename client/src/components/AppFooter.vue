@@ -80,7 +80,7 @@ async function loadVersionInfo(): Promise<void> {
       headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(7000),
     });
-    if (!response.ok) throw new Error("{{ t("footerExtra.k0") }} " + response.status);
+    if (!response.ok) throw new Error("t("footerExtra.k0") " + response.status);
 
     const data = (await response.json()) as { version?: unknown };
     const version = typeof data.version === "string" ? data.version.trim() : "";

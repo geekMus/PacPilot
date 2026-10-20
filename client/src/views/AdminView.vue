@@ -633,7 +633,7 @@ async function saveAndGenerate() {
     // 服务端先持久化配置，再启动独立工作流并立即返回任务 ID。
     const workflow = await api.saveAndGenerate(payload);
     savedSettingsSnapshot.value = submittedSnapshot;
-    showFlash("{{ t("settings.saveSuccess") }}");
+    showFlash(t("settings.saveSuccess"));
     notify(
       workflow.status === "pending"
         ? t("settings.workflowQueued", { id: workflow.workflowId })
@@ -1337,15 +1337,15 @@ async function changeAdminPassword() {
             saving
               ? t('settings.savingAndGenerating')
               : formErrors.length
-                ? '{{ t("settings.validationIssues") }}'
-                : '{{ t("settings.saveAndGenerate") }}'
+                ? t("settings.validationIssues")
+                : t("settings.saveAndGenerate")
           "
           :title="
             saving
               ? t('settings.savingAndGenerating')
               : formErrors.length
-                ? '{{ t("settings.validationIssues") }}'
-                : '{{ t("settings.saveAndGenerate") }}'
+                ? t("settings.validationIssues")
+                : t("settings.saveAndGenerate")
           "
           @click="handleFloatingSaveClick"
         >

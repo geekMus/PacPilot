@@ -125,7 +125,7 @@ async function refreshStorage() {
   try {
     storage.value = await api.storage();
   } catch (e) {
-    notify("{{ t("common.refresht("systemPage.k16") + (e instanceof Error ? e.message : String(e)), "error");
+    notify(t("systemPage.k16") + (e instanceof Error ? e.message : String(e)), "error");
   }
 }
 async function cleanupLogs() {

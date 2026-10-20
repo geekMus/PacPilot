@@ -249,7 +249,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
         <span class="status-indicator" :class="status.hasPac ? 'online' : 'idle'"></span>
         <strong>{{ status.modeLabel }}</strong
         ><span class="meta-divider">·</span>
-        <span>{{ status.hasPac ? t("status.generatedAt", { time: status.updatedAt }) : "{{ t("status.noFile") }}" }}</span>
+        <span>{{ status.hasPac ? t("status.generatedAt", { time: status.updatedAt }) : t("status.noFile") }}</span>
       </div>
     </section>
 
