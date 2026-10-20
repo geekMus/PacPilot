@@ -215,12 +215,19 @@ Copy-Item .env.example .env
 bun run dev
 ```
 
-开发服务器默认监听后端 `17321`，前端开发页面为 `http://127.0.0.1:5173`。生产构建可运行 `bun run typecheck
+开发服务器默认监听后端 `17321`，前端开发页面为 `http://127.0.0.1:5173`。运行以下命令可一次检查服务端与客户端类型，并执行客户端生产构建，及早发现 Vue/Vite 编译错误：
 
-`````bash
+```bash
+bun run check
+```
+
+该命令会先执行 `bun run typecheck`，再执行 `bun run build`。单独运行类型检查或生产构建时，也可分别使用上述子命令。格式化源码（Prettier）或仅检查格式可使用：
+
+```bash
 # 格式化源码（Prettier）
 bun run format
 # 仅检查格式是否符合规范
 bun run format:check
-```` 检查类型，再运行 `bun run build` 并执行 `bun start`。业务设置、时区和管理密码保存在 SQLite，不通过环境变量维护。
-`````
+```
+
+部署生产构建可执行 `bun start`。业务设置、时区和管理密码保存在 SQLite，不通过环境变量维护。

@@ -528,10 +528,10 @@ onUnmounted(() => {
               "
               :title="
                 detail.run.status === 'running' || detail.run.status === 'pending'
-                  ? t("workflowDetailPage.k23")
+                  ? t('workflowDetailPage.k23')
                   : deleting
-                    ? t("workflowDetailPage.k24")
-                    : t("workflowDetailPage.k25")
+                    ? t('workflowDetailPage.k24')
+                    : t('workflowDetailPage.k25')
               "
               @click="
                 confirmingDelete = !confirmingDelete;

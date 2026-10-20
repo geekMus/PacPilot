@@ -417,8 +417,8 @@ onUnmounted(stopPolling);
                 :disabled="cancellingId === current.id"
                 :title="
                   cancellingId === current.id
-                    ? t("workflowPage.k22")
-                    : t("workflowPage.k23")
+                    ? t('workflowPage.k22')
+                    : t('workflowPage.k23')
                 "
                 @click="toggleCurrentCancel()"
               >
@@ -439,8 +439,8 @@ onUnmounted(stopPolling);
                     :disabled="cancellingId === current.id"
                     :title="
                       cancellingId === current.id
-                        ? t("workflowPage.k22")
-                        : t("workflowPage.k24")
+                        ? t('workflowPage.k22')
+                        : t('workflowPage.k24')
                     "
                     @click="cancelRun(current, 'current')"
                   >
@@ -518,7 +518,7 @@ onUnmounted(stopPolling);
                     class="confirm-cancel-action"
                     :disabled="cancellingId === run.id"
                     :title="
-                      cancellingId === run.id ? t("workflowPage.k28") : t("workflowPage.k29")
+                      cancellingId === run.id ? t('workflowPage.k28') : t('workflowPage.k29')
                     "
                     @click.stop="cancelRun(run, 'queue')"
                   >
@@ -699,10 +699,10 @@ onUnmounted(stopPolling);
                     :aria-label='t("workflowPage.k39")'
                     :title="
                       cancellingId === run.id
-                        ? t("workflowPage.k28")
+                        ? t('workflowPage.k28')
                         : cancellingId !== null
-                          ? t("workflowPage.k40")
-                          : t("workflowPage.k41")
+                          ? t('workflowPage.k40')
+                          : t('workflowPage.k41')
                     "
                     @click.stop="toggleHistoryCancel(run)"
                   >
@@ -728,8 +728,8 @@ onUnmounted(stopPolling);
                         :disabled="cancellingId === run.id"
                         :title="
                           cancellingId === run.id
-                            ? t("workflowPage.k28")
-                            : t("workflowPage.k29")
+                            ? t('workflowPage.k28')
+                            : t('workflowPage.k29')
                         "
                         @click.stop="cancelRun(run, 'history')"
                       >
@@ -746,10 +746,10 @@ onUnmounted(stopPolling);
                     :aria-label='t("workflowPage.k42")'
                     :title="
                       deletingId === run.id
-                        ? t("workflowPage.k43")
+                        ? t('workflowPage.k43')
                         : deletingId !== null
-                          ? t("workflowPage.k44")
-                          : t("workflowPage.k45")
+                          ? t('workflowPage.k44')
+                          : t('workflowPage.k45')
                     "
                     @click.stop="toggleHistoryDelete(run)"
                   >
@@ -774,8 +774,8 @@ onUnmounted(stopPolling);
                         :disabled="deletingId === run.id"
                         :title="
                           deletingId === run.id
-                            ? t("workflowPage.k43")
-                            : t("workflowPage.k46")
+                            ? t('workflowPage.k43')
+                            : t('workflowPage.k46')
                         "
                         @click.stop="deleteRun(run)"
                       >

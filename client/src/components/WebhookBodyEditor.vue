@@ -21,7 +21,6 @@ const props = withDefaults(
     placeholder: "",
     sample: "",
     height: 220,
-    emptyHint: t("webhookBody.k0"),
     invalid: false,
   }
 );
@@ -32,7 +31,7 @@ let themeObserver: MutationObserver | null = null;
 
 const jsonStatus = computed(() => {
   const raw = props.modelValue.trim();
-  if (!raw) return { kind: "empty", text: props.emptyHint };
+  if (!raw) return { kind: "empty", text: props.emptyHint ?? t("webhookBody.k0") };
   try {
     const value: unknown = JSON.parse(raw);
     if (value === null || typeof value !== "object")

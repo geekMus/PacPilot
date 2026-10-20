@@ -1200,13 +1200,13 @@ async function changeAdminPassword() {
               <div class="chip-row" role="group" :aria-label="t('settings.cronPreset')">
                 <button
                   v-for="p in cronPresets"
-                  :key="p.label"
+                  :key="p.value || p.labelKey"
                   type="button"
                   class="chip"
                   :class="{ active: form.cronSchedule.trim() === p.value }"
                   @click="applyCronPreset(p.value)"
                 >
-                  {{ p.label }}
+                  {{ t(p.labelKey) }}
                 </button>
               </div>
               <div class="field" data-validation-target="cron">
@@ -1338,15 +1338,15 @@ async function changeAdminPassword() {
             saving
               ? t('settings.savingAndGenerating')
               : formErrors.length
-                ? t("settings.validationIssues")
-                : t("settings.saveAndGenerate")
+                ? t('settings.validationIssues')
+                : t('settings.saveAndGenerate')
           "
           :title="
             saving
               ? t('settings.savingAndGenerating')
               : formErrors.length
-                ? t("settings.validationIssues")
-                : t("settings.saveAndGenerate")
+                ? t('settings.validationIssues')
+                : t('settings.saveAndGenerate')
           "
           @click="handleFloatingSaveClick"
         >

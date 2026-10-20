@@ -162,10 +162,10 @@ onMounted(() => {
             :disabled="generating || loading"
             :title="
               loading
-                ? t("dashboard.readingStatus")
+                ? t('dashboard.readingStatus')
                 : generating
-                  ? t("dashboard.generatingStart")
-                  : t("dashboard.generateNow")
+                  ? t('dashboard.generatingStart')
+                  : t('dashboard.generateNow')
             "
             @click="generateNow"
           >

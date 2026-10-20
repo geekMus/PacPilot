@@ -28,11 +28,13 @@ const props = withDefaults(
     emptyText: "",
   }
 );
+const { t } = useI18n();
 const scroller = ref<HTMLElement | null>(null);
 const scrollTop = ref(0);
 const viewportHeight = ref(480);
 const headerHeight = ref(44);
 const overscan = 6;
+const resolvedEmptyText = computed(() => props.emptyText || t("common.noRecords"));
 
 // The sticky header remains in normal table flow. Exclude its height from the
 // virtual row offset so row measurements and scroll position use the same origin.

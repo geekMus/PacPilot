@@ -780,8 +780,8 @@ onUnmounted(() => {
               class="access-reset-wrap"
               :title="
                 hasAccessFilters
-                  ? t("monitor.k35")
-                  : t("monitor.k36")
+                  ? t('monitor.k35')
+                  : t('monitor.k36')
               "
             >
               <button
@@ -998,14 +998,14 @@ onUnmounted(() => {
               "
               :title="
                 probing
-                  ? t("monitor.k41")
+                  ? t('monitor.k41')
                   : savingProxyTestTarget
-                    ? t("monitor.k42")
+                    ? t('monitor.k42')
                     : !proxyTestTargetLoaded
-                      ? t("monitor.k43")
+                      ? t('monitor.k43')
                       : proxyTestTargetChanged
-                        ? t("monitor.k44")
-                        : t("monitor.k45")
+                        ? t('monitor.k44')
+                        : t('monitor.k45')
               "
               @click="runProxyTest"
             >
@@ -1061,10 +1061,10 @@ onUnmounted(() => {
                   :disabled="savingProxyTestTarget || probing"
                   :title="
                     savingProxyTestTarget
-                      ? t("monitor.k42")
+                      ? t('monitor.k42')
                       : probing
-                        ? t("monitor.k49")
-                        : t("monitor.k50")
+                        ? t('monitor.k49')
+                        : t('monitor.k50')
                   "
                   @click="loadProxyTestTarget"
                 >
@@ -1079,12 +1079,12 @@ onUnmounted(() => {
                   :disabled="savingProxyTestTarget || probing || !proxyTestTargetValid"
                   :title="
                     savingProxyTestTarget
-                      ? t("monitor.k42")
+                      ? t('monitor.k42')
                       : probing
-                        ? t("monitor.k49")
+                        ? t('monitor.k49')
                         : !proxyTestTargetValid
-                          ? t("monitor.k51")
-                          : t("monitor.k52")
+                          ? t('monitor.k51')
+                          : t('monitor.k52')
                   "
                   @click="saveProxyTestTarget"
                 >

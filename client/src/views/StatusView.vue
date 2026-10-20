@@ -322,7 +322,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
           {{ t("statusPage.k17") }}<code>/proxy.pac</code>
           {{ t("statusPage.k18") }}
         </p>
-        <RouterLink class="action-button primary" :to="adminEntryt("statusPage.k3")nav.admin") }}</RouterLink>
+        <RouterLink class="action-button primary" :to="adminEntry">{{ t("nav.admin") }}</RouterLink>
       </section>
 
       <template v-else-if="hasRuleSummary">

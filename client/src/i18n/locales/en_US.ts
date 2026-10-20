@@ -1107,6 +1107,13 @@ export default {
     k4: '关闭',
   },
 
+  virtualTable: {
+    loadingMore: "Loading more…",
+    loadNextBatch: "Load next batch",
+    loadedAll: "All {n} records loaded",
+    scrollOrLoad: "Scroll to load more, or",
+  },
+
   domainRuleDiag: {
     unsupportedWildcard: "This wildcard form is not supported; use example.com, *.example.com, or **.example.com.",
     invalidDomain: "Invalid domain. Enter a full domain without protocol, path, port, or spaces; wildcards apply to the domain only.",

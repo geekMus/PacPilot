@@ -104,7 +104,7 @@ const channelStatusText = computed(() => {
         :class="{ 'is-loading': pending }"
         :disabled="pending"
         :title="
-          pending ? t("webhookChannel.k10") : !channelReady ? channelStatusText : t("webhookChannel.k11")
+          pending ? t('webhookChannel.k10') : !channelReady ? channelStatusText : t('webhookChannel.k11')
         "
         @click="emit('test')"
       >

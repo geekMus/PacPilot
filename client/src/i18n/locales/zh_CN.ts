@@ -1101,6 +1101,13 @@ export default {
     k4: '关闭',
   },
 
+  virtualTable: {
+    loadingMore: "正在加载更多…",
+    loadNextBatch: "加载下一批",
+    loadedAll: "已加载全部 {n} 条记录",
+    scrollOrLoad: "滚动以加载更多，或",
+  },
+
   domainRuleDiag: {
     unsupportedWildcard: "不支持此通配符写法；请使用 example.com、*.example.com 或 **.example.com。",
     invalidDomain: "域名格式无效。请填写有效的完整域名，不能包含协议、路径、端口或空格；通配符仅用于域名。",

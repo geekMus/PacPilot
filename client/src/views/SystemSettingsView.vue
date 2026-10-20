@@ -433,10 +433,10 @@ onMounted(() => void load());
             :disabled="loading || maintenanceBusy()"
             :title="
               loading
-                ? t("systemPage.k0")
+                ? t('systemPage.k0')
                 : maintenanceBusy()
                   ? maintenanceDisabledReason
-                  : t("systemPage.k29")
+                  : t('systemPage.k29')
             "
             @click="cleanupLogs"
           >
@@ -461,10 +461,10 @@ onMounted(() => void load());
                 :disabled="loading || maintenanceBusy()"
                 :title="
                   loading
-                    ? t("systemPage.k0")
+                    ? t('systemPage.k0')
                     : maintenanceBusy()
                       ? maintenanceDisabledReason
-                      : t("systemPage.k36")
+                      : t('systemPage.k36')
                 "
                 @click="toggle"
               >
@@ -506,10 +506,10 @@ onMounted(() => void load());
               :disabled="loading || maintenanceBusy()"
               :title="
                 loading
-                  ? t("systemPage.k0")
+                    ? t('systemPage.k0')
                   : maintenanceBusy()
                     ? maintenanceDisabledReason
-                    : t("systemPage.k42")
+                      : t('systemPage.k42')
               "
               @click="toggle"
             >
