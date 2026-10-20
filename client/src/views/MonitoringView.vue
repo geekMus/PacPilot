@@ -103,7 +103,7 @@ function formatAccessHeaders(raw: string | undefined): string {
   try {
     const parsed = JSON.parse(raw) as Record<string, string>;
     const keys = Object.keys(parsed).sort();
-    if (!keys.length) return "（无允许记录的请求头）";
+    if (!keys.length) return "（无请求头）";
     return keys.map((key) => `${key}: ${parsed[key]}`).join("\n");
   } catch {
     return raw;
@@ -645,10 +645,10 @@ onUnmounted(() => {
           v-else
           :items="filteredAccesses"
           item-key="id"
-          :col-span="9"
+          :col-span="8"
           :row-height="58"
           height="520px"
-          min-width="1320px"
+          min-width="1225px"
           table-class="monitor-table"
           :has-more="accessHasMore"
           :loading="accessLoadingMore"
@@ -657,14 +657,14 @@ onUnmounted(() => {
           :load-more="loadMoreAccesses"
         >
           <template #columns>
-            <col style="width: 145px" /><col style="width: 280px" /><col style="width: 90px" /><col style="width: 200px" />
-            <col style="width: 120px" /><col style="width: 85px" /><col style="width: 95px" /><col style="width: 160px" /><col style="width: 72px" />
+            <col style="width: 145px" /><col style="width: 310px" /><col style="width: 90px" /><col style="width: 210px" />
+            <col style="width: 120px" /><col style="width: 85px" /><col style="width: 95px" /><col style="width: 170px" />
           </template>
           <template #header>
-            <tr><th>时间</th><th>来源地址</th><th>类型</th><th>请求路径</th><th>状态</th><th>耗时</th><th>响应大小</th><th>客户端</th><th>详情</th></tr>
+            <tr><th>时间</th><th>来源地址</th><th>类型</th><th>请求路径</th><th>状态</th><th>耗时</th><th>响应大小</th><th>客户端</th></tr>
           </template>
           <template #row="{ item: event }">
-            <tr class="access-row" @click="openAccessDetail(event)">
+            <tr class="access-row" title="点击查看请求详情" @click="openAccessDetail(event)">
               <td class="nowrap">{{ formatDate(event.created_at) }}</td>
               <td><code>{{ event.source_ip || "unknown" }}</code></td>
               <td><span class="category-pill">{{ categoryLabel(event.category) }}</span></td>
@@ -673,15 +673,10 @@ onUnmounted(() => {
               <td class="nowrap">{{ formatDuration(event.duration_ms) }}</td>
               <td class="nowrap">{{ formatBytes(event.response_bytes) }}</td>
               <td class="ua-cell"><span class="ua-preview">{{ event.user_agent || "—" }}</span></td>
-              <td class="access-detail-cell">
-                <button class="monitor-button secondary access-detail-button" type="button" title="查看请求详情" aria-label="查看请求详情" @click.stop="openAccessDetail(event)">
-                  <AppIcon name="eye" :size="14" />
-                </button>
-              </td>
             </tr>
           </template>
         </VirtualTable>
-        <p class="panel-footnote">已加载 {{ accesses.length }} / {{ accessTotal }} 条；筛选只作用于已加载记录。访问日志最多保留 7 天且上限为 5,000 条。点击行或「详情」可查看请求头等完整信息；Cookie 与 Authorization 等敏感头不会入库。</p>
+        <p class="panel-footnote">已加载 {{ accesses.length }} / {{ accessTotal }} 条；筛选只作用于已加载记录。访问日志最多保留 7 天且上限为 5,000 条。点击行可查看完整请求头等信息。</p>
       </section>
 
       <dialog
@@ -743,7 +738,7 @@ onUnmounted(() => {
           <pre>{{ selectedAccess.user_agent || "（无）" }}</pre>
         </div>
         <div class="access-detail-block">
-          <span>请求头（已过滤敏感字段）</span>
+          <span>请求头</span>
           <pre>{{ formatAccessHeaders(selectedAccess.request_headers) }}</pre>
         </div>
       </dialog>

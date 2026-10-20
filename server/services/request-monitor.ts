@@ -7,16 +7,6 @@ import { recordAccessEvent } from "../db/monitoring";
 const tcpSockets = new Set<Socket>();
 let activeRequests = 0;
 
-/** Headers that must never be persisted (credentials / session material). */
-const BLOCKED_HEADER = /^(cookie|cookie2|set-cookie|authorization|proxy-authorization|x-api-key|x-auth-token|x-access-token)$/i;
-
-/**
- * Common diagnostic headers worth keeping. Others are dropped to limit size
- * and avoid accidental capture of custom secret headers.
- */
-const ALLOWED_HEADER =
-  /^(host|user-agent|accept|accept-language|accept-encoding|accept-charset|content-type|content-length|origin|referer|range|if-none-match|if-modified-since|cache-control|connection|upgrade-insecure-requests|sec-fetch-site|sec-fetch-mode|sec-fetch-dest|sec-fetch-user|sec-ch-ua|sec-ch-ua-mobile|sec-ch-ua-platform|dnt|te|priority|x-forwarded-for|x-forwarded-proto|x-real-ip|x-request-id)$/i;
-
 export function trackTcpConnection(socket: Socket): void {
   tcpSockets.add(socket);
   socket.once("close", () => tcpSockets.delete(socket));
@@ -132,17 +122,17 @@ function extractQuery(req: Request): string {
 }
 
 function collectHeaders(req: Request): string {
+  // Full-trust local deployment: persist every request header for diagnostics.
   const out: Record<string, string> = {};
   for (const [name, value] of Object.entries(req.headers)) {
-    if (!value) continue;
-    if (BLOCKED_HEADER.test(name)) continue;
-    if (!ALLOWED_HEADER.test(name)) continue;
+    if (value === undefined) continue;
     const text = Array.isArray(value) ? value.join(", ") : String(value);
-    out[name.toLowerCase()] = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 512);
+    out[name.toLowerCase()] = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 2048);
   }
   try {
     const json = JSON.stringify(out);
-    return json.length > 4000 ? json.slice(0, 4000) : json;
+    // Soft cap so a pathological request cannot balloon the SQLite row.
+    return json.length > 16000 ? json.slice(0, 16000) : json;
   } catch {
     return "{}";
   }

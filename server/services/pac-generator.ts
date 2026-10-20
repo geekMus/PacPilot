@@ -93,10 +93,36 @@ async function compressPac(content: string): Promise<string> {
   return result.code;
 }
 
-function withPacVersionHeader(content: string): string {
-  // 兼容旧版英文头部，读写时统一为中文版本标记。
-  const body = content.replace(/^\/\/ genpac-runner (?:version:|版本[:：]).*(?:\r?\n|$)/i, "");
-  return "// genpac-runner 版本：" + APP_VERSION + "\n" + body.replace(/^\n+/, "");
+function formatPacGeneratedAt(date: Date): string {
+  // ISO UTC plus a readable local stamp for operators browsing the file.
+  const iso = date.toISOString();
+  const local = date.toLocaleString("zh-CN", { hour12: false });
+  return iso + "（本地 " + local + "）";
+}
+
+function stripPacMetaHeaders(content: string): string {
+  return content
+    .replace(/^\/\/ genpac-runner (?:version:|版本[:：]).*(?:\r?\n|$)/gim, "")
+    .replace(/^\/\/ genpac-runner 生成时间[:：].*(?:\r?\n|$)/gim, "")
+    .replace(/^\n+/, "");
+}
+
+/**
+ * Write or refresh PAC file metadata headers.
+ * Pass `generatedAt` when this write is a real generation so operators can see when the rules were produced.
+ * On read-only refresh, omit `generatedAt` to preserve an existing timestamp line.
+ */
+function withPacVersionHeader(content: string, generatedAt?: Date | null): string {
+  const existingGenerated = content.match(/^\/\/ genpac-runner 生成时间[:：]\s*(.+)\s*$/im)?.[1]?.trim() || "";
+  const body = stripPacMetaHeaders(content);
+  const lines = ["// genpac-runner 版本：" + APP_VERSION];
+  const stamp = generatedAt
+    ? formatPacGeneratedAt(generatedAt)
+    : existingGenerated;
+  if (stamp) {
+    lines.push("// genpac-runner 生成时间：" + stamp);
+  }
+  return lines.join("\n") + "\n" + body;
 }
 
 function toJsArray(list: string[], compress: boolean): string {
@@ -181,8 +207,9 @@ async function runRemoteMode(
     settings.directList,
     false
   );
-  const source = withPacVersionHeader(pac);
-  const output = settings.pacCompress ? withPacVersionHeader(await compressPac(pac)) : source;
+  const generatedAt = new Date();
+  const source = withPacVersionHeader(pac, generatedAt);
+  const output = settings.pacCompress ? withPacVersionHeader(await compressPac(pac), generatedAt) : source;
   fs.writeFileSync(path.join(path.dirname(outFile), "proxy.source.pac"), source, "utf8");
   fs.writeFileSync(outFile, output, "utf8");
   const formatLabel = parsed.format === "gfwlist-base64"
@@ -210,8 +237,11 @@ export async function generatePac(
       message = await runRemoteMode(settings, pacPath);
     } else {
       const customPac = buildCustomPac(settings);
-      const source = withPacVersionHeader(customPac);
-      const output = settings.pacCompress ? withPacVersionHeader(await compressPac(customPac)) : source;
+      const generatedAt = new Date();
+      const source = withPacVersionHeader(customPac, generatedAt);
+      const output = settings.pacCompress
+        ? withPacVersionHeader(await compressPac(customPac), generatedAt)
+        : source;
       fs.writeFileSync(path.join(dataDir, "proxy.source.pac"), source, "utf8");
       fs.writeFileSync(pacPath, output, "utf8");
       message = "生成成功（自定义规则模式" + (settings.pacCompress ? "，已压缩" : "，未压缩") + "）";
