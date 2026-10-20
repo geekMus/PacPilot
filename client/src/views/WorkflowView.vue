@@ -218,7 +218,7 @@ const historyClearDisabledReason = computed(() => {
   if (runs.value.length === 0) return t("workflowPage.k15");
   if (deletingId.value !== null) return t("workflowPage.k16");
   if (cancellingId.value !== null) return t("workflowPage.k17");
-  return t("workflowPage.k18");
+  return "";
 });
 
 async function clearWorkflowHistory() {
@@ -499,7 +499,7 @@ onUnmounted(stopPolling);
                 class="workflow-button cancel-button"
                 type="button"
                 :disabled="cancellingId === run.id"
-                :title=t("workflowPage.k27")
+                :title='t("workflowPage.k27")'
                 @click.stop="toggleQueueCancel(run)"
               >
                 <AppIcon name="x" :size="14" /> {{ t("workflowPage.k39") }}
@@ -546,10 +546,10 @@ onUnmounted(stopPolling);
             >
             <ConfirmPopover
               :open="confirmingHistoryClear"
-              title=t("workflowPage.k30")
-              description=t("workflowPage.k31")
-              confirm-text=t("workflowPage.k32")
-              busy-text=t("workflowPage.k33")
+              :title='t("workflowPage.k30")'
+              :description='t("workflowPage.k31")'
+              :confirm-text='t("workflowPage.k32")'
+              :busy-text='t("workflowPage.k33")'
               align="end"
               :disabled="
                 loading ||
@@ -592,13 +592,13 @@ onUnmounted(stopPolling);
           </div>
         </div>
         <p
-          v-if=t("workflowPage.k35")
+          v-if="historyClearDisabledReason"
           class="history-disabled-hint"
           aria-live="polite"
         >
           {{ historyClearDisabledReason }}
         </p>
-        <div class="history-filters" aria-label=t("workflowPage.k36")>
+        <div class="history-filters" :aria-label='t("workflowPage.k36")'>
           <label
             >{{ t("workflowPage.k64") }}
             <SelectField
@@ -635,7 +635,7 @@ onUnmounted(stopPolling);
           :has-more="historyHasMore"
           :loading="historyLoadingMore"
           :error="historyLoadError"
-          empty-text=t("workflowPage.k37")
+          :empty-text='t("workflowPage.k37")'
           :load-more="loadMoreHistory"
         >
           <template #columns
@@ -661,7 +661,7 @@ onUnmounted(stopPolling);
               class="workflow-run-row"
               tabindex="0"
               role="link"
-              :aria-label=t("workflowPage.k38")
+              :aria-label='t("workflowPage.k38")'
               @click="router.push(`/admin/workflows/${run.id}`)"
               @keydown.enter.prevent="router.push(`/admin/workflows/${run.id}`)"
               @keydown.space.prevent="router.push(`/admin/workflows/${run.id}`)"
@@ -696,7 +696,7 @@ onUnmounted(stopPolling);
                     class="row-action-button cancel-button"
                     type="button"
                     :disabled="cancellingId !== null"
-                    aria-label=t("workflowPage.k39")
+                    :aria-label='t("workflowPage.k39")'
                     :title="
                       cancellingId === run.id
                         ? t("workflowPage.k28")
@@ -743,7 +743,7 @@ onUnmounted(stopPolling);
                     type="button"
                     class="row-action-button delete-run-button"
                     :disabled="deletingId !== null"
-                    aria-label=t("workflowPage.k42")
+                    :aria-label='t("workflowPage.k42")'
                     :title="
                       deletingId === run.id
                         ? t("workflowPage.k43")

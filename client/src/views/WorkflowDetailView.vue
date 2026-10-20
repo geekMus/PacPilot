@@ -370,7 +370,7 @@ onUnmounted(() => {
                   <button
                     type="button"
                     class="stage-name-trigger"
-                    title=t("workflowDetailPage.k17")
+                    :title='t("workflowDetailPage.k17")'
                     @click="openStageDetail(stage)"
                   >
                     {{ stage.name }}
@@ -403,7 +403,7 @@ onUnmounted(() => {
         v-if="selectedStage"
         ref="stageDetailDialog"
         class="stage-detail-dialog"
-        aria-label=t("workflowDetailPage.k19")
+        :aria-label='t("workflowDetailPage.k19")'
         @click="handleStageDetailBackdrop"
         @close="onStageDetailClose"
       >
@@ -420,7 +420,7 @@ onUnmounted(() => {
               <button
                 class="stage-detail-btn"
                 type="button"
-                aria-label=t("workflowDetailPage.k20")
+                :aria-label='t("workflowDetailPage.k20")'
                 @click="closeStageDetail"
               >
                 <AppIcon name="x" :size="14" />
@@ -488,7 +488,7 @@ onUnmounted(() => {
               class="cancel-button"
               type="button"
               :disabled="cancelling"
-              :title=t("workflowDetailPage.k21")
+              :title='t("workflowDetailPage.k21")'
               @click="
                 confirmingCancel = !confirmingCancel;
                 confirmingDelete = false;
@@ -511,7 +511,7 @@ onUnmounted(() => {
                   type="button"
                   class="confirm-cancel-action"
                   :disabled="cancelling"
-                  :title=t("workflowDetailPage.k22")
+                  :title='t("workflowDetailPage.k22")'
                   @click="cancelRun"
                 >
                   {{ t("workflowDetailPage.k43") }}

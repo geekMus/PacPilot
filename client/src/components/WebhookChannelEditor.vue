@@ -178,7 +178,7 @@ const channelStatusText = computed(() => {
           language="json"
           :height="126"
           :invalid="Boolean(validationErrors?.headers)"
-          aria-label=t("webhookChannel.k14")
+          :aria-label='t("webhookChannel.k14")'
           placeholder='{"Authorization":"Bearer …"}'
           @update:model-value="update('headers', $event)"
         />
@@ -195,9 +195,9 @@ const channelStatusText = computed(() => {
           :model-value="config.body"
           :height="190"
           :sample="bodySample"
-          empty-hint=t("webhookChannel.k15")
+          :empty-hint='t("webhookChannel.k15")'
           :invalid="Boolean(validationErrors?.body)"
-          placeholder=t("webhookChannel.k16")
+          :placeholder='t("webhookChannel.k16")'
           @update:model-value="update('body', $event)"
         />
         <p v-if="validationErrors?.body" class="field-error" role="alert">
@@ -220,7 +220,7 @@ const channelStatusText = computed(() => {
           :sample="testBodySample"
           :empty-hint="testBodyEmptyHint"
           :invalid="Boolean(validationErrors?.testBody)"
-          placeholder=t("webhookChannel.k17")
+          :placeholder='t("webhookChannel.k17")'
           @update:model-value="update('testBody', $event)"
         />
         <p v-if="validationErrors?.testBody" class="field-error" role="alert">
@@ -241,7 +241,7 @@ const channelStatusText = computed(() => {
           :height="40"
           language="text"
           :invalid="Boolean(validationErrors?.url)"
-          aria-label=t("webhookChannel.k18")
+          :aria-label='t("webhookChannel.k18")'
           placeholder="https://oapi.dingtalk.com/robot/send?access_token=…"
           @update:model-value="update('url', $event)"
         />
@@ -260,13 +260,13 @@ const channelStatusText = computed(() => {
             :type="showDingTalkSecret ? 'text' : 'password'"
             :aria-invalid="Boolean(validationErrors?.secret)"
             autocomplete="new-password"
-            placeholder=t("webhookChannel.k19")
+            :placeholder='t("webhookChannel.k19")'
             @input="update('dingTalkSecret', inputValue($event))"
           />
           <button
             type="button"
             class="reveal-button"
-            :aria-label=t("webhookChannel.k20")
+            :aria-label='t("webhookChannel.k20")'
             :aria-pressed="showDingTalkSecret"
             @click="showDingTalkSecret = !showDingTalkSecret"
           >
@@ -311,8 +311,8 @@ const channelStatusText = computed(() => {
           :model-value="config.messageTemplate"
           language="text"
           :height="148"
-          aria-label=t("webhookChannel.k23")
-          placeholder=t("webhookChannel.k24")
+          :aria-label='t("webhookChannel.k23")'
+          :placeholder='t("webhookChannel.k24")'
           @update:model-value="update('messageTemplate', $event)"
         />
         <p class="field-hint">
@@ -330,8 +330,8 @@ const channelStatusText = computed(() => {
           :model-value="config.testMessageTemplate"
           language="text"
           :height="112"
-          aria-label=t("webhookChannel.k25")
-          placeholder=t("webhookChannel.k26")
+          :aria-label='t("webhookChannel.k25")'
+          :placeholder='t("webhookChannel.k26")'
           @update:model-value="update('testMessageTemplate', $event)"
         />
         <p class="field-hint">{{ t("webhookChannel.k53") }}</p>

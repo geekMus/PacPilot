@@ -134,7 +134,7 @@ watch(
           type="button"
           class="editor-action"
           :disabled="!canFormat"
-          :title=t("webhookBody.k4")
+          :title='t("webhookBody.k4")'
           @click="formatJson"
         >
           {{ t("webhookBody.k5") }}

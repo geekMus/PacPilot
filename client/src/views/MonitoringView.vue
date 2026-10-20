@@ -447,8 +447,8 @@ onUnmounted(() => {
 <template>
   <AdminLayout
     active="monitor"
-    title=t("monitor.k24")
-    subtitle=t("monitor.k25")
+    :title='t("monitor.k24")'
+    :subtitle='t("monitor.k25")'
   >
     <template #actions>
       <span v-if="lastUpdated" class="monitor-top-updated">
@@ -460,7 +460,7 @@ onUnmounted(() => {
         :class="{ 'is-loading': refreshing }"
         type="button"
         :disabled="refreshing"
-        :title=t("monitor.k26")
+        :title='t("monitor.k26")'
         @click="refreshDashboard()"
       >
         <AppIcon
@@ -615,7 +615,7 @@ onUnmounted(() => {
             mode="count"
             :points="summary!.pacRequestTrend"
             :time-zone="timeZone"
-            aria-label=t("monitor.k29")
+            :aria-label='t("monitor.k29")'
           />
           <div v-else class="monitor-empty">{{ t("monitor.k85") }}</div>
           <div class="trend-legend">
@@ -631,7 +631,7 @@ onUnmounted(() => {
             mode="latency"
             :points="summary!.pacRequestTrend"
             :time-zone="timeZone"
-            aria-label=t("monitor.k30")
+            :aria-label='t("monitor.k30")'
           />
           <div v-else class="pac-no-latest">
             {{ t("monitor.k90") }}
@@ -642,7 +642,7 @@ onUnmounted(() => {
           <h2><AppIcon name="activity" :size="17" />{{ t("monitor.k31") }}</h2>
           <p>{{ t("monitor.k91") }}</p>
         </div>
-        <section class="metric-grid" aria-label=t("monitor.k31")>
+        <section class="metric-grid" :aria-label='t("monitor.k31")'>
           <article class="metric-card">
             <span class="metric-label"><AppIcon name="activity" :size="15" />{{ t("monitor.k92") }}</span>
             <strong class="metric-value">{{ summary?.activeRequests ?? 0 }}</strong>
@@ -711,7 +711,7 @@ onUnmounted(() => {
             mode="count"
             :points="summary.requestTrend"
             :time-zone="timeZone"
-            aria-label=t("monitor.k32")
+            :aria-label='t("monitor.k32")'
           />
           <div v-else class="monitor-empty">
             {{ t("monitor.k108") }}
@@ -740,13 +740,13 @@ onUnmounted(() => {
             <strong>{{ t("monitor.k114") }}</strong>{{ t("monitor.k115") }}
           </div>
 
-          <div class="access-filters" aria-label=t("monitor.k33")>
+          <div class="access-filters" :aria-label='t("monitor.k33")'>
             <label class="access-filter search-filter">
               <span>{{ t("monitor.k116") }}</span>
               <input
                 v-model="accessKeyword"
                 type="search"
-                placeholder=t("monitor.k34")
+                :placeholder='t("monitor.k34")'
                 autocomplete="off"
               />
             </label>
@@ -808,7 +808,7 @@ onUnmounted(() => {
             :has-more="accessHasMore"
             :loading="accessLoadingMore"
             :error="accessLoadError"
-            :empty-text=t("monitor.k37")
+            :empty-text='t("monitor.k37")'
             :load-more="loadMoreAccesses"
           >
             <template #columns>
@@ -834,7 +834,7 @@ onUnmounted(() => {
               </tr>
             </template>
             <template #row="{ item: event }">
-              <tr class="access-row" title=t("monitor.k38") @click="openAccessDetail(event)">
+              <tr class="access-row" :title='t("monitor.k38")' @click="openAccessDetail(event)">
                 <td class="nowrap">{{ formatDate(event.created_at) }}</td>
                 <td>
                   <code>{{ event.source_ip || "unknown" }}</code>
@@ -877,7 +877,7 @@ onUnmounted(() => {
           v-if="selectedAccess"
           ref="accessDetailDialog"
           class="access-detail-dialog"
-          aria-label=t("monitor.k39")
+          :aria-label='t("monitor.k39")'
           @click="handleAccessDetailBackdrop"
           @close="onAccessDetailClose"
         >
@@ -893,7 +893,7 @@ onUnmounted(() => {
               <button
                 class="monitor-button secondary"
                 type="button"
-                aria-label=t("monitor.k40")
+                :aria-label='t("monitor.k40")'
                 @click="closeAccessDetail"
               >
                 <AppIcon name="x" :size="14" />
@@ -1046,7 +1046,7 @@ onUnmounted(() => {
                   class="monitor-button secondary is-loading"
                   type="button"
                   disabled
-                  title=t("monitor.k48")
+                  :title='t("monitor.k48")'
                   aria-live="polite"
                 >
                   <AppIcon name="loader-circle" class="icon-spinning" :size="14" />
@@ -1219,7 +1219,7 @@ onUnmounted(() => {
             :has-more="probeHistoryHasMore"
             :loading="probeHistoryLoading"
             :error="probeHistoryLoadError"
-            empty-text=t("monitor.k57")
+            :empty-text='t("monitor.k57")'
             :load-more="() => loadProbeHistory(false)"
           >
             <template #columns
@@ -1261,8 +1261,8 @@ onUnmounted(() => {
                 <td class="probe-history-error">
                   <TextDetail
                     v-if="!item.success"
-                    :text=t("monitor.k59")
-                    label=t("monitor.k60")
+                    :text='t("monitor.k59")'
+                    :label='t("monitor.k60")'
                   /><span v-else>—</span>
                 </td>
               </tr>

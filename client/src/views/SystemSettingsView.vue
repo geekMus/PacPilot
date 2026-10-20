@@ -381,10 +381,10 @@ onMounted(() => void load());
         </p>
         <ConfirmPopover
           :open="confirmationOpen.deletePacFiles"
-          title=t("systemPage.k25")
-          description=t("systemPage.k26")
-          confirm-text=t("systemPage.k27")
-          busy-text=t("systemPage.k28")
+          :title='t("systemPage.k25")'
+          :description='t("systemPage.k26")'
+          :confirm-text='t("systemPage.k27")'
+          :busy-text='t("systemPage.k28")'
           align="start"
           :disabled="
             loading ||
@@ -444,10 +444,10 @@ onMounted(() => void load());
             {{ cleaning ? t("systemPage.k30") : t("systemPage.k31") }}</button
           ><ConfirmPopover
             :open="confirmationOpen.clearLogs"
-            title=t("systemPage.k32")
-            description=t("systemPage.k33")
-            confirm-text=t("systemPage.k34")
-            busy-text=t("systemPage.k35")
+            :title='t("systemPage.k32")'
+            :description='t("systemPage.k33")'
+            :confirm-text='t("systemPage.k34")'
+            :busy-text='t("systemPage.k35")'
             :disabled="loading || maintenanceBusy()"
             :disabled-reason="maintenanceDisabledReason"
             :busy="clearingLogs"
@@ -488,10 +488,10 @@ onMounted(() => void load());
         </div>
         <ConfirmPopover
           :open="confirmationOpen.factoryReset"
-          title=t("systemPage.k38")
-          description=t("systemPage.k39")
-          confirm-text=t("systemPage.k40")
-          busy-text=t("systemPage.k41")
+          :title='t("systemPage.k38")'
+          :description='t("systemPage.k39")'
+          :confirm-text='t("systemPage.k40")'
+          :busy-text='t("systemPage.k41")'
           align="start"
           :disabled="loading || maintenanceBusy()"
           :disabled-reason="maintenanceDisabledReason"

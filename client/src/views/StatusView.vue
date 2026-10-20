@@ -280,7 +280,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
           :class="{ 'is-loading': loading }"
           @click="loadStatus"
           :disabled="loading"
-          :title=t("statusPage.k0")
+          :title='t("statusPage.k0")'
         >
           <AppIcon
             :name="loading ? 'loader-circle' : 'refresh-cw'"
@@ -374,14 +374,14 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               inputmode="url"
               autocomplete="off"
               spellcheck="false"
-              aria-label=t("statusPage.k5")
-              placeholder=t("statusPage.k6")
+              :aria-label='t("statusPage.k5")'
+              :placeholder='t("statusPage.k6")'
             />
             <button
               type="submit"
               class="action-button primary"
               :disabled="!domainInput.trim()"
-              :title=t("statusPage.k7")
+              :title='t("statusPage.k7")'
             >
               {{ t("statusPage.k32") }}
             </button>
@@ -440,7 +440,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
             /></RouterLink>
           </div>
 
-          <div class="rule-tabs" role="tablist" aria-label=t("statusPage.k8")>
+          <div class="rule-tabs" role="tablist" :aria-label='t("statusPage.k8")'>
             <button
               type="button"
               role="tab"
@@ -471,7 +471,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               </p>
               <RuleVirtualList
                 :items="directEntries"
-                empty-text=t("statusPage.k9")
+                :empty-text='t("statusPage.k9")'
                 :height="300"
               />
             </template>
@@ -479,7 +479,7 @@ const domainRoute = computed<DomainRouteResult | null>(() => {
               <p class="rule-description">
                 {{ t("statusPage.k41") }}
               </p>
-              <RuleVirtualList :items="blockEntries" empty-text=t("statusPage.k10") :height="300" />
+              <RuleVirtualList :items="blockEntries" :empty-text='t("statusPage.k10")' :height="300" />
             </template>
           </div>
         </section>
