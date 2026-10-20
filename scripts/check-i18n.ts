@@ -42,6 +42,11 @@ function assertLocaleParity(): void {
 
 function assertTranslationReferences(): void {
   const catalogs = [flattenCatalog(zh_CN), flattenCatalog(en_US)];
+  const templateMessageKeys = new Set(
+    [...catalogs[0]]
+      .filter(([, message]) => /\{\{[^{}]+\}\}/.test(message))
+      .map(([key]) => key)
+  );
   const sourceRoot = path.resolve(import.meta.dir, "../client/src");
   const sourceFiles: string[] = [];
 
@@ -62,6 +67,11 @@ function assertTranslationReferences(): void {
       const key = match[1];
       if (!catalogs.every((catalog) => catalog.has(key))) {
         missing.add(`${path.relative(sourceRoot, file)}: ${key}`);
+      }
+      if (templateMessageKeys.has(key)) {
+        throw new Error(
+          `模板占位符翻译不能通过 t() 解析：${path.relative(sourceRoot, file)}: ${key}；请使用 tm()`
+        );
       }
     }
   }

@@ -6,7 +6,7 @@ import AppIcon from "./AppIcon.vue";
 import SelectField from "./SelectField.vue";
 import WebhookBodyEditor from "./WebhookBodyEditor.vue";
 import CodeMirrorField from "./CodeMirrorField.vue";
-const { t } = useI18n();
+const { t, tm } = useI18n();
 
 type WebhookValidationErrors = Partial<
   Record<"url" | "headers" | "body" | "testBody" | "secret", string>
@@ -336,7 +336,7 @@ const channelStatusText = computed(() => {
           language="text"
           :height="148"
           :aria-label="t('webhookChannel.k23')"
-          :placeholder="t('webhookChannel.k24')"
+          :placeholder="String(tm('webhookChannel.k24'))"
           @update:model-value="update('messageTemplate', $event)"
         />
         <p class="field-hint">
@@ -358,7 +358,7 @@ const channelStatusText = computed(() => {
           language="text"
           :height="112"
           :aria-label="t('webhookChannel.k25')"
-          :placeholder="t('webhookChannel.k26')"
+          :placeholder="String(tm('webhookChannel.k26'))"
           @update:model-value="update('testMessageTemplate', $event)"
         />
         <p class="field-hint">{{ t("webhookChannel.k53") }}</p>
