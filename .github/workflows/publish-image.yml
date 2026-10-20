@@ -66,7 +66,7 @@ jobs:
             -H "Accept: $MANIFEST_ACCEPT" \
             'https://ghcr.io/v2/geekmus/genpac-runner/manifests/latest')"
           PREVIOUS_VERSION=""
-          PREVIOUS_REVISION=""
+          PREVIOUS_IMAGE_REVISION=""
           if [[ "$MANIFEST_STATUS" == "200" ]]; then
             if jq -e '.manifests | type == "array"' "$RUNNER_TEMP/latest-manifest.json" >/dev/null; then
               IMAGE_MANIFEST_DIGEST="$(jq -er '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == "arm64")][0].digest' "$RUNNER_TEMP/latest-manifest.json")"
@@ -88,7 +88,7 @@ jobs:
               "https://ghcr.io/v2/geekmus/genpac-runner/blobs/$CONFIG_DIGEST" \
               -o "$RUNNER_TEMP/latest-config.json"
             PREVIOUS_VERSION="$(jq -r '.config.Labels["org.opencontainers.image.version"] // empty' "$RUNNER_TEMP/latest-config.json")"
-            PREVIOUS_REVISION="$(jq -r '.config.Labels["org.opencontainers.image.revision"] // empty' "$RUNNER_TEMP/latest-config.json")"
+            PREVIOUS_IMAGE_REVISION="$(jq -r '.config.Labels["org.opencontainers.image.revision"] // empty' "$RUNNER_TEMP/latest-config.json")"
             if [[ -z "$PREVIOUS_VERSION" ]]; then
               echo "::error::GHCR latest 镜像缺少 org.opencontainers.image.version 标签，无法判断是否需要发布。"
               exit 1
@@ -100,8 +100,8 @@ jobs:
 
           CHANGELOG_RANGE=""
           CHANGELOG_PREFIX="最近提交"
-          if [[ "$PREVIOUS_REVISION" =~ ^[0-9a-f]{40}$ ]] && git cat-file -e "$PREVIOUS_REVISION^{commit}" 2>/dev/null; then
-            CHANGELOG_RANGE="$PREVIOUS_REVISION..$GITHUB_SHA"
+          if [[ "$PREVIOUS_IMAGE_REVISION" =~ ^[0-9a-f]{40}$ ]] && git cat-file -e "$PREVIOUS_IMAGE_REVISION^{commit}" 2>/dev/null; then
+            CHANGELOG_RANGE="$PREVIOUS_IMAGE_REVISION..$GITHUB_SHA"
             CHANGELOG_PREFIX="相对上一镜像的变更"
           fi
           if [[ -n "$CHANGELOG_RANGE" ]]; then
@@ -145,11 +145,11 @@ jobs:
               CURRENT_DATE="${VERSION%%-[rR]*}"
               PREVIOUS_DATE="${PREVIOUS_VERSION%%-[rR]*}"
               CURRENT_REVISION="0"
-              PREVIOUS_REVISION="0"
+              PREVIOUS_VERSION_SEQUENCE="0"
               [[ "$VERSION" == *-[rR]* ]] && CURRENT_REVISION="${VERSION##*-[rR]}"
-              [[ "$PREVIOUS_VERSION" == *-[rR]* ]] && PREVIOUS_REVISION="${PREVIOUS_VERSION##*-[rR]}"
+              [[ "$PREVIOUS_VERSION" == *-[rR]* ]] && PREVIOUS_VERSION_SEQUENCE="${PREVIOUS_VERSION##*-[rR]}"
 
-              if [[ "$CURRENT_DATE" == "$PREVIOUS_DATE" ]] && (( 10#$CURRENT_REVISION <= 10#$PREVIOUS_REVISION )); then
+              if [[ "$CURRENT_DATE" == "$PREVIOUS_DATE" ]] && (( 10#$CURRENT_REVISION <= 10#$PREVIOUS_VERSION_SEQUENCE )); then
                 echo "::error::同一天的修订序号必须递增：上一版本为 $PREVIOUS_VERSION，本次为 $VERSION。"
                 exit 1
               fi
@@ -169,7 +169,7 @@ jobs:
           {
             echo "version=$VERSION"
             echo "previous_version=$PREVIOUS_VERSION"
-            echo "previous_revision=$PREVIOUS_REVISION"
+            echo "previous_revision=$PREVIOUS_IMAGE_REVISION"
             echo "publish=$PUBLISH"
             echo "publish_latest=$PUBLISH_LATEST"
             echo "reason=$REASON"
@@ -229,7 +229,7 @@ jobs:
           else
             {
               printf '\n## 提交记录\n\n'
-              printf '未找到上一版本提交，以下列出最近的提交。\n\n'
+              printf '未找到上一镜像对应的源码提交，以下列出最近的提交。\n\n'
             } >> "$SUMMARY"
             git log -10 --first-parent --no-decorate --format="- [%h](https://github.com/${GITHUB_REPOSITORY}/commit/%H) %s" "$GITHUB_SHA" >> "$SUMMARY"
           fi
