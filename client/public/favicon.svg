@@ -1,20 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="genpac-runner">
-  <defs>
-    <linearGradient id="g" x1="12" y1="8" x2="52" y2="56" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#4a6cf0"/>
-      <stop offset="1" stop-color="#2b46c4"/>
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="14" fill="url(#g)"/>
-  <!-- outer ring: network -->
-  <circle cx="32" cy="32" r="18" fill="none" stroke="#ffffff" stroke-width="2.4" opacity="0.92"/>
-  <!-- route nodes -->
-  <circle cx="32" cy="16" r="3.2" fill="#ffffff"/>
-  <circle cx="48" cy="32" r="3.2" fill="#ffffff"/>
-  <circle cx="32" cy="48" r="3.2" fill="#ffffff"/>
-  <circle cx="16" cy="32" r="3.2" fill="#ffffff"/>
-  <!-- PAC / proxy path -->
-  <path d="M22 28c4-8 16-8 20 0" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
-  <path d="M22 36c4 8 16 8 20 0" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" opacity="0.75"/>
-  <circle cx="32" cy="32" r="4.5" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="genpac-runner">
+  <rect width="32" height="32" rx="8" fill="#3556d8"/>
+  <circle cx="12" cy="16" r="2.75" fill="#ffffff"/>
+  <path d="M5 16h4.2" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M14.2 14.6c2.2-2.8 5.4-4.2 9.3-4.2" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M21.4 8.2l2.4 2.2 2.2-2.6" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M14.2 17.4c2.2 2.8 5.4 4.2 9.3 4.2" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" opacity="0.85"/>
+  <circle cx="25.2" cy="21.6" r="1.9" fill="#ffffff" opacity="0.9"/>
 </svg>

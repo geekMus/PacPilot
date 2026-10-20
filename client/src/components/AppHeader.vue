@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ThemeSwitcher from "./ThemeSwitcher.vue";
-import AppIcon from "./AppIcon.vue";
+import BrandMark from "./BrandMark.vue";
 
 defineProps<{ brand?: string; sub?: string }>();
 </script>
@@ -8,7 +8,7 @@ defineProps<{ brand?: string; sub?: string }>();
 <template>
   <header class="topbar">
     <div class="brand" aria-label="genpac-runner 项目名称">
-      <span class="brand-mark" aria-hidden="true"><AppIcon name="network" :size="18" :stroke-width="1.8" /></span>
+      <BrandMark :size="36" />
       <span class="brand-copy">
         <span class="name">{{ brand || "genpac-runner" }}</span>
         <small v-if="sub">{{ sub }}</small>
@@ -24,7 +24,6 @@ defineProps<{ brand?: string; sub?: string }>();
 <style scoped>
 .topbar { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:var(--space-5); }
 .brand { display:flex; align-items:center; gap:10px; color:var(--text); text-decoration:none; flex:0 0 auto; }
-.brand-mark { display:grid; place-items:center; width:36px; height:36px; border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line)); border-radius:11px; background:var(--accent-soft); color:var(--accent); box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 3px 9px color-mix(in srgb,var(--accent) 8%,transparent); }
 .brand-copy .name { display:block; font-size:14px; font-weight:750; letter-spacing:-.02em; }
 .brand-copy small { display:block; margin-top:1px; color:var(--muted); font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
 .header-tools { display:flex; align-items:center; justify-content:flex-end; gap:10px; min-width:0; }
@@ -44,12 +43,8 @@ defineProps<{ brand?: string; sub?: string }>();
   border-color:var(--accent-active);
   color:var(--accent-contrast);
 }
-.nav :deep(a:not(.primary):active),.nav :deep(button.linkish:active) {
-  background:var(--accent-soft);
-  border-color:var(--accent);
-  color:var(--accent);
-  text-decoration:none;
+@media (max-width: 720px) {
+  .topbar { flex-wrap:wrap; gap:12px; }
+  .header-tools { width:100%; justify-content:space-between; }
 }
-@media(max-width:720px) { .topbar { align-items:flex-start; flex-direction:column; gap:12px; } .header-tools { width:100%; justify-content:space-between; align-items:center; flex-wrap:wrap; } .nav { justify-content:flex-start; } }
-@media(max-width:400px) { .nav :deep(a),.nav :deep(button.linkish) { min-height:36px; padding:0 9px; font-size:11px; } }
 </style>

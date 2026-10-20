@@ -5,6 +5,7 @@ import { api } from "../api/client";
 import { fetchAdminSession, invalidateAdminSessionCache } from "../composables/useAdminSession";
 import { useToast } from "../composables/useToast";
 import AppIcon from "./AppIcon.vue";
+import BrandMark from "./BrandMark.vue";
 import ThemeSwitcher from "./ThemeSwitcher.vue";
 
 type AdminSection = "dashboard" | "settings" | "system-settings" | "monitor" | "workflow";
@@ -80,7 +81,7 @@ watch(() => route.fullPath, () => {
 
     <aside class="admin-sidebar" :class="{ 'is-open': menuOpen }">
       <div class="sidebar-brand" aria-label="genpac-runner 项目名称">
-        <span class="brand-mark" aria-hidden="true"><AppIcon name="network" :size="20" :stroke-width="1.8" /></span>
+        <BrandMark :size="40" />
         <span class="brand-copy">
           <strong>genpac-runner</strong>
           <small>管理控制台</small>
@@ -256,7 +257,7 @@ watch(() => route.fullPath, () => {
   background: var(--surface);
 }
 .sidebar-brand { display:flex; align-items:center; gap:11px; margin:0 8px 26px; color:var(--text); text-decoration:none; }
-.brand-mark { display:grid; place-items:center; flex:0 0 40px; width:40px; height:40px; border:1px solid color-mix(in srgb,var(--accent) 23%,var(--line)); border-radius:13px; color:var(--accent); background:var(--accent-soft); box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 3px 9px color-mix(in srgb,var(--accent) 8%,transparent); }
+
 .brand-copy { min-width:0; }
 .brand-copy strong { display:block; font-size:14px; font-weight:800; letter-spacing:-.035em; }
 .brand-copy small { display:block; margin-top:3px; color:var(--muted); font-size:10px; font-weight:700; letter-spacing:.12em; }
