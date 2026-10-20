@@ -491,6 +491,7 @@ onUnmounted(() => {
         </div>
         <ResponsiveTrendChart
           v-if="(summary?.pacRequestsLast24h ?? 0) > 0"
+          mode="count"
           :points="summary!.pacRequestTrend"
           :time-zone="timeZone"
           aria-label="最近 24 小时 PAC 文件请求量和失败请求量"
@@ -504,13 +505,15 @@ onUnmounted(() => {
           <strong><AppIcon name="timer" :size="15" />每小时平均响应耗时</strong>
           <span>单位：毫秒 · 近 24 小时</span>
         </div>
-        <div v-if="(summary?.pacRequestsLast24h ?? 0) > 0" class="pac-latency-chart" role="img" aria-label="最近 24 小时 PAC 文件每小时平均响应耗时">
-          <div v-for="point in summary!.pacRequestTrend" :key="point.hour" class="pac-latency-column" :title="formatTrendHour(point.hour) + ' · 平均 ' + formatDuration(point.averageResponseMs) + ' · ' + point.requests + ' 次请求'">
-            <div class="pac-latency-track">
-              <div v-if="point.averageResponseMs > 0" class="pac-latency-bar" :style="{ height: (point.averageResponseMs / maxPacLatency * 100) + '%' }"></div>
-            </div>
-            <span>{{ formatTrendHour(point.hour) }}</span>
-          </div>
+        <ResponsiveTrendChart
+          v-if="(summary?.pacRequestsLast24h ?? 0) > 0 && summary?.pacRequestTrend?.length"
+          mode="latency"
+          :points="summary!.pacRequestTrend"
+          :time-zone="timeZone"
+          aria-label="最近 24 小时 PAC 文件每小时平均响应耗时"
+        />
+        <div v-if="(summary?.pacRequestsLast24h ?? 0) > 0 && summary?.pacRequestTrend?.length" class="trend-legend">
+          <span><i class="legend-swatch request-swatch"></i>平均响应耗时</span>
         </div>
         <div v-else class="pac-no-latest">暂无足够的 PAC 请求数据，后续会逐步形成响应耗时趋势。</div>
       </section>
@@ -574,6 +577,7 @@ onUnmounted(() => {
         </div>
         <ResponsiveTrendChart
           v-if="summary?.requestTrend?.length"
+          mode="count"
           :points="summary.requestTrend"
           :time-zone="timeZone"
           aria-label="最近 24 小时按小时统计的请求量和错误请求量"
@@ -1170,5 +1174,44 @@ onUnmounted(() => {
   display:inline-flex;
   align-items:center;
   gap:5px;
+}
+
+.trend-legend{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:10px 16px;
+  margin-top:12px;
+  color:var(--muted);
+  font-size:11px;
+}
+.legend-swatch{
+  display:inline-block;
+  width:10px;
+  height:10px;
+  margin-right:6px;
+  border-radius:3px;
+  vertical-align:middle;
+}
+.request-swatch{background:var(--accent);}
+.error-swatch{background:var(--red);}
+.trend-sample-note{color:var(--muted); opacity:.9;}
+.pac-latency-heading{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+  margin:18px 0 10px;
+  flex-wrap:wrap;
+}
+.pac-latency-heading strong{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  font-size:13px;
+}
+.pac-latency-heading span{color:var(--muted); font-size:11px;}
+@media(max-width:560px){
+  .trend-legend{gap:8px 12px; margin-top:10px;}
 }
 </style>
