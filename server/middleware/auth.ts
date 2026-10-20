@@ -37,7 +37,7 @@ export function verifySessionToken(token: string | undefined, secret: string): b
 export function setSessionCookie(res: Response, token: string, secure: boolean): void {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: secure ? "none" : "lax",
     secure,
     maxAge: SESSION_TTL_MS,
     path: "/",
@@ -104,50 +104,6 @@ export function recordLoginFailure(req: Request): void {
 
 export function clearLoginFailures(req: Request): void {
   loginFailures.delete(clientKey(req));
-}
-
-function isLoopbackHostname(hostname: string): boolean {
-  const host = hostname
-    .trim()
-    .toLowerCase()
-    .replace(/^\[|\]$/g, "");
-  if (!host) return false;
-  if (host === "localhost" || host.endsWith(".localhost")) return true;
-  if (host === "127.0.0.1" || host.startsWith("127.")) return true;
-  if (host === "::1" || host === "0:0:0:0:0:0:0:1") return true;
-  return false;
-}
-
-/**
- * Reject cross-site state-changing requests that carry a foreign Origin.
- * Same-origin SPA posts are allowed; missing Origin is tolerated for non-browser clients.
- * Loopback hosts (localhost / 127.0.0.1 / ::1) are always allowed so local tools
- * and mixed localhost vs 127.0.0.1 access are not blocked.
- */
-export function assertSameOrigin(req: Request): string | null {
-  const origin = String(req.headers.origin || "").trim();
-  if (!origin) return null;
-  try {
-    const incoming = new URL(origin);
-    const hostHeader = String(req.headers.host || "")
-      .trim()
-      .toLowerCase();
-    if (!hostHeader) return null;
-    const originHost = incoming.host.toLowerCase();
-    const hostNameOnly = hostHeader.split(":")[0];
-    const originName = incoming.hostname.toLowerCase();
-
-    if (isLoopbackHostname(originName) || isLoopbackHostname(hostNameOnly)) {
-      return null;
-    }
-
-    if (originHost !== hostHeader && originName !== hostNameOnly) {
-      return "拒绝跨站请求。";
-    }
-  } catch {
-    return "请求来源无效。";
-  }
-  return null;
 }
 
 export { COOKIE_NAME };

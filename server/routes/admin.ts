@@ -16,7 +16,6 @@ import {
 import type { AppSettings, GenerationMode } from "../db/settings";
 import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../db/settings";
 import {
-  assertSameOrigin,
   checkLoginRateLimit,
   clearLoginFailures,
   clearSessionCookie,
@@ -147,11 +146,6 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
     })
   );
   router.post("/api/admin/login", (req, res) => {
-    const originError = assertSameOrigin(req);
-    if (originError) {
-      res.status(403).json({ error: originError });
-      return;
-    }
     if (isAdminCredentialsMissing(database)) {
       res.status(428).json({ error: "setup_required" });
       return;
@@ -174,20 +168,10 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
     res.json({ ok: true });
   });
   router.post("/api/admin/logout", (req, res) => {
-    const originError = assertSameOrigin(req);
-    if (originError) {
-      res.status(403).json({ error: originError });
-      return;
-    }
     clearSessionCookie(res);
     res.json({ ok: true });
   });
   router.post("/api/admin/password", requireAdmin(database), (req, res) => {
-    const originError = assertSameOrigin(req);
-    if (originError) {
-      res.status(403).json({ error: originError });
-      return;
-    }
     try {
       changeAdminPassword(
         database,

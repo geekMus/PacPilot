@@ -18,11 +18,26 @@ export function createApp(env: EnvConfig, database: AppDatabase): express.Applic
   app.set("trust proxy", 1);
 
   app.use((_req, res, next) => {
+    const origin = _req.get("Origin");
+    if (origin) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+      res.vary("Origin");
+    }
+    res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS");
+    const requestedHeaders = _req.get("Access-Control-Request-Headers");
+    if (requestedHeaders) {
+      res.setHeader("Access-Control-Allow-Headers", requestedHeaders);
+      res.vary("Access-Control-Request-Headers");
+    }
+    if (_req.method === "OPTIONS") {
+      res.sendStatus(204);
+      return;
+    }
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
     next();
   });
 
