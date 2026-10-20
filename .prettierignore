@@ -1,0 +1,26 @@
+# dependencies & build
+node_modules
+dist
+coverage
+data
+
+# lockfiles & env
+bun.lock
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.env
+.env.*
+
+# generated / binary
+*.min.js
+*.min.css
+*.db
+*.db-journal
+client/public/**/*.png
+client/public/**/*.ico
+client/public/**/*.svg
+
+# IDE
+.idea
+.vscode

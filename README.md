@@ -216,4 +216,11 @@ Copy-Item .env.example .env
 bun run dev
 ```
 
-开发服务器默认监听后端 `17321`，前端开发页面为 `http://127.0.0.1:5173`。生产构建可运行 `bun run typecheck` 检查类型，再运行 `bun run build` 并执行 `bun start`。业务设置、时区和管理密码保存在 SQLite，不通过环境变量维护。
+开发服务器默认监听后端 `17321`，前端开发页面为 `http://127.0.0.1:5173`。生产构建可运行 `bun run typecheck
+
+```bash
+# 格式化源码（Prettier）
+bun run format
+# 仅检查格式是否符合规范
+bun run format:check
+```` 检查类型，再运行 `bun run build` 并执行 `bun start`。业务设置、时区和管理密码保存在 SQLite，不通过环境变量维护。
