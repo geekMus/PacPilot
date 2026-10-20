@@ -8,11 +8,8 @@ COPY package.json bunfig.toml ./
 RUN echo "正在安装构建阶段依赖并生成本次构建锁文件……" \
  && bun install
 
-COPY tsconfig.json ./
-COPY server ./server
-COPY client ./client
-COPY scripts ./scripts
-COPY shared ./shared
+# 完整复制项目源码；由 .dockerignore 排除本机依赖、数据和构建产物。
+COPY . .
 
 RUN echo "正在检查 TypeScript 类型并编译前端资源……" && bun run typecheck && bun run build:client
 
@@ -30,8 +27,8 @@ COPY --from=builder /app/bun.lock ./bun.lock
 RUN echo "正在按构建锁文件安装运行阶段依赖……" \
  && bun install --production --frozen-lockfile
 
-COPY server ./server
-COPY scripts ./scripts
+# 运行镜像保留完整项目源码，避免遗漏服务端运行时导入的共享模块。
+COPY . .
 COPY --from=builder /app/dist ./dist
 
 ENV HOST=0.0.0.0 \
