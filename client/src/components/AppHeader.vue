@@ -12,7 +12,7 @@ const { t } = useI18n();
     <div class="brand" :aria-label="t('app.projectName')">
       <BrandMark :size="36" />
       <span class="brand-copy">
-        <span class="name">{{ brand || "genpac-runner" }}</span>
+        <span class="name">{{ brand || "PacPilot" }}</span>
         <small v-if="sub">{{ sub }}</small>
       </span>
     </div>
