@@ -10,7 +10,6 @@ import { startPacWorkflow } from "../services/workflow";
 import { reschedule } from "../services/scheduler";
 import { sendWebhookTest, validateWebhookConfig } from "../services/webhook";
 import cron from "node-cron";
-import { parseProxyTestUrl, ProxyProbeError } from "../services/proxy-probe";
 import { resolveLocale, t as serverT } from "../../shared/i18n";
 import { assertSafeHttpUrl } from "../utils/url-safety";
 import { validateSettingsPayload } from "../utils/settings-validation";
@@ -36,8 +35,7 @@ function validTimeZone(v: string): boolean {
   }
 }
 function bodyToSettings(
-  b: Record<string, unknown>,
-  fallbackProxyTestUrl = DEFAULT_SETTINGS.proxyTestUrl
+  b: Record<string, unknown>
 ): AppSettings {
   const m = String(b.mode ?? "");
   const mode: GenerationMode = m === "remote" ? "remote" : "custom";
@@ -50,7 +48,6 @@ function bodyToSettings(
     directList: parseList(b.directList),
     cronSchedule: String(b.cronSchedule ?? ""),
     timezone: String(b.timezone ?? "Asia/Shanghai").trim(),
-    proxyTestUrl: String(b.proxyTestUrl ?? fallbackProxyTestUrl).trim(),
     logRetentionDays: Math.max(
       0,
       Math.min(
@@ -74,7 +71,7 @@ function persistSettings(
   const payloadError = validateSettingsPayload(body);
   if (payloadError) return { error: `Invalid settings payload: ${payloadError}` };
 
-  const p = bodyToSettings(body, getSettings(database).proxyTestUrl);
+  const p = bodyToSettings(body);
   if (p.mode === "remote") {
     const listUrlError = assertSafeHttpUrl(p.listUrl, "rule list URL");
     if (listUrlError) return { error: listUrlError };
@@ -83,18 +80,6 @@ function persistSettings(
     return {
       error: serverT(locale, "serverErrors.invalidTimezone"),
     };
-  try {
-    p.proxyTestUrl = parseProxyTestUrl(p.proxyTestUrl).toString();
-  } catch (e) {
-    return {
-      error:
-        e instanceof ProxyProbeError
-          ? serverT(locale, e.code, { detail: e.detail })
-          : e instanceof Error
-            ? e.message
-            : serverT(locale, "serverErrors.invalidProxyTestUrl"),
-    };
-  }
   const proxyError = validatePacProxyString(p.pacProxy);
   if (proxyError) return { error: proxyError };
   const expr = p.cronSchedule.trim();
