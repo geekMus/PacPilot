@@ -23,7 +23,7 @@ describe("frontend admin-session cache", () => {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const first = await fetchAdminSession();
     const second = await fetchAdminSession();
@@ -43,7 +43,7 @@ describe("frontend admin-session cache", () => {
         JSON.stringify({ loggedIn: calls > 1, adminCredentialsMissing: false }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     expect((await fetchAdminSession()).loggedIn).toBe(false);
     now += 2_499;
@@ -63,7 +63,7 @@ describe("frontend admin-session cache", () => {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     await fetchAdminSession();
     await fetchAdminSession(true);
