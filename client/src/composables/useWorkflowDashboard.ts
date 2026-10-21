@@ -300,6 +300,7 @@ onUnmounted(stopPolling);
 return {
   t,
   locale,
+  router,
   loading,
   refreshing,
   error,
