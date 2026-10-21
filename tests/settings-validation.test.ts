@@ -28,6 +28,15 @@ describe("settings API runtime validation", () => {
     expect(validateSettingsPayload({ blockList: [1, "example.com"] })).toContain("blockList");
   });
 
+  test("rejects invalid nested webhook field types", () => {
+    expect(validateSettingsPayload({ webhookSuccessConfig: { url: 42 } })).toContain(
+      "webhookSuccessConfig.url"
+    );
+    expect(
+      validateSettingsPayload({ webhookFailureConfig: { method: "DELETE" } })
+    ).toContain("webhookFailureConfig.method");
+  });
+
   test("rejects invalid retention limits", () => {
     expect(validateSettingsPayload({ logRetentionDays: 3651 })).toContain("logRetentionDays");
     expect(validateSettingsPayload({ logRetentionDays: 1.5 })).toContain("logRetentionDays");
