@@ -159,7 +159,6 @@ jobs:
           {
             echo "## 阶段 1：发布条件检查"
             echo ""
-            echo "- **执行结果：** $JOB_STATUS"
             echo "- **当前版本：** ${VERSION:-未能读取}"
             echo "- **GHCR latest：** ${PREVIOUS_VERSION:-尚无镜像或未能读取}"
             if [[ "$PUBLISH" == "true" ]]; then
@@ -205,7 +204,6 @@ jobs:
           {
             echo "## 阶段 2：类型检查与构建"
             echo ""
-            echo "- **执行结果：** $JOB_STATUS"
             echo "- **目标版本：** ${VERSION:-未能读取}"
             if [[ "$JOB_STATUS" == "success" ]]; then
               echo "- **检查结果：** `bun run check` 已通过，可以进入镜像发布阶段"
@@ -270,13 +268,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: 输出发布结果
-        env:
-          VERSION: ${{ needs.prepare.outputs.version }}
-        run: |
-          echo "ARM64 镜像已发布：$IMAGE_NAME:$VERSION"
-          echo "latest 标签已更新：$IMAGE_NAME:latest"
-
       - name: 汇总 ARM64 镜像发布
         if: always()
         env:
@@ -287,7 +278,6 @@ jobs:
           {
             echo "## 阶段 3：构建并发布 ARM64 镜像"
             echo ""
-            echo "- **执行结果：** $JOB_STATUS"
             echo "- **架构：** linux/arm64"
             echo "- **版本标签：** ${IMAGE_NAME}:${VERSION:-未知版本}"
             echo "- **latest 标签：** ${IMAGE_NAME}:latest"
