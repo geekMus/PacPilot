@@ -150,6 +150,7 @@ jobs:
     steps:
       - name: 下载覆盖率报告
         id: download-coverage
+        continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           name: coverage-reports-${{ github.run_id }}-${{ github.run_attempt }}
