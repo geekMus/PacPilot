@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   check:
-    name: 类型检查、测试与构建
+    name: 类型检查与构建
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
