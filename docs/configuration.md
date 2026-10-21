@@ -104,7 +104,7 @@ bun run scripts/reset-admin-password.ts --production --data-dir "/path/to/data"
 Windows PowerShell 示例：
 
 ```powershell
-bun run scripts/reset-admin-password.ts --production --data-dir "C:\genpac\data"
+bun run scripts/reset-admin-password.ts --production --data-dir "C:\PacPilot\data"
 ```
 
 重置脚本会检查数据库是否存在，不会因为路径写错而创建空数据库。脚本只显示新生成的密码一次。容器名若不是 `PacPilot`，请修改对应的 `docker exec` 命令。
