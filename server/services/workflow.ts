@@ -113,7 +113,7 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
         duration_ms: Math.max(0, finishedAt.getTime() - startedAt.getTime()),
       });
     } catch (recordError) {
-      runtimeLog("error", "保存工作流失败状态时发生错误：", recordError);
+      runtimeLog("error", "Failed to save workflow failure status: ", recordError);
     }
     throw error;
   }
@@ -182,7 +182,7 @@ export function startPacWorkflow(
   source: WorkflowSource
 ): number {
   const item = enqueuePacWorkflow(database, dataDir, source);
-  void item.promise.catch((error) => runtimeLog("error", "工作流执行失败：", error));
+  void item.promise.catch((error) => runtimeLog("error", "Workflow execution failed: ", error));
   return item.workflowId;
 }
 
