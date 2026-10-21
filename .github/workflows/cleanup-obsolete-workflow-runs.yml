@@ -251,7 +251,7 @@ jobs:
           echo "processed=$TOTAL" >> "$GITHUB_OUTPUT"
           echo "deleted=$DELETED" >> "$GITHUB_OUTPUT"
           echo "failed=$FAILED" >> "$GITHUB_OUTPUT"
-          echo "清理结束：处理 $TOTAL 条，成功 $DELETED 条，失败 $FAILED 条。
+          echo "清理结束：处理 $TOTAL 条，成功 $DELETED 条，失败 $FAILED 条。"
 
           if (( FAILED > 0 )); then
             echo "::error::部分运行记录删除失败"
@@ -312,7 +312,6 @@ jobs:
             echo "| 阶段 1：获取工作流清单 | $DISCOVER_STATUS |"
             echo "| 阶段 2：扫描历史运行 | $SCAN_STATUS |"
             echo "| 阶段 3：清理废弃运行 | $CLEANUP_STATUS |"
-            echo
             echo
             echo "- **默认分支 / 当前工作流文件：** ${DEFAULT_BRANCH:-未获取} / ${WORKFLOW_COUNT:-未获取}"
             echo "- **扫描记录：** ${SCANNED:-未完成} 条（无法识别并跳过：${UNKNOWN:-未完成} 条）"
