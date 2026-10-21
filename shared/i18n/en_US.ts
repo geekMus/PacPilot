@@ -907,7 +907,7 @@ export default {
     fileSize: "Size: {size}",
     fileMtime: "Modified: {time}",
     clearedLogsKeepWorkflow:
-      "Logs cleared: {g} generation logs, {a} access events, {p} probe runs. Workflow history kept.",
+      "Logs cleared: {g} generation logs and {a} access events. Workflow history kept.",
   },
 
   workflowPage: {
