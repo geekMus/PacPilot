@@ -30,10 +30,6 @@ async function main(): Promise<void> {
   logCleanupTimer.unref();
 
   runtimeLog("log", "genpac-runner 服务启动中…");
-  runtimeLog(
-    "log",
-    `运行模式：${env.runtimeProfile === "development" ? "开发环境" : env.runtimeProfile}`
-  );
   runtimeLog("log", `数据目录：${env.dataDir}`);
   runtimeLog("log", `监听地址：${env.host}:${env.port}`);
   runtimeLog("log", "管理后台：已启用");
