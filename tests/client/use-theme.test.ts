@@ -2,6 +2,28 @@ import { mount } from "@vue/test-utils";
 import { defineComponent, h, nextTick } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const storedValues = new Map<string, string>();
+const localStorageMock: Storage = {
+  get length() {
+    return storedValues.size;
+  },
+  clear() {
+    storedValues.clear();
+  },
+  getItem(key) {
+    return storedValues.get(key) ?? null;
+  },
+  key(index) {
+    return [...storedValues.keys()][index] ?? null;
+  },
+  removeItem(key) {
+    storedValues.delete(key);
+  },
+  setItem(key, value) {
+    storedValues.set(String(key), String(value));
+  },
+};
+
 function installMatchMedia(matches = false) {
   const listeners = new Set<(event: MediaQueryListEvent) => void>();
   const media = {
@@ -24,7 +46,8 @@ function installMatchMedia(matches = false) {
 
 describe("useTheme", () => {
   beforeEach(() => {
-    localStorage.clear();
+    vi.stubGlobal("localStorage", localStorageMock);
+    localStorageMock.clear();
     document.documentElement.className = "";
     vi.resetModules();
   });
