@@ -42,9 +42,26 @@ docker run -d \
 - [GitHub 配置校验](../.github/workflows/validate-github-config.yml)：检查工作流、Issue 表单及仓库配置的 YAML 语法。
 - [构建并发布 Docker 镜像](../.github/workflows/publish-image.yml)
 - [清理废弃工作流运行记录](../.github/workflows/cleanup-obsolete-workflow-runs.yml)
+- [Agent 项目级强制规则](../AGENTS.md)：分支操作、工作流触发限制、发布权限与并发策略，新增或修改工作流前必须阅读。
 - [Dependabot 配置](../.github/dependabot.yml)：每周检查 Bun 依赖和 GitHub Actions 依赖更新。
 - [Release 分类配置](../.github/release.yml)：为 GitHub Release 自动生成分类说明。
 
-建议在 GitHub 仓库 Settings 中检查默认分支保护或 Rulesets：要求 Pull Request 合并前通过“代码正确性检查”和“验证 GitHub 配置”两个状态检查，并禁止直接强推。建议 Topics：bun、typescript、vue3、sqlite、docker、pac、proxy、self-hosted。仓库规则和 Topics 需要在 GitHub 设置中启用或编辑；提交配置文件本身不会自动开启分支保护。当前仓库尚未启用 Discussions，因此一般使用问题已提供 Issue 表单；如果希望采用 Discussions，应先在仓库 Settings 中开启。也请检查 Security 设置，确认私密漏洞报告功能已启用。
+### 工作流强制规则
 
-工作流行为以仓库中的 YAML 文件为准；更新触发条件、发布架构或摘要内容时，应同步检查本页说明。
+新增或修改任何 GitHub Actions 工作流前，必须先阅读仓库根目录的 [`AGENTS.md`](../AGENTS.md)，并遵守以下不可自行放宽的规则：
+
+1. **分支范围：** 普通工作流只允许在 `main`、`dev` 上执行；PR 按目标分支限制；手动触发也必须通过 Job 条件校验分支。
+2. **发布限制：** 所有正式发布动作只允许在 `main` 执行，并且发布相关 Job 都要有明确的 `main` 分支保护。
+3. **唯一例外：** 清理废弃工作流记录只允许 `schedule` 和 `workflow_dispatch` 触发，不设置分支限制。
+4. **并发隔离：** 每个工作流必须在工作流顶层使用以下配置，不能改成固定组名或省略任一字段：
+
+   ```yaml
+   concurrency:
+     group: ${{ github.workflow }}-${{ github.ref }}
+     cancel-in-progress: true
+   ```
+
+   这保证同一工作流、同一 ref 只保留最新运行；不同工作流或不同 ref 互不取消。
+5. **验证与同步：** 修改后检查触发器、Job 条件、并发配置和 YAML 校验结果，并同步更新相关文档。未实际运行验证时必须如实说明。
+
+工作流行为以仓库中的 YAML 文件为准；若本页与 [`AGENTS.md`](../AGENTS.md) 的强制规则有不一致，以 `AGENTS.md` 为准，并应及时修正文档。
