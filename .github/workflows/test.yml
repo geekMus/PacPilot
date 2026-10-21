@@ -5,6 +5,11 @@ on:
     branches:
       - main
 
+# 同一工作流、同一分支只保留最新运行；不同工作流和不同分支互不取消。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
