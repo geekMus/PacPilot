@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { ApiError, api } from "../../client/src/api/client";
+import { i18n } from "../../client/src/i18n";
 
 const originalFetch = globalThis.fetch;
 
@@ -71,7 +72,7 @@ describe("frontend API client request contract", () => {
 
     await expect(api.saveAndGenerate({} as never)).rejects.toMatchObject({
       name: "ApiError",
-      message: "serverErrors.versionMismatch",
+      message: i18n.global.t("serverErrors.versionMismatch"),
     });
   });
 
