@@ -11,7 +11,7 @@
     "build": "bun run build:client",
     "build:client": "bunx --bun vite build --config client/vite.config.ts",
     "start": "bun run scripts/start-prod.ts",
-    "typecheck": "bunx tsc -p tsconfig.json --noEmit && bunx tsc -p server/tsconfig.json --noEmit && bunx vue-tsc -p client/tsconfig.json --noEmit",
+    "typecheck": "bunx tsc -p tsconfig.json --noEmit && bunx tsc -p server/tsconfig.json --noEmit && bunx vue-tsc -p client/tsconfig.json --noEmit && bunx tsc -p tsconfig.tests.json --noEmit",
     "check": "bun run typecheck && bun run test && bun run build && bun run check:i18n",
     "check:i18n": "bun run scripts/check-i18n.ts",
     "reset:admin-password": "bun run scripts/reset-admin-password.ts",
