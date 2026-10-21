@@ -12,13 +12,14 @@
     "build:client": "bun run vite build --config client/vite.config.ts",
     "start": "bun run scripts/start-prod.ts",
     "typecheck": "bun run tsc --project tsconfig.json --noEmit && bun run tsc --project server/tsconfig.json --noEmit && bun run vue-tsc --project client/tsconfig.json --noEmit",
-    "check": "bun run typecheck && bun run build && bun run check:i18n",
+    "check": "bun run typecheck && bun run test && bun run build && bun run check:i18n",
     "check:i18n": "bun run scripts/check-i18n.ts",
     "reset:admin-password": "bun run scripts/reset-admin-password.ts",
     "reset:admin-password:development": "bun run scripts/reset-admin-password.ts --development",
     "reset:admin-password:production": "bun run scripts/reset-admin-password.ts --production",
     "format": "prettier --write \"**/*.{ts,vue,js,cjs,mjs,json,css,md,html,yml,yaml}\"",
-    "format:check": "prettier --check \"**/*.{ts,vue,js,cjs,mjs,json,css,md,html,yml,yaml}\""
+    "format:check": "prettier --check \"**/*.{ts,vue,js,cjs,mjs,json,css,md,html,yml,yaml}\"",
+    "test": "bun test tests"
   },
   "engines": {
     "bun": ">=1.1.0"

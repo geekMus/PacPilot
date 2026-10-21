@@ -1,0 +1,63 @@
+name: Bug 报告
+description: 报告可复现的缺陷或异常行为
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提交前请先阅读故障排查文档，并确认报告中不包含密码、令牌或个人数据。
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: 请填写应用版本或 Docker 镜像标签。
+      placeholder: "例如：2026.10.21-r7 / latest"
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: 部署方式
+      options:
+        - Docker run
+        - Docker Compose
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 问题描述
+      description: 说明实际发生了什么，以及预期行为是什么。
+      placeholder: 清楚、简洁地描述问题。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 打开……
+        2. 设置……
+        3. 点击……
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志或截图
+      description: 请先移除密码、令牌、个人数据及其他敏感信息。
+      render: text
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已搜索现有 Issue，确认不是重复报告。
+          required: true
+        - label: 我已移除日志中的敏感信息。
+          required: true

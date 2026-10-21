@@ -1,0 +1,43 @@
+name: 使用问题
+description: 咨询配置、部署或一般使用问题
+title: "[Question]: "
+labels:
+  - question
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请先阅读文档和故障排查指南。请勿在报告中粘贴密码、访问令牌或其他敏感信息。
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: 请填写应用版本或 Docker 镜像标签。
+      placeholder: "例如：2026.10.21-r7 / latest"
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: 部署方式
+      options:
+        - Docker run
+        - Docker Compose
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: 具体问题
+      description: 请说明目标、当前配置及遇到的困难。
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: 补充信息
+      description: 可提供脱敏后的日志、配置片段和已尝试的步骤。
+      render: text
+    validations:
+      required: false

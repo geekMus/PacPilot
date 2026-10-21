@@ -54,7 +54,17 @@ docker logs genpac-runner
 
 该许可证允许个人非商业使用、修改及免费分发，但须保留作者署名、版权声明和许可证文本。公司或组织的内部业务使用，以及其他商业用途，均须事先取得作者书面授权。第三方组件仍适用其各自的许可证。
 
-商业授权申请：**geekMus@qq.com**。也可通过 [GitHub Issues](https://github.com/geekMus/genpac-runner/issues) 或 [GitHub Discussions](https://github.com/geekMus/genpac-runner/discussions) 咨询；请勿在公开讨论中发布机密商业信息。
+商业授权申请：**geekMus@qq.com**。也可通过 [GitHub Issues](https://github.com/geekMus/genpac-runner/issues) 咨询；请勿在公开 Issue 中发布机密商业信息。
+
+## 社区与贡献
+
+- [贡献指南](CONTRIBUTING.md)：开发环境、测试和 Pull Request 规范。
+- [安全政策](SECURITY.md)：私密报告安全漏洞。
+- [行为准则](CODE_OF_CONDUCT.md)：项目交流与协作约定。
+- [获取帮助](SUPPORT.md)：使用问题、功能建议和授权咨询渠道。
+- [提交使用问题](https://github.com/geekMus/genpac-runner/issues/new?template=question.yml)：咨询配置、部署和一般使用问题。
+
+提交代码前请阅读贡献指南。安全漏洞不要通过公开 Issue 或讨论披露。
 
 ## 项目信息
 

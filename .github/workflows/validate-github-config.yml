@@ -1,0 +1,65 @@
+name: 验证 GitHub 配置
+
+on:
+  push:
+    branches:
+      - "**"
+    paths:
+      - ".github/workflows/**"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/dependabot.yml"
+      - ".github/release.yml"
+  pull_request:
+    branches:
+      - "**"
+    paths:
+      - ".github/workflows/**"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/dependabot.yml"
+      - ".github/release.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: 检查 YAML 语法
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v7
+
+      - name: 验证工作流、Issue 模板和仓库配置 YAML
+        shell: bash
+        run: |
+          set -euo pipefail
+          ruby -e '
+            require "yaml"
+            files = Dir.glob(".github/workflows/*.{yml,yaml}") +
+              Dir.glob(".github/ISSUE_TEMPLATE/*.{yml,yaml}") +
+              %w[.github/dependabot.yml .github/release.yml]
+            abort "No GitHub configuration files found" if files.empty?
+            files.each do |file|
+              YAML.parse_file(file)
+              puts "Valid YAML: #{file}"
+            end
+          '
+
+      - name: 检查结果小结
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        shell: bash
+        run: |
+          {
+            echo "## GitHub 配置校验"
+            echo
+            echo "- **检查内容：** 工作流、Issue 模板、Dependabot 和 Release 分类配置的 YAML 语法"
+            echo "- **结果：** $JOB_STATUS"
+          } >> "$GITHUB_STEP_SUMMARY"

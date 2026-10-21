@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 使用问题
+    url: https://github.com/geekMus/genpac-runner/issues/new?template=question.yml
+    about: 请使用问题模板咨询配置、部署或一般使用问题。
+  - name: 安全漏洞报告
+    url: https://github.com/geekMus/genpac-runner/security/advisories/new
+    about: 请使用私密漏洞报告，不要在公开 Issue 中披露漏洞细节。
+  - name: 商业授权咨询
+    url: mailto:geekMus@qq.com
+    about: 商业用途须事先取得作者书面授权。
