@@ -2,8 +2,8 @@ import { loadDevelopmentDotEnv } from "../server/config/load-dotenv";
 import { runtimeLog } from "../server/utils/runtime-log";
 
 /**
- * 先启动后端，确认 API 可用后再启动 Vite，避免前端代理请求过早发出。
- * Vite 输出按原始字节转发，保留其格式和颜色。
+ * Start the backend and wait for its API before launching Vite.
+ * Forward Vite output as raw bytes to preserve its formatting and colors.
  */
 process.env.NODE_ENV = "development";
 process.env.GENPAC_ENV = "development";
@@ -81,12 +81,12 @@ if (backendReady.type === "exit" || !backendReady.ready) {
   process.exit();
 }
 
-// 直接调用本地 Vite CLI，避免 Windows / Git Bash 环境下包装进程异常退出。
-const viteCli = path.resolve("node_modules/vite/bin/vite.js");
+// Use Bun to resolve and launch the project-local Vite executable.
 client = Bun.spawn(
   [
     process.execPath,
-    viteCli,
+    "run",
+    "vite",
     "--config",
     "client/vite.config.ts",
     "--clearScreen",
