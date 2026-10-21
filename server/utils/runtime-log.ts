@@ -71,8 +71,9 @@ export function runtimeLog(
         ? ANSI.mutedAmber
         : "";
 
+  // 先生成无 ANSI 的正文，再对每一行统一应用日志级别颜色，避免换行后颜色丢失。
   const formatted = formatWithOptions(
-    { colors: colored, depth: 5 },
+    { colors: false, depth: 5 },
     message,
     ...details,
   );
