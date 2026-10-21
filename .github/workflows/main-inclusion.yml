@@ -2,23 +2,29 @@ name: 主从检查
 
 on:
   push:
-    branches-ignore:
+    branches:
       - main
+      - dev
   pull_request:
     branches:
       - main
+      - dev
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# 同一工作流、同一 ref 只保留最新运行；不同工作流或不同 ref 互不取消。
 concurrency:
-  group: main-inclusion-${{ github.event.pull_request.head.ref || github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   prepare:
     name: 阶段 1：准备待检查分支
+    if: >-
+      (github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'dev')) ||
+      (github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
@@ -127,7 +133,12 @@ jobs:
   gate:
     name: 主分支包含性检查
     needs: [prepare, inclusion]
-    if: always()
+    if: >-
+      always() &&
+      (
+        (github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'dev')) ||
+        (github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))
+      )
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
