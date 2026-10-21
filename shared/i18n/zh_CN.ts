@@ -865,8 +865,8 @@ export default {
     k61: "“清理过期日志”遵循上方保留期限；“清空所有日志”会删除三类运行日志并整理数据库空间，操作前会要求确认。",
     k62: "重置 PAC 配置并删除已生成的 PAC 文件及日志、工作流历史。管理员密码会保留。",
     k63: "此操作不可撤销，请确认已备份需要保留的数据。",
-    cleanupDone: "清理完成：生成日志 {g} 条、访问记录 {a} 条、代理测试记录 {p} 条。",
-    clearedLogs: "日志已清空：生成日志 {g} 条、访问记录 {a} 条。"
+    cleanupDone: "清理完成：生成日志 {g} 条、访问记录 {a} 条。"
+    clearedLogs: "日志已清空：生成日志 {g} 条、访问记录 {a} 条。",
     countGen: "生成日志 {n} 条",
     countAccess: "访问记录 {n} 条",
     countWorkflow: "工作流历史 {n} 条",
@@ -874,7 +874,7 @@ export default {
     fileSize: "大小：{size}",
     fileMtime: "修改时间：{time}",
     clearedLogsKeepWorkflow:
-      "日志已清空：生成日志 {g} 条、访问记录 {a} 条。工作流历史已保留.",
+      "日志已清空：生成日志 {g} 条、访问记录 {a} 条。工作流历史已保留。",
   },
 
   workflowPage: {
