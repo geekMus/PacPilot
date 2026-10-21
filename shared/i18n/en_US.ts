@@ -622,13 +622,6 @@ export default {
     proxyIpv6Invalid: "The IPv6 address in entry {n} is invalid.",
     proxyHostnameInvalid: "The proxy hostname or IP address in entry {n} is invalid.",
     domainLineError: "{label}, line {line}: {message}",
-    probeUrlEmpty: "The proxy test URL cannot be empty. Set it on the Network monitor page.",
-    probeUrlWhitespace:
-      "The proxy test URL cannot contain whitespace or control characters. Check the URL encoding.",
-    probeUrlHttps:
-      "The proxy test URL must be a complete HTTPS URL without a username, password, or fragment.",
-    probeUrlInvalid:
-      "The proxy test URL is invalid. Set a complete HTTPS URL on the Network monitor page.",
     security: "Security",
     currentPassword: "Current admin password",
     currentPasswordIncorrect: "The current admin password is incorrect.",
@@ -836,73 +829,7 @@ export default {
     matchCount: "Matched {filtered} / {total}",
     accessLoadedHint:
       "Loaded {loaded} / {total}; filters apply to loaded records only. Access logs keep 7 days / 5,000 max. Click a row for full request details.",
-    nodeCount: "{n} proxy nodes",
-    targetStatusCode: "Target HTTP status: {code}",
-    uncheckedItems: "Unchecked config entries: {items}",
-    ignoredDirect: "Ignored {n} DIRECT entries because direct is not a proxy server.",
-    probeLoaded: "Loaded {loaded} / {total}",
-    probeErrors: {
-      urlRequired: "Enter a proxy test URL.",
-      inProgress: "A proxy connectivity test is already running. Try again shortly.",
-      urlWhitespace:
-        "The proxy test URL cannot contain whitespace or control characters; check URL encoding.",
-      urlInvalid:
-        "Invalid proxy test URL. Enter a complete HTTPS URL, for example https://www.google.com/generate_204.",
-      urlHttpsOnly: "Proxy test URLs must use HTTPS.",
-      urlCredentials: "The proxy test URL must include a hostname and cannot contain credentials.",
-      urlFragment: "The proxy test URL cannot contain a fragment (#).",
-      noProxyNodes:
-        "No testable proxy directives were found in the PAC proxy string. DIRECT entries do not require connectivity tests.",
-      unrecognizedEntry: "Unrecognized PAC proxy entry: {detail}",
-      proxyStringEmpty: "The PAC proxy string is empty.",
-      onlyDirect:
-        "The PAC proxy string contains only DIRECT entries; there are no proxy nodes to test.",
-      proxyAuthFormat: "Invalid proxy authentication format. Use username:password@host:port.",
-      proxyIpv6Format: "IPv6 proxy addresses must use the [address]:port format.",
-      proxyPortMissing: "Proxy address is missing a port: {detail}",
-      proxyAddressInvalid: "Invalid proxy address or port: {detail}",
-      targetHttpInvalid: "The target returned an unrecognized HTTP response.",
-      targetHttpStatus:
-        "The target returned HTTP {detail}. The proxy tunnel and TLS connection were established, but the target request failed.",
-      totalTimeout: "The proxy test exceeded the 12-second per-proxy limit and was stopped.",
-      connectStatusInvalid: "The proxy returned an invalid HTTP CONNECT status line.",
-      connectHttpStatus: "The proxy CONNECT request returned HTTP {detail}.",
-      socks5VersionInvalid: "Invalid SOCKS5 handshake version.",
-      socks5CredentialsTooLong: "SOCKS5 username or password is too long.",
-      socks5AuthFailed: "SOCKS5 username or password authentication failed.",
-      socks5AuthRequired:
-        "The SOCKS5 proxy requires username/password authentication, but none was configured.",
-      socks5AuthMethodUnsupported:
-        "The SOCKS5 proxy did not accept a supported authentication method (method {detail}).",
-      targetDomainTooLong: "The test target domain is too long.",
-      socks5ResponseInvalid: "The SOCKS5 proxy returned an invalid response.",
-      socks5ConnectFailed: "The SOCKS5 connection to the target failed (reply code {detail}).",
-      socks5AddressTypeUnknown: "The SOCKS5 response used an unknown address type.",
-      socks4DnsFailed:
-        "The test environment could not resolve the target domain to IPv4 for the SOCKS4 test.",
-      socks4DnsInvalid: "The target DNS did not return a valid IPv4 address for the SOCKS4 test.",
-      socks4ResponseInvalid: "The SOCKS4 proxy returned an invalid response.",
-      socks4ConnectFailed: "The SOCKS4 connection to the target failed (reply code {detail}).",
-      socks4aResponseInvalid: "The SOCKS4a proxy returned an invalid response.",
-      socks4aConnectFailed: "The SOCKS4a connection to the target failed (reply code {detail}).",
-      tcpTimeout: "Timed out connecting to the proxy port.",
-      tcpFailed: "Could not connect to the proxy port: {detail}",
-      tlsTimeout: "The TLS handshake timed out.",
-      tlsFailed: "The TLS handshake failed: {detail}",
-      socks5ResponseTimeout: "Timed out waiting for the SOCKS5 target connection response.",
-      socks5ConnectionInterrupted: "The SOCKS5 connection was interrupted: {detail}",
-      socks5ConnectionClosed:
-        "The SOCKS5 proxy closed the connection before returning a complete response.",
-      proxyResponseTimeout: "Timed out waiting for a proxy response.",
-      proxyConnectionInterrupted: "The proxy connection was interrupted: {detail}",
-      proxyConnectionClosed:
-        "The proxy closed the connection before returning a complete response.",
-      httpHeaderTimeout: "Timed out waiting for the HTTP response header.",
-      httpHeaderTooLarge: "The HTTP response header exceeded 16 KiB; the test was stopped.",
-      httpReadFailed: "Failed to read the HTTP response: {detail}",
-      httpHeaderConnectionClosed:
-        "The connection closed before returning the HTTP response header.",
-    },
+
   },
 
   systemPage: {
@@ -940,7 +867,7 @@ export default {
     k30: "Cleaning…",
     k31: "Clean expired logs",
     k32: "Clear all runtime logs?",
-    k33: "This immediately and permanently deletes generation logs, access records, and proxy test records. Workflow history, app settings, and PAC files are kept.",
+    k33: "This immediately and permanently deletes generation logs and access records. Workflow history, app settings, and PAC files are kept.",
     k34: "Clear logs",
     k35: "Clearing…",
     k36: "Clear all runtime logs",
@@ -971,7 +898,7 @@ export default {
     k61: "Clean expired logs follows the retention period above. Clear all logs deletes the three types of runtime logs and compacts database space; confirmation is required.",
     k62: "Reset PAC settings and delete generated PAC files, logs, and workflow history. The admin password is kept.",
     k63: "This cannot be undone. Back up any data you want to keep.",
-    cleanupDone: "Cleanup done: {g} generation logs, {a} access events, {p} probe runs.",
+    cleanupDone: "Cleanup done: {g} generation logs and {a} access events.",
     clearedLogs: "Logs cleared: {g} generation logs, {a} access events, {p} probe runs.",
     countGen: "Generation logs: {n}",
     countAccess: "Access events: {n}",
