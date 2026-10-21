@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: 检出当前分支
+        id: checkout
         uses: actions/checkout@v7
         with:
           # 对外部 Fork PR，检出贡献者仓库中的源提交。
@@ -29,14 +30,45 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
-      - name: 获取主仓库最新 main
+      - name: 检查检出阶段
+        if: always()
         env:
-          BASE_REPOSITORY: ${{ github.repository }}
+          RESULT: ${{ steps.checkout.outcome }}
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+        shell: bash
         run: |
-          git remote add upstream "https://github.com/${BASE_REPOSITORY}.git"
+          {
+            echo "## 阶段 1：检出待检查分支"
+            echo
+            echo "- **分支：** ${BRANCH}"
+            echo "- **结果：** ${RESULT}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 获取主仓库最新 main
+        id: fetch-main
+        run: |
+          git remote add upstream "https://github.com/${GITHUB_REPOSITORY}.git"
           git fetch upstream main:refs/remotes/upstream/main
 
+      - name: 检查主分支获取阶段
+        if: always()
+        env:
+          RESULT: ${{ steps.fetch-main.outcome }}
+        shell: bash
+        run: |
+          {
+            echo "## 阶段 2：获取主分支最新提交"
+            echo
+            echo "- **结果：** ${RESULT}"
+            if [[ "${RESULT}" == "success" ]]; then
+              echo "- **目标：** 已获取 upstream/main，可进行包含性判断。"
+            else
+              echo "- **说明：** 获取 main 失败，后续包含性检查无法可靠执行。"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: 确认当前分支已包含主分支
+        id: inclusion
         shell: bash
         run: |
           if git merge-base --is-ancestor upstream/main HEAD; then
@@ -45,3 +77,20 @@ jobs:
             echo "::error::当前分支尚未包含主仓库 main 的最新提交。请先将 main 合并或 rebase 到当前分支，再重新提交。"
             exit 1
           fi
+
+      - name: 检查包含性判断阶段
+        if: always()
+        env:
+          RESULT: ${{ steps.inclusion.outcome }}
+        shell: bash
+        run: |
+          {
+            echo "## 阶段 3：检查是否包含 main"
+            echo
+            echo "- **结果：** ${RESULT}"
+            if [[ "${RESULT}" == "success" ]]; then
+              echo "- **结论：** 当前分支包含主仓库 main 的全部提交。"
+            else
+              echo "- **结论：** 当前分支未能通过包含性检查；请同步 main 后重新推送。"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
