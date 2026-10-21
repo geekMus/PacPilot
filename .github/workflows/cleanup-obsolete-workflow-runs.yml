@@ -1,0 +1,172 @@
+name: 清理废弃工作流记录
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 每天北京时间 11:27。修改 cron 可更改运行时间，修改 timezone 可更改时区。
+    - cron: "27 11 * * *"
+      timezone: "Asia/Shanghai"
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: cleanup-obsolete-workflow-runs
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: 检查并清理废弃记录
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: 阶段一：获取默认分支工作流清单
+        id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEFAULT_BRANCH="$(gh api "repos/$GH_REPO" --jq '.default_branch')"
+          FILES="$RUNNER_TEMP/current-workflows.txt"
+          if ! gh api --paginate --jq '.[] | select(.type == "file") | select(.name | test("\\.(yml|yaml)$"; "i")) | .path' "repos/$GH_REPO/contents/.github/workflows?ref=$DEFAULT_BRANCH&per_page=100" > "$FILES"; then
+            echo "::error::获取工作流清单失败，停止清理"
+            exit 1
+          fi
+          if [[ ! -s "$FILES" ]]; then
+            echo "::error::工作流清单为空，为防止误删，停止清理"
+            exit 1
+          fi
+          echo "file_count=$(wc -l < "$FILES" | tr -d ' ')" >> "$GITHUB_OUTPUT"
+          {
+            echo "## 阶段一：工作流清单"
+            echo "- 默认分支：$DEFAULT_BRANCH"
+            echo "- 当前工作流文件数：$(wc -l < "$FILES" | tr -d ' ')"
+            echo '文件路径：'
+            sed 's/^/- /' "$FILES"
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat "$FILES"
+
+      - name: 阶段二：扫描历史运行记录
+        id: scan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          CURRENT_RUN_ID: ${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILES="$RUNNER_TEMP/current-workflows.txt"
+          RUNS="$RUNNER_TEMP/workflow-runs.tsv"
+          CANDIDATES="$RUNNER_TEMP/obsolete-runs.tsv"
+          if ! gh api --paginate --jq '.workflow_runs[] | [.id, (.path // "__MISSING__"), (.status // "unknown")] | @tsv' "repos/$GH_REPO/actions/runs?per_page=100" > "$RUNS"; then
+            echo "::error::获取历史运行记录失败，停止清理"
+            exit 1
+          fi
+          : > "$CANDIDATES"
+          SCANNED=0
+          UNKNOWN=0
+          while IFS=$'\t' read -r ID RAW_PATH STATUS; do
+            [[ -z "$ID" ]] && continue
+            SCANNED=$((SCANNED + 1))
+            [[ "$ID" == "$CURRENT_RUN_ID" ]] && continue
+            PATH_NAME="${RAW_PATH%%@*}"
+            if [[ "$PATH_NAME" == "__MISSING__" || "$PATH_NAME" != .github/workflows/* ]]; then
+              UNKNOWN=$((UNKNOWN + 1))
+              echo "::warning::无法识别运行记录 $ID 的工作流路径，跳过"
+              continue
+            fi
+            if grep -Fqx -- "$PATH_NAME" "$FILES"; then
+              continue
+            fi
+            if [[ "$STATUS" == "completed" ]]; then
+              printf '%s\t%s\t%s\n' "$ID" "$PATH_NAME" "$STATUS" >> "$CANDIDATES"
+            else
+              echo "跳过尚未完成的运行记录：$ID ($STATUS)"
+            fi
+          done < "$RUNS"
+          COUNT="$(wc -l < "$CANDIDATES" | tr -d ' ')"
+          echo "scanned=$SCANNED" >> "$GITHUB_OUTPUT"
+          echo "candidate_count=$COUNT" >> "$GITHUB_OUTPUT"
+          {
+            echo "## 阶段二：历史运行扫描"
+            echo "- 扫描运行记录：$SCANNED"
+            echo "- 路径无法识别并跳过：$UNKNOWN"
+            echo "- 待清理的已完成运行：$COUNT"
+            if [[ "$COUNT" == "0" ]]; then
+              echo "没有发现待清理记录。"
+            else
+              echo
+              echo '待清理记录（运行 ID / 工作流路径）：'
+              awk -F '\t' '{print "- " $1 " — " $2}' "$CANDIDATES"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "扫描完成：$SCANNED 条；待清理：$COUNT 条。"
+
+      - name: 阶段三：删除废弃工作流的完整运行记录
+        id: delete
+        if: steps.scan.outputs.candidate_count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          CANDIDATES="$RUNNER_TEMP/obsolete-runs.tsv"
+          TOTAL=0
+          DELETED=0
+          FAILED=0
+          while IFS=$'\t' read -r ID PATH_NAME STATUS; do
+            [[ -z "$ID" ]] && continue
+            TOTAL=$((TOTAL + 1))
+            if gh api --silent --method DELETE "repos/$GH_REPO/actions/runs/$ID"; then
+              DELETED=$((DELETED + 1))
+              echo "删除成功：$ID ($PATH_NAME)"
+            else
+              FAILED=$((FAILED + 1))
+              echo "::warning::删除失败：$ID ($PATH_NAME)"
+            fi
+          done < "$CANDIDATES"
+          echo "deleted=$DELETED" >> "$GITHUB_OUTPUT"
+          echo "failed=$FAILED" >> "$GITHUB_OUTPUT"
+          {
+            echo "## 阶段三：删除结果"
+            echo "- 待处理：$TOTAL"
+            echo "- 删除成功：$DELETED"
+            echo "- 删除失败：$FAILED"
+            echo "- 删除运行记录会同时移除该运行关联的日志和 artifacts。"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if (( FAILED > 0 )); then
+            echo "::error::部分运行记录删除失败"
+            exit 1
+          fi
+
+      - name: 阶段三总结：没有待清理记录
+        if: steps.scan.outputs.candidate_count == '0'
+        shell: bash
+        run: |
+          {
+            echo "## 阶段三：跳过删除"
+            echo "没有发现废弃工作流的已完成运行记录，本次未删除任何内容。"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 最终总结
+        if: always()
+        env:
+          SCANNED: ${{ steps.scan.outputs.scanned }}
+          CANDIDATES: ${{ steps.scan.outputs.candidate_count }}
+          DELETED: ${{ steps.delete.outputs.deleted }}
+          FAILED: ${{ steps.delete.outputs.failed }}
+        shell: bash
+        run: |
+          {
+            echo "## 最终总结"
+            echo "- 扫描记录数：${SCANNED:-未完成}"
+            echo "- 待清理记录数：${CANDIDATES:-未完成}"
+            echo "- 删除成功：${DELETED:-0}"
+            echo "- 删除失败：${FAILED:-0}"
+            echo "- 仅处理默认分支已不存在的工作流所关联的已完成运行。"
+            echo "- 当前清理运行不会删除自身；清单为空、查询失败或路径无法识别时会保守跳过。"
+          } >> "$GITHUB_STEP_SUMMARY"
