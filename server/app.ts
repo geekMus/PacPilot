@@ -8,6 +8,7 @@ import type { EnvConfig } from "./config/env";
 import { publicRoutes } from "./routes/public";
 import { adminRoutes } from "./routes/admin";
 import { requestMonitoringMiddleware } from "./services/request-monitor";
+import { isTrustedOrigin } from "./utils/origin-policy";
 
 export function createApp(env: EnvConfig, database: AppDatabase): express.Application {
   const app = express();
@@ -28,6 +29,18 @@ export function createApp(env: EnvConfig, database: AppDatabase): express.Applic
 
   app.use((_req, res, next) => {
     const origin = _req.get("Origin");
+    const isAdminMutation =
+      _req.path.startsWith("/api/admin/") &&
+      !["GET", "HEAD", "OPTIONS"].includes(_req.method);
+
+    if (
+      isAdminMutation &&
+      !isTrustedOrigin(origin, `${_req.protocol}://${_req.get("host")}`, allowedOrigins)
+    ) {
+      res.status(403).json({ error: "untrusted_origin" });
+      return;
+    }
+
     const corsAllowed = Boolean(origin && allowedOrigins.has(origin));
 
     if (corsAllowed) {
