@@ -123,3 +123,30 @@ jobs:
               echo "- **结论：** 当前分支未通过检查或检查未完成；请同步 main 后重新推送。"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+  gate:
+    name: 主分支包含性检查
+    needs: [prepare, inclusion]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: 汇总并验证检查结果
+        env:
+          PREPARE_RESULT: ${{ needs.prepare.result }}
+          INCLUSION_RESULT: ${{ needs.inclusion.result }}
+        shell: bash
+        run: |
+          {
+            echo "## 主分支包含性检查"
+            echo
+            echo "- **阶段 1（准备待检查分支）：** ${PREPARE_RESULT}"
+            echo "- **阶段 2（检查是否包含最新 main）：** ${INCLUSION_RESULT}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$PREPARE_RESULT" != "success" || "$INCLUSION_RESULT" != "success" ]]; then
+            echo "::error::主分支包含性检查未通过，禁止合并。"
+            exit 1
+          fi
+
+          echo "主分支包含性检查通过。"
