@@ -30,7 +30,7 @@ async function main(): Promise<void> {
   logCleanupTimer.unref();
 
   if (initialAdminPassword) {
-    // Keep runtime log messages in English to avoid terminal code-page issues.
+    // 终端运行日志统一使用英文，避免 Windows 终端代码页不一致导致乱码。
     runtimeLog("warn", `Initial administrator password (change it in the admin panel): ${initialAdminPassword}`);
   } else if (adminCredentialsMissing) {
     runtimeLog("error", "Unable to initialize administrator credentials; the admin panel cannot be accessed.");
@@ -40,7 +40,7 @@ async function main(): Promise<void> {
 
   const server = app.listen(env.port, env.host, () => {
     if (!firstStart && !adminCredentialsMissing) {
-      // Start listening first so the admin UI can observe the startup workflow in real time.
+      // 先开始监听端口，让管理界面能够实时查看启动工作流的状态。
       void runPacWorkflow(database, env.dataDir, "startup")
         .catch((error) => runtimeLog("error", "PAC startup workflow failed: ", error))
         .finally(() => reschedule(database, env.dataDir));
