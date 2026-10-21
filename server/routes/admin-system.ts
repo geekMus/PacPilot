@@ -48,7 +48,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
     }, 0);
     const counts = database
       .query(
-        "SELECT (SELECT COUNT(*) FROM generation_log) AS generationLogs,(SELECT COUNT(*) FROM access_events) AS accessEvents,(SELECT COUNT(*) FROM proxy_probe_runs) AS proxyProbeRuns,(SELECT COUNT(*) FROM workflow_runs) AS workflows,(SELECT COUNT(*) FROM workflow_runs WHERE status IN ('pending','running')) AS activeWorkflows"
+        "SELECT (SELECT COUNT(*) FROM generation_log) AS generationLogs,(SELECT COUNT(*) FROM access_events) AS accessEvents,(SELECT COUNT(*) FROM workflow_runs) AS workflows,(SELECT COUNT(*) FROM workflow_runs WHERE status IN ('pending','running')) AS activeWorkflows"
       )
       .get();
     const pacFileInfo = (name: string) => {
@@ -112,7 +112,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
   });
   router.post("/api/admin/logs/cleanup", requireAdmin(database), (_req, res) => {
     const deleted = cleanupOperationalLogs(database);
-    if (deleted.generationLogs + deleted.accessEvents + deleted.proxyProbeRuns > 0) {
+    if (deleted.generationLogs + deleted.accessEvents > 0) {
       database.run("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
     }
     res.json({ deleted, retentionDays: getSettings(database).logRetentionDays });
@@ -142,7 +142,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
     try {
       database.run("BEGIN IMMEDIATE");
       database.run(
-        "DELETE FROM generation_log; DELETE FROM access_events; DELETE FROM proxy_probe_runs; DELETE FROM workflow_runs;"
+        "DELETE FROM generation_log; DELETE FROM access_events; DELETE FROM workflow_runs;"
       );
       setSettings(database, DEFAULT_SETTINGS);
       database.run("COMMIT");
