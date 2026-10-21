@@ -24,7 +24,7 @@ const env: Record<string, string | undefined> = {
 
 runtimeLog(
   "info",
-  `已启动开发模式；数据目录：${env.DATA_DIR}；后端端口：${env.PORT}；前端地址：http://localhost:5173`
+  `启动参数已就绪；数据目录：${env.DATA_DIR}；后端端口：${env.PORT}；前端地址：http://localhost:5173`
 );
 
 // 子进程输出原样转发；服务端日志属于服务日志，不在开发启动器中改写。
