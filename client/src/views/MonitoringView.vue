@@ -764,7 +764,7 @@ const {
             <div class="probe-run-head">
               <strong>{{ t("monitor.k154") }}</strong>
               <span
-                >{{ t("monitor.nodeCount", { n: latestProbe.results.length }) }} ·
+                >{{ t("monitor.browserNetwork") }} ·
                 {{ formatDate(latestProbe.results[0]?.testedAt) }}</span
               >
             </div>
