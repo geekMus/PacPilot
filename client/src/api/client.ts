@@ -177,36 +177,6 @@ export interface MonitorSummary {
 
 }
 
-export interface ProxyProbeBatch {
-  targetUrl: string;
-  targetHost: string;
-  targetPort: number;
-  results: ProxyProbeResult[];
-  ignoredDirectEntries: number;
-  parseWarnings: Array<{
-    code: string;
-    detail: string;
-  }>;
-  limited: boolean;
-}
-
-export interface ProxyProbeRecord {
-  id: number;
-  tested_at: string;
-  proxy_label: string;
-  proxy_host: string;
-  proxy_port: number;
-  target_host: string;
-  success: boolean;
-  tcp_ms: number | null;
-  handshake_ms: number | null;
-  target_ms: number | null;
-  http_status: number | null;
-  phase: string;
-  error_code: string;
-  error_detail: string;
-}
-
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -321,7 +291,7 @@ export const api = {
     }>("/api/admin/logs/cleanup", { method: "POST" }),
   clearLogs: () =>
     request<{
-      deleted: { generationLogs: number; accessEvents: number; proxyProbeRuns: number };
+      deleted: { generationLogs: number; accessEvents: number };
       retentionDays: number;
     }>("/api/admin/logs/clear", { method: "POST" }),
   factoryReset: () =>
