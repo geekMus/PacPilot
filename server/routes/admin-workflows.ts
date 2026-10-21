@@ -17,6 +17,8 @@ export function adminWorkflowRoutes(database: AppDatabase): Router {
   const router = Router();
   const errorText = (req: import("express").Request, key: string) =>
     t(resolveLocale(req.get("accept-language")), key);
+  const parseWorkflowId = (value: string | string[] | undefined): number =>
+    typeof value === "string" ? Number.parseInt(value, 10) : Number.NaN;
 
   router.get("/api/admin/workflows", requireAdmin(database), (req, res) => {
     res.setHeader("Cache-Control", "no-store");
@@ -62,7 +64,7 @@ export function adminWorkflowRoutes(database: AppDatabase): Router {
 
   router.get("/api/admin/workflows/:id", requireAdmin(database), (req, res) => {
     res.setHeader("Cache-Control", "no-store");
-    const id = Number.parseInt(req.params.id, 10);
+    const id = parseWorkflowId(req.params.id);
     if (!Number.isSafeInteger(id) || id < 1) {
       res.status(400).json({ error: errorText(req, "serverErrors.invalidWorkflowId") });
       return;
@@ -77,7 +79,7 @@ export function adminWorkflowRoutes(database: AppDatabase): Router {
 
   router.post("/api/admin/workflows/:id/cancel", requireAdmin(database), (req, res) => {
     res.setHeader("Cache-Control", "no-store");
-    const id = Number.parseInt(req.params.id, 10);
+    const id = parseWorkflowId(req.params.id);
     if (!Number.isSafeInteger(id) || id < 1) {
       res.status(400).json({ error: errorText(req, "serverErrors.invalidWorkflowId") });
       return;
@@ -96,7 +98,7 @@ export function adminWorkflowRoutes(database: AppDatabase): Router {
 
   router.delete("/api/admin/workflows/:id", requireAdmin(database), (req, res) => {
     res.setHeader("Cache-Control", "no-store");
-    const id = Number.parseInt(req.params.id, 10);
+    const id = parseWorkflowId(req.params.id);
     if (!Number.isSafeInteger(id) || id < 1) {
       res.status(400).json({ error: errorText(req, "serverErrors.invalidWorkflowId") });
       return;
