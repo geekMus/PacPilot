@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { isTrustedOrigin } from "../server/utils/origin-policy";
+import { isTrustedOrigin, normalizeOrigin } from "../server/utils/origin-policy";
 
 describe("admin origin policy", () => {
   const allowlist = new Set(["https://ops.example.com"]);
@@ -14,6 +14,14 @@ describe("admin origin policy", () => {
     expect(
       isTrustedOrigin("https://ops.example.com", "https://admin.example.com", allowlist)
     ).toBe(true);
+  });
+
+  test("normalizes default ports and trailing paths to an origin", () => {
+    expect(normalizeOrigin("https://ops.example.com:443/")).toBe("https://ops.example.com");
+    expect(
+      isTrustedOrigin("https://ops.example.com:443/", "https://admin.example.com", allowlist)
+    ).toBe(true);
+    expect(normalizeOrigin("null")).toBeNull();
   });
 
   test("rejects absent and untrusted origins", () => {
