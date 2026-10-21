@@ -8,6 +8,7 @@ import type { EnvConfig } from "./config/env";
 import { publicRoutes } from "./routes/public";
 import { adminRoutes } from "./routes/admin";
 import { requestMonitoringMiddleware } from "./services/request-monitor";
+import { isTrustedOrigin, normalizeOrigin } from "./utils/origin-policy";
 
 export function createApp(env: EnvConfig, database: AppDatabase): express.Application {
   const app = express();
@@ -17,19 +18,50 @@ export function createApp(env: EnvConfig, database: AppDatabase): express.Applic
   // client IPs are correct when TLS terminates upstream.
   app.set("trust proxy", 1);
 
+  // Credentialed CORS must use an explicit allowlist. The SPA is served
+  // from this origin by default, so cross-origin access is opt-in.
+  const allowedOrigins = new Set(
+    (process.env.CORS_ALLOWED_ORIGINS || "")
+      .split(",")
+      .map((origin) => normalizeOrigin(origin.trim()))
+      .filter((origin): origin is string => Boolean(origin))
+  );
+
+  // Vite's local development server proxies /api to this backend.
+  if (env.runtimeProfile === "development") {
+    allowedOrigins.add("http://localhost:5173");
+    allowedOrigins.add("http://127.0.0.1:5173");
+  }
+
   app.use((_req, res, next) => {
     const origin = _req.get("Origin");
-    if (origin) {
-      res.setHeader("Access-Control-Allow-Origin", origin);
+    const normalizedOrigin = normalizeOrigin(origin);
+    const isAdminMutation =
+      _req.path.startsWith("/api/admin/") &&
+      !["GET", "HEAD", "OPTIONS"].includes(_req.method);
+
+    if (
+      isAdminMutation &&
+      !isTrustedOrigin(origin, `${_req.protocol}://${_req.get("host")}`, allowedOrigins)
+    ) {
+      res.status(403).json({ error: "untrusted_origin" });
+      return;
+    }
+
+    const corsAllowed = Boolean(normalizedOrigin && allowedOrigins.has(normalizedOrigin));
+
+    if (corsAllowed) {
+      res.setHeader("Access-Control-Allow-Origin", normalizedOrigin!);
       res.setHeader("Access-Control-Allow-Credentials", "true");
+      res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS");
+      const requestedHeaders = _req.get("Access-Control-Request-Headers");
+      if (requestedHeaders) {
+        res.setHeader("Access-Control-Allow-Headers", requestedHeaders);
+        res.vary("Access-Control-Request-Headers");
+      }
       res.vary("Origin");
     }
-    res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS");
-    const requestedHeaders = _req.get("Access-Control-Request-Headers");
-    if (requestedHeaders) {
-      res.setHeader("Access-Control-Allow-Headers", requestedHeaders);
-      res.vary("Access-Control-Request-Headers");
-    }
+
     if (_req.method === "OPTIONS") {
       res.sendStatus(204);
       return;

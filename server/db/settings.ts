@@ -1,35 +1,19 @@
 import { t, type AppLocale } from "../../shared/i18n";
+import type { AppSettings, GenerationMode, WebhookConfig } from "../../shared/contracts";
+export type {
+  AppSettings,
+  DingTalkMessageType,
+  GenerationMode,
+  WebhookConfig,
+  WebhookMethod,
+  WebhookProvider,
+} from "../../shared/contracts";
 export type { AppLocale } from "../../shared/i18n";
 
 /**
  * 业务配置模型（持久化到 SQLite）。
  * 通知端点按成功和失败渠道分开存储。
  */
-export type GenerationMode = "custom" | "remote";
-export type WebhookProvider = "custom" | "dingtalk";
-export type WebhookMethod = "POST" | "PUT" | "PATCH";
-export type DingTalkMessageType = "text" | "markdown";
-
-export interface WebhookConfig {
-  provider: WebhookProvider;
-  /** Generic Webhook URL or the complete DingTalk robot URL. */
-  url: string;
-  method: WebhookMethod;
-  /** Custom Webhook only: a JSON object of string-valued headers. */
-  headers: string;
-  /** Custom Webhook only: raw JSON payload, supports {{event}} etc. */
-  body: string;
-  /** DingTalk robot signature Secret. Required for DingTalk notifications. */
-  dingTalkSecret: string;
-  dingTalkMessageType: DingTalkMessageType;
-  /** Custom Webhook test payload (JSON). */
-  testBody: string;
-  /** Task notification template for this success/failure channel. */
-  messageTemplate: string;
-  /** Test notification template, separate from task notifications. */
-  testMessageTemplate: string;
-}
-
 export const DEFAULT_TASK_BODY = JSON.stringify(
   {
     ok: "{{ok}}",
@@ -74,24 +58,6 @@ export function normalizeWebhookConfig(input: unknown, locale: AppLocale = "zh_C
   };
 }
 
-export interface AppSettings {
-  mode: GenerationMode;
-  pacProxy: string;
-  pacCompress: boolean;
-  listUrl: string;
-  blockList: string[];
-  directList: string[];
-  cronSchedule: string;
-  /** IANA timezone used by scheduled tasks and displayed timestamps. */
-  timezone: string;
-  /** HTTPS URL requested through each proxy during connectivity checks. */
-  proxyTestUrl: string;
-  /** Automatically delete operational logs older than this many days; 0 disables automatic cleanup. */
-  logRetentionDays: number;
-  webhookSuccessConfig: WebhookConfig;
-  webhookFailureConfig: WebhookConfig;
-}
-
 const DEFAULT_WEBHOOK = createDefaultWebhookConfig();
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -103,7 +69,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   directList: [],
   cronSchedule: "",
   timezone: "Asia/Shanghai",
-  proxyTestUrl: "https://www.google.com/generate_204",
   logRetentionDays: 30,
   webhookSuccessConfig: { ...DEFAULT_WEBHOOK },
   webhookFailureConfig: { ...DEFAULT_WEBHOOK },

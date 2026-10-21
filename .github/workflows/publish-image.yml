@@ -1,19 +1,21 @@
 name: 构建并发布 Docker 镜像
 
 on:
-  # 版本或镜像构建配置变化时检查发布条件；只有版本变化才会发布镜像。
+  # 自动触发只监听 main 上的 package.json 变更；是否发布由 GHCR latest 决定。
   push:
     branches:
       - main
     paths:
       - package.json
-      - Dockerfile
-      - .dockerignore
-      - .github/workflows/publish-image.yml
-  # 其他分支只能手动触发；手动运行仅验证构建，绝不推送镜像。
+  # 手动触发也允许发布，但仍必须通过同样的日期和 latest 版本检查。
   workflow_dispatch:
 
-# 同一分支只保留最新一次运行；新提交到来时取消旧的构建/发布任务。
+# 时区集中配置；将来需要更换发布日历时只需修改此变量。
+env:
+  RELEASE_TIMEZONE: Asia/Shanghai
+  IMAGE_NAME: ghcr.io/geekmus/genpac-runner
+
+# 同一分支只保留最新一次运行；新运行到来时取消旧任务。
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -24,40 +26,49 @@ permissions:
 jobs:
   prepare:
     name: 判断镜像发布条件
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     permissions:
       contents: read
     outputs:
       version: ${{ steps.version.outputs.version }}
       previous_version: ${{ steps.version.outputs.previous_version }}
-      previous_revision: ${{ steps.version.outputs.previous_revision }}
       publish: ${{ steps.version.outputs.publish }}
-      publish_latest: ${{ steps.version.outputs.publish_latest }}
       reason: ${{ steps.version.outputs.reason }}
-      changelog: ${{ steps.version.outputs.changelog }}
     steps:
-      - name: 检出完整提交历史
+      - name: 检出当前提交
         uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
 
-      - name: 验证日历版本并判断发布条件
+      - name: 检查当天版本并比较 GHCR latest
         id: version
         shell: bash
         run: |
           set -euo pipefail
           export LC_ALL=C
 
-          # CalVer 格式：YYYY.MM.DD；同一天需要多次发布时使用 YYYY.MM.DD-r1 / YYYY.MM.DD-R1、-r2。
-          is_calendar_version() {
-            local value="$1" base year month day normalized
-            [[ "$value" =~ ^([0-9]{4})\.([0-9]{2})\.([0-9]{2})(-[rR]([1-9][0-9]*))?$ ]] || return 1
-            base="${value%%-[rR]*}"
-            IFS=. read -r year month day <<< "$base"
-            normalized="$(date -u -d "${year}-${month}-${day}" +%Y.%m.%d 2>/dev/null || true)"
-            [[ "$normalized" == "$base" ]]
-          }
+          VERSION="$(jq -er '.version' package.json)"
+          if [[ ! "$VERSION" =~ ^([0-9]{4})\.([0-9]{2})\.([0-9]{2})(-[rR]([1-9][0-9]*))?$ ]]; then
+            echo "::error::package.json.version 必须使用 YYYY.MM.DD 或 YYYY.MM.DD-rN 格式。"
+            exit 1
+          fi
+
+          VERSION_DATE="${VERSION%%-[rR]*}"
+          YEAR="${VERSION_DATE%%.*}"
+          REST="${VERSION_DATE#*.}"
+          MONTH="${REST%%.*}"
+          DAY="${REST##*.}"
+          NORMALIZED_DATE="$(date -u -d "${YEAR}-${MONTH}-${DAY}" +%Y.%m.%d 2>/dev/null || true)"
+          if [[ "$NORMALIZED_DATE" != "$VERSION_DATE" ]]; then
+            echo "::error::版本日期无效：$VERSION_DATE"
+            exit 1
+          fi
+
+          TODAY="$(TZ="$RELEASE_TIMEZONE" date +%Y.%m.%d)"
+          if [[ "$VERSION_DATE" != "$TODAY" ]]; then
+            echo "::error::版本日期必须恰好等于 $RELEASE_TIMEZONE 当天：今天是 $TODAY，package.json.version 为 $VERSION。过去或未来日期均不允许发布。"
+            exit 1
+          fi
 
           REGISTRY_TOKEN="$(curl -fsSL 'https://ghcr.io/token?scope=repository:geekmus/genpac-runner:pull&service=ghcr.io' | jq -er '.token // .access_token')"
           MANIFEST_ACCEPT="application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json"
@@ -65,179 +76,103 @@ jobs:
             -H "Authorization: Bearer $REGISTRY_TOKEN" \
             -H "Accept: $MANIFEST_ACCEPT" \
             'https://ghcr.io/v2/geekmus/genpac-runner/manifests/latest')"
+
           PREVIOUS_VERSION=""
-          PREVIOUS_IMAGE_REVISION=""
           if [[ "$MANIFEST_STATUS" == "200" ]]; then
             if jq -e '.manifests | type == "array"' "$RUNNER_TEMP/latest-manifest.json" >/dev/null; then
-              IMAGE_MANIFEST_DIGEST="$(jq -er '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == "arm64")][0].digest' "$RUNNER_TEMP/latest-manifest.json")"
-              curl -fsSL \
-                -H "Authorization: Bearer $REGISTRY_TOKEN" \
-                -H "Accept: $MANIFEST_ACCEPT" \
-                "https://ghcr.io/v2/geekmus/genpac-runner/manifests/$IMAGE_MANIFEST_DIGEST" \
+              ARM64_DIGEST="$(jq -er '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == "arm64")][0].digest' "$RUNNER_TEMP/latest-manifest.json")"
+              curl -fsSL -H "Authorization: Bearer $REGISTRY_TOKEN" -H "Accept: $MANIFEST_ACCEPT" \
+                "https://ghcr.io/v2/geekmus/genpac-runner/manifests/$ARM64_DIGEST" \
                 -o "$RUNNER_TEMP/latest-platform-manifest.json"
             elif jq -e '.config.digest' "$RUNNER_TEMP/latest-manifest.json" >/dev/null; then
               cp "$RUNNER_TEMP/latest-manifest.json" "$RUNNER_TEMP/latest-platform-manifest.json"
             else
-              echo "::error::GHCR latest 标签返回了无法识别的镜像清单。"
+              echo "::error::GHCR latest 标签返回无法识别的镜像清单。"
               exit 1
             fi
 
             CONFIG_DIGEST="$(jq -er '.config.digest' "$RUNNER_TEMP/latest-platform-manifest.json")"
-            curl -fsSL \
-              -H "Authorization: Bearer $REGISTRY_TOKEN" \
+            curl -fsSL -H "Authorization: Bearer $REGISTRY_TOKEN" \
               "https://ghcr.io/v2/geekmus/genpac-runner/blobs/$CONFIG_DIGEST" \
               -o "$RUNNER_TEMP/latest-config.json"
             PREVIOUS_VERSION="$(jq -r '.config.Labels["org.opencontainers.image.version"] // empty' "$RUNNER_TEMP/latest-config.json")"
-            PREVIOUS_IMAGE_REVISION="$(jq -r '.config.Labels["org.opencontainers.image.revision"] // empty' "$RUNNER_TEMP/latest-config.json")"
             if [[ -z "$PREVIOUS_VERSION" ]]; then
-              echo "::error::GHCR latest 镜像缺少 org.opencontainers.image.version 标签，无法判断是否需要发布。"
+              echo "::error::GHCR latest 镜像缺少 org.opencontainers.image.version 标签，无法安全判断发布条件。"
               exit 1
             fi
           elif [[ "$MANIFEST_STATUS" != "404" ]]; then
-            echo "::error::读取 GHCR latest 镜像失败，HTTP 状态码：$MANIFEST_STATUS"
+            echo "::error::读取 GHCR latest 失败，HTTP 状态码：$MANIFEST_STATUS"
             exit 1
           fi
 
-          CHANGELOG_RANGE=""
-          CHANGELOG_PREFIX="最近提交"
-          if [[ "$PREVIOUS_IMAGE_REVISION" =~ ^[0-9a-f]{40}$ ]] && git cat-file -e "$PREVIOUS_IMAGE_REVISION^{commit}" 2>/dev/null; then
-            CHANGELOG_RANGE="$PREVIOUS_IMAGE_REVISION..$GITHUB_SHA"
-            CHANGELOG_PREFIX="相对上一镜像的变更"
-          fi
-          if [[ -n "$CHANGELOG_RANGE" ]]; then
-            CHANGELOG_COMMITS="$(git log --first-parent -5 --format='%s' "$CHANGELOG_RANGE")"
-          else
-            CHANGELOG_COMMITS="$(git log --first-parent -5 --format='%s' "$GITHUB_SHA")"
-          fi
-          CHANGELOG="$(printf '%s\n' "$CHANGELOG_COMMITS" | jq -Rrs 'split("\n") | map(select(length > 0)) | join(" | ") | .[:400]')"
-          if [[ -z "$CHANGELOG" ]]; then
-            CHANGELOG="本次提交与上一镜像相同，无新增提交"
-          fi
-
-          VERSION="$(jq -r '.version // empty' package.json)"
-          if ! is_calendar_version "$VERSION"; then
-            echo "::error::package.json.version 必须使用日历版本 YYYY.MM.DD；同日修订可使用 YYYY.MM.DD-r1。"
-            exit 1
-          fi
-
-          PUBLISH="false"
-          PUBLISH_LATEST="false"
-          REASON="手动触发：只验证构建，不推送镜像。"
-
-          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == "refs/heads/main" ]]; then
-            # 任何实际发布都必须使用中国时区的当天日期，包括从旧版本格式迁移的首次日期版本。
-            if [[ "$VERSION" != "$PREVIOUS_VERSION" ]]; then
-              CURRENT_DATE="${VERSION%%-[rR]*}"
-              TODAY_DATE="$(TZ=Asia/Shanghai date +%Y.%m.%d)"
-              if [[ "$CURRENT_DATE" != "$TODAY_DATE" ]]; then
-                echo "::error::只能发布当天日期的版本：今天是 $TODAY_DATE，本次版本为 $VERSION。"
-                exit 1
-              fi
-            fi
-
+          PUBLISH="true"
+          REASON="GHCR 尚无 latest 镜像，允许首次发布 $VERSION。"
+          if [[ -n "$PREVIOUS_VERSION" ]]; then
             if [[ "$VERSION" == "$PREVIOUS_VERSION" ]]; then
-              REASON="当前版本与 GHCR latest 镜像版本相同，跳过镜像发布。"
-            elif [[ -z "$PREVIOUS_VERSION" ]]; then
-              PUBLISH="true"
-              PUBLISH_LATEST="true"
-              REASON="GHCR 尚无 latest 镜像，这是首次发布 $VERSION。"
-            elif is_calendar_version "$PREVIOUS_VERSION"; then
-              CURRENT_DATE="${VERSION%%-[rR]*}"
+              PUBLISH="false"
+              REASON="当前版本与 GHCR latest 相同，跳过重复发布。"
+            elif [[ "$PREVIOUS_VERSION" =~ ^([0-9]{4})\.([0-9]{2})\.([0-9]{2})(-[rR]([1-9][0-9]*))?$ ]]; then
               PREVIOUS_DATE="${PREVIOUS_VERSION%%-[rR]*}"
-              CURRENT_REVISION="0"
-              PREVIOUS_VERSION_SEQUENCE="0"
-              [[ "$VERSION" == *-[rR]* ]] && CURRENT_REVISION="${VERSION##*-[rR]}"
-              [[ "$PREVIOUS_VERSION" == *-[rR]* ]] && PREVIOUS_VERSION_SEQUENCE="${PREVIOUS_VERSION##*-[rR]}"
-
-              if [[ "$CURRENT_DATE" == "$PREVIOUS_DATE" ]] && (( 10#$CURRENT_REVISION <= 10#$PREVIOUS_VERSION_SEQUENCE )); then
-                echo "::error::同一天的修订序号必须递增：上一版本为 $PREVIOUS_VERSION，本次为 $VERSION。"
+              if [[ "$PREVIOUS_DATE" > "$VERSION_DATE" ]]; then
+                echo "::error::拒绝覆盖更新的 latest：GHCR 版本 $PREVIOUS_VERSION 晚于本次版本日期 $VERSION。"
                 exit 1
               fi
-
-              PUBLISH="true"
-              PUBLISH_LATEST="true"
-              REASON="日历版本从 $PREVIOUS_VERSION 更新为 $VERSION，发布新镜像。"
+              if [[ "$PREVIOUS_DATE" == "$VERSION_DATE" ]]; then
+                CURRENT_REVISION="0"
+                PREVIOUS_REVISION="0"
+                [[ "$VERSION" == *-[rR]* ]] && CURRENT_REVISION="${VERSION##*-[rR]}"
+                [[ "$PREVIOUS_VERSION" == *-[rR]* ]] && PREVIOUS_REVISION="${PREVIOUS_VERSION##*-[rR]}"
+                if (( 10#$CURRENT_REVISION <= 10#$PREVIOUS_REVISION )); then
+                  echo "::error::同一天的修订序号必须高于 GHCR latest：上一版本 $PREVIOUS_VERSION，本次版本 $VERSION。"
+                  exit 1
+                fi
+              fi
+              REASON="版本从 GHCR latest 的 $PREVIOUS_VERSION 更新为 $VERSION，允许发布。"
             else
-              # 兼容迁移：旧版本（例如 2.2.0）不属于 CalVer 时，允许一次性切换到日期版本。
-              PUBLISH="true"
-              PUBLISH_LATEST="true"
-              REASON="检测到旧版本格式 ${PREVIOUS_VERSION:-（无版本）}，允许首次迁移到日历版本 $VERSION。"
+              REASON="GHCR latest 使用旧版本格式 $PREVIOUS_VERSION；允许迁移到当天日历版本 $VERSION。"
             fi
-
           fi
 
           {
             echo "version=$VERSION"
             echo "previous_version=$PREVIOUS_VERSION"
-            echo "previous_revision=$PREVIOUS_IMAGE_REVISION"
             echo "publish=$PUBLISH"
-            echo "publish_latest=$PUBLISH_LATEST"
             echo "reason=$REASON"
-            echo "changelog=$CHANGELOG_PREFIX：$CHANGELOG"
           } >> "$GITHUB_OUTPUT"
 
+          echo "发布时区：$RELEASE_TIMEZONE"
+          echo "当前日期：$TODAY"
           echo "项目版本：$VERSION"
-          echo "最新已发布镜像版本：${PREVIOUS_VERSION:-（尚无 latest 镜像）}"
-          echo "镜像变更摘要：$CHANGELOG_PREFIX：$CHANGELOG"
+          echo "GHCR latest 版本：${PREVIOUS_VERSION:-（尚无 latest 镜像）}"
           echo "发布判断：$REASON"
 
-      - name: 生成版本和提交变更摘要
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          PREVIOUS_VERSION: ${{ steps.version.outputs.previous_version }}
-          PREVIOUS_REVISION: ${{ steps.version.outputs.previous_revision }}
-          PUBLISH: ${{ steps.version.outputs.publish }}
-          PUBLISH_LATEST: ${{ steps.version.outputs.publish_latest }}
-          REASON: ${{ steps.version.outputs.reason }}
-          CHANGELOG: ${{ steps.version.outputs.changelog }}
-          EVENT_NAME: ${{ github.event_name }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          SUMMARY="$GITHUB_STEP_SUMMARY"
-          PREVIOUS_IMAGE_SHA=""
-          if [[ "$PREVIOUS_REVISION" =~ ^[0-9a-f]{40}$ ]] && git cat-file -e "$PREVIOUS_REVISION^{commit}" 2>/dev/null; then
-            PREVIOUS_IMAGE_SHA="$PREVIOUS_REVISION"
-          fi
+  check:
+    name: 类型检查与构建
+    needs: prepare
+    if: needs.prepare.outputs.publish == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
 
-          {
-            printf '# genpac-runner 镜像构建摘要\n\n'
-            printf -- '- 项目版本：%s\n' "$VERSION"
-            printf -- '- 本次提交：[%s](https://github.com/%s/commit/%s)\n' "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$GITHUB_SHA"
-            printf -- '- 构建平台：linux/arm64\n'
-            printf -- '- 发布判断：%s\n' "$REASON"
-            printf -- '- 镜像变更摘要：%s\n' "$CHANGELOG"
-            if [[ "$PUBLISH" == "true" ]]; then
-              printf -- '- 版本镜像：ghcr.io/geekmus/genpac-runner:%s\n' "$VERSION"
-              printf -- '- 稳定版别名：ghcr.io/geekmus/genpac-runner:latest\n'
-            elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-              printf '\n本次仅验证构建，不会推送镜像。\n'
-            else
-              printf '\n版本未变化，已跳过镜像构建和推送。\n'
-            fi
-          } >> "$SUMMARY"
+      - name: 安装 Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
-          if [[ -n "$PREVIOUS_IMAGE_SHA" ]]; then
-            {
-              printf '\n## 相比上一版本的代码变更\n\n'
-              printf -- '- 上一版本：%s\n' "$PREVIOUS_VERSION"
-              printf -- '- 上一镜像提交：[%s](https://github.com/%s/commit/%s)\n' "$PREVIOUS_IMAGE_SHA" "$GITHUB_REPOSITORY" "$PREVIOUS_IMAGE_SHA"
-              printf -- '- 完整差异：[查看提交和文件变更](https://github.com/%s/compare/%s...%s)\n' "$GITHUB_REPOSITORY" "$PREVIOUS_IMAGE_SHA" "$GITHUB_SHA"
-              printf '\n### 提交记录（main 第一父历史）\n\n'
-            } >> "$SUMMARY"
-            git log --first-parent --no-decorate --format="- [%h](https://github.com/${GITHUB_REPOSITORY}/commit/%H) %s" "$PREVIOUS_IMAGE_SHA..$GITHUB_SHA" >> "$SUMMARY"
-          else
-            {
-              printf '\n## 提交记录\n\n'
-              printf '未找到上一镜像对应的源码提交，以下列出最近的提交。\n\n'
-            } >> "$SUMMARY"
-            git log -10 --first-parent --no-decorate --format="- [%h](https://github.com/${GITHUB_REPOSITORY}/commit/%H) %s" "$GITHUB_SHA" >> "$SUMMARY"
-          fi
+      - name: 安装依赖
+        run: bun install
+
+      - name: 完整项目检查
+        run: bun run check
 
   publish:
     name: 构建并发布 ARM64 镜像
-    needs: prepare
-    if: needs.prepare.outputs.publish == 'true' || github.event_name == 'workflow_dispatch'
+    needs: [prepare, check]
+    if: needs.prepare.outputs.publish == 'true' && needs.check.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
@@ -248,68 +183,51 @@ jobs:
         uses: actions/checkout@v7
 
       - name: 启用 ARM64 构建支持
-        if: github.event_name == 'workflow_dispatch' || needs.prepare.outputs.publish == 'true'
         uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
 
       - name: 设置 Docker Buildx
-        if: github.event_name == 'workflow_dispatch' || needs.prepare.outputs.publish == 'true'
         uses: docker/setup-buildx-action@v4
 
       - name: 登录 GitHub 容器镜像仓库
-        if: needs.prepare.outputs.publish == 'true'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 生成版本化镜像标签和 OCI 元数据
-        if: github.event_name == 'workflow_dispatch' || needs.prepare.outputs.publish == 'true'
+      - name: 生成版本标签和 OCI 元数据
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/geekmus/genpac-runner
+          images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=${{ needs.prepare.outputs.version }},enable=${{ needs.prepare.outputs.publish == 'true' }}
-            type=raw,value=latest,enable=${{ needs.prepare.outputs.publish_latest == 'true' }}
+            type=raw,value=${{ needs.prepare.outputs.version }}
+            type=raw,value=latest
           labels: |
             org.opencontainers.image.title=genpac-runner
             org.opencontainers.image.description=自动生成 PAC 文件的工具
             org.opencontainers.image.source=https://github.com/geekMus/genpac-runner
             org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
             org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.changelog=${{ needs.prepare.outputs.changelog }}
 
-      - name: 构建并按条件推送 ARM64 镜像
-        if: github.event_name == 'workflow_dispatch' || needs.prepare.outputs.publish == 'true'
+      - name: 构建并发布 linux/arm64 镜像
         uses: docker/build-push-action@v7
         with:
           context: .
-          push: ${{ needs.prepare.outputs.publish == 'true' }}
+          push: true
           platforms: linux/arm64
-          # 关闭 BuildKit 自动生成的 provenance / SBOM 附属清单，避免 GHCR 出现无标签的关联镜像版本。
           provenance: false
           sbom: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          annotations: |
-            manifest:org.opencontainers.image.description=自动生成 PAC 文件的工具
-            manifest:org.opencontainers.image.source=https://github.com/geekMus/genpac-runner
-            manifest:org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
-            manifest:org.opencontainers.image.revision=${{ github.sha }}
-            manifest:org.opencontainers.image.changelog=${{ needs.prepare.outputs.changelog }}
 
-      - name: 输出构建结果
+      - name: 输出发布结果
         env:
-          PUBLISH: ${{ needs.prepare.outputs.publish }}
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          if [[ "$PUBLISH" == "true" ]]; then
-            echo "ARM64 镜像已发布：ghcr.io/geekmus/genpac-runner:$VERSION"
-          else
-            echo "本次仅完成构建验证，未发布镜像。"
-          fi
+          echo "ARM64 镜像已发布：$IMAGE_NAME:$VERSION"
+          echo "latest 标签已更新：$IMAGE_NAME:latest"

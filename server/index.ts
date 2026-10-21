@@ -21,7 +21,7 @@ async function main(): Promise<void> {
   markInterruptedWorkflows(database);
   const cleanupLogs = (): void => {
     const deleted = cleanupOperationalLogs(database);
-    if (deleted.generationLogs + deleted.accessEvents + deleted.proxyProbeRuns > 0) {
+    if (deleted.generationLogs + deleted.accessEvents > 0) {
       database.run("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
     }
   };
@@ -29,19 +29,8 @@ async function main(): Promise<void> {
   const logCleanupTimer = setInterval(cleanupLogs, 24 * 60 * 60 * 1000);
   logCleanupTimer.unref();
 
-  runtimeLog("log", "genpac-runner 服务启动中…");
-  runtimeLog(
-    "log",
-    `运行模式：${env.runtimeProfile === "development" ? "开发环境" : env.runtimeProfile}`
-  );
-  runtimeLog("log", `数据目录：${env.dataDir}`);
-  runtimeLog("log", `监听地址：${env.host}:${env.port}`);
-  runtimeLog("log", "管理后台：已启用");
   if (initialAdminPassword) {
-    runtimeLog(
-      "warn",
-      `首次启动生成的管理员密码（可在后台修改）：\n${initialAdminPassword}\n能够读取此日志的人也能看到该密码，请妥善保护日志。`
-    );
+    runtimeLog("warn", `首次启动生成的管理员密码（可在后台修改）：${initialAdminPassword}`);
   } else if (adminCredentialsMissing) {
     runtimeLog("error", "无法初始化管理员凭据，管理后台将无法登录。");
   }
@@ -49,20 +38,9 @@ async function main(): Promise<void> {
   const app = createApp(env, database);
 
   const server = app.listen(env.port, env.host, () => {
-    const local =
-      env.host === "0.0.0.0" || env.host === "::"
-        ? `http://127.0.0.1:${env.port}`
-        : `http://${env.host}:${env.port}`;
-    runtimeLog("log", `服务已监听：${env.host}:${env.port}`);
-    runtimeLog("log", `PAC 文件：${local}/proxy.pac`);
-    runtimeLog("log", `状态页面：${local}/`);
-    runtimeLog("log", `管理后台：${local}/admin`);
     if (!firstStart && !adminCredentialsMissing) {
       // Start listening first so the admin UI can observe the startup workflow in real time.
       void runPacWorkflow(database, env.dataDir, "startup")
-        .then(({ generation }) => {
-          if (!generation.success) runtimeLog("warn", `启动时 PAC 生成失败：${generation.message}`);
-        })
         .catch((error) => runtimeLog("error", "启动时 PAC 工作流失败：", error))
         .finally(() => reschedule(database, env.dataDir));
     }
@@ -86,7 +64,6 @@ async function main(): Promise<void> {
   });
 
   const shutdown = (): void => {
-    runtimeLog("log", "服务正在关闭…");
     stopScheduler();
     clearInterval(logCleanupTimer);
     server.close(() => {

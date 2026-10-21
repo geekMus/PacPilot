@@ -1,6 +1,7 @@
 import type { AppDatabase } from "../db/sqlite";
 import {
   createWorkflowRun,
+  claimWorkflowRun,
   getCurrentWorkflow,
   getSettings,
   getWorkflowRun,
@@ -46,13 +47,11 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
   const { database, workflowId: id } = item;
   const startedAt = new Date();
   let activeStageId: number | null = null;
-  const settings = getSettings(database);
   try {
-    updateWorkflowRun(database, id, {
-      status: "running",
-      stage: "prepare",
-      started_at: startedAt.toISOString(),
-    });
+    if (!claimWorkflowRun(database, id, startedAt.toISOString())) {
+      return cancelledResult();
+    }
+    const settings = getSettings(database);
     const prepareDetail = encodeWorkflowStageDetail({
       mode: settings.mode,
       pac_proxy: settings.pacProxy,

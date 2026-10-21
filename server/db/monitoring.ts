@@ -26,27 +26,6 @@ export interface AccessEvent extends AccessEventInput {
   id: number;
 }
 
-export interface ProxyProbeInput {
-  tested_at: string;
-  proxy_label: string;
-  proxy_host: string;
-  proxy_port: number;
-  target_host: string;
-  success: boolean;
-  tcp_ms: number | null;
-  handshake_ms: number | null;
-  target_ms: number | null;
-  http_status: number | null;
-  phase: string;
-  error_code: string;
-  error_detail: string;
-}
-
-export interface ProxyProbeRecord extends Omit<ProxyProbeInput, "success"> {
-  id: number;
-  success: boolean;
-}
-
 export interface MonitorSummary {
   generatedAt: string;
   activeRequests: number;
@@ -293,52 +272,6 @@ export function getMonitorSummary(
   };
 }
 
-export function recordProxyProbe(database: AppDatabase, item: ProxyProbeInput): void {
-  database
-    .query(
-      "INSERT INTO proxy_probe_runs " +
-        "(tested_at, proxy_label, proxy_host, proxy_port, target_host, success, tcp_ms, handshake_ms, target_ms, http_status, phase, error_code, error_detail) " +
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-    )
-    .run(
-      item.tested_at,
-      item.proxy_label,
-      item.proxy_host,
-      item.proxy_port,
-      item.target_host,
-      item.success ? 1 : 0,
-      item.tcp_ms,
-      item.handshake_ms,
-      item.target_ms,
-      item.http_status,
-      item.phase,
-      item.error_code,
-      item.error_detail.slice(0, 500)
-    );
-
-  maybePruneMonitoringData(database);
-}
-
-export function listProxyProbeRuns(
-  database: AppDatabase,
-  requestedLimit = 30,
-  beforeId = 0
-): ProxyProbeRecord[] {
-  maybePruneMonitoringData(database);
-  const limit = Math.max(1, Math.min(201, Math.trunc(requestedLimit) || 30));
-  const cursor = Math.max(0, Math.trunc(beforeId) || 0);
-  const where = cursor > 0 ? " WHERE id < ?" : "";
-  const query =
-    "SELECT id, tested_at, proxy_label, proxy_host, proxy_port, target_host, success, tcp_ms, handshake_ms, target_ms, http_status, phase, error_code, error_detail " +
-    "FROM proxy_probe_runs" +
-    where +
-    " ORDER BY id DESC LIMIT ?";
-  const rows = (
-    cursor > 0 ? database.query(query).all(cursor, limit) : database.query(query).all(limit)
-  ) as Array<Omit<ProxyProbeRecord, "success"> & { success: number }>;
-  return rows.map((row) => ({ ...row, success: Boolean(row.success) }));
-}
-
 function maybePruneMonitoringData(database: AppDatabase): void {
   const now = Date.now();
   if (now - lastPruneAt < 60 * 60 * 1000) return;
@@ -352,12 +285,6 @@ function pruneMonitoringData(database: AppDatabase): void {
   database
     .query(
       "DELETE FROM access_events WHERE id NOT IN (SELECT id FROM access_events ORDER BY id DESC LIMIT 5000)"
-    )
-    .run();
-  database.query("DELETE FROM proxy_probe_runs WHERE tested_at < ?").run(cutoff);
-  database
-    .query(
-      "DELETE FROM proxy_probe_runs WHERE id NOT IN (SELECT id FROM proxy_probe_runs ORDER BY id DESC LIMIT 1000)"
     )
     .run();
 }

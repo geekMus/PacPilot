@@ -1,4 +1,21 @@
 import { i18n, resolveLocale } from "../i18n";
+import type {
+  AppSettings,
+  WebhookConfig,
+  WorkflowRun,
+  WorkflowStage,
+  WorkflowStatus,
+} from "../../../shared/contracts";
+export type {
+  AppSettings,
+  DingTalkMessageType,
+  WebhookConfig,
+  WebhookMethod,
+  WebhookProvider,
+  WorkflowRun,
+  WorkflowStage,
+  WorkflowStatus,
+} from "../../../shared/contracts";
 
 export interface Meta {
   adminEnabled: boolean;
@@ -9,23 +26,6 @@ export interface Meta {
 export interface AdminSession {
   loggedIn: boolean;
   adminCredentialsMissing: boolean;
-}
-
-export type WebhookProvider = "custom" | "dingtalk";
-export type WebhookMethod = "POST" | "PUT" | "PATCH";
-export type DingTalkMessageType = "text" | "markdown";
-
-export interface WebhookConfig {
-  provider: WebhookProvider;
-  url: string;
-  method: WebhookMethod;
-  headers: string;
-  body: string;
-  dingTalkSecret: string;
-  dingTalkMessageType: DingTalkMessageType;
-  testBody: string;
-  messageTemplate: string;
-  testMessageTemplate: string;
 }
 
 export interface PacStatus {
@@ -40,21 +40,6 @@ export interface PacStatus {
   updatedAt: string;
   timeZone: string;
   hasPac: boolean;
-}
-
-export interface AppSettings {
-  mode: "custom" | "remote";
-  pacProxy: string;
-  pacCompress: boolean;
-  listUrl: string;
-  blockList: string[];
-  directList: string[];
-  cronSchedule: string;
-  timezone: string;
-  proxyTestUrl: string;
-  logRetentionDays: number;
-  webhookSuccessConfig: WebhookConfig;
-  webhookFailureConfig: WebhookConfig;
 }
 
 export interface WebhookTestResult {
@@ -91,31 +76,6 @@ export interface GenerateStartResult {
   status: WorkflowStatus;
 }
 
-export type WorkflowStatus = "pending" | "running" | "succeeded" | "failed" | "cancelled";
-export interface WorkflowRun {
-  id: number;
-  source: string;
-  status: WorkflowStatus;
-  stage: string;
-  mode: string;
-  error: string;
-  created_at: string;
-  started_at: string | null;
-  finished_at: string | null;
-  duration_ms: number | null;
-}
-export interface WorkflowStage {
-  id: number;
-  run_id: number;
-  stage_key: string;
-  status: "pending" | "running" | "succeeded" | "failed" | "skipped";
-  error: string;
-  /** JSON string with request/config/output diagnostics when available. */
-  detail?: string;
-  started_at: string | null;
-  finished_at: string | null;
-  duration_ms: number | null;
-}
 export interface WorkflowDetail {
   run: WorkflowRun;
   stages: WorkflowStage[];
@@ -148,7 +108,6 @@ export interface StorageSummary {
   counts: {
     generationLogs: number;
     accessEvents: number;
-    proxyProbeRuns: number;
     workflows: number;
     activeWorkflows: number;
   };
@@ -214,53 +173,6 @@ export interface MonitorSummary {
     errors: number;
     averageResponseMs: number;
   }>;
-}
-
-export interface ProxyProbeResult {
-  testedAt: string;
-  proxyLabel: string;
-  proxyHost: string;
-  proxyPort: number;
-  targetHost: string;
-  success: boolean;
-  tcpMs: number | null;
-  handshakeMs: number | null;
-  targetMs: number | null;
-  httpStatus: number | null;
-  phase: string;
-  errorCode: string;
-  errorDetail: string;
-  isLoopback: boolean;
-}
-
-export interface ProxyProbeBatch {
-  targetUrl: string;
-  targetHost: string;
-  targetPort: number;
-  results: ProxyProbeResult[];
-  ignoredDirectEntries: number;
-  parseWarnings: Array<{
-    code: string;
-    detail: string;
-  }>;
-  limited: boolean;
-}
-
-export interface ProxyProbeRecord {
-  id: number;
-  tested_at: string;
-  proxy_label: string;
-  proxy_host: string;
-  proxy_port: number;
-  target_host: string;
-  success: boolean;
-  tcp_ms: number | null;
-  handshake_ms: number | null;
-  target_ms: number | null;
-  http_status: number | null;
-  phase: string;
-  error_code: string;
-  error_detail: string;
 }
 
 export class ApiError extends Error {
@@ -372,12 +284,12 @@ export const api = {
     ),
   cleanupLogs: () =>
     request<{
-      deleted: { generationLogs: number; accessEvents: number; proxyProbeRuns: number };
+      deleted: { generationLogs: number; accessEvents: number };
       retentionDays: number;
     }>("/api/admin/logs/cleanup", { method: "POST" }),
   clearLogs: () =>
     request<{
-      deleted: { generationLogs: number; accessEvents: number; proxyProbeRuns: number };
+      deleted: { generationLogs: number; accessEvents: number };
       retentionDays: number;
     }>("/api/admin/logs/clear", { method: "POST" }),
   factoryReset: () =>
@@ -391,22 +303,5 @@ export const api = {
   monitorAccessPage: (limit = 50, beforeId = 0) =>
     request<PagedResult<AccessEvent>>(
       `/api/admin/monitor/access?paged=1&limit=${limit}&beforeId=${beforeId}`
-    ),
-  proxyProbeTarget: () => request<{ url: string }>("/api/admin/monitor/probe-target"),
-  saveProxyProbeTarget: (url: string) =>
-    request<{ url: string }>("/api/admin/monitor/probe-target", {
-      method: "PUT",
-      body: JSON.stringify({ url }),
-    }),
-  testProxies: () =>
-    request<ProxyProbeBatch>("/api/admin/monitor/probe", {
-      method: "POST",
-      body: JSON.stringify({}),
-    }),
-  proxyProbeHistory: (limit = 30) =>
-    request<ProxyProbeRecord[]>(`/api/admin/monitor/probes?limit=${limit}`),
-  proxyProbeHistoryPage: (limit = 50, beforeId = 0) =>
-    request<PagedResult<ProxyProbeRecord>>(
-      `/api/admin/monitor/probes?paged=1&limit=${limit}&beforeId=${beforeId}`
     ),
 };

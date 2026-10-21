@@ -3,12 +3,9 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import {
   api,
-  ApiError,
   type AccessEvent,
   type AdminSession,
   type MonitorSummary,
-  type ProxyProbeBatch,
-  type ProxyProbeRecord,
 } from "../api/client";
 import { useToast } from "../composables/useToast";
 
@@ -31,106 +28,23 @@ export function useMonitoringDashboard() {
 
   const accessTotal = ref(0);
 
-  const probeHistory = ref<ProxyProbeRecord[]>([]);
-
-  const probeHistoryPageSize = 50;
-
-  const probeHistoryHasMore = ref(false);
-
-  const probeHistoryLoading = ref(false);
-
-  const probeHistoryLoadError = ref("");
-
-  const probeHistoryTotal = ref(0);
-
-  const latestProbe = ref<ProxyProbeBatch | null>(null);
-
   const loading = ref(true);
 
   const authChecking = ref(true);
 
   const refreshing = ref(false);
 
-  const probing = ref(false);
 
   const error = ref("");
 
   const refreshError = ref("");
 
-  const probeError = ref("");
-
-  const proxyTestUrl = ref("https://www.google.com/generate_204");
-
-  const savedProxyTestUrl = ref("https://www.google.com/generate_204");
-
-  const proxyTestTargetLoaded = ref(false);
-
-  const loadingProxyTestTarget = ref(false);
-
-  const savingProxyTestTarget = ref(false);
-
-  const proxyTestTargetMessageKey = ref<"monitor.k6" | "">("");
-  const proxyTestTargetError = ref<unknown>(null);
-  const proxyTestTargetMessage = computed({
-    get: () =>
-      proxyTestTargetMessageKey.value
-        ? t(proxyTestTargetMessageKey.value)
-        : proxyTestTargetError.value
-          ? errorMessage(proxyTestTargetError.value)
-          : "",
-    set: (message: string) => {
-      if (!message) {
-        proxyTestTargetMessageKey.value = "";
-        proxyTestTargetError.value = null;
-      } else {
-        proxyTestTargetMessageKey.value = "";
-        proxyTestTargetError.value = message;
-      }
-    },
-  });
-
-  const proxyTestTargetMessageOk = ref<boolean | null>(null);
-
-  const proxyTestTargetChanged = computed(
-    () => proxyTestUrl.value.trim() !== savedProxyTestUrl.value
-  );
-
-  const proxyTestTargetValid = computed(() => {
-    try {
-      const value = proxyTestUrl.value.trim();
-      const url = new URL(value);
-      return (
-        url.protocol === "https:" &&
-        Boolean(url.hostname) &&
-        !url.username &&
-        !url.password &&
-        !url.hash &&
-        !/[\u0000-\u0020\u007f]/.test(value)
-      );
-    } catch {
-      return false;
-    }
-  });
 
   const lastUpdated = ref("");
 
   let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
   const timeZone = computed(() => summary.value?.timezone || "Asia/Shanghai");
-
-  function localizedProbeError(
-    code: string | null | undefined,
-    detail: string | null | undefined
-  ): string {
-    return code ? t(code, { detail: detail ?? "" }) : (detail ?? "");
-  }
-
-  function errorMessage(error: unknown): string {
-    if (error instanceof ApiError && error.code) {
-      return t(error.code, { detail: error.detail });
-    }
-    return error instanceof Error ? error.message : String(error);
-  }
 
   function formatTrendHour(value: string): string {
     const date = new Date(value);
@@ -334,95 +248,6 @@ export function useMonitoringDashboard() {
     }
   }
 
-  async function loadProbeHistory(reset = true): Promise<void> {
-    if (probeHistoryLoading.value) return;
-    probeHistoryLoading.value = true;
-    probeHistoryLoadError.value = "";
-    try {
-      const cursor = reset ? 0 : (probeHistory.value[probeHistory.value.length - 1]?.id ?? 0);
-      const page = await api.proxyProbeHistoryPage(probeHistoryPageSize, cursor);
-      if (reset) probeHistory.value = page.items;
-      else {
-        const seen = new Set(probeHistory.value.map((item) => item.id));
-        probeHistory.value.push(...page.items.filter((item) => !seen.has(item.id)));
-      }
-      probeHistoryHasMore.value = page.hasMore;
-      probeHistoryTotal.value = page.total;
-      probeError.value = "";
-    } catch (caught) {
-      probeHistoryLoadError.value = caught instanceof Error ? caught.message : String(caught);
-      probeError.value = probeHistoryLoadError.value;
-    } finally {
-      probeHistoryLoading.value = false;
-    }
-  }
-
-  async function loadProxyTestTarget(): Promise<void> {
-    if (loadingProxyTestTarget.value) return;
-    loadingProxyTestTarget.value = true;
-    proxyTestTargetMessage.value = "";
-    proxyTestTargetMessageOk.value = null;
-    try {
-      const result = await api.proxyProbeTarget();
-      proxyTestUrl.value = result.url;
-      savedProxyTestUrl.value = result.url;
-      proxyTestTargetLoaded.value = true;
-    } catch (caught) {
-      proxyTestTargetLoaded.value = false;
-      proxyTestTargetMessageOk.value = false;
-      proxyTestTargetError.value = caught;
-      notify(proxyTestTargetMessage.value, "error");
-    } finally {
-      loadingProxyTestTarget.value = false;
-    }
-  }
-
-  async function saveProxyTestTarget(): Promise<void> {
-    if (
-      !proxyTestTargetLoaded.value ||
-      savingProxyTestTarget.value ||
-      !proxyTestTargetValid.value ||
-      !proxyTestTargetChanged.value
-    )
-      return;
-    savingProxyTestTarget.value = true;
-    proxyTestTargetMessage.value = "";
-    proxyTestTargetMessageOk.value = null;
-    try {
-      const result = await api.saveProxyProbeTarget(proxyTestUrl.value.trim());
-      proxyTestUrl.value = result.url;
-      savedProxyTestUrl.value = result.url;
-      proxyTestTargetMessageOk.value = true;
-      proxyTestTargetMessageKey.value = "monitor.k6";
-      notify(t("monitor.k7"), "success");
-    } catch (caught) {
-      proxyTestTargetMessageOk.value = false;
-      proxyTestTargetError.value = caught;
-      notify(proxyTestTargetMessage.value, "error");
-    } finally {
-      savingProxyTestTarget.value = false;
-    }
-  }
-
-  async function runProxyTest(): Promise<void> {
-    if (probing.value || !proxyTestTargetLoaded.value || proxyTestTargetChanged.value) return;
-    probing.value = true;
-    probeError.value = "";
-    latestProbe.value = null;
-    try {
-      latestProbe.value = await api.testProxies();
-      notify(t("monitor.k8"), "success");
-      await loadProbeHistory();
-      await refreshDashboard(true);
-    } catch (caught) {
-      probeError.value = errorMessage(caught);
-      notify(probeError.value, "error");
-      await loadProbeHistory();
-    } finally {
-      probing.value = false;
-    }
-  }
-
   function formatDate(value: string | null | undefined): string {
     if (!value) return "—";
     const date = new Date(value);
@@ -479,18 +304,6 @@ export function useMonitoringDashboard() {
     return "good";
   }
 
-  function probePhaseLabel(phase: string): string {
-    const labels: Record<string, string> = {
-      TCP: t("monitor.k18"),
-      PROXY_TLS: t("monitor.k19"),
-      PROXY_HANDSHAKE: t("monitor.k20"),
-      TARGET_TLS: t("monitor.k21"),
-      TARGET_HTTP: t("monitor.k22"),
-      complete: t("monitor.k23"),
-    };
-    return labels[phase] || phase;
-  }
-
   async function initialise(): Promise<void> {
     try {
       const session: AdminSession = await api.session();
@@ -499,7 +312,7 @@ export function useMonitoringDashboard() {
         return;
       }
       authChecking.value = false;
-      await Promise.all([refreshDashboard(), loadProbeHistory(), loadProxyTestTarget()]);
+      await refreshDashboard();
       refreshTimer = setInterval(() => {
         void refreshDashboard(true);
       }, 10_000);
@@ -526,31 +339,13 @@ export function useMonitoringDashboard() {
     accessLoadingMore,
     accessLoadError,
     accessTotal,
-    probeHistory,
-    probeHistoryHasMore,
-    probeHistoryLoading,
-    probeHistoryLoadError,
-    probeHistoryTotal,
-    latestProbe,
     loading,
     authChecking,
     refreshing,
-    probing,
     error,
     refreshError,
-    probeError,
-    proxyTestUrl,
-    savedProxyTestUrl,
-    proxyTestTargetLoaded,
-    loadingProxyTestTarget,
-    savingProxyTestTarget,
-    proxyTestTargetMessage,
-    proxyTestTargetMessageOk,
-    proxyTestTargetChanged,
-    proxyTestTargetValid,
     lastUpdated,
     timeZone,
-    localizedProbeError,
     latestPacRequest,
     accessKeyword,
     accessCategory,
@@ -569,16 +364,11 @@ export function useMonitoringDashboard() {
     resetAccessFilters,
     refreshDashboard,
     loadMoreAccesses,
-    loadProbeHistory,
-    loadProxyTestTarget,
-    saveProxyTestTarget,
-    runProxyTest,
     formatDate,
     formatDuration,
     formatBytes,
     categoryLabel,
     statusLabel,
     statusTone,
-    probePhaseLabel,
   };
 }

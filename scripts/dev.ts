@@ -1,11 +1,9 @@
 import { loadDevelopmentDotEnv } from "../server/config/load-dotenv";
+import { runtimeLog } from "../server/utils/runtime-log";
 
 /**
- * 开发启动器：同时跑后端（Bun --hot）与 Vite 前端。
- * 使用：bun run dev
- *
- * 开发环境优先读取项目根目录的 .env；文件不存在时使用进程环境变量。
- * 强制开发模式，数据目录默认落在项目 ./data。
+ * 开发启动器：先完整显示 Vite 启动信息，再启动后端。
+ * Vite 输出直接透传，保留其原始颜色和格式，不包装进项目日志。
  */
 process.env.NODE_ENV = "development";
 process.env.GENPAC_ENV = "development";
@@ -15,17 +13,87 @@ const env: Record<string, string | undefined> = {
   ...process.env,
   NODE_ENV: "development",
   GENPAC_ENV: "development",
-  // .env 已加载；未配置时开发默认使用当前目录 data
   DATA_DIR: process.env.DATA_DIR || "./data",
   PORT: process.env.PORT || "17321",
   HOST: process.env.HOST || "0.0.0.0",
 };
 
-console.log(
-  `[开发环境] 已启动开发模式；数据目录：${env.DATA_DIR}；后端端口：${env.PORT}；前端地址：http://localhost:5173`
+const client = Bun.spawn(
+  [
+    "bunx",
+    "--bun",
+    "vite",
+    "--config",
+    "client/vite.config.ts",
+    "--clearScreen",
+    "false",
+  ],
+  {
+    stdout: "pipe",
+    stderr: "pipe",
+    stdin: "inherit",
+    env: { ...env, FORCE_COLOR: env.FORCE_COLOR || "1" },
+  },
 );
 
-// 子进程输出原样转发；服务端日志属于服务日志，不在开发启动器中改写。
+let resolveViteReady!: () => void;
+const viteReady = new Promise<void>((resolve) => {
+  resolveViteReady = resolve;
+});
+let hasViteReady = false;
+
+async function forwardViteOutput(
+  stream: ReadableStream<Uint8Array> | null,
+  target: "stdout" | "stderr",
+): Promise<void> {
+  if (!stream) return;
+
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let pending = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      // 直接透传原始字节，保留 Vite 自己的 ANSI 颜色、进度和格式。
+      if (target === "stderr") {
+        process.stderr.write(value);
+      } else {
+        process.stdout.write(value);
+      }
+
+      if (!hasViteReady && target === "stdout") {
+        pending += decoder.decode(value, { stream: true });
+        const plainPending = pending.replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, "");
+        if (/ready in\s+\d+\s*ms/i.test(plainPending)) {
+          hasViteReady = true;
+          resolveViteReady();
+        } else if (pending.length > 2000) {
+          pending = pending.slice(-500);
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+const viteStdout = forwardViteOutput(client.stdout, "stdout");
+const viteStderr = forwardViteOutput(client.stderr, "stderr");
+
+const viteStartup = await Promise.race([
+  viteReady.then(() => ({ ready: true as const })),
+  client.exited.then((code) => ({ ready: false as const, code })),
+]);
+
+if (!viteStartup.ready) {
+  await Promise.allSettled([viteStdout, viteStderr]);
+  runtimeLog("error", `Vite 在就绪前退出，退出码：${viteStartup.code}`);
+  process.exit(viteStartup.code ?? 1);
+}
+
 const server = Bun.spawn(["bun", "--hot", "server/index.ts"], {
   stdout: "inherit",
   stderr: "inherit",
@@ -33,21 +101,26 @@ const server = Bun.spawn(["bun", "--hot", "server/index.ts"], {
   env,
 });
 
-const client = Bun.spawn(["bunx", "--bun", "vite", "--config", "client/vite.config.ts"], {
-  stdout: "inherit",
-  stderr: "inherit",
-  stdin: "inherit",
-  env,
-});
-
+let shuttingDown = false;
 const shutdown = () => {
+  if (shuttingDown) return;
+  shuttingDown = true;
   server.kill();
   client.kill();
-  process.exit(0);
 };
 
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
-await Promise.race([server.exited, client.exited]);
+const exited = await Promise.race([
+  server.exited.then((code) => ({ process: "server" as const, code })),
+  client.exited.then((code) => ({ process: "client" as const, code })),
+]);
+
 shutdown();
+await Promise.allSettled([viteStdout, viteStderr, server.exited, client.exited]);
+runtimeLog(
+  "warn",
+  `${exited.process === "server" ? "后端服务" : "Vite 前端"}进程已退出，退出码：${exited.code}`,
+);
+process.exit(exited.code ?? 0);
