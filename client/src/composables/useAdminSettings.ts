@@ -156,7 +156,6 @@ export function useAdminSettings() {
     blockListText: "",
     cronSchedule: "",
     timezone: "Asia/Shanghai",
-    proxyTestUrl: "https://www.google.com/generate_204",
     logRetentionDays: 30,
     webhookSuccessConfig: defaultWebhookConfig(),
     webhookFailureConfig: defaultWebhookConfig(),
@@ -411,7 +410,6 @@ export function useAdminSettings() {
     form.blockListText = s.blockList.join("\n");
     form.cronSchedule = s.cronSchedule;
     form.timezone = s.timezone || "Asia/Shanghai";
-    form.proxyTestUrl = s.proxyTestUrl || "https://www.google.com/generate_204";
     form.logRetentionDays = Number.isFinite(s.logRetentionDays) ? s.logRetentionDays : 30;
     form.webhookSuccessConfig = normalizedWebhookConfig(s.webhookSuccessConfig);
     form.webhookFailureConfig = normalizedWebhookConfig(s.webhookFailureConfig);
@@ -432,7 +430,6 @@ export function useAdminSettings() {
       blockList: split(form.blockListText),
       cronSchedule: form.cronSchedule,
       timezone: form.timezone.trim(),
-      proxyTestUrl: form.proxyTestUrl.trim(),
       logRetentionDays: form.logRetentionDays,
       webhookSuccessConfig: { ...form.webhookSuccessConfig },
       webhookFailureConfig: { ...form.webhookFailureConfig },
