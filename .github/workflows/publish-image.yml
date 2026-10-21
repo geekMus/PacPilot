@@ -299,7 +299,7 @@ jobs:
             type=raw,value=latest
           labels: |
             org.opencontainers.image.title=PacPilot
-            org.opencontainers.image.description=带 Web 管理后台的 PAC 生成与管理服务
+            org.opencontainers.image.description=PacPilot 是一款带 Web 管理后台的 PAC 规则生成与管理服务，支持自定义规则、远程域名列表、定时更新及 Webhook 通知
             org.opencontainers.image.source=https://github.com/geekMus/PacPilot
             org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
             org.opencontainers.image.revision=${{ github.sha }}
@@ -317,6 +317,12 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # GHCR 包页面读取镜像 manifest 的 OCI annotation；仅设置 config labels 不足以保证页面显示简介。
+          annotations: |
+            manifest:org.opencontainers.image.description=PacPilot 是一款带 Web 管理后台的 PAC 规则生成与管理服务，支持自定义规则、远程域名列表、定时更新及 Webhook 通知
+            manifest:org.opencontainers.image.source=https://github.com/geekMus/PacPilot
+            manifest:org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
+            manifest:org.opencontainers.image.revision=${{ github.sha }}
       - name: 汇总 ARM64 镜像发布
         if: always()
         env:
