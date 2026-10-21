@@ -27,7 +27,7 @@ export function reschedule(database: AppDatabase, dataDir: string): void {
   }
 
   if (!cron.validate(expression)) {
-    runtimeLog("error", `定时任务表达式无效：${expression}`);
+    runtimeLog("error", `Invalid scheduled task expression: ${expression}`);
     return;
   }
 
@@ -36,7 +36,7 @@ export function reschedule(database: AppDatabase, dataDir: string): void {
     () => {
       if (scheduledRunInFlight || hasActivePacWorkflow(database)) {
         if (!overlapWarningLogged) {
-          runtimeLog("warn", "上一次工作流尚未结束，跳过本次定时触发，避免任务积压。");
+          runtimeLog("warn", "Previous workflow is still running; skipping this scheduled trigger to avoid a backlog.");
           overlapWarningLogged = true;
         }
         return;
@@ -46,7 +46,7 @@ export function reschedule(database: AppDatabase, dataDir: string): void {
       scheduledRunInFlight = true;
 
       void runPacWorkflow(database, dataDir, "scheduled")
-        .catch((error) => runtimeLog("error", "定时任务工作流失败：", error))
+        .catch((error) => runtimeLog("error", "Scheduled workflow failed: ", error))
         .finally(() => {
           scheduledRunInFlight = false;
         });
