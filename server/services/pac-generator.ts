@@ -354,7 +354,7 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
         : undefined;
     appendGenerationLog(database, false, settings.mode, "failed", {}, message);
     const webhook = await notifyFailure(settings, message);
-    runtimeLog("error", `PAC 生成失败：${message}`);
+    runtimeLog("error", `PAC generation failed: ${message}`);
     return {
       success: false,
       mode: settings.mode,
