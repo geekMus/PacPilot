@@ -99,7 +99,8 @@ export function createAdminSettingsValidators<T extends (...args: any[]) => stri
     const raw = rawValue.trim();
     if (!raw) return t("settings.pacProxyRequired");
     const entries = raw.split(";").map((entry) => entry.trim());
-    while (entries.length > 0 && entries[entries.length - 1] === "") entries.pop();
+    // 与服务端保持一致：只允许单个可选的结尾分号。
+    if (entries[entries.length - 1] === "") entries.pop();
     if (entries.length === 0 || entries.some((entry) => !entry)) {
       return t("settings.proxySemicolon");
     }
