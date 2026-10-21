@@ -7,7 +7,7 @@ const { t } = useI18n();
 
 <template>
   <main class="page not-found-page">
-    <AppHeader brand="genpac-runner" />
+    <AppHeader brand="PacPilot" />
     <section class="not-found-card">
       <div class="not-found-code">404</div>
       <div class="page-kicker">PAGE NOT FOUND</div>
