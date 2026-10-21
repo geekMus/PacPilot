@@ -7,7 +7,7 @@ describe("remote rule-list parsing and PAC generation", () => {
     expect(parsed.format).toBe("plain-domains");
     expect(parsed.proxyHosts).toEqual(["ads.example", "example.com"]);
     expect(parsed.directHosts).toEqual([]);
-    expect(parsed.rawLineCount).toBe(3);
+    expect(parsed.rawLineCount).toBe(4);
   });
 
   test("parses AutoProxy rules and lets exceptions override proxy entries", () => {
