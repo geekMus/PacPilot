@@ -3,10 +3,12 @@ name: 前后端单元测试与覆盖率
 on:
   push:
     branches:
-      - "**"
+      - main
+      - dev
   pull_request:
     branches:
-      - "**"
+      - main
+      - dev
   workflow_dispatch:
 
 
@@ -15,6 +17,10 @@ permissions:
 
 jobs:
   test:
+    # push / 手动触发只允许 main、dev；PR 按目标分支判断。
+    if: >-
+      (github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'dev')) ||
+      (github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))
     name: 前后端单测与覆盖率门槛
     runs-on: ubuntu-24.04
     timeout-minutes: 20
