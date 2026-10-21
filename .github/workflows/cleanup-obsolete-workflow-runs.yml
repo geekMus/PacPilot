@@ -150,7 +150,7 @@ jobs:
           fi
 
       - name: 传递候选记录给下一阶段
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: cleanup-candidates-${{ github.run_id }}
           path: ${{ runner.temp }}/obsolete-runs.tsv
