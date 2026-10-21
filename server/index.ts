@@ -29,10 +29,6 @@ async function main(): Promise<void> {
   const logCleanupTimer = setInterval(cleanupLogs, 24 * 60 * 60 * 1000);
   logCleanupTimer.unref();
 
-  runtimeLog("log", "genpac-runner 服务启动中…");
-  runtimeLog("log", `数据目录：${env.dataDir}`);
-  runtimeLog("log", `监听地址：${env.host}:${env.port}`);
-  runtimeLog("log", "管理后台：已启用");
   if (initialAdminPassword) {
     runtimeLog(
       "warn",
@@ -45,14 +41,6 @@ async function main(): Promise<void> {
   const app = createApp(env, database);
 
   const server = app.listen(env.port, env.host, () => {
-    const local =
-      env.host === "0.0.0.0" || env.host === "::"
-        ? `http://127.0.0.1:${env.port}`
-        : `http://${env.host}:${env.port}`;
-    runtimeLog("log", `服务已监听：${env.host}:${env.port}`);
-    runtimeLog("log", `PAC 文件：${local}/proxy.pac`);
-    runtimeLog("log", `状态页面：${local}/`);
-    runtimeLog("log", `管理后台：${local}/admin`);
     if (!firstStart && !adminCredentialsMissing) {
       // Start listening first so the admin UI can observe the startup workflow in real time.
       void runPacWorkflow(database, env.dataDir, "startup")
@@ -82,7 +70,6 @@ async function main(): Promise<void> {
   });
 
   const shutdown = (): void => {
-    runtimeLog("log", "服务正在关闭…");
     stopScheduler();
     clearInterval(logCleanupTimer);
     server.close(() => {
