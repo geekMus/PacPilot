@@ -1,30 +1,6 @@
 import type { AppDatabase } from "./sqlite";
-export type WorkflowStatus = "pending" | "running" | "succeeded" | "failed" | "cancelled";
-
-export interface WorkflowRun {
-  id: number;
-  source: string;
-  status: WorkflowStatus;
-  stage: string;
-  mode: string;
-  error: string;
-  created_at: string;
-  started_at: string | null;
-  finished_at: string | null;
-  duration_ms: number | null;
-}
-
-export interface WorkflowStage {
-  id: number;
-  run_id: number;
-  stage_key: string;
-  status: "pending" | "running" | "succeeded" | "failed" | "skipped";
-  error: string;
-  detail: string;
-  started_at: string | null;
-  finished_at: string | null;
-  duration_ms: number | null;
-}
+import type { WorkflowRun, WorkflowStage } from "../../shared/contracts";
+export type { WorkflowRun, WorkflowStage, WorkflowStatus } from "../../shared/contracts";
 
 export function createWorkflowRun(database: AppDatabase, source: string, mode: string): number {
   const now = new Date().toISOString();
@@ -34,6 +10,16 @@ export function createWorkflowRun(database: AppDatabase, source: string, mode: s
     )
     .run(source, mode, now);
   return Number(result.lastInsertRowid);
+}
+
+/** Atomically claims a pending workflow so cancellation cannot race with execution. */
+export function claimWorkflowRun(database: AppDatabase, id: number, startedAt: string): boolean {
+  const result = database
+    .query(
+      "UPDATE workflow_runs SET status='running', stage='prepare', started_at=? WHERE id=? AND status='pending'"
+    )
+    .run(startedAt, id);
+  return Number(result.changes) === 1;
 }
 
 type WorkflowRunPatch = Partial<
@@ -121,7 +107,7 @@ export function markInterruptedWorkflows(database: AppDatabase): void {
   const now = new Date().toISOString();
   database
     .query(
-      "UPDATE workflow_runs SET status='failed', stage='interrupted', error='', finished_at=?, duration_ms=CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0, CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER)) END WHERE status IN ('pending','running')"
+      "UPDATE workflow_runs SET status='failed', stage='interrupted', error='服务在工作流完成前退出。', finished_at=?, duration_ms=CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0, CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER)) END WHERE status IN ('pending','running')"
     )
     .run(now, now);
 
@@ -130,7 +116,7 @@ export function markInterruptedWorkflows(database: AppDatabase): void {
       `
     UPDATE workflow_stages
     SET status = CASE WHEN status = 'running' THEN 'failed' ELSE 'skipped' END,
-        error = '',
+        error = CASE WHEN status = 'running' THEN '服务在工作流完成前退出。' ELSE '' END,
         finished_at = COALESCE(finished_at, ?),
         duration_ms = CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0, CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER)) END
     WHERE status IN ('running', 'pending')
