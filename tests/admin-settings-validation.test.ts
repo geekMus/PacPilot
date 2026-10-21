@@ -25,7 +25,7 @@ describe("admin settings validation helpers", () => {
     expect(validators.validatePacProxyString("PROXY 127.0.0.1:7890")).toBeNull();
     expect(validators.validatePacProxyString("SOCKS5 [::1]:1080")).toBeNull();
     expect(validators.validatePacProxyString("PROXY example.com:0")).toBe("settings.proxyPortInvalid");
-    expect(validators.validatePacProxyString("PROXY invalid host:7890")).toBe("settings.proxyHostInvalid");
+    expect(validators.validatePacProxyString("PROXY invalid_host:7890")).toBe("settings.proxyHostnameInvalid");
   });
 
   test("rejects dangerous or malformed custom webhook headers", () => {
