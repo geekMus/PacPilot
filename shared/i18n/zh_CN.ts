@@ -1,9 +1,9 @@
 export default {
   app: {
-    name: "genpac-runner",
+    name: "PacPilot",
     zh: "中文",
     en: "English",
-    projectName: "genpac-runner 项目名称",
+    projectName: "PacPilot 项目名称",
     mainNav: "主导航",
   },
   serverErrors: {
@@ -301,11 +301,11 @@ export default {
       customParseError:
         "无法完整读取 PAC 规则摘要。仍可直接查看 PAC 文件内容；摘要解析失败不代表生成文件中的规则失效。",
       other:
-        "当前文件不属于已识别的 genpac-runner 模板，因此无法可靠展示规则数量。可以打开 PAC 文件，检查其实际内容与逻辑。",
+        "当前文件不属于已识别的 PacPilot 模板，因此无法可靠展示规则数量。可以打开 PAC 文件，检查其实际内容与逻辑。",
     },
   },
   footer: {
-    openGithub: "打开 genpac-runner 的 GitHub 项目",
+    openGithub: "打开 PacPilot 的 GitHub 项目",
     githubTitle: "GitHub 项目地址",
     viewUpdate: "查看新版本详情",
     viewVersion: "查看当前版本信息",
@@ -633,8 +633,8 @@ export default {
     ruleCheckHints:
       "提示包含重复、可能冗余及直连/黑名单匹配范围重叠。重叠不会自动修改；黑名单优先于直连列表。",
     defaultMessageTemplate:
-      "genpac-runner 通知\n事件：{{event}}\n状态：{{status}}\n时间：{{timestamp}}\n详情：{{message}}",
-    testMessageTemplate: "genpac-runner 测试通知\n时间：{{timestamp}}\n结果：{{message}}",
+      "PacPilot 通知\n事件：{{event}}\n状态：{{status}}\n时间：{{timestamp}}\n详情：{{message}}",
+    testMessageTemplate: "PacPilot 测试通知\n时间：{{timestamp}}\n结果：{{message}}",
     tzShanghai: "中国标准时间（UTC+08:00）",
     tzTaipei: "中国台湾 · 台北",
     tzHongKong: "中国香港",
@@ -704,7 +704,7 @@ export default {
     k38: "点击查看请求详情",
     k39: "访问请求详情",
     k40: "关闭",
-    k61: "监控数据每 10 秒自动更新。请求统计仅包含 genpac-runner\n        自身接收的流量，不代表代理服务器的实际转发流量。",
+    k61: "监控数据每 10 秒自动更新。请求统计仅包含 PacPilot\n        自身接收的流量，不代表代理服务器的实际转发流量。",
     k62: "正在读取监控数据",
     k63: "正在加载访问统计与访问日志。",
     k64: "无法读取监控数据",
