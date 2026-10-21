@@ -26,7 +26,7 @@ const {
   logLoadError,
   logTotal,
   loadMoreLogs,
-  genpacProbe,
+  pacpilotProbe,
   timezoneMenuOpen,
   timezoneQuery,
   mobileTimezoneOpen,
@@ -384,15 +384,15 @@ const { style: timezonePanelStyle } = useViewportPanel(
             <p class="hint-line">{{ modeHint }}</p>
 
             <div
-              v-if="form.mode === 'remote' && genpacProbe"
+              v-if="form.mode === 'remote' && pacpilotProbe"
               class="probe"
-              :class="genpacProbe.available ? 'ok' : 'warn'"
+              :class="pacpilotProbe.available ? 'ok' : 'warn'"
             >
               <strong>{{
-                genpacProbe.available ? t("settings.engineReady") : t("settings.engineAbnormal")
+                pacpilotProbe.available ? t("settings.engineReady") : t("settings.engineAbnormal")
               }}</strong>
-              <span>{{ genpacProbe.detail }}</span>
-              <span v-if="!genpacProbe.available" class="probe-help">
+              <span>{{ pacpilotProbe.detail }}</span>
+              <span v-if="!pacpilotProbe.available" class="probe-help">
                 {{ t("settings.engineHint") }}
               </span>
             </div>
