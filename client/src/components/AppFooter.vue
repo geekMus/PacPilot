@@ -3,12 +3,12 @@ import { useI18n } from "vue-i18n";
 
 import { computed, onMounted, ref } from "vue";
 import packageJson from "../../../package.json";
+import { PROJECT_LINKS } from "../../../shared/project-links";
 import AppIcon from "./AppIcon.vue";
 
 const { t } = useI18n();
-const projectUrl = "https://github.com/geekMus/genpac-runner";
-const packageJsonUrl =
-  "https://github.mus.pp.ua/https://raw.githubusercontent.com/geekMus/genpac-runner/refs/heads/main/package.json";
+const projectUrl = PROJECT_LINKS.repository;
+const packageJsonUrl = PROJECT_LINKS.packageJsonProxy;
 const currentVersion = ref(String(packageJson.version));
 interface UpdateInfo {
   latestVersion: string | null;

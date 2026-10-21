@@ -7,6 +7,7 @@ import AppHeader from "../components/AppHeader.vue";
 import AppFooter from "../components/AppFooter.vue";
 import AppIcon from "../components/AppIcon.vue";
 import { useToast } from "../composables/useToast";
+import { PROJECT_LINKS } from "../../../shared/project-links";
 const { t } = useI18n();
 const { notify } = useToast();
 
@@ -142,7 +143,7 @@ async function onSubmit() {
         <p class="login-footnote">{{ t("login.footnote") }}</p>
         <p class="login-footnote">
           <a
-            href="https://github.com/geekMus/genpac-runner/blob/main/docs/configuration.md#管理员密码重置"
+            href="{{ PROJECT_LINKS.adminPasswordReset }}"
             target="_blank"
             rel="noopener noreferrer"
             >{{ t("login.resetHelp") }}</a

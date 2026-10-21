@@ -8,6 +8,7 @@ import TextDetail from "../components/TextDetail.vue";
 import VirtualTable from "../components/VirtualTable.vue";
 import { useAdminSettings } from "../composables/useAdminSettings";
 import { useViewportPanel } from "../composables/useViewportPanel";
+import { PROJECT_LINKS } from "../../../shared/project-links";
 
 const WebhookChannelEditor = defineAsyncComponent(
   () => import("../components/WebhookChannelEditor.vue")
@@ -162,7 +163,7 @@ const { style: timezonePanelStyle } = useViewportPanel(
           <p class="field-hint">
             {{ t("settings.resetHelpFull")
             }}<a
-              href="https://github.com/geekMus/genpac-runner/blob/main/docs/configuration.md#管理员密码重置"
+              href="{{ PROJECT_LINKS.adminPasswordReset }}"
               target="_blank"
               rel="noopener noreferrer"
               >{{ t("settings.resetHelpLink") }}</a
