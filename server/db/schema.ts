@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
 
 /** SQLite schema migrations are additive and run atomically at startup. */
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 export function initializeSchema(database: Database, ensureDefaultSettings: () => void): void {
   const version = Number(
@@ -149,8 +149,8 @@ export function initializeSchema(database: Database, ensureDefaultSettings: () =
     // Old rows may have received an empty placeholder during an additive migration.
     database.run("UPDATE generation_log SET created_at = datetime('now') WHERE created_at = ''");
     database.run("UPDATE access_events SET created_at = datetime('now') WHERE created_at = ''");
-    // Remove the retired proxy connectivity feature and its stored history from existing databases.
-    database.run("DROP TABLE IF EXISTS proxy_probe_runs");
+    // Version 3 removes the retired proxy connectivity feature and its stored history.
+    if (version < 3) database.run("DROP TABLE IF EXISTS proxy_probe_runs");
     database.run("UPDATE workflow_runs SET created_at = datetime('now') WHERE created_at = ''");
 
     const row = database.query("SELECT value FROM settings WHERE key = ?").get("config") as {
