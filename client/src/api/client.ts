@@ -358,11 +358,7 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ url }),
     }),
-  testProxies: () =>
-    request<ProxyProbeBatch>("/api/admin/monitor/probe", {
-      method: "POST",
-      body: JSON.stringify({}),
-    }),
+
   proxyProbeHistory: (limit = 30) =>
     request<ProxyProbeRecord[]>(`/api/admin/monitor/probes?limit=${limit}`),
   proxyProbeHistoryPage: (limit = 50, beforeId = 0) =>
