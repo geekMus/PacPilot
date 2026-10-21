@@ -30,7 +30,7 @@ async function main(): Promise<void> {
   logCleanupTimer.unref();
 
   if (initialAdminPassword) {
-    // Use ASCII here so the one-time password remains readable in terminals with a mismatched Windows code page.
+    // Keep runtime log messages in English to avoid terminal code-page issues.
     runtimeLog("warn", `Initial administrator password (change it in the admin panel): ${initialAdminPassword}`);
   } else if (adminCredentialsMissing) {
     runtimeLog("error", "Unable to initialize administrator credentials; the admin panel cannot be accessed.");
@@ -42,7 +42,7 @@ async function main(): Promise<void> {
     if (!firstStart && !adminCredentialsMissing) {
       // Start listening first so the admin UI can observe the startup workflow in real time.
       void runPacWorkflow(database, env.dataDir, "startup")
-        .catch((error) => runtimeLog("error", "启动时 PAC 工作流失败：", error))
+        .catch((error) => runtimeLog("error", "PAC startup workflow failed: ", error))
         .finally(() => reschedule(database, env.dataDir));
     }
   });
@@ -53,10 +53,10 @@ async function main(): Promise<void> {
     if (err.code === "EADDRINUSE") {
       runtimeLog(
         "error",
-        `端口 ${env.port} 已被占用。\n  - 更换端口：在开发环境 .env 或进程环境中设置 PORT=8081 后重试\n  - Windows 查看占用：netstat -ano | findstr :${env.port}\n  - Linux/macOS 查看占用：lsof -i :${env.port} 或 ss -tlnp | grep ${env.port}`
+        `Port ${env.port} is already in use.\n  - Retry with a different port by setting PORT=8081 in .env or the process environment.\n  - Windows: netstat -ano | findstr :${env.port}\n  - Linux/macOS: lsof -i :${env.port} or ss -tlnp | grep ${env.port}`
       );
     } else {
-      runtimeLog("error", "服务发生错误：", err);
+      runtimeLog("error", "Server error:", err);
     }
     stopScheduler();
     clearInterval(logCleanupTimer);
@@ -78,6 +78,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  runtimeLog("error", "服务启动失败：", err);
+  runtimeLog("error", "Server startup failed:", err);
   process.exit(1);
 });
