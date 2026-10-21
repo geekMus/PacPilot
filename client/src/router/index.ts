@@ -3,7 +3,7 @@ import { i18n } from "../i18n";
 import { fetchAdminSession, isAdminAppRoute } from "../composables/useAdminSession";
 
 /** Site brand matches package.json / GitHub repo (kebab-case), like many OSS tools. */
-export const APP_BRAND = "genpac-runner";
+export const APP_BRAND = "PacPilot";
 
 const router = createRouter({
   history: createWebHistory(),
