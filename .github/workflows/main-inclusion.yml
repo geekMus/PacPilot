@@ -94,16 +94,87 @@ jobs:
           git remote add upstream "https://github.com/${BASE_REPOSITORY}.git"
           git fetch upstream main:refs/remotes/upstream/main
 
-      - name: 确认当前分支已包含主分支
+      - name: 检查合入最新 main 是否会改变当前代码
         id: inclusion-check
         shell: bash
         run: |
-          if git merge-base --is-ancestor upstream/main HEAD; then
-            echo "当前分支已包含主仓库 main 的全部提交。"
-          else
-            echo "::error::当前分支尚未包含主仓库 main 的最新提交。请先将 main 合并或 rebase 到当前分支，再重新提交。"
+          set -euo pipefail
+
+          # 不检查提交祖先关系：Squash Merge 会为 main 生成新提交，即使代码已经相同，
+          # main 的提交也不一定是 dev 的祖先。这里模拟把 main 合入当前提交，比较结果树。
+          if ! MERGE_OUTPUT="$(git merge-tree --write-tree HEAD upstream/main)"; then
+            echo "::error::当前分支与最新 main 存在无法自动合并的冲突，请先同步并解决 main 的变更。"
             exit 1
           fi
+
+          MERGED_TREE="${MERGE_OUTPUT%%
+      - name: 阶段 2 小结
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          SOURCE_SHA: ${{ needs.prepare.outputs.source_sha }}
+          MAIN_SHA: ${{ needs.prepare.outputs.main_sha }}
+          FETCH_RESULT: ${{ steps.fetch-main.outcome }}
+          CHECK_RESULT: ${{ steps.inclusion-check.outcome }}
+        shell: bash
+        run: |
+          {
+            echo "## 阶段 2：检查是否包含最新 main"
+            echo
+            echo "- **整体结果：** ${JOB_STATUS}"
+            echo "- **来源提交：** ${SOURCE_SHA:-未获取}"
+            echo "- **准备阶段记录的 main：** ${MAIN_SHA:-未获取}"
+            echo "- **检查阶段获取 main：** ${FETCH_RESULT}"
+            echo "- **代码同步检查：** ${CHECK_RESULT:-未执行}"
+            if [[ "${CHECK_RESULT}" == "success" ]]; then
+              echo "- **结论：** 将检查时的 main 合入当前分支不会改变文件内容；此规则兼容 Squash Merge 的提交历史。"
+            else
+              echo "- **结论：** 最新 main 仍有未体现的文件变更，或模拟合并发生冲突；请先同步 main 后重新推送。"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  gate:
+    name: 主分支包含性检查
+    needs: [prepare, inclusion]
+    if: >-
+      always() &&
+      (
+        (github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'dev')) ||
+        (github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))
+      )
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: 汇总并验证检查结果
+        env:
+          PREPARE_RESULT: ${{ needs.prepare.result }}
+          INCLUSION_RESULT: ${{ needs.inclusion.result }}
+        shell: bash
+        run: |
+          {
+            echo "## 主分支包含性检查"
+            echo
+            echo "- **阶段 1（准备待检查分支）：** ${PREPARE_RESULT}"
+            echo "- **阶段 2（检查是否包含最新 main）：** ${INCLUSION_RESULT}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$PREPARE_RESULT" != "success" || "$INCLUSION_RESULT" != "success" ]]; then
+            echo "::error::主分支包含性检查未通过，禁止合并。"
+            exit 1
+          fi
+
+          echo "主分支包含性检查通过。"
+\n'*}"
+          CURRENT_TREE="$(git rev-parse 'HEAD^{tree}')"
+
+          if [[ "$MERGED_TREE" != "$CURRENT_TREE" ]]; then
+            echo "::error::最新 main 仍包含当前分支尚未体现的文件变更；请先将 main 的变更合入当前分支后重新推送。"
+            echo "当前分支 tree：$CURRENT_TREE"
+            echo "模拟合并 tree：$MERGED_TREE"
+            exit 1
+          fi
+
+          echo "检查通过：将最新 main 合入不会改变当前分支的文件内容。"
 
       - name: 阶段 2 小结
         if: always()
