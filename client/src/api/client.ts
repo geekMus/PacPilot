@@ -1,6 +1,21 @@
 import { i18n, resolveLocale } from "../i18n";
-import type { WorkflowRun, WorkflowStage, WorkflowStatus } from "../../../shared/contracts";
-export type { WorkflowRun, WorkflowStage, WorkflowStatus } from "../../../shared/contracts";
+import type {
+  AppSettings,
+  WebhookConfig,
+  WorkflowRun,
+  WorkflowStage,
+  WorkflowStatus,
+} from "../../../shared/contracts";
+export type {
+  AppSettings,
+  DingTalkMessageType,
+  WebhookConfig,
+  WebhookMethod,
+  WebhookProvider,
+  WorkflowRun,
+  WorkflowStage,
+  WorkflowStatus,
+} from "../../../shared/contracts";
 
 export interface Meta {
   adminEnabled: boolean;
@@ -11,23 +26,6 @@ export interface Meta {
 export interface AdminSession {
   loggedIn: boolean;
   adminCredentialsMissing: boolean;
-}
-
-export type WebhookProvider = "custom" | "dingtalk";
-export type WebhookMethod = "POST" | "PUT" | "PATCH";
-export type DingTalkMessageType = "text" | "markdown";
-
-export interface WebhookConfig {
-  provider: WebhookProvider;
-  url: string;
-  method: WebhookMethod;
-  headers: string;
-  body: string;
-  dingTalkSecret: string;
-  dingTalkMessageType: DingTalkMessageType;
-  testBody: string;
-  messageTemplate: string;
-  testMessageTemplate: string;
 }
 
 export interface PacStatus {
@@ -42,21 +40,6 @@ export interface PacStatus {
   updatedAt: string;
   timeZone: string;
   hasPac: boolean;
-}
-
-export interface AppSettings {
-  mode: "custom" | "remote";
-  pacProxy: string;
-  pacCompress: boolean;
-  listUrl: string;
-  blockList: string[];
-  directList: string[];
-  cronSchedule: string;
-  timezone: string;
-  proxyTestUrl: string;
-  logRetentionDays: number;
-  webhookSuccessConfig: WebhookConfig;
-  webhookFailureConfig: WebhookConfig;
 }
 
 export interface WebhookTestResult {
