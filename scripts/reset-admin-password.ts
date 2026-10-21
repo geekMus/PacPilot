@@ -9,7 +9,7 @@ type RuntimeProfile = "development" | "production";
 function printUsage(): void {
   console.log(
     [
-      "genpac-runner 管理员凭据创建 / 密码重置",
+      "PacPilot 管理员凭据创建 / 密码重置",
       "",
       "用法：",
       "  bun run reset:admin-password",
@@ -21,7 +21,7 @@ function printUsage(): void {
       "  新数据库首次启动会自动生成密码并将其写入日志；此命令用于重置已有凭据。",
       "  --development   使用本机开发配置（读取开发环境 .env）",
       "  --production    使用非容器生产环境的默认数据目录规则",
-      "  --data-dir PATH 显式指定数据库所在的数据目录（目录内必须已有 genpac.db）",
+      "  --data-dir PATH 显式指定数据库所在的数据目录（目录内必须已有 database.db）",
       "  --help           显示此帮助",
       "",
       "Docker 容器内仍可运行：",
@@ -74,7 +74,7 @@ for (let i = 0; i < args.length; i += 1) {
 
 if (selectedProfile) {
   // 显式选择与服务启动器相同的配置解析模式。Docker 的 /data 仍优先于此模式。
-  process.env.GENPAC_ENV = selectedProfile;
+  process.env.PACPILOT_ENV = selectedProfile;
   process.env.NODE_ENV = selectedProfile;
 }
 
@@ -82,7 +82,7 @@ try {
   const env = loadEnv();
   // 使用与服务一致的 DATA_DIR/平台默认路径；显式参数优先级最高。
   const dataDir = explicitDataDir ? path.resolve(explicitDataDir) : env.dataDir;
-  const databasePath = path.join(dataDir, "genpac.db");
+  const databasePath = path.join(dataDir, "database.db");
 
   // 避免路径不正确时通过 getDb() 新建另一份数据库并误报重置成功。
   if (!fs.existsSync(databasePath)) {
