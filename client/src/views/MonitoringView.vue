@@ -3,7 +3,6 @@ import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
 import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
-import TextDetail from "../components/TextDetail.vue";
 import VirtualTable from "../components/VirtualTable.vue";
 import SelectField from "../components/SelectField.vue";
 import { useMonitoringDashboard } from "../composables/useMonitoringDashboard";
@@ -16,31 +15,13 @@ const {
   accessLoadingMore,
   accessLoadError,
   accessTotal,
-  probeHistory,
-  probeHistoryHasMore,
-  probeHistoryLoading,
-  probeHistoryLoadError,
-  probeHistoryTotal,
-  latestProbe,
   loading,
   authChecking,
   refreshing,
-  probing,
   error,
   refreshError,
-  probeError,
-  proxyTestUrl,
-  savedProxyTestUrl,
-  proxyTestTargetLoaded,
-  loadingProxyTestTarget,
-  savingProxyTestTarget,
-  proxyTestTargetMessage,
-  proxyTestTargetMessageOk,
-  proxyTestTargetChanged,
-  proxyTestTargetValid,
   lastUpdated,
   timeZone,
-  localizedProbeError,
   latestPacRequest,
   accessKeyword,
   accessCategory,
@@ -58,17 +39,12 @@ const {
   hasAccessFilters,
   resetAccessFilters,
   loadMoreAccesses,
-  loadProbeHistory,
-  loadProxyTestTarget,
-  saveProxyTestTarget,
-  runProxyTest,
   formatDate,
   formatDuration,
   formatBytes,
   categoryLabel,
   statusLabel,
   statusTone,
-  probePhaseLabel,
 } = useMonitoringDashboard();
 </script>
 
@@ -614,306 +590,7 @@ const {
           </div>
         </dialog>
 
-        <section class="monitor-panel">
-          <div class="panel-heading">
-            <div>
-              <h2><AppIcon name="zap" :size="17" />{{ t("monitor.k143") }}</h2>
-              <p>
-                {{ t("monitor.k144") }}
-              </p>
-            </div>
-            <button
-              class="monitor-button primary"
-              :class="{ 'is-loading': probing }"
-              type="button"
-              :disabled="
-                probing || savingProxyTestTarget || !proxyTestTargetLoaded || proxyTestTargetChanged
-              "
-              :title="
-                probing
-                  ? t('monitor.k41')
-                  : savingProxyTestTarget
-                    ? t('monitor.k42')
-                    : !proxyTestTargetLoaded
-                      ? t('monitor.k43')
-                      : proxyTestTargetChanged
-                        ? t('monitor.k44')
-                        : t('monitor.k45')
-              "
-              @click="runProxyTest"
-            >
-              <AppIcon
-                :name="probing ? 'loader-circle' : 'zap'"
-                :class="{ 'icon-spinning': probing }"
-                :size="15"
-              />{{ probing ? t("monitor.k46") : t("monitor.k47") }}
-            </button>
-          </div>
 
-          <div class="probe-target">
-            <span class="target-icon" aria-hidden="true"
-              ><AppIcon name="network" :size="18"
-            /></span>
-            <div class="probe-target-content">
-              <label for="proxy-test-target">{{ t("monitor.k145") }}</label>
-              <div class="probe-target-controls">
-                <input
-                  id="proxy-test-target"
-                  v-model="proxyTestUrl"
-                  class="probe-target-input"
-                  type="url"
-                  autocomplete="url"
-                  spellcheck="false"
-                  placeholder="https://www.google.com/generate_204"
-                  :disabled="
-                    !proxyTestTargetLoaded ||
-                    loadingProxyTestTarget ||
-                    savingProxyTestTarget ||
-                    probing
-                  "
-                  @input="
-                    proxyTestTargetMessage = '';
-                    proxyTestTargetMessageOk = null;
-                  "
-                />
-                <button
-                  v-if="!proxyTestTargetLoaded && loadingProxyTestTarget"
-                  class="monitor-button secondary is-loading"
-                  type="button"
-                  disabled
-                  :title="t('monitor.k48')"
-                  aria-live="polite"
-                >
-                  <AppIcon name="loader-circle" class="icon-spinning" :size="14" />
-                  {{ t("monitor.k146") }}
-                </button>
-                <button
-                  v-else-if="!proxyTestTargetLoaded"
-                  class="monitor-button secondary"
-                  type="button"
-                  :disabled="savingProxyTestTarget || probing"
-                  :title="
-                    savingProxyTestTarget
-                      ? t('monitor.k42')
-                      : probing
-                        ? t('monitor.k49')
-                        : t('monitor.k50')
-                  "
-                  @click="loadProxyTestTarget"
-                >
-                  <AppIcon name="refresh-cw" :size="14" />
-                  {{ t("monitor.k147") }}
-                </button>
-                <button
-                  v-else-if="proxyTestTargetChanged"
-                  class="monitor-button secondary"
-                  :class="{ 'is-loading': savingProxyTestTarget }"
-                  type="button"
-                  :disabled="savingProxyTestTarget || probing || !proxyTestTargetValid"
-                  :title="
-                    savingProxyTestTarget
-                      ? t('monitor.k42')
-                      : probing
-                        ? t('monitor.k49')
-                        : !proxyTestTargetValid
-                          ? t('monitor.k51')
-                          : t('monitor.k52')
-                  "
-                  @click="saveProxyTestTarget"
-                >
-                  <AppIcon
-                    :name="savingProxyTestTarget ? 'loader-circle' : 'save'"
-                    :class="{ 'icon-spinning': savingProxyTestTarget }"
-                    :size="14"
-                  />
-                  {{ savingProxyTestTarget ? t("monitor.k53") : t("monitor.k54") }}
-                </button>
-                <span v-else class="monitor-saved-state" role="status">
-                  <AppIcon name="check-circle" :size="14" />
-                  {{ t("monitor.k148") }}
-                </span>
-              </div>
-              <p>
-                {{ t("monitor.k149") }} <code>https://www.google.com/generate_204</code
-                >{{ t("monitor.k150") }}
-              </p>
-              <p v-if="!proxyTestTargetValid" class="probe-target-hint is-warning">
-                {{ t("monitor.k151") }}
-              </p>
-              <p v-else-if="proxyTestTargetChanged" class="probe-target-hint is-warning">
-                {{ t("monitor.k152") }}
-              </p>
-              <p v-else class="probe-target-hint">
-                {{ t("monitor.k153") }}<code>{{ savedProxyTestUrl }}</code>
-              </p>
-              <p
-                v-if="proxyTestTargetMessage"
-                class="probe-target-message"
-                :class="proxyTestTargetMessageOk ? 'is-success' : 'is-error'"
-                role="status"
-                aria-live="polite"
-              >
-                {{ proxyTestTargetMessage }}
-              </p>
-            </div>
-          </div>
-
-          <div v-if="probeError" class="monitor-alert is-error" role="alert">{{ probeError }}</div>
-
-          <div v-if="latestProbe" class="probe-results">
-            <div class="probe-run-head">
-              <strong>{{ t("monitor.k154") }}</strong>
-              <span
-                >{{ t("monitor.browserNetwork") }} ·
-                {{ formatDate(latestProbe.results[0]?.testedAt) }}</span
-              >
-            </div>
-            <p class="panel-footnote probe-run-target">
-              {{ t("monitor.k155") }}<code>{{ latestProbe.targetUrl }}</code>
-            </p>
-            <div
-              v-for="(result, index) in latestProbe.results"
-              :key="result.proxyLabel + index"
-              class="probe-card"
-            >
-              <div class="probe-card-top">
-                <div class="probe-title">
-                  <span
-                    class="probe-state-dot"
-                    :class="result.success ? 'is-good' : 'is-bad'"
-                  ></span>
-                  <strong>{{ result.proxyLabel }}</strong>
-                </div>
-                <span class="status-pill" :class="result.success ? 'good' : 'bad'"
-                  ><AppIcon :name="result.success ? 'circle-check' : 'circle-x'" :size="12" />{{
-                    result.success ? t("monitor.k55") : t("monitor.k56")
-                  }}</span
-                >
-              </div>
-              <div class="probe-metrics">
-                <div>
-                  <span>{{ t("monitor.browserTiming") }}</span
-                  ><strong>{{ formatDuration(result.targetMs) }}</strong>
-                </div>
-              </div>
-              <p class="panel-footnote">{{ t("monitor.browserProbeNote") }}</p>
-              <p v-if="result.httpStatus" class="probe-detail">
-                {{ t("monitor.targetStatusCode", { code: result.httpStatus }) }}
-              </p>
-              <p v-if="result.errorCode || result.errorDetail" class="probe-error">
-                {{ localizedProbeError(result.errorCode, result.errorDetail) }}
-              </p>
-              <p v-if="result.isLoopback" class="monitor-alert is-warning">
-                {{ t("monitor.k160") }}
-              </p>
-            </div>
-            <p v-if="latestProbe.parseWarnings.length" class="probe-warning">
-              {{
-                t("monitor.uncheckedItems", {
-                  items: latestProbe.parseWarnings
-                    .map((warning) => localizedProbeError(warning.code, warning.detail))
-                    .join("; "),
-                })
-              }}
-            </p>
-            <p v-if="latestProbe.limited" class="probe-warning">
-              {{ t("monitor.k161") }}
-            </p>
-            <p v-if="latestProbe.ignoredDirectEntries" class="panel-footnote">
-              {{ t("monitor.ignoredDirect", { n: latestProbe.ignoredDirectEntries }) }}
-            </p>
-          </div>
-
-          <div v-else-if="!probing" class="monitor-empty">
-            {{ t("monitor.k162") }}
-          </div>
-          <div v-if="probing" class="probe-progress">
-            <span class="monitor-spinner"></span>
-            <span>{{ t("monitor.k163") }}</span>
-          </div>
-        </section>
-
-        <section class="monitor-panel">
-          <div class="panel-heading">
-            <div>
-              <h2><AppIcon name="clock" :size="17" />{{ t("monitor.k164") }}</h2>
-              <p>{{ t("monitor.k165") }}</p>
-            </div>
-            <div class="panel-actions">
-              <span class="panel-count">{{
-                t("monitor.probeLoaded", { loaded: probeHistory.length, total: probeHistoryTotal })
-              }}</span>
-            </div>
-          </div>
-          <VirtualTable
-            :items="probeHistory"
-            item-key="id"
-            :col-span="7"
-            :row-height="58"
-            height="420px"
-            min-width="900px"
-            table-class="monitor-table"
-            :has-more="probeHistoryHasMore"
-            :loading="probeHistoryLoading"
-            :error="probeHistoryLoadError"
-            :empty-text="t('monitor.k57')"
-            :load-more="() => loadProbeHistory(false)"
-          >
-            <template #columns
-              ><col style="width: 145px" />
-              <col style="width: 150px" />
-              <col style="width: 80px" />
-              <col style="width: 80px" />
-              <col style="width: 100px" />
-              <col style="width: 90px" />
-              <col style="width: 260px"
-            /></template>
-            <template #header
-              ><tr>
-                <th>{{ t("monitor.k166") }}</th>
-                <th>{{ t("monitor.k167") }}</th>
-                <th>{{ t("monitor.k168") }}</th>
-                <th>TCP</th>
-                <th>{{ t("monitor.k169") }}</th>
-                <th>{{ t("monitor.k158") }}</th>
-                <th>{{ t("monitor.k170") }}</th>
-              </tr></template
-            >
-            <template #row="{ item }">
-              <tr>
-                <td class="nowrap">{{ formatDate(item.tested_at) }}</td>
-                <td>
-                  <code>{{ item.proxy_label }}</code>
-                </td>
-                <td>
-                  <span class="status-pill" :class="item.success ? 'good' : 'bad'"
-                    ><AppIcon :name="item.success ? 'circle-check' : 'circle-x'" :size="12" />{{
-                      item.success ? t("monitor.k55") : t("monitor.k58")
-                    }}</span
-                  >
-                </td>
-                <td class="nowrap">{{ formatDuration(item.tcp_ms) }}</td>
-                <td class="nowrap">{{ formatDuration(item.handshake_ms) }}</td>
-                <td class="nowrap">{{ formatDuration(item.target_ms) }}</td>
-                <td class="probe-history-error">
-                  <TextDetail
-                    v-if="!item.success"
-                    :text="
-                      probePhaseLabel(item.phase) +
-                      ': ' +
-                      (localizedProbeError(item.error_code, item.error_detail) ||
-                        t('monitor.noProbeErrorDetails'))
-                    "
-                    :label="t('monitor.k60')"
-                  /><span v-else>—</span>
-                </td>
-              </tr>
-            </template>
-          </VirtualTable>
-          <p class="panel-footnote">
-            {{ t("monitor.k171") }}
-          </p>
-        </section>
       </template>
 
       <AppFooter />
