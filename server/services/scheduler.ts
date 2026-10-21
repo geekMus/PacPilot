@@ -7,6 +7,7 @@ import { runtimeLog } from "../utils/runtime-log";
 let currentTask: ScheduledTask | null = null;
 let currentKey = "";
 let scheduledRunInFlight = false;
+let overlapWarningLogged = false;
 
 export function reschedule(database: AppDatabase, dataDir: string): void {
   const settings = getSettings(database);
@@ -19,11 +20,9 @@ export function reschedule(database: AppDatabase, dataDir: string): void {
     currentTask.stop();
     currentTask = null;
     currentKey = "";
-    runtimeLog("log", "已停止之前的定时任务。");
   }
 
   if (!expression) {
-    runtimeLog("log", "未配置定时任务。");
     return;
   }
 
@@ -36,12 +35,15 @@ export function reschedule(database: AppDatabase, dataDir: string): void {
     expression,
     () => {
       if (scheduledRunInFlight || hasActivePacWorkflow(database)) {
-        runtimeLog("warn", "上一次工作流尚未结束，跳过本次定时触发，避免任务积压。");
+        if (!overlapWarningLogged) {
+          runtimeLog("warn", "上一次工作流尚未结束，跳过本次定时触发，避免任务积压。");
+          overlapWarningLogged = true;
+        }
         return;
       }
 
+      overlapWarningLogged = false;
       scheduledRunInFlight = true;
-      runtimeLog("log", `定时任务已触发：${expression}（时区：${settings.timezone}）`);
 
       void runPacWorkflow(database, dataDir, "scheduled")
         .catch((error) => runtimeLog("error", "定时任务工作流失败：", error))
@@ -53,7 +55,6 @@ export function reschedule(database: AppDatabase, dataDir: string): void {
   );
 
   currentKey = key;
-  runtimeLog("log", `已安排定时任务：${expression}（时区：${settings.timezone}）`);
 }
 
 export function stopScheduler(): void {
