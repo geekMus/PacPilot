@@ -27,7 +27,7 @@ describe("frontend domain-rule parser and analyzer", () => {
     );
     expect(analysis.direct.validCount).toBe(4);
     expect(analysis.direct.diagnostics.some((item) => item.severity === "warning" && item.relatedLine === 1)).toBe(true);
-    expect(analysis.direct.diagnostics.some((item) => item.message.includes("domainRuleDiag.coveredByLine"))).toBe(false);
+    expect(analysis.direct.diagnostics.some((item) => item.severity === "warning" && item.relatedLine === 4)).toBe(true);
     expect(analysis.totalErrors).toBe(0);
   });
 
