@@ -1,0 +1,62 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Type checking and project validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        id: install
+        run: bun install
+
+      - name: Run type checks, build, and translation validation
+        id: check
+        run: bun run check
+
+      - name: Check formatting
+        id: format
+        run: bun run format:check
+
+      - name: Summarize validation results
+        if: always()
+        env:
+          INSTALL_RESULT: ${{ steps.install.outcome }}
+          CHECK_RESULT: ${{ steps.check.outcome }}
+          FORMAT_RESULT: ${{ steps.format.outcome }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          {
+            echo "## Continuous integration summary"
+            echo
+            echo "- Dependency installation: ${INSTALL_RESULT}"
+            echo "- Type checking, build, and translation validation: ${CHECK_RESULT}"
+            echo "- Formatting check: ${FORMAT_RESULT}"
+            echo "- Overall job status: ${JOB_STATUS}"
+            echo
+            echo "Commit: \`${GITHUB_SHA}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
