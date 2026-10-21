@@ -14,7 +14,7 @@ let db: AppDatabase | null = null;
 export function createDatabase(dataDir: string): AppDatabase {
   const inMemory = dataDir === ":memory:";
   if (!inMemory) fs.mkdirSync(dataDir, { recursive: true });
-  const dbPath = inMemory ? dataDir : path.join(dataDir, "genpac.db");
+  const dbPath = inMemory ? dataDir : path.join(dataDir, "database.db");
   const database = new Database(dbPath, { create: true });
   try {
     database.run("PRAGMA journal_mode = WAL;");

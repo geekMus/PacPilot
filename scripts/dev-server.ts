@@ -4,7 +4,7 @@ import { loadDevelopmentDotEnv } from "../server/config/load-dotenv";
  * 仅启动后端（开发模式）。跨平台设置 NODE_ENV，避免 Windows cmd 不支持 NODE_ENV=x 前缀。
  */
 process.env.NODE_ENV = "development";
-process.env.GENPAC_ENV = "development";
+process.env.PACPILOT_ENV = "development";
 loadDevelopmentDotEnv();
 
 if (!process.env.DATA_DIR) {

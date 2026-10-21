@@ -3,14 +3,14 @@
 ## 无法访问网页
 
 - 确认容器正在运行：`docker ps`
-- 确认已发布端口：`docker port genpac-runner`
-- 查看服务日志：`docker logs --tail 200 genpac-runner`
+- 确认已发布端口：`docker port PacPilot`
+- 查看服务日志：`docker logs --tail 200 PacPilot`
 - 检查宿主机防火墙、反向代理和端口映射。
 - 确认访问的宿主机端口与 Docker 的端口映射一致。
 
 ## 管理员无法登录
 
-- 查看首次启动日志中的随机密码：`docker logs genpac-runner`。
+- 查看首次启动日志中的随机密码：`docker logs pacpilot`。
 - 若密码遗失，按[配置说明中的管理员密码重置步骤](configuration.md#管理员密码重置)重置。
 - 确认重置脚本使用的是服务实际使用的数据目录。
 

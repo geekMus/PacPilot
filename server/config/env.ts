@@ -30,7 +30,7 @@ function isContainer(): boolean {
 }
 function isProduction(): boolean {
   const n = (process.env.NODE_ENV || "").toLowerCase(),
-    g = (process.env.GENPAC_ENV || "").toLowerCase();
+    g = (process.env.PACPILOT_ENV || "").toLowerCase();
   if (g === "production" || g === "prod") return true;
   if (g === "development" || g === "dev") return false;
   return n === "production";
@@ -40,13 +40,13 @@ function productionDataDir(): string {
   if (process.platform === "win32") {
     const base =
       process.env.LOCALAPPDATA || process.env.APPDATA || path.join(home, "AppData", "Local");
-    return path.join(base, "genpac-runner");
+    return path.join(base, "PacPilot");
   }
   if (process.platform === "darwin")
-    return path.join(home, "Library", "Application Support", "genpac-runner");
+    return path.join(home, "Library", "Application Support", "PacPilot");
   const xdg = process.env.XDG_DATA_HOME;
-  if (xdg) return path.join(xdg, "genpac-runner");
-  return path.join(home, ".local", "share", "genpac-runner");
+  if (xdg) return path.join(xdg, "PacPilot");
+  return path.join(home, ".local", "share", "PacPilot");
 }
 function resolveDataDir(): { dataDir: string; runtimeProfile: EnvConfig["runtimeProfile"] } {
   if (isContainer()) return { dataDir: path.resolve("/data"), runtimeProfile: "docker" };

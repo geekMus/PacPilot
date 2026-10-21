@@ -3,7 +3,7 @@ import { catalogs, resolveLocale, type AppLocale } from "../../../shared/i18n";
 
 export { resolveLocale, type AppLocale };
 
-const STORAGE_KEY = "genpac-runner-locale";
+const STORAGE_KEY = "PacPilot-locale";
 
 export function readStoredLocale(): AppLocale {
   try {

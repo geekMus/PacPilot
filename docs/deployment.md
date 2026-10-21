@@ -5,30 +5,30 @@
 需要 Docker Engine。镜像地址：
 
 ```text
-ghcr.io/geekmus/genpac-runner:latest
+ghcr.io/geekmus/pacpilot:latest
 ```
 
 创建并启动容器：
 
 ```bash
 docker run -d \
-  --name genpac-runner \
+  --name pacpilot \
   --restart unless-stopped \
   -p 17321:17321 \
-  -v genpac-data:/data \
-  ghcr.io/geekmus/genpac-runner:latest
+  -v pacpilot-data:/data \
+  ghcr.io/geekmus/pacpilot:latest
 ```
 
 然后访问 `http://<服务器地址>:17321/`。
 
 - 容器内服务端口固定为 `17321`。
-- `genpac-data` 是 Docker 命名卷，用于持久化 SQLite 数据库、配置、工作流和生成记录，以及 PAC 文件。
+- `pacpilot-data` 是 Docker 命名卷，用于持久化 SQLite 数据库、配置、工作流和生成记录，以及 PAC 文件。
 - 如果宿主机端口 `17321` 已被占用，可改成 `-p 8080:17321`，并通过 `http://<服务器地址>:8080/` 访问。
-- 首次启动会生成随机管理员密码，并在容器日志中输出一次。使用 `docker logs genpac-runner` 查看。
+- 首次启动会生成随机管理员密码，并在容器日志中输出一次。使用 `docker logs pacpilot` 查看。
 - 新数据库首次启动不会自动生成 PAC。请先登录后台配置生成方式，再手动启动生成。生成前访问 `/proxy.pac` 会返回临时的全量直连脚本，不代表规则已经生效。
 - 使用已有数据库重启服务时，会执行一次启动生成工作流。
 
-**重要：** 不要在需要保留数据时删除数据卷，也不要随意执行 `docker volume rm genpac-data`。升级前建议备份数据库和 PAC 文件。
+**重要：** 不要在需要保留数据时删除数据卷，也不要随意执行 `docker volume rm pacpilot-data`。升级前建议备份数据库和 PAC 文件。
 
 ## Docker Compose
 
@@ -37,7 +37,7 @@ docker run -d \
 ```bash
 docker compose pull
 docker compose up -d
-docker compose logs -f genpac
+docker compose logs -f pacpilot
 ```
 
 端口映射示例：
@@ -52,7 +52,7 @@ ports:
 ```yaml
 # Docker 命名卷
 volumes:
-  - genpac-data:/data
+  - pacpilot-data:/data
 ```
 
 或者：
@@ -67,7 +67,7 @@ volumes:
 
 ```yaml
 volumes:
-  genpac-data:
+  pacpilot-data:
 ```
 
 ## 首次使用

@@ -1,6 +1,6 @@
-# genpac-runner
+# PacPilot
 
-**genpac-runner** 是一个带 Web 管理后台的 PAC 生成与管理服务。它可以根据自定义规则或远程域名列表生成 `proxy.pac`，并提供工作流记录、定时更新、Webhook 通知、请求监控和数据维护功能。
+**PacPilot** 是一个带 Web 管理后台的 PAC 生成与管理服务。它可以根据自定义规则或远程域名列表生成 `proxy.pac`，并提供工作流记录、定时更新、Webhook 通知、请求监控和数据维护功能。
 
 项目使用 Bun、TypeScript、Vue 3 和 SQLite。部署时直接使用预构建的 Docker 镜像即可，不需要在服务器上克隆源码或安装构建工具。
 
@@ -19,17 +19,17 @@
 
 ```bash
 docker run -d \
-  --name genpac-runner \
+  --name pacpilot \
   --restart unless-stopped \
   -p 17321:17321 \
-  -v genpac-data:/data \
-  ghcr.io/geekmus/genpac-runner:latest
+  -v pacpilot-data:/data \
+  ghcr.io/geekmus/pacpilot:latest
 ```
 
 打开 `http://<服务器地址>:17321/`。首次启动会在容器日志中输出一次随机管理员密码：
 
 ```bash
-docker logs genpac-runner
+docker logs pacpilot
 ```
 
 首次使用新数据库时不会自动生成 PAC。请登录后台配置生成方式并手动启动生成；生成成功后，再将 PAC 地址配置到客户端。
@@ -54,7 +54,7 @@ docker logs genpac-runner
 
 该许可证允许个人非商业使用、修改及免费分发，但须保留作者署名、版权声明和许可证文本。公司或组织的内部业务使用，以及其他商业用途，均须事先取得作者书面授权。第三方组件仍适用其各自的许可证。
 
-商业授权申请：**geekMus@qq.com**。也可通过 [GitHub Issues](https://github.com/geekMus/genpac-runner/issues) 咨询；请勿在公开 Issue 中发布机密商业信息。
+商业授权申请：**geekMus@qq.com**。也可通过 [GitHub Issues](https://github.com/geekMus/PacPilot/issues) 咨询；请勿在公开 Issue 中发布机密商业信息。
 
 ## 社区与贡献
 
@@ -62,15 +62,15 @@ docker logs genpac-runner
 - [安全政策](SECURITY.md)：私密报告安全漏洞。
 - [行为准则](CODE_OF_CONDUCT.md)：项目交流与协作约定。
 - [获取帮助](SUPPORT.md)：使用问题、功能建议和授权咨询渠道。
-- [提交使用问题](https://github.com/geekMus/genpac-runner/issues/new?template=question.yml)：咨询配置、部署和一般使用问题。
+- [提交使用问题](https://github.com/geekMus/PacPilot/issues/new?template=question.yml)：咨询配置、部署和一般使用问题。
 
 提交代码前请阅读贡献指南。安全漏洞不要通过公开 Issue 或讨论披露。
 
 ## 项目信息
 
-- 镜像：`ghcr.io/geekmus/genpac-runner`
+- 镜像：`ghcr.io/geekmus/pacpilot`
 - 默认标签：`latest`
 - 当前自动发布工作流构建 `linux/arm64` 镜像。
 - 版本号以 `package.json` 的 `version` 为准。
 
-源码、问题反馈与版本记录：[geekMus/genpac-runner](https://github.com/geekMus/genpac-runner)。
+源码、问题反馈与版本记录：[geekMus/PacPilot](https://github.com/geekMus/PacPilot)。

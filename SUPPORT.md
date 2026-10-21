@@ -9,9 +9,9 @@
 
 ## 选择合适的渠道
 
-- **Bug 或异常行为：** 使用 [Bug 报告](https://github.com/geekMus/genpac-runner/issues/new?template=bug_report.yml)。
-- **功能建议：** 使用 [功能请求](https://github.com/geekMus/genpac-runner/issues/new?template=feature_request.yml)。
-- **使用问题：** 先查看文档和已有 Issues，再使用 [使用问题模板](https://github.com/geekMus/genpac-runner/issues/new?template=question.yml)。
+- **Bug 或异常行为：** 使用 [Bug 报告](https://github.com/geekMus/PacPilot/issues/new?template=bug_report.yml)。
+- **功能建议：** 使用 [功能请求](https://github.com/geekMus/PacPilot/issues/new?template=feature_request.yml)。
+- **使用问题：** 先查看文档和已有 Issues，再使用 [使用问题模板](https://github.com/geekMus/PacPilot/issues/new?template=question.yml)。
 - **安全漏洞：** 按 [安全政策](SECURITY.md) 私密报告，不要公开漏洞细节。
 - **商业授权：** 联系 geekMus@qq.com，或通过 GitHub Issues 发起咨询；不要在公开讨论中发布机密商业信息。
 

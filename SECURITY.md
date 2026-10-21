@@ -4,7 +4,7 @@
 
 请勿通过公开 Issue、Pull Request 或 Discussions 发布可被利用的漏洞细节、访问令牌、密码、个人数据或其他敏感信息。
 
-优先使用 GitHub 仓库的 **Private vulnerability reporting（私密漏洞报告）** 功能提交报告。如果该功能不可用，请发送邮件至 **geekMus@qq.com**，标题注明 [Security] genpac-runner。
+优先使用 GitHub 仓库的 **Private vulnerability reporting（私密漏洞报告）** 功能提交报告。如果该功能不可用，请发送邮件至 **geekMus@qq.com**，标题注明 [Security] PacPilot。
 
 报告中建议包含：
 

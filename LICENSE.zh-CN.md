@@ -33,7 +33,7 @@
 
 1. 保留所有现有的版权、署名及许可证声明；
 2. 在每次重新分发时附上本许可证副本；
-3. 明确署名 geekMus，并说明该项目源自或基于 geekMus/genpac-runner；
+3. 明确署名 geekMus，并说明该项目源自或基于 geekMus/PacPilot；
 4. 清楚标明被修改的文件，或以其他合理方式说明项目已被修改；
 5. 未经事先书面许可，不得将修改版本冒充为官方版本，也不得暗示作者为该版本背书。
 
@@ -51,8 +51,8 @@
 
 你可以通过以下渠道申请商业授权：
 
-- GitHub Issues：https://github.com/geekMus/genpac-runner/issues
-- GitHub Discussions：https://github.com/geekMus/genpac-runner/discussions
+- GitHub Issues：https://github.com/geekMus/PacPilot/issues
+- GitHub Discussions：https://github.com/geekMus/PacPilot/discussions
 - 电子邮箱：geekMus@qq.com
 
 提交申请、发起讨论或未收到回复，均不构成授权。只有作者或其授权代表明确以书面形式授予许可时，才视为获得授权。请勿在公开的 Issues 或 Discussions 中发布机密商业信息。

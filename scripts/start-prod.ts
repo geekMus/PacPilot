@@ -5,6 +5,6 @@
  * 数据目录将按操作系统落到标准位置（可用 DATA_DIR 覆盖）。
  */
 process.env.NODE_ENV = process.env.NODE_ENV || "production";
-process.env.GENPAC_ENV = process.env.GENPAC_ENV || "production";
+process.env.PACPILOT_ENV = process.env.PACPILOT_ENV || "production";
 
 await import("../server/index.ts");

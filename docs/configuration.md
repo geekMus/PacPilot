@@ -10,7 +10,7 @@
 SOCKS5 127.0.0.1:1080; DIRECT
 ```
 
-PAC 会按代理列表顺序选择策略；请填写客户端实际能够访问的代理地址。genpac-runner 只生成 PAC，不会替你创建或转发 SOCKS/HTTP 代理。
+PAC 会按代理列表顺序选择策略；请填写客户端实际能够访问的代理地址。PacPilot 只生成 PAC，不会替你创建或转发 SOCKS/HTTP 代理。
 
 域名规则支持以下常用写法：
 
@@ -30,7 +30,7 @@ PAC 会按代理列表顺序选择策略；请填写客户端实际能够访问�
 - 域名型 AutoProxy / ABP 列表
 - 每行一个域名的纯文本列表
 
-解析器会提取域名规则，并非通用 ABP 引擎；不能假定所有 ABP 过滤表达式都能按原意处理。远程地址必须能从运行 genpac-runner 的主机或容器访问。
+解析器会提取域名规则，并非通用 ABP 引擎；不能假定所有 ABP 过滤表达式都能按原意处理。远程地址必须能从运行 PacPilot 的主机或容器访问。
 
 ### 定时生成
 
@@ -57,7 +57,7 @@ PAC 会按代理列表顺序选择策略；请填写客户端实际能够访问�
 
 ## 数据文件与数据库
 
-- `genpac.db`：SQLite 数据库，保存配置、管理员凭据、生成日志、工作流记录和请求监控数据。
+- `database.db`：SQLite 数据库，保存配置、管理员凭据、生成日志、工作流记录和请求监控数据。
 - `proxy.pac`：提供给客户端使用的 PAC 文件。
 - `proxy.source.pac`：未压缩的 PAC 来源文件，供状态页解析和检查。
 
@@ -80,7 +80,7 @@ CORS_ALLOWED_ORIGINS=https://admin.example.com,https://ops.example.com
 **Docker：**
 
 ```bash
-docker exec -it genpac-runner bun run /app/scripts/reset-admin-password.ts
+docker exec -it PacPilot bun run /app/scripts/reset-admin-password.ts
 ```
 
 **本机开发：**
@@ -107,4 +107,4 @@ Windows PowerShell 示例：
 bun run scripts/reset-admin-password.ts --production --data-dir "C:\genpac\data"
 ```
 
-重置脚本会检查数据库是否存在，不会因为路径写错而创建空数据库。脚本只显示新生成的密码一次。容器名若不是 `genpac-runner`，请修改对应的 `docker exec` 命令。
+重置脚本会检查数据库是否存在，不会因为路径写错而创建空数据库。脚本只显示新生成的密码一次。容器名若不是 `PacPilot`，请修改对应的 `docker exec` 命令。

@@ -1,8 +1,8 @@
 services:
-  genpac:
+  pacpilot:
     # 使用 GHCR 已发布的多架构镜像；部署设备无需克隆源代码或本地构建。
-    image: ghcr.io/geekmus/genpac-runner:latest
-    container_name: genpac-runner
+    image: ghcr.io/geekmus/pacpilot:latest
+    container_name: pacpilot
     restart: unless-stopped
 
     # 默认使用 bridge 驱动的 Compose 项目网络，但不向宿主机发布端口。
@@ -13,7 +13,7 @@ services:
     # 容器数据固定保存在 /data。建议明确启用一种持久化挂载。
     # 方式 A：Docker 管理的命名卷
     # volumes:
-    #   - genpac-data:/data
+    #   - pacpilot-data:/data
 
     # 方式 B：挂载到项目目录下的 ./data（请确保目录有读写权限；启用时不要同时启用方式 A）
     # volumes:
@@ -21,7 +21,7 @@ services:
 
 # 仅在选择方式 A（命名卷）时，取消下面两行注释
 # volumes:
-#   genpac-data:
+#   pacpilot-data:
 
 # 明确使用用户自定义 bridge 网络。此设置不等同于发布宿主机端口。
 networks:

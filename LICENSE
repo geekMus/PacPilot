@@ -32,7 +32,7 @@ You may modify the Project and redistribute the original or modified Project fre
 
 1. retain all existing copyright, attribution, and license notices;
 2. include a copy of this License with each redistribution;
-3. give clear attribution to geekMus and identify the Project as derived from or based on `geekMus/genpac-runner`;
+3. give clear attribution to geekMus and identify the Project as derived from or based on `geekMus/PacPilot`;
 4. clearly identify modified files or otherwise give a reasonable notice that you have changed the Project; and
 5. do not represent your modified version as the official version or imply that the Author endorses it without prior written permission.
 
@@ -50,8 +50,8 @@ Any Commercial Purpose requires the Author's prior written authorization under a
 
 You may request commercial authorization through:
 
-- GitHub Issues: https://github.com/geekMus/genpac-runner/issues
-- GitHub Discussions: https://github.com/geekMus/genpac-runner/discussions
+- GitHub Issues: https://github.com/geekMus/PacPilot/issues
+- GitHub Discussions: https://github.com/geekMus/PacPilot/discussions
 - Email: geekMus@qq.com
 
 Submitting a request, opening a discussion, or receiving no response does not constitute authorization. Authorization exists only when the Author or an authorized representative expressly grants it in writing. Do not post confidential business information in public Issues or Discussions.

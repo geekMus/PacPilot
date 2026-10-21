@@ -39,7 +39,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
       }
     };
     walk(env.dataDir);
-    const dbBytes = ["genpac.db", "genpac.db-wal", "genpac.db-shm"].reduce((sum, name) => {
+    const dbBytes = ["database.db", "database.db-wal", "database.db-shm"].reduce((sum, name) => {
       try {
         return sum + fs.statSync(path.join(env.dataDir, name)).size;
       } catch {

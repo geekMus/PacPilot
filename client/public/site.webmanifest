@@ -1,6 +1,6 @@
 {
-  "name": "genpac-runner",
-  "short_name": "genpac-runner",
+  "name": "PacPilot",
+  "short_name": "PacPilot",
   "description": "自动生成与管理 PAC 代理规则的轻量工具",
   "start_url": "/",
   "display": "standalone",

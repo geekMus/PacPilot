@@ -74,7 +74,7 @@ describe("useTheme", () => {
   });
 
   it("restores valid stored modes and falls back for invalid values", async () => {
-    localStorage.setItem("genpac-theme", "light");
+    localStorage.setItem("pacpilot-theme", "light");
     installMatchMedia(true);
     const { initThemeEarly, useTheme } = await import("../../client/src/composables/useTheme");
     initThemeEarly();
@@ -89,7 +89,7 @@ describe("useTheme", () => {
     expect(wrapper.text()).toBe("light");
     wrapper.unmount();
 
-    localStorage.setItem("genpac-theme", "not-a-mode");
+    localStorage.setItem("pacpilot-theme", "not-a-mode");
     vi.resetModules();
     const second = await import("../../client/src/composables/useTheme");
     second.initThemeEarly();
@@ -110,7 +110,7 @@ describe("useTheme", () => {
 
     await wrapper.get("button").trigger("click");
     await nextTick();
-    expect(localStorage.getItem("genpac-theme")).toBe("dark");
+    expect(localStorage.getItem("pacpilot-theme")).toBe("dark");
     expect(document.documentElement.classList.contains("theme-dark")).toBe(true);
     expect(document.documentElement.classList.contains("theme-light")).toBe(false);
     wrapper.unmount();
