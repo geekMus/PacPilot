@@ -1,0 +1,54 @@
+name: 前后端单元测试与覆盖率
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - "**"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: 前后端单测与覆盖率门槛
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v7
+
+      - name: 安装 Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 安装依赖
+        run: bun install
+
+      - name: 运行前后端单测并检查覆盖率
+        run: bun run test
+
+      - name: 汇总测试结果
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        shell: bash
+        run: |
+          {
+            echo "## 前后端单元测试与覆盖率"
+            echo
+            echo "- **执行命令：** `bun run test`"
+            if [[ "$JOB_STATUS" == "success" ]]; then
+              echo "- **结果：** 通过"
+            else
+              echo "- **结果：** 失败或被取消，请查看测试日志"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

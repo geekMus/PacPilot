@@ -21,8 +21,18 @@ bun run dev
 # TypeScript 检查：根目录、共享代码、服务端和客户端
 bun run typecheck
 
-# 完整检查：类型检查、核心单元测试、客户端构建、翻译检查
+# 代码正确性：类型检查、客户端构建、翻译检查（不运行单测）
 bun run check
+
+# 前后端单元测试，并分别强制检查覆盖率门槛
+bun run test
+
+# 单独运行前端或后端测试
+bun run test:client
+bun run test:server
+
+# 单独重新检查前后端覆盖率
+bun run test:coverage
 
 # 仅检查中英文翻译目录及静态翻译 key
 bun run check:i18n
@@ -42,11 +52,11 @@ bun start
 
 ## 检查范围
 
-`bun run check` 依次执行类型检查、核心单元测试、客户端构建和翻译检查。单元测试覆盖 PAC 代理字符串校验及远程规则列表解析。它不会启动完整服务，也不替代端到端测试或数据库迁移测试。
+`bun run check` 只执行代码正确性检查：类型检查、客户端构建和翻译检查，不运行单元测试。`bun run test` 独立运行 Bun 核心测试及前端/后端 Vitest 测试，并分别强制检查覆盖率。前端与后端的语句、分支、函数、行覆盖率门槛均为 90%。这不是完整的 API/SQLite 集成测试或端到端测试。
 
-GitHub Actions 另有独立的配置校验工作流，会检查工作流、Issue 表单、Dependabot 和 Release 分类配置的 YAML 语法。
+镜像发布工作流会先运行 `bun run check`，通过后才构建并发布镜像；不再单独运行重复的代码检查工作流。PR 的主要必需检查是 `bun run test` 对应的前后端单测与覆盖率。另有轻量配置校验工作流，仅检查 GitHub 工作流、Issue 表单、Dependabot 和 Release 分类配置的 YAML 语法。
 
-提交前建议运行：
+提交前 Husky 钩子会自动运行 `bun run check`。如果需要手动验证，也可以运行：
 
 ```bash
 bun run check

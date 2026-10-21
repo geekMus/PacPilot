@@ -27,15 +27,18 @@
 
     bun install
     bun run check
+    bun run test
 
-bun run check 包含类型检查、核心单元测试、客户端构建和中英文翻译检查。工作流 YAML 语法检查由 GitHub Actions 单独执行。
+安装依赖时，Husky 会配置 Git 提交钩子。每次执行 `git commit` 前都会自动运行 `bun run check`；检查失败时，提交会被阻止。单元测试与覆盖率仍由 `bun run test` 和 GitHub Actions 独立执行。
+
+bun run check 只执行代码正确性检查：TypeScript 类型检查、客户端构建和中英文翻译检查。Husky 会在每次本地 commit 前自动运行它；镜像发布工作流也会在构建镜像前执行它，不再重复配置独立的 check 工作流。bun run test 单独运行前后端单元测试并分别验证覆盖率门槛，是 PR 的主要代码检查。GitHub 配置 YAML 校验仍由轻量工作流单独执行。
 
 ## 提交代码的建议流程
 
 1. Fork 仓库并创建描述清晰的分支。
 2. 尽量将改动限制在一个明确目的内。
 3. 为修复或新增的逻辑补充回归测试；涉及用户可见行为时同步更新文档和中英文翻译。
-4. 本地运行 bun run check。
+4. 提交前钩子会自动运行 `bun run check`；此外还应手动运行 `bun run test`，确认前后端单测和覆盖率均通过。PR 主要以单测工作流结果作为合并门槛。
 5. 提交 Pull Request，说明问题背景、实现方案、测试结果及可能的兼容性影响。
 
 ## 代码与文档约定
