@@ -13,7 +13,7 @@ on:
 # 时区集中配置；将来需要更换发布日历时只需修改此变量。
 env:
   RELEASE_TIMEZONE: Asia/Shanghai
-  IMAGE_NAME: ghcr.io/geekmus/genpac-runner
+  IMAGE_NAME: ghcr.io/geekmus/pacpilot
 
 # 同一分支只保留最新一次运行；新运行到来时取消旧任务。
 concurrency:
@@ -70,19 +70,19 @@ jobs:
             exit 1
           fi
 
-          REGISTRY_TOKEN="$(curl -fsSL 'https://ghcr.io/token?scope=repository:geekmus/genpac-runner:pull&service=ghcr.io' | jq -er '.token // .access_token')"
+          REGISTRY_TOKEN="$(curl -fsSL 'https://ghcr.io/token?scope=repository:geekmus/PacPilot:pull&service=ghcr.io' | jq -er '.token // .access_token')"
           MANIFEST_ACCEPT="application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json"
           MANIFEST_STATUS="$(curl -sS -o "$RUNNER_TEMP/latest-manifest.json" -w '%{http_code}' \
             -H "Authorization: Bearer $REGISTRY_TOKEN" \
             -H "Accept: $MANIFEST_ACCEPT" \
-            'https://ghcr.io/v2/geekmus/genpac-runner/manifests/latest')"
+            'https://ghcr.io/v2/geekmus/PacPilot/manifests/latest')"
 
           PREVIOUS_VERSION=""
           if [[ "$MANIFEST_STATUS" == "200" ]]; then
             if jq -e '.manifests | type == "array"' "$RUNNER_TEMP/latest-manifest.json" >/dev/null; then
               ARM64_DIGEST="$(jq -er '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == "arm64")][0].digest' "$RUNNER_TEMP/latest-manifest.json")"
               curl -fsSL -H "Authorization: Bearer $REGISTRY_TOKEN" -H "Accept: $MANIFEST_ACCEPT" \
-                "https://ghcr.io/v2/geekmus/genpac-runner/manifests/$ARM64_DIGEST" \
+                "https://ghcr.io/v2/geekmus/PacPilot/manifests/$ARM64_DIGEST" \
                 -o "$RUNNER_TEMP/latest-platform-manifest.json"
             elif jq -e '.config.digest' "$RUNNER_TEMP/latest-manifest.json" >/dev/null; then
               cp "$RUNNER_TEMP/latest-manifest.json" "$RUNNER_TEMP/latest-platform-manifest.json"
@@ -93,7 +93,7 @@ jobs:
 
             CONFIG_DIGEST="$(jq -er '.config.digest' "$RUNNER_TEMP/latest-platform-manifest.json")"
             curl -fsSL -H "Authorization: Bearer $REGISTRY_TOKEN" \
-              "https://ghcr.io/v2/geekmus/genpac-runner/blobs/$CONFIG_DIGEST" \
+              "https://ghcr.io/v2/geekmus/PacPilot/blobs/$CONFIG_DIGEST" \
               -o "$RUNNER_TEMP/latest-config.json"
             PREVIOUS_VERSION="$(jq -r '.config.Labels["org.opencontainers.image.version"] // empty' "$RUNNER_TEMP/latest-config.json")"
             if [[ -z "$PREVIOUS_VERSION" ]]; then
@@ -249,9 +249,9 @@ jobs:
             type=raw,value=${{ needs.prepare.outputs.version }}
             type=raw,value=latest
           labels: |
-            org.opencontainers.image.title=genpac-runner
+            org.opencontainers.image.title=PacPilot
             org.opencontainers.image.description=带 Web 管理后台的 PAC 生成与管理服务
-            org.opencontainers.image.source=https://github.com/geekMus/genpac-runner
+            org.opencontainers.image.source=https://github.com/geekMus/PacPilot
             org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
             org.opencontainers.image.revision=${{ github.sha }}
 
