@@ -2,8 +2,7 @@ name: 主从检查
 
 on:
   pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -16,7 +15,7 @@ concurrency:
 jobs:
   prepare:
     name: 阶段 1：准备待检查分支
-    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
@@ -138,7 +137,7 @@ jobs:
   gate:
     name: 主分支包含性检查
     needs: [prepare, inclusion]
-    if: always() && github.event_name == 'pull_request' && github.base_ref == 'main'
+    if: always() && (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')))
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
