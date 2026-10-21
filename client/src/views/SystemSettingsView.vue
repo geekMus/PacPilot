@@ -113,7 +113,6 @@ async function cleanupLogs() {
       t("systemPage.cleanupDone", {
         g: r.deleted.generationLogs,
         a: r.deleted.accessEvents,
-        p: r.deleted.proxyProbeRuns,
       }),
       "success"
     );
@@ -233,7 +232,6 @@ onMounted(() => void load());
         <div v-if="storage" class="counts">
           <span>{{ t("systemPage.countGen", { n: storage.counts.generationLogs }) }}</span
           ><span>{{ t("systemPage.countAccess", { n: storage.counts.accessEvents }) }}</span
-          ><span>{{ t("systemPage.countProbe", { n: storage.counts.proxyProbeRuns }) }}</span
           ><span>{{ t("systemPage.countWorkflow", { n: storage.counts.workflows }) }}</span>
         </div>
       </section>
