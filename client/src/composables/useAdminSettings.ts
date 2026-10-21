@@ -6,7 +6,7 @@ import {
   ApiError,
   type AppSettings,
   type GenerationLog,
-  type GenpacProbe,
+  type PacPilotProbe,
   type WebhookConfig,
 } from "../api/client";
 import { analyzeDomainRules } from "../utils/domain-rules";
@@ -89,7 +89,7 @@ export function useAdminSettings() {
     logLoadError.value = "";
   }
 
-  const genpacProbe = ref<GenpacProbe | null>(null);
+  const pacpilotProbe = ref<PacPilotProbe | null>(null);
 
   const timezoneMenuOpen = ref(false);
 
@@ -456,8 +456,8 @@ export function useAdminSettings() {
       const [settings, logList, probe] = await Promise.all([
         api.settings(),
         api.logsPage(logPageSize, 0),
-        api.genpacStatus().catch(
-          (): GenpacProbe => ({
+        api.pacpilotStatus().catch(
+          (): PacPilotProbe => ({
             available: false,
             command: null,
             detail: t("settings.engineUnknown"),
@@ -469,7 +469,7 @@ export function useAdminSettings() {
       logs.value = logList.items;
       logHasMore.value = logList.hasMore;
       logTotal.value = logList.total;
-      genpacProbe.value = probe;
+      pacpilotProbe.value = probe;
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
       if (String(error.value).toLowerCase().includes("unauthorized")) {
@@ -508,8 +508,8 @@ export function useAdminSettings() {
       );
       // 日志/状态刷新只是辅助操作，不能反过来影响已经成功启动的任务。
       await refreshLogs().catch(() => null);
-      const latestProbe = await api.genpacStatus().catch(() => null);
-      if (latestProbe) genpacProbe.value = latestProbe;
+      const latestProbe = await api.pacpilotStatus().catch(() => null);
+      if (latestProbe) pacpilotProbe.value = latestProbe;
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
       notify(error.value, "error");
@@ -611,7 +611,7 @@ export function useAdminSettings() {
     logLoadError,
     logTotal,
     loadMoreLogs,
-    genpacProbe,
+    pacpilotProbe,
     timezoneMenuOpen,
     timezoneQuery,
     mobileTimezoneOpen,
