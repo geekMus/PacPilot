@@ -19,7 +19,7 @@ describe("frontend API client request contract", () => {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     await expect(api.login("secret")).resolves.toEqual({ ok: true });
     expect(requestUrl).toBe("/api/admin/login");
@@ -84,7 +84,7 @@ describe("frontend API client request contract", () => {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     await api.logsPage(25, 900);
     expect(requestUrl).toBe("/api/admin/logs/page?limit=25&beforeId=900");
