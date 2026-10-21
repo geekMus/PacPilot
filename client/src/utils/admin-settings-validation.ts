@@ -1,4 +1,4 @@
-import type { WebhookConfig } from "../../shared/contracts";
+import type { WebhookConfig } from "../../../shared/contracts";
 import { analyzeDomainRules } from "./domain-rules";
 
 export type WebhookFieldErrors = {
