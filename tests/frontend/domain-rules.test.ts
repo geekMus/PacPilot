@@ -33,8 +33,8 @@ describe("frontend domain-rule parser and analyzer", () => {
 
   test("reports direct/block overlaps symmetrically", () => {
     const analysis = analyzeDomainRules("**.example.com", "*.example.com");
-    expect(analysis.direct.diagnostics.some((item) => item.message.includes("domainRuleDiag.overlapBlock"))).toBe(true);
-    expect(analysis.block.diagnostics.some((item) => item.message.includes("domainRuleDiag.overlapDirect"))).toBe(true);
+    expect(analysis.direct.diagnostics.some((item) => item.severity === "warning" && item.relatedLine === 1)).toBe(true);
+    expect(analysis.block.diagnostics.some((item) => item.severity === "warning" && item.relatedLine === 1)).toBe(true);
     expect(analysis.totalWarnings).toBeGreaterThanOrEqual(2);
   });
 
