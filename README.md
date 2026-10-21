@@ -1,39 +1,60 @@
 # genpac-runner
 
-genpac-runner 根据自定义域名规则或远程域名列表生成 PAC 文件，并提供 Web 管理界面。可配置默认代理、直连规则、黑名单、定时生成和 Webhook 通知，也可查看服务自身的请求统计和代理连通性检测结果。
+[![Docker 镜像](https://img.shields.io/badge/GHCR-genpac--runner-blue?logo=docker)](https://github.com/geekMus/genpac-runner/pkgs/container/genpac-runner)
+[![GitHub Actions](https://github.com/geekMus/genpac-runner/actions/workflows/publish-image.yml/badge.svg?branch=main)](https://github.com/geekMus/genpac-runner/actions/workflows/publish-image.yml)
+[![License](https://img.shields.io/badge/项目-开源代码库-lightgrey?logo=github)](https://github.com/geekMus/genpac-runner)
 
-## 功能
+**genpac-runner** 是一个带 Web 管理后台的 PAC 生成与管理服务。它可以根据自定义规则或远程域名列表生成 `proxy.pac`，并提供工作流记录、定时更新、Webhook 通知、请求监控和数据维护功能。
 
-- **自定义规则**：设置默认代理、直连域名和黑名单。localhost、无点号主机名、IPv4 回环地址及 RFC 1918 私网地址默认优先直连；黑名单优先于自定义直连规则。
-- **远程规则**：读取 GFWList（Base64）、域名型 AutoProxy / ABP 列表或每行一个域名的纯文本列表。远程规则按域名提取，不是完整的 ABP 过滤规则引擎。自定义直连和黑名单规则优先于远程列表。
-- **PAC 生成**：支持手动生成、保存配置并生成，以及 Cron 定时生成；可选压缩输出。生成结果、来源文件及执行历史可在后台查看。
-- **Webhook**：分别配置生成成功和失败时的通知，支持自定义 HTTP Webhook 与钉钉机器人。
-- **网络监控**：查看服务收到的网页、PAC 和 API 请求统计，按需测试 PAC 代理的连通性。
-- **个人偏好**：主题支持跟随系统、浅色和深色；界面语言支持中文和 English。偏好保存在访问者的浏览器中，不写入服务端数据库。
+项目使用 Bun、TypeScript、Vue 3 和 SQLite。部署时直接使用预构建的 Docker 镜像即可，不需要在服务器上克隆源码或安装构建工具。
 
-## 快速部署（Docker Compose）
+## 功能一览
 
-需要 Docker Engine 和 Docker Compose。项目提供的 Compose 配置使用预构建镜像：
+- **两种生成模式**：使用自定义规则，或从远程列表提取域名规则。
+- **规则优先级**：自定义直连规则和黑名单优先于远程列表；内置本机及私有地址直连策略。
+- **PAC 生成**：手动生成、保存配置后生成、定时生成；支持压缩输出。
+- **远程列表**：支持 GFWList（Base64）、域名型 AutoProxy / ABP 列表，以及每行一个域名的纯文本列表。它不是完整的 ABP 广告过滤引擎。
+- **工作流管理**：查看当前任务、队列、阶段、错误详情和执行历史；支持取消可取消的任务。
+- **Webhook**：分别设置生成成功和失败通知，支持自定义 HTTP Webhook 与钉钉机器人，并可发送测试消息。
+- **网络监控**：统计服务自身接收的页面、PAC 和 API 请求，并提供按需的代理连通性检测。
+- **系统维护**：查看数据、数据库、日志及 PAC 文件占用；设置日志保留天数、清理日志、删除 PAC 文件或恢复出厂设置。
+- **双语界面**：中文与 English；主题支持跟随系统、浅色和深色。语言和主题偏好保存在访问者的浏览器中。
+
+## 快速部署
+
+### Docker（推荐）
+
+需要 Docker Engine。镜像地址：
 
 ```text
 ghcr.io/geekmus/genpac-runner:latest
 ```
 
-下载 [docker-compose.yml](https://github.com/geekMus/genpac-runner/blob/main/docker-compose.yml) 到部署目录。默认配置**不会**向宿主机开放端口，也**不会**持久化 `/data`。要从宿主机或局域网访问并保留数据，请在 Compose 文件的 `genpac` 服务中启用端口映射和一个数据卷，例如：
+创建并启动容器：
 
-```yaml
-services:
-  genpac:
-    ports:
-      - "17321:17321"
-    volumes:
-      - genpac-data:/data
-
-volumes:
-  genpac-data:
+```bash
+docker run -d \
+  --name genpac-runner \
+  --restart unless-stopped \
+  -p 17321:17321 \
+  -v genpac-data:/data \
+  ghcr.io/geekmus/genpac-runner:latest
 ```
 
-在 Compose 文件所在目录启动：
+然后打开 `http://<服务器地址>:17321/`。
+
+- 容器内服务端口固定为 `17321`。
+- `genpac-data` 是 Docker 命名卷，用于持久化 SQLite 数据库、配置、工作流和生成记录，以及 PAC 文件。
+- 如果端口 `17321` 已被占用，可以将映射改成例如 `-p 8080:17321`，之后通过 `http://<服务器地址>:8080/` 访问。
+- 首次启动会生成随机管理员密码，并在容器日志中输出一次。使用 `docker logs genpac-runner` 查看。
+- 首次使用新数据库时**不会自动生成 PAC**。请先登录后台配置生成方式，再手动启动生成。生成前访问 `/proxy.pac` 会返回临时的全量直连脚本，不代表你的规则已生效。
+- 使用已有数据库重启服务时，会执行一次启动生成工作流。
+
+> **数据提醒：** 不要在需要保留数据时删除数据卷，也不要随意执行 `docker volume rm genpac-data`。升级前建议备份数据库和 PAC 文件。
+
+### Docker Compose
+
+仓库提供了 [docker-compose.yml](https://github.com/geekMus/genpac-runner/blob/main/docker-compose.yml)。默认配置使用预构建镜像，但**不会发布宿主机端口，也没有启用数据卷**。请按需在 `genpac` 服务下启用端口映射和持久化挂载，再启动：
 
 ```bash
 docker compose pull
@@ -41,62 +62,139 @@ docker compose up -d
 docker compose logs -f genpac
 ```
 
-容器内端口固定为 `17321`，数据目录固定为 `/data`。也可以把 `./data` 挂载到 `/data`；不要同时配置命名卷和目录挂载。**不配置持久化挂载时，删除容器可能导致配置、凭据和生成记录丢失。** 不要在需要保留数据时执行 `docker compose down -v`。
+端口映射示例：
 
-首次启动后，在日志中找到 `[security] Initial admin password` 下方自动生成的随机密码，然后访问：
+```yaml
+ports:
+  - "17321:17321"
+```
+
+持久化挂载任选一种，不要同时使用：
+
+```yaml
+# Docker 命名卷
+volumes:
+  - genpac-data:/data
+```
+
+或者：
+
+```yaml
+# 挂载到当前项目目录
+volumes:
+  - ./data:/data
+```
+
+如果使用命名卷，还需要在 Compose 文件顶层声明：
+
+```yaml
+volumes:
+  genpac-data:
+```
+
+## 首次使用
+
+1. 访问 `http://<服务器地址>:17321/` 打开公共状态页。
+2. 在容器日志中找到首次启动生成的管理员密码，然后进入后台登录。
+3. 在“设置 / 生成配置”中选择生成模式，配置默认代理、远程列表或自定义规则。
+4. 保存配置并启动生成，在“工作流”页面查看任务阶段和结果。
+5. 确认生成成功后，再把 PAC 地址配置到客户端。
+
+### 常用地址
+
+将下面的 `<服务器地址>:17321` 替换为实际访问地址。如果修改了宿主机端口，请使用映射后的端口。
+
+| 页面或资源 | 地址 |
+| --- | --- |
+| 公共状态页 | `http://<服务器地址>:17321/` |
+| PAC 源码 | `http://<服务器地址>:17321/proxy.pac` |
+| 下载 PAC | `http://<服务器地址>:17321/proxy.pac?download=1` |
+| 后台总览 | `http://<服务器地址>:17321/admin/dashboard` |
+| 生成配置 | `http://<服务器地址>:17321/admin/settings` |
+| 网络监控 | `http://<服务器地址>:17321/admin/monitor` |
+| 工作流与历史 | `http://<服务器地址>:17321/admin/workflows` |
+| 系统设置与维护 | `http://<服务器地址>:17321/admin/system-settings` |
+
+公共状态页与 PAC 地址无需管理员登录。管理后台及管理 API 需要管理员会话。
+
+## 生成规则说明
+
+### 自定义规则模式
+
+可配置默认代理、直连规则和黑名单。默认代理示例：
 
 ```text
-http://<服务器地址>:17321/
+SOCKS5 127.0.0.1:1080; DIRECT
 ```
 
-公共状态页无需登录；通过页面中的后台入口登录管理界面。首次启动**不会自动生成 PAC**，需要时可在后台手动启动生成。首次启动的 PAC 文件尚不存在时，`/proxy.pac` 会返回临时的全量直连回退脚本；请先在后台生成并检查 PAC，再将其配置到客户端。已有数据库的服务重启时会运行一次启动生成工作流。
+PAC 会按代理列表顺序选择策略；请填写客户端实际能够访问的代理地址。genpac-runner 只生成 PAC，不会替你创建或转发 SOCKS/HTTP 代理。
 
-查看生成文件或下载 PAC 可使用公共状态页，也可以直接访问：
+域名规则支持以下常用写法：
 
-- 查看：`http://<服务器地址>:17321/proxy.pac`
-- 下载：`http://<服务器地址>:17321/proxy.pac?download=1`
-- 后台总览：`http://<服务器地址>:17321/admin/dashboard`
-- 配置管理：`http://<服务器地址>:17321/admin/settings`
-- 网络监控：`http://<服务器地址>:17321/admin/monitor`
-- 工作流记录：`http://<服务器地址>:17321/admin/workflows`
-- 系统设置：`http://<服务器地址>:17321/admin/system-settings`
+| 写法 | 匹配范围 |
+| --- | --- |
+| `example.com` | 仅匹配该域名 |
+| `*.example.com` | 匹配子域名，不包含根域名 |
+| `**.example.com` | 同时匹配根域名及其子域名 |
 
-如果改用了宿主机端口映射，例如 `8080:17321`，访问 URL 中应使用宿主机端口 `8080`。
+内置本机直连策略覆盖 localhost、无点号主机名、IPv4 回环地址和 RFC 1918 私有地址。黑名单优先于自定义直连规则；自定义直连与黑名单规则优先于远程列表。
 
-## 本机运行
+### 远程规则模式
 
-需要安装 [Bun](https://bun.sh/)（项目要求 Bun `>=1.1.0`）。在仓库根目录执行：
+填写远程列表 URL，生成时服务会下载并解析列表。支持：
 
-```bash
-bun install
-bun run dev
+- GFWList（Base64 编码列表）
+- 域名型 AutoProxy / ABP 列表
+- 每行一个域名的纯文本列表
+
+该解析器会提取域名规则，并非通用 ABP 引擎；不能假定所有 ABP 过滤表达式都能按原意处理。远程地址必须能从运行 genpac-runner 的主机或容器访问。
+
+### 定时生成
+
+在配置中填写标准的五段 Cron 表达式，并选择有效的 IANA 时区。默认时区为 `Asia/Shanghai`；留空则不启用定时任务。已有工作流尚未结束时，新的定时触发会被跳过，以免重复任务不断积压。
+
+## 配置与数据
+
+### 启动环境变量
+
+应用设置（代理、规则、Webhook、定时任务、日志保留时间）统一保存在 SQLite 中，通过后台配置。环境变量只用于启动参数和跨域访问策略。
+
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `PORT` | `17321` | 非容器运行时的监听端口；容器内固定使用 `17321`。 |
+| `HOST` | `0.0.0.0` | 非容器运行时的监听地址。 |
+| `DATA_DIR` | 按运行环境决定 | 非容器运行时的数据目录。 |
+| `CORS_ALLOWED_ORIGINS` | 空 | 显式允许访问管理 API 的跨域 Origin，多个来源以英文逗号分隔。 |
+
+数据目录按运行方式确定：
+
+- Docker：`/data`
+- 开发模式：仓库目录下的 `./data`
+- 非容器生产模式：操作系统的应用数据目录；也可使用 `DATA_DIR` 指定
+
+开发模式可复制 [.env.example](https://github.com/geekMus/genpac-runner/blob/main/.env.example) 为 `.env`。Docker 容器只读取注入的环境变量，不会自动加载挂载目录中的 `.env` 文件。
+
+### 数据文件
+
+- `genpac.db`：SQLite 数据库，保存配置、管理员凭据、生成日志、工作流记录和请求监控数据。
+- `proxy.pac`：提供给客户端使用的 PAC 文件。
+- `proxy.source.pac`：未压缩的 PAC 来源文件，供状态页解析和检查。
+
+数据库使用 `PRAGMA user_version` 跟踪 schema 版本，并在启动时执行增量迁移。升级前仍建议备份数据目录中的数据库及 PAC 文件。SQLite 文件本身不加密；管理员密码以带随机盐的 scrypt 哈希保存。
+
+### 跨域与访问安全
+
+默认不开放跨域浏览器访问管理 API。只有将管理前端独立部署在其他 Origin 时，才需要配置 `CORS_ALLOWED_ORIGINS`，例如：
+
+```text
+CORS_ALLOWED_ORIGINS=https://admin.example.com,https://ops.example.com
 ```
 
-开发模式默认使用 `./data` 作为数据目录、`17321` 作为后端端口，并启动 Vite 开发服务器。打开终端输出的 Vite 地址（通常为 `http://localhost:5173`）。仓库中的 `.env.example` 可复制为 `.env`，按需设置 `DATA_DIR`、`PORT` 和 `HOST` 等运行参数。
+请只添加自己控制的可信来源，不要使用通配符。管理 API 的状态变更请求会校验 Origin；跨域凭据请求可能携带管理员会话 Cookie，因此不要将不可信网站加入白名单。若服务放在反向代理后，请正确配置代理转发头，并避免直接暴露不必要的管理入口。
 
-构建并以生产模式运行：
+## 管理员密码
 
-```bash
-bun run build
-bun start
-```
-
-也可以在部署环境构建 Docker 镜像。Dockerfile 会执行服务端和客户端类型检查、构建客户端资源，并在运行镜像中启动 Bun 服务。
-
-## 数据与安全
-
-- SQLite schema 采用 `PRAGMA user_version` 跟踪版本；启动时执行事务化、向前兼容的增量迁移，不会要求删除现有数据库。升级前仍建议备份 `genpac.db` 及其相关文件。程序配置、管理员凭据、生成记录、工作流记录和监控记录存储在 SQLite 数据库 `genpac.db` 中。`proxy.pac` 是提供给客户端的生成文件；生成器还会在数据目录中保存 `proxy.source.pac` 来源文件。
-- 数据目录默认值：开发模式为仓库下的 `./data`；Docker 为 `/data`；非容器生产模式使用操作系统的应用数据目录。可通过 `DATA_DIR` 指定非容器运行的数据目录。容器内端口固定为 `17321`；非容器运行时可通过 `PORT` 和 `HOST` 调整监听参数。
-- SQLite 数据库文件**不加密**。管理员密码以带随机盐的 scrypt 哈希存储；其他配置和记录保存在本机数据库文件中。请限制对数据目录、备份和服务日志的访问，并为数据目录配置持久化和备份策略。
-- 新数据库首次启动时自动创建随机管理员密码，并在服务日志中输出一次；重启不会重新生成密码。是否修改密码由管理员自行决定。能够读取首次启动日志的人也能读取该密码，请妥善保护日志。
-- 管理员可在配置管理页面主动修改密码。忘记密码时，可以用重置命令为**已有数据库**生成新密码；重置会使现有管理会话失效。
-- 默认不允许跨域浏览器访问管理 API。只有确有独立前端部署需求时，才通过 `CORS_ALLOWED_ORIGINS` 显式配置允许的 Origin，多个来源用英文逗号分隔；不要配置通配符或不可信来源。管理 API 的状态变更请求还会校验 `Origin`，仅允许同源或明确加入白名单的来源；非浏览器客户端调用时也需要提供受信任的 `Origin`。跨域凭据请求会携带管理员会话 Cookie，因此只应信任自己控制的来源。
-- 访问者语言和主题偏好保存在浏览器本地。没有语言偏好时默认中文；主题默认跟随系统。
-- 定时任务的默认时区为 `Asia/Shanghai`，可在配置管理中设置其他有效的 IANA 时区。
-
-### 重置管理员密码
-
-重置脚本会检查数据库文件是否已存在，不会因路径错误而创建一份空数据库。请确保命令使用的数据目录与服务相同。
+忘记密码时，可以通过重置脚本为**已有数据库**生成新密码。命令必须指向服务正在使用的数据目录；重置后原有管理会话会失效。
 
 **Docker：**
 
@@ -116,7 +214,7 @@ bun run reset:admin-password:development
 bun run reset:admin-password:production
 ```
 
-也可显式指定数据目录：
+也可以显式指定数据目录：
 
 ```bash
 bun run scripts/reset-admin-password.ts --production --data-dir "/path/to/data"
@@ -128,44 +226,107 @@ Windows PowerShell 示例：
 bun run scripts/reset-admin-password.ts --production --data-dir "C:\genpac\data"
 ```
 
-脚本只显示新生成的密码一次。Docker 容器名不同于默认值 `genpac-runner` 时，请相应修改 `docker exec` 命令。
+重置脚本会检查数据库是否存在，不会因为路径写错而创建空数据库。脚本只显示新生成的密码一次。容器名若不是 `genpac-runner`，请修改对应的 `docker exec` 命令。
 
-## 监控说明
+## 工作流、日志与维护
 
-监控页面每 **10 秒**自动刷新数据。请求统计只包括 genpac-runner 自身接收的请求，不代表用户经代理访问的网站，也不代表代理服务器实际转发的流量。
+- **工作流页面**：查看当前任务、排队任务、阶段、结果、错误详情及历史记录。
+- **网络监控页面**：查看 genpac-runner 自身收到的请求，不代表客户端经代理访问网站的流量。
+- **系统设置页面**：查看数据目录、数据库和日志占用，查看 PAC 文件大小与更新时间。
+- **日志保留**：设置日志保留天数并执行清理，也可以手动清空日志。
+- **PAC 文件维护**：可删除生成的 PAC 文件；删除后需要重新生成才能恢复。
+- **恢复出厂设置**：会清除应用配置、管理员凭据、日志、工作流记录和 PAC 文件等应用数据。执行前请确认已备份需要保留的内容。
 
-## 开发检查
+## 本机开发
+
+需要安装 [Bun](https://bun.sh/)（要求版本 `>=1.1.0`）。
 
 ```bash
-# 根目录脚本、共享代码、服务端与客户端 TypeScript 检查
+bun install
+bun run dev
+```
+
+开发模式默认使用 `./data` 作为数据目录、`17321` 作为后端端口，并启动 Vite 开发服务器。打开终端显示的 Vite 地址（通常为 `http://localhost:5173`）。
+
+常用命令：
+
+```bash
+# TypeScript 检查：根目录、共享代码、服务端和客户端
 bun run typecheck
 
-# 完整项目检查：类型检查、客户端生产构建、静态翻译检查
+# 完整检查：类型检查、客户端构建、翻译检查
 bun run check
 
-# 仅检查翻译目录与客户端静态翻译 key
+# 仅检查中英文翻译目录及静态翻译 key
 bun run check:i18n
 
-# 仅格式检查 / 格式化
+# 检查代码格式
 bun run format:check
+
+# 按项目配置格式化代码
 bun run format
+
+# 构建客户端
+bun run build
+
+# 生产模式启动（需先构建）
+bun start
 ```
 
-`bun run check` 会检查根目录脚本、共享代码、服务端和客户端 TypeScript，构建客户端生产版本，并验证中英文翻译目录的键和占位符一致，以及客户端源码中使用的静态 I18N key 是否都存在。此命令不启动完整服务或执行端到端数据库迁移验证。
+`bun run check` 不会启动完整服务，也不替代端到端测试或数据库迁移测试。
 
-## 版本与镜像
+## Docker 镜像与版本
 
-容器镜像发布于 GitHub Container Registry（GHCR），支持 `linux/amd64` 和 `linux/arm64`。版本号以 `package.json` 中的 `version` 为准。新发布的镜像会在 OCI manifest annotation 中提供包描述（显示在 GHCR 包页面），并在镜像标签中记录版本、源码提交和相对上一镜像的简短变更摘要。可用下面的命令查看摘要：
+- 镜像：`ghcr.io/geekmus/genpac-runner`
+- 默认标签：`latest`
+- 发布平台：当前自动发布工作流构建 `linux/arm64` 镜像。
+- 版本号：以 `package.json` 的 `version` 为准。
+- 自动发布：`main` 分支上的 `package.json` 发生变更时触发；也可在 GitHub Actions 页面手动运行工作流。
+- 发布校验：版本日期必须是 `Asia/Shanghai` 当天；同一天的修订号必须高于 GHCR 的 `latest` 版本。版本号相同会跳过重复发布。
+
+查看 [构建与发布工作流](https://github.com/geekMus/genpac-runner/actions/workflows/publish-image.yml)。
+
+更新已部署容器：
 
 ```bash
-docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.changelog" }}' ghcr.io/geekmus/genpac-runner:latest
+docker pull ghcr.io/geekmus/genpac-runner:latest
+docker stop genpac-runner
+docker rm genpac-runner
+docker run -d \
+  --name genpac-runner \
+  --restart unless-stopped \
+  -p 17321:17321 \
+  -v genpac-data:/data \
+  ghcr.io/geekmus/genpac-runner:latest
 ```
 
-部署现有服务时可使用 `docker compose pull` 拉取更新后的镜像；请在升级前备份 SQLite 数据库和 PAC 文件。
+如果原部署使用了其他端口、卷名或额外环境变量，更新时请保留原配置。不要为了升级而删除持久化数据卷。
 
 ## 故障排查
 
-- **无法访问页面**：确认 Compose 已启用端口映射、容器正在运行，并检查宿主机防火墙和 `docker compose logs -f genpac`。
-- **登录凭据不可用**：查看首次启动日志中的随机密码；若密码遗失，按上文步骤重置，并确认命令指向服务正在使用的数据库。
-- **没有可用 PAC**：首次数据库启动不会自动生成 PAC。进入后台配置后执行生成，并查看工作流记录中的结果。获取 PAC 前请确认生成成功。
-- **远程列表加载失败**：确认运行服务的主机或容器能够访问列表 URL，并使用支持的列表格式。
+**无法访问网页**
+- 确认容器正在运行：`docker ps`
+- 确认已发布端口：`docker port genpac-runner`
+- 查看服务日志：`docker logs --tail 200 genpac-runner`
+- 检查宿主机防火墙、反向代理和端口映射。
+
+**管理员无法登录**
+- 查看首次启动日志中的随机密码。
+- 若密码遗失，按“管理员密码”章节重置，并确认脚本使用的是正确的数据目录。
+
+**PAC 仍是全量直连**
+- 新数据库首次启动不会自动生成 PAC。
+- 在后台启动生成，并在工作流页面确认结果成功。
+- 检查生成模式、代理地址、自定义规则和远程列表的可访问性。
+
+**远程列表生成失败**
+- 确认容器能够访问配置的 URL。
+- 确认内容属于支持的列表格式；该功能不是完整的 ABP 规则引擎。
+
+**升级后配置丢失**
+- 检查容器是否始终挂载到同一个持久化卷或数据目录。
+- 没有挂载 `/data` 时，删除容器可能导致应用数据丢失。
+
+---
+
+项目源码、问题反馈与版本记录：[geekMus/genpac-runner](https://github.com/geekMus/genpac-runner)
