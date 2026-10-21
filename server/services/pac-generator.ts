@@ -37,7 +37,8 @@ export function validatePacProxyString(value: string): string | null {
 
   const entries = raw.split(";").map((entry) => entry.trim());
   // 允许最后一个代理项后面带分号，但不允许中间出现空项。
-  while (entries.length > 0 && entries[entries.length - 1] === "") entries.pop();
+  // 只允许单个可选的结尾分号；连续分号仍然表示空代理项。
+  if (entries[entries.length - 1] === "") entries.pop();
   if (entries.length === 0 || entries.some((entry) => !entry)) {
     return "代理项之间请使用分号分隔，不能包含空代理项。";
   }
