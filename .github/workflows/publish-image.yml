@@ -252,7 +252,7 @@ jobs:
             type=raw,value=latest
           labels: |
             org.opencontainers.image.title=genpac-runner
-            org.opencontainers.image.description=自动生成 PAC 文件的工具
+            org.opencontainers.image.description=带 Web 管理后台的 PAC 生成与管理服务
             org.opencontainers.image.source=https://github.com/geekMus/genpac-runner
             org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
             org.opencontainers.image.revision=${{ github.sha }}
