@@ -62,25 +62,6 @@ export function initializeSchema(database: Database, ensureDefaultSettings: () =
 
 
 
-      CREATE TABLE IF NOT EXISTS proxy_probe_runs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tested_at TEXT NOT NULL,
-        proxy_label TEXT NOT NULL,
-        proxy_host TEXT NOT NULL,
-        proxy_port INTEGER NOT NULL,
-        target_host TEXT NOT NULL,
-        success INTEGER NOT NULL,
-        tcp_ms REAL,
-        handshake_ms REAL,
-        target_ms REAL,
-        http_status INTEGER,
-        phase TEXT NOT NULL,
-        error_code TEXT NOT NULL DEFAULT '',
-        error_detail TEXT NOT NULL DEFAULT ''
-      );
-
-
-
       CREATE TABLE IF NOT EXISTS workflow_runs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         source TEXT NOT NULL,
@@ -139,14 +120,6 @@ export function initializeSchema(database: Database, ensureDefaultSettings: () =
         ["content_type", "TEXT NOT NULL DEFAULT ''"], ["request_headers", "TEXT NOT NULL DEFAULT ''"],
         ["response_content_type", "TEXT NOT NULL DEFAULT ''"],
       ],
-      proxy_probe_runs: [
-        ["tested_at", "TEXT NOT NULL DEFAULT ''"], ["proxy_label", "TEXT NOT NULL DEFAULT ''"],
-        ["proxy_host", "TEXT NOT NULL DEFAULT ''"], ["proxy_port", "INTEGER NOT NULL DEFAULT 0"],
-        ["target_host", "TEXT NOT NULL DEFAULT ''"], ["success", "INTEGER NOT NULL DEFAULT 0"],
-        ["tcp_ms", "REAL"], ["handshake_ms", "REAL"], ["target_ms", "REAL"],
-        ["http_status", "INTEGER"], ["phase", "TEXT NOT NULL DEFAULT ''"],
-        ["error_code", "TEXT NOT NULL DEFAULT ''"], ["error_detail", "TEXT NOT NULL DEFAULT ''"],
-      ],
       workflow_runs: [
         ["source", "TEXT NOT NULL DEFAULT 'manual'"], ["status", "TEXT NOT NULL DEFAULT 'failed'"],
         ["stage", "TEXT NOT NULL DEFAULT ''"], ["mode", "TEXT NOT NULL DEFAULT 'custom'"],
@@ -168,8 +141,6 @@ export function initializeSchema(database: Database, ensureDefaultSettings: () =
     database.run(`
       CREATE INDEX IF NOT EXISTS idx_access_events_created_at ON access_events(created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_access_events_source_created ON access_events(source_ip, created_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_proxy_probe_tested_at ON proxy_probe_runs(tested_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_proxy_probe_label_tested ON proxy_probe_runs(proxy_label, tested_at DESC);
       CREATE INDEX IF NOT EXISTS idx_workflow_runs_created ON workflow_runs(created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_workflow_runs_status ON workflow_runs(status, created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_workflow_stages_run ON workflow_stages(run_id, id);
@@ -178,7 +149,8 @@ export function initializeSchema(database: Database, ensureDefaultSettings: () =
     // Old rows may have received an empty placeholder during an additive migration.
     database.run("UPDATE generation_log SET created_at = datetime('now') WHERE created_at = ''");
     database.run("UPDATE access_events SET created_at = datetime('now') WHERE created_at = ''");
-    database.run("UPDATE proxy_probe_runs SET tested_at = datetime('now') WHERE tested_at = ''");
+    // Remove the retired proxy connectivity feature and its stored history from existing databases.
+    database.run("DROP TABLE IF EXISTS proxy_probe_runs");
     database.run("UPDATE workflow_runs SET created_at = datetime('now') WHERE created_at = ''");
 
     const row = database.query("SELECT value FROM settings WHERE key = ?").get("config") as {
