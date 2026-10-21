@@ -26,7 +26,6 @@ export interface AppSettings {
   directList: string[];
   cronSchedule: string;
   timezone: string;
-  proxyTestUrl: string;
   logRetentionDays: number;
   webhookSuccessConfig: WebhookConfig;
   webhookFailureConfig: WebhookConfig;
