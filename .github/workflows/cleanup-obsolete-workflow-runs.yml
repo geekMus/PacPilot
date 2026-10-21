@@ -11,9 +11,10 @@ permissions:
   actions: write
   contents: read
 
+# 同一工作流、同一 ref 只保留最新运行；不影响其他工作流或分支。
 concurrency:
-  group: cleanup-obsolete-workflow-runs
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   discover:
