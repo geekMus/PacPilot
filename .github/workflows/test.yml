@@ -1,20 +1,9 @@
 name: 前后端单元测试与覆盖率
 
 on:
-  push:
-    branches:
-      - main
-      - dev
   pull_request:
     branches:
       - main
-      - dev
-  workflow_dispatch:
-
-# 同一工作流、同一分支只保留最新运行；不同工作流和不同分支互不取消。
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -22,9 +11,7 @@ permissions:
 jobs:
   prepare:
     name: 阶段 1：依赖安装与静态检查
-    if: >-
-      (github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'dev')) ||
-      (github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -211,7 +198,7 @@ jobs:
   gate:
     name: 前后端单测与覆盖率门槛
     needs: [prepare, test, coverage]
-    if: always()
+    if: always() && github.event_name == 'pull_request' && github.base_ref == 'main'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
