@@ -163,7 +163,7 @@ const { style: timezonePanelStyle } = useViewportPanel(
           <p class="field-hint">
             {{ t("settings.resetHelpFull")
             }}<a
-              href="{{ PROJECT_LINKS.adminPasswordReset }}"
+              :href="PROJECT_LINKS.adminPasswordReset"
               target="_blank"
               rel="noopener noreferrer"
               >{{ t("settings.resetHelpLink") }}</a
