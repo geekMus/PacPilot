@@ -1,4 +1,3 @@
-import path from "node:path";
 import { loadDevelopmentDotEnv } from "../server/config/load-dotenv";
 import { runtimeLog } from "../server/utils/runtime-log";
 
@@ -53,7 +52,7 @@ async function waitForBackend(): Promise<boolean> {
       });
       if (response.ok) return true;
     } catch {
-      // 后端初始化并监听端口需要一点时间。
+      // The backend may need time to initialize and bind its port.
     }
 
     await new Promise((resolve) => setTimeout(resolve, 250));
@@ -69,10 +68,10 @@ const backendReady = await Promise.race([
 
 if (backendReady.type === "exit" || !backendReady.ready) {
   if (backendReady.type === "exit") {
-    runtimeLog("error", `后端服务在就绪前退出，退出码：${backendReady.code}。`);
+    runtimeLog("error", `Backend exited before becoming ready (exit code: ${backendReady.code}).`);
     process.exitCode = backendReady.code || 1;
   } else {
-    runtimeLog("error", `等待后端启动超时（等待地址：${apiHealthUrl}）。请检查上方的后端错误日志。`);
+    runtimeLog("error", `Timed out waiting for backend at ${apiHealthUrl}. Check the backend errors above.`);
     shutdown();
     await server.exited;
     process.exit(1);
@@ -108,10 +107,10 @@ const viteReady = new Promise<void>((resolve) => {
 let hasViteReady = false;
 
 async function forwardViteOutput(
-  stream: ReadableStream<Uint8Array> | null,
+  stream: ReturnType<typeof Bun.spawn>["stdout"],
   target: "stdout" | "stderr",
 ): Promise<void> {
-  if (!stream) return;
+  if (!(stream instanceof ReadableStream)) return;
 
   const reader = stream.getReader();
   const decoder = new TextDecoder();
@@ -151,7 +150,7 @@ const viteStartup = await Promise.race([
 
 if (!viteStartup.ready) {
   await Promise.allSettled([viteStdout, viteStderr]);
-  runtimeLog("error", `Vite 前端启动失败，退出码：${viteStartup.code}。请检查上方的 Vite 输出。`);
+  runtimeLog("error", `Vite failed to start (exit code: ${viteStartup.code}). See Vite output above.`);
   shutdown();
   process.exit(viteStartup.code ?? 1);
 }
@@ -165,6 +164,6 @@ shutdown();
 await Promise.allSettled([viteStdout, viteStderr, server.exited, client.exited]);
 runtimeLog(
   "warn",
-  `${exited.process === "server" ? "后端服务" : "Vite 前端"}进程已退出，退出码：${exited.code}。`,
+  `${exited.process === "server" ? "Backend" : "Vite frontend"} process exited (exit code: ${exited.code}).`,
 );
 process.exit(exited.code ?? 0);
