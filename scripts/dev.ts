@@ -3,8 +3,8 @@ import { loadDevelopmentDotEnv } from "../server/config/load-dotenv";
 import { runtimeLog } from "../server/utils/runtime-log";
 
 /**
- * Start the backend and wait until its API is available before starting Vite.
- * Forward Vite output unchanged so its native formatting and colors are preserved.
+ * 先启动后端，确认 API 可用后再启动 Vite，避免前端代理请求过早发出。
+ * Vite 输出按原始字节转发，保留其格式和颜色。
  */
 process.env.NODE_ENV = "development";
 process.env.GENPAC_ENV = "development";
@@ -53,7 +53,7 @@ async function waitForBackend(): Promise<boolean> {
       });
       if (response.ok) return true;
     } catch {
-      // The backend may need time to initialize and bind its port.
+      // 后端初始化并监听端口需要一点时间。
     }
 
     await new Promise((resolve) => setTimeout(resolve, 250));
@@ -69,10 +69,10 @@ const backendReady = await Promise.race([
 
 if (backendReady.type === "exit" || !backendReady.ready) {
   if (backendReady.type === "exit") {
-    runtimeLog("error", `Backend exited before becoming ready (exit code: ${backendReady.code}).`);
+    runtimeLog("error", `后端服务在就绪前退出，退出码：${backendReady.code}。`);
     process.exitCode = backendReady.code || 1;
   } else {
-    runtimeLog("error", `Timed out waiting for backend at ${apiHealthUrl}. Check the backend errors above.`);
+    runtimeLog("error", `等待后端启动超时（等待地址：${apiHealthUrl}）。请检查上方的后端错误日志。`);
     shutdown();
     await server.exited;
     process.exit(1);
@@ -82,7 +82,7 @@ if (backendReady.type === "exit" || !backendReady.ready) {
   process.exit();
 }
 
-// Launch the installed Vite CLI directly to avoid bunx wrapper-process issues on Windows/Git Bash.
+// 直接调用本地 Vite CLI，避免 Windows / Git Bash 环境下包装进程异常退出。
 const viteCli = path.resolve("node_modules/vite/bin/vite.js");
 client = Bun.spawn(
   [
@@ -151,7 +151,7 @@ const viteStartup = await Promise.race([
 
 if (!viteStartup.ready) {
   await Promise.allSettled([viteStdout, viteStderr]);
-  runtimeLog("error", `Vite failed to start (exit code: ${viteStartup.code}). See Vite output above.`);
+  runtimeLog("error", `Vite 前端启动失败，退出码：${viteStartup.code}。请检查上方的 Vite 输出。`);
   shutdown();
   process.exit(viteStartup.code ?? 1);
 }
@@ -165,6 +165,6 @@ shutdown();
 await Promise.allSettled([viteStdout, viteStderr, server.exited, client.exited]);
 runtimeLog(
   "warn",
-  `${exited.process === "server" ? "Backend" : "Vite frontend"} process exited (exit code: ${exited.code}).`,
+  `${exited.process === "server" ? "后端服务" : "Vite 前端"}进程已退出，退出码：${exited.code}。`,
 );
 process.exit(exited.code ?? 0);
