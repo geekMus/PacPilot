@@ -22,14 +22,6 @@ export function createAdminSettingsValidators<T extends (...args: any[]) => stri
     }
   }
 
-  type WebhookFieldErrors = {
-    url: string;
-    headers: string;
-    body: string;
-    testBody: string;
-    secret: string;
-  };
-
   function validateWebhookDraft(config: WebhookConfig, label: string): WebhookFieldErrors {
     const errors: WebhookFieldErrors = { url: "", headers: "", body: "", testBody: "", secret: "" };
     if (config.provider === "custom") {
