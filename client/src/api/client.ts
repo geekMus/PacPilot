@@ -108,7 +108,6 @@ export interface StorageSummary {
   counts: {
     generationLogs: number;
     accessEvents: number;
-    proxyProbeRuns: number;
     workflows: number;
     activeWorkflows: number;
   };
@@ -176,21 +175,6 @@ export interface MonitorSummary {
   }>;
 }
 
-export interface ProxyProbeResult {
-  testedAt: string;
-  proxyLabel: string;
-  proxyHost: string;
-  proxyPort: number;
-  targetHost: string;
-  success: boolean;
-  tcpMs: number | null;
-  handshakeMs: number | null;
-  targetMs: number | null;
-  httpStatus: number | null;
-  phase: string;
-  errorCode: string;
-  errorDetail: string;
-  isLoopback: boolean;
 }
 
 export interface ProxyProbeBatch {
@@ -332,7 +316,7 @@ export const api = {
     ),
   cleanupLogs: () =>
     request<{
-      deleted: { generationLogs: number; accessEvents: number; proxyProbeRuns: number };
+      deleted: { generationLogs: number; accessEvents: number };
       retentionDays: number;
     }>("/api/admin/logs/cleanup", { method: "POST" }),
   clearLogs: () =>
@@ -351,18 +335,5 @@ export const api = {
   monitorAccessPage: (limit = 50, beforeId = 0) =>
     request<PagedResult<AccessEvent>>(
       `/api/admin/monitor/access?paged=1&limit=${limit}&beforeId=${beforeId}`
-    ),
-  proxyProbeTarget: () => request<{ url: string }>("/api/admin/monitor/probe-target"),
-  saveProxyProbeTarget: (url: string) =>
-    request<{ url: string }>("/api/admin/monitor/probe-target", {
-      method: "PUT",
-      body: JSON.stringify({ url }),
-    }),
-
-  proxyProbeHistory: (limit = 30) =>
-    request<ProxyProbeRecord[]>(`/api/admin/monitor/probes?limit=${limit}`),
-  proxyProbeHistoryPage: (limit = 50, beforeId = 0) =>
-    request<PagedResult<ProxyProbeRecord>>(
-      `/api/admin/monitor/probes?paged=1&limit=${limit}&beforeId=${beforeId}`
     ),
 };
