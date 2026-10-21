@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
 import { $ } from "bun";
 
-// Production installs omit devDependencies, including Husky. Only set up Git hooks
-// when the Husky CLI is actually installed (for local development installs).
-if (existsSync("node_modules/.bin/husky")) {
+// Git hooks are only useful in a local Git checkout. Docker build contexts and
+// production installs do not need them, even if the Husky CLI is present.
+if (existsSync(".git") && existsSync("node_modules/.bin/husky")) {
   await $`husky`;
 }
