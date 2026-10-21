@@ -30,10 +30,7 @@ async function main(): Promise<void> {
   logCleanupTimer.unref();
 
   if (initialAdminPassword) {
-    runtimeLog(
-      "warn",
-      `首次启动生成的管理员密码（可在后台修改）：\n${initialAdminPassword}\n能够读取此日志的人也能看到该密码，请妥善保护日志。`
-    );
+    runtimeLog("warn", `首次启动生成的管理员密码（可在后台修改）：${initialAdminPassword}`);
   } else if (adminCredentialsMissing) {
     runtimeLog("error", "无法初始化管理员凭据，管理后台将无法登录。");
   }
