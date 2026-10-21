@@ -11,7 +11,6 @@ on:
       - dev
   workflow_dispatch:
 
-
 # 同一工作流、同一分支只保留最新运行；不同工作流和不同分支互不取消。
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -31,20 +30,75 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: 检出代码
+        id: checkout
         uses: actions/checkout@v7
 
+      - name: 阶段 1 小结：检出代码
+        if: always()
+        env:
+          RESULT: ${{ steps.checkout.outcome }}
+        run: |
+          {
+            echo "## 阶段 1：检出代码"
+            echo
+            echo "- **结果：** ${RESULT}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: 安装 Bun
+        id: setup-bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
+      - name: 阶段 2 小结：运行环境
+        if: always()
+        env:
+          RESULT: ${{ steps.setup-bun.outcome }}
+        run: |
+          {
+            echo "## 阶段 2：准备运行环境"
+            echo
+            echo "- **Bun 安装结果：** ${RESULT}"
+            echo "- **版本策略：** latest"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: 安装依赖
+        id: install
         run: bun install
 
+      - name: 阶段 3 小结：依赖安装
+        if: always()
+        env:
+          RESULT: ${{ steps.install.outcome }}
+        run: |
+          {
+            echo "## 阶段 3：安装依赖"
+            echo
+            echo "- **结果：** ${RESULT}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: 类型检查、构建与国际化校验
+        id: check
         run: bun run check
 
+      - name: 阶段 4 小结：类型检查、构建与国际化
+        if: always()
+        env:
+          RESULT: ${{ steps.check.outcome }}
+        run: |
+          {
+            echo "## 阶段 4：类型检查、构建与国际化校验"
+            echo
+            echo "- **结果：** ${RESULT}"
+            if [[ "${RESULT}" == "success" ]]; then
+              echo "- **结论：** 检查通过，可以进入单元测试阶段。"
+            else
+              echo "- **结论：** 检查未通过或被跳过；请查看本阶段日志。"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: 运行前后端单测并检查覆盖率
+        id: tests
         env:
           NO_COLOR: "1"
           FORCE_COLOR: "0"
@@ -61,12 +115,28 @@ jobs:
             exit "$TEST_STATUS"
           fi
 
-      - name: 汇总覆盖率
+      - name: 阶段 5 小结：单元测试
+        if: always()
+        env:
+          RESULT: ${{ steps.tests.outcome }}
+        run: |
+          {
+            echo "## 阶段 5：前后端单元测试与覆盖率门槛"
+            echo
+            echo "- **结果：** ${RESULT}"
+            if [[ "${RESULT}" == "success" ]]; then
+              echo "- **结论：** 单元测试与覆盖率门槛通过。"
+            else
+              echo "- **结论：** 测试未通过或被跳过；请查看本阶段日志。"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 阶段 6 小结：覆盖率报告
         if: always()
         shell: bash
         run: |
           {
-            echo "## 覆盖率汇总"
+            echo "## 阶段 6：覆盖率报告"
             echo
             echo "| 范围 | 语句覆盖率 | 分支覆盖率 | 函数覆盖率 | 行覆盖率 |"
             echo "|---|---:|---:|---:|---:|"
