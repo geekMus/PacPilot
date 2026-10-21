@@ -159,7 +159,6 @@ export function createAdminSettingsValidators<T extends (...args: any[]) => stri
     }
   }
 
-
   return {
     looksLikeUrl,
     validateWebhookDraft,

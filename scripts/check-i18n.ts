@@ -43,9 +43,7 @@ function assertLocaleParity(): void {
 function assertTranslationReferences(): void {
   const catalogs = [flattenCatalog(zh_CN), flattenCatalog(en_US)];
   const templateMessageKeys = new Set(
-    [...catalogs[0]]
-      .filter(([, message]) => /\{\{[^{}]+\}\}/.test(message))
-      .map(([key]) => key)
+    [...catalogs[0]].filter(([, message]) => /\{\{[^{}]+\}\}/.test(message)).map(([key]) => key)
   );
   const sourceRoot = path.resolve(import.meta.dir, "../client/src");
   const sourceFiles: string[] = [];

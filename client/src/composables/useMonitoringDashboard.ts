@@ -1,12 +1,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import {
-  api,
-  type AccessEvent,
-  type AdminSession,
-  type MonitorSummary,
-} from "../api/client";
+import { api, type AccessEvent, type AdminSession, type MonitorSummary } from "../api/client";
 import { useToast } from "../composables/useToast";
 
 export function useMonitoringDashboard() {
@@ -34,11 +29,9 @@ export function useMonitoringDashboard() {
 
   const refreshing = ref(false);
 
-
   const error = ref("");
 
   const refreshError = ref("");
-
 
   const lastUpdated = ref("");
 

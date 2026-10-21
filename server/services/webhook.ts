@@ -297,7 +297,10 @@ async function notify(
   if (!enriched.success) {
     runtimeLog("error", `Webhook (${config.provider}) delivery failed: ${enriched.message}`);
   } else {
-    runtimeLog("info", `Webhook (${config.provider}) delivered successfully (HTTP ${enriched.status})`);
+    runtimeLog(
+      "info",
+      `Webhook (${config.provider}) delivered successfully (HTTP ${enriched.status})`
+    );
   }
   return enriched;
 }

@@ -36,7 +36,10 @@ export function reschedule(database: AppDatabase, dataDir: string): void {
     () => {
       if (scheduledRunInFlight || hasActivePacWorkflow(database)) {
         if (!overlapWarningLogged) {
-          runtimeLog("warn", "Previous workflow is still running; skipping this scheduled trigger to avoid a backlog.");
+          runtimeLog(
+            "warn",
+            "Previous workflow is still running; skipping this scheduled trigger to avoid a backlog."
+          );
           overlapWarningLogged = true;
         }
         return;

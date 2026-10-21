@@ -794,7 +794,6 @@ export default {
     matchCount: "匹配 {filtered} / {total} 条",
     accessLoadedHint:
       "已加载 {loaded} / {total} 条；筛选只作用于已加载记录。访问日志最多保留 7 天且上限为 5,000 条。点击行可查看完整请求详情等信息。",
-
   },
 
   systemPage: {
@@ -871,8 +870,7 @@ export default {
     refreshStatus: "刷新状态",
     fileSize: "大小：{size}",
     fileMtime: "修改时间：{time}",
-    clearedLogsKeepWorkflow:
-      "日志已清空：生成日志 {g} 条、访问记录 {a} 条。工作流历史已保留。",
+    clearedLogsKeepWorkflow: "日志已清空：生成日志 {g} 条、访问记录 {a} 条。工作流历史已保留。",
   },
 
   workflowPage: {

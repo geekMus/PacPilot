@@ -34,9 +34,7 @@ function validTimeZone(v: string): boolean {
     return false;
   }
 }
-function bodyToSettings(
-  b: Record<string, unknown>
-): AppSettings {
+function bodyToSettings(b: Record<string, unknown>): AppSettings {
   const m = String(b.mode ?? "");
   const mode: GenerationMode = m === "remote" ? "remote" : "custom";
   return {

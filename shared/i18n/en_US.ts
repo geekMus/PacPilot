@@ -224,7 +224,7 @@ export default {
     dbFile: "Database file",
     dbFileHint: "SQLite main file and WAL",
     logEstimate: "Estimated log usage",
-    logEstimateHint: "Generation logs and access records"
+    logEstimateHint: "Generation logs and access records",
   },
   layout: {
     adminConsole: "Admin console",
@@ -829,7 +829,6 @@ export default {
     matchCount: "Matched {filtered} / {total}",
     accessLoadedHint:
       "Loaded {loaded} / {total}; filters apply to loaded records only. Access logs keep 7 days / 5,000 max. Click a row for full request details.",
-
   },
 
   systemPage: {

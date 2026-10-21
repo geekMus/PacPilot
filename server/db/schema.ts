@@ -94,7 +94,9 @@ export function initializeSchema(database: Database, ensureDefaultSettings: () =
     // Add columns introduced after the original schema without dropping any rows.
     // Definitions use constant defaults because SQLite restricts ALTER TABLE defaults.
     const ensureColumn = (table: string, column: string, definition: string) => {
-      const columns = database.query(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+      const columns = database.query(`PRAGMA table_info(${table})`).all() as Array<{
+        name: string;
+      }>;
       if (!columns.some((item) => item.name === column)) {
         database.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
       }
@@ -110,27 +112,44 @@ export function initializeSchema(database: Database, ensureDefaultSettings: () =
         ["created_at", "TEXT NOT NULL DEFAULT ''"],
       ],
       access_events: [
-        ["created_at", "TEXT NOT NULL DEFAULT ''"], ["method", "TEXT NOT NULL DEFAULT ''"],
-        ["path", "TEXT NOT NULL DEFAULT ''"], ["category", "TEXT NOT NULL DEFAULT ''"],
-        ["source_ip", "TEXT NOT NULL DEFAULT ''"], ["user_agent", "TEXT NOT NULL DEFAULT ''"],
-        ["status_code", "INTEGER NOT NULL DEFAULT 0"], ["duration_ms", "REAL NOT NULL DEFAULT 0"],
-        ["response_bytes", "INTEGER NOT NULL DEFAULT 0"], ["query_string", "TEXT NOT NULL DEFAULT ''"],
-        ["host", "TEXT NOT NULL DEFAULT ''"], ["referer", "TEXT NOT NULL DEFAULT ''"],
-        ["accept", "TEXT NOT NULL DEFAULT ''"], ["accept_language", "TEXT NOT NULL DEFAULT ''"],
-        ["content_type", "TEXT NOT NULL DEFAULT ''"], ["request_headers", "TEXT NOT NULL DEFAULT ''"],
+        ["created_at", "TEXT NOT NULL DEFAULT ''"],
+        ["method", "TEXT NOT NULL DEFAULT ''"],
+        ["path", "TEXT NOT NULL DEFAULT ''"],
+        ["category", "TEXT NOT NULL DEFAULT ''"],
+        ["source_ip", "TEXT NOT NULL DEFAULT ''"],
+        ["user_agent", "TEXT NOT NULL DEFAULT ''"],
+        ["status_code", "INTEGER NOT NULL DEFAULT 0"],
+        ["duration_ms", "REAL NOT NULL DEFAULT 0"],
+        ["response_bytes", "INTEGER NOT NULL DEFAULT 0"],
+        ["query_string", "TEXT NOT NULL DEFAULT ''"],
+        ["host", "TEXT NOT NULL DEFAULT ''"],
+        ["referer", "TEXT NOT NULL DEFAULT ''"],
+        ["accept", "TEXT NOT NULL DEFAULT ''"],
+        ["accept_language", "TEXT NOT NULL DEFAULT ''"],
+        ["content_type", "TEXT NOT NULL DEFAULT ''"],
+        ["request_headers", "TEXT NOT NULL DEFAULT ''"],
         ["response_content_type", "TEXT NOT NULL DEFAULT ''"],
       ],
       workflow_runs: [
-        ["source", "TEXT NOT NULL DEFAULT 'manual'"], ["status", "TEXT NOT NULL DEFAULT 'failed'"],
-        ["stage", "TEXT NOT NULL DEFAULT ''"], ["mode", "TEXT NOT NULL DEFAULT 'custom'"],
-        ["error", "TEXT NOT NULL DEFAULT ''"], ["created_at", "TEXT NOT NULL DEFAULT ''"],
-        ["started_at", "TEXT"], ["finished_at", "TEXT"], ["duration_ms", "INTEGER"],
+        ["source", "TEXT NOT NULL DEFAULT 'manual'"],
+        ["status", "TEXT NOT NULL DEFAULT 'failed'"],
+        ["stage", "TEXT NOT NULL DEFAULT ''"],
+        ["mode", "TEXT NOT NULL DEFAULT 'custom'"],
+        ["error", "TEXT NOT NULL DEFAULT ''"],
+        ["created_at", "TEXT NOT NULL DEFAULT ''"],
+        ["started_at", "TEXT"],
+        ["finished_at", "TEXT"],
+        ["duration_ms", "INTEGER"],
       ],
       workflow_stages: [
-        ["run_id", "INTEGER NOT NULL DEFAULT 0"], ["stage_key", "TEXT NOT NULL DEFAULT ''"],
-        ["status", "TEXT NOT NULL DEFAULT 'skipped'"], ["error", "TEXT NOT NULL DEFAULT ''"],
-        ["detail", "TEXT NOT NULL DEFAULT ''"], ["started_at", "TEXT"],
-        ["finished_at", "TEXT"], ["duration_ms", "INTEGER"],
+        ["run_id", "INTEGER NOT NULL DEFAULT 0"],
+        ["stage_key", "TEXT NOT NULL DEFAULT ''"],
+        ["status", "TEXT NOT NULL DEFAULT 'skipped'"],
+        ["error", "TEXT NOT NULL DEFAULT ''"],
+        ["detail", "TEXT NOT NULL DEFAULT ''"],
+        ["started_at", "TEXT"],
+        ["finished_at", "TEXT"],
+        ["duration_ms", "INTEGER"],
       ],
     };
 

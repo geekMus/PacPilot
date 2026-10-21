@@ -71,7 +71,10 @@ if (backendReady.type === "exit" || !backendReady.ready) {
     runtimeLog("error", `Backend exited before becoming ready (exit code: ${backendReady.code}).`);
     process.exitCode = backendReady.code || 1;
   } else {
-    runtimeLog("error", `Timed out waiting for backend at ${apiHealthUrl}. Check the backend errors above.`);
+    runtimeLog(
+      "error",
+      `Timed out waiting for backend at ${apiHealthUrl}. Check the backend errors above.`
+    );
     shutdown();
     await server.exited;
     process.exit(1);
@@ -83,21 +86,13 @@ if (backendReady.type === "exit" || !backendReady.ready) {
 
 // 通过 Bun 启动项目本地的 Vite，避免直接调用 node_modules 中的入口文件。
 client = Bun.spawn(
-  [
-    process.execPath,
-    "run",
-    "vite",
-    "--config",
-    "client/vite.config.ts",
-    "--clearScreen",
-    "false",
-  ],
+  [process.execPath, "run", "vite", "--config", "client/vite.config.ts", "--clearScreen", "false"],
   {
     stdout: "pipe",
     stderr: "pipe",
     stdin: "inherit",
     env: { ...env, FORCE_COLOR: env.FORCE_COLOR || "1" },
-  },
+  }
 );
 
 let resolveViteReady!: () => void;
@@ -108,7 +103,7 @@ let hasViteReady = false;
 
 async function forwardViteOutput(
   stream: ReturnType<typeof Bun.spawn>["stdout"],
-  target: "stdout" | "stderr",
+  target: "stdout" | "stderr"
 ): Promise<void> {
   if (!(stream instanceof ReadableStream)) return;
 
@@ -150,7 +145,10 @@ const viteStartup = await Promise.race([
 
 if (!viteStartup.ready) {
   await Promise.allSettled([viteStdout, viteStderr]);
-  runtimeLog("error", `Vite failed to start (exit code: ${viteStartup.code}). See Vite output above.`);
+  runtimeLog(
+    "error",
+    `Vite failed to start (exit code: ${viteStartup.code}). See Vite output above.`
+  );
   shutdown();
   process.exit(viteStartup.code ?? 1);
 }
@@ -164,6 +162,6 @@ shutdown();
 await Promise.allSettled([viteStdout, viteStderr, server.exited, client.exited]);
 runtimeLog(
   "warn",
-  `${exited.process === "server" ? "Backend" : "Vite frontend"} process exited (exit code: ${exited.code}).`,
+  `${exited.process === "server" ? "Backend" : "Vite frontend"} process exited (exit code: ${exited.code}).`
 );
 process.exit(exited.code ?? 0);

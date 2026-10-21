@@ -37,8 +37,7 @@ export function createApp(env: EnvConfig, database: AppDatabase): express.Applic
     const origin = _req.get("Origin");
     const normalizedOrigin = normalizeOrigin(origin);
     const isAdminMutation =
-      _req.path.startsWith("/api/admin/") &&
-      !["GET", "HEAD", "OPTIONS"].includes(_req.method);
+      _req.path.startsWith("/api/admin/") && !["GET", "HEAD", "OPTIONS"].includes(_req.method);
 
     if (
       isAdminMutation &&

@@ -589,8 +589,6 @@ const {
             <pre>{{ formatAccessHeaders(selectedAccess.request_headers) }}</pre>
           </div>
         </dialog>
-
-
       </template>
 
       <AppFooter />

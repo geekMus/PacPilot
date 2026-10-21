@@ -39,6 +39,5 @@ export function adminMonitorRoutes(database: AppDatabase): Router {
     });
   });
 
-
   return router;
 }

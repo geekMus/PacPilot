@@ -36,8 +36,7 @@ function getTimestamp(): string {
     hourCycle: "h23",
   };
 
-  const configuredTimeZone =
-    process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const configuredTimeZone = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   try {
     return new Intl.DateTimeFormat("sv-SE", {
@@ -55,26 +54,13 @@ function getTimestamp(): string {
  * 时间戳不显示时区名称；Docker 中可通过 TZ 指定使用哪个时区。
  * 多行正文逐行保留级别颜色，并与首行正文起始位置对齐。
  */
-export function runtimeLog(
-  level: RuntimeLogLevel,
-  message: string,
-  ...details: unknown[]
-): void {
+export function runtimeLog(level: RuntimeLogLevel, message: string, ...details: unknown[]): void {
   const colored = supportsColor();
   const timestamp = colorize(`[${getTimestamp()}]`, ANSI.timestamp, colored);
-  const messageColor =
-    level === "error"
-      ? ANSI.mutedRose
-      : level === "warn"
-        ? ANSI.mutedAmber
-        : "";
+  const messageColor = level === "error" ? ANSI.mutedRose : level === "warn" ? ANSI.mutedAmber : "";
 
   // 先生成无 ANSI 的正文，再对每一行统一应用日志级别颜色，避免换行后颜色丢失。
-  const formatted = formatWithOptions(
-    { colors: false, depth: 5 },
-    message,
-    ...details,
-  );
+  const formatted = formatWithOptions({ colors: false, depth: 5 }, message, ...details);
   const lines = formatted.split(/\r?\n/);
   const indent = " ".repeat("[YYYY-MM-DD HH:mm:ss] ".length);
   const output = lines

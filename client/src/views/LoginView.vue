@@ -142,12 +142,9 @@ async function onSubmit() {
         </form>
         <p class="login-footnote">{{ t("login.footnote") }}</p>
         <p class="login-footnote">
-          <a
-            :href="PROJECT_LINKS.adminPasswordReset"
-            target="_blank"
-            rel="noopener noreferrer"
-            >{{ t("login.resetHelp") }}</a
-          >
+          <a :href="PROJECT_LINKS.adminPasswordReset" target="_blank" rel="noopener noreferrer">{{
+            t("login.resetHelp")
+          }}</a>
         </p>
       </section>
     </section>

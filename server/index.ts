@@ -31,9 +31,15 @@ async function main(): Promise<void> {
 
   if (initialAdminPassword) {
     // 终端运行日志统一使用英文，避免 Windows 终端代码页不一致导致乱码。
-    runtimeLog("warn", `Initial administrator password (change it in the admin panel): ${initialAdminPassword}`);
+    runtimeLog(
+      "warn",
+      `Initial administrator password (change it in the admin panel): ${initialAdminPassword}`
+    );
   } else if (adminCredentialsMissing) {
-    runtimeLog("error", "Unable to initialize administrator credentials; the admin panel cannot be accessed.");
+    runtimeLog(
+      "error",
+      "Unable to initialize administrator credentials; the admin panel cannot be accessed."
+    );
   }
 
   const app = createApp(env, database);
