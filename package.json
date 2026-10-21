@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "bun run scripts/dev.ts",
     "dev:server": "bun run scripts/dev-server.ts",
-    "dev:client": "bun run scripts/dev-client.ts",
+    "dev:client": "bun run scripts/dev.ts",
     "build": "bun run build:client",
     "build:client": "bun run vite build --config client/vite.config.ts",
     "start": "bun run scripts/start-prod.ts",
