@@ -22,6 +22,7 @@ describe("PAC proxy directive validation", () => {
     ["PROXY 999.1.1.1:8080", "invalid IPv4"],
     ["SOCKS5 [not-ipv6]:1080", "invalid IPv6"],
     ["PROXY proxy.example.com:8080;;DIRECT", "empty directive"],
+    ["PROXY proxy.example.com:8080;;", "repeated trailing separators"],
     ["DIRECT; UNKNOWN proxy.example.com:8080", "unsupported directive"],
   ])("rejects %s (%s)", (value) => {
     expect(validatePacProxyString(value)).not.toBeNull();
