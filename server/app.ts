@@ -27,6 +27,12 @@ export function createApp(env: EnvConfig, database: AppDatabase): express.Applic
       .filter((origin): origin is string => Boolean(origin))
   );
 
+  // Vite's local development server proxies /api to this backend.
+  if (env.runtimeProfile === "development") {
+    allowedOrigins.add("http://localhost:5173");
+    allowedOrigins.add("http://127.0.0.1:5173");
+  }
+
   app.use((_req, res, next) => {
     const origin = _req.get("Origin");
     const normalizedOrigin = normalizeOrigin(origin);
