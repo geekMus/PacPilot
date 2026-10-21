@@ -40,7 +40,7 @@ docker run -d \
 ## GitHub 仓库维护
 
 - [前后端单元测试与覆盖率](../.github/workflows/test.yml)：运行项目检查、前后端测试并汇总覆盖率。
-- [主分支包含性检查](../.github/workflows/main-inclusion.yml)：模拟将最新 `main` 合入待检查分支，只有在无冲突且不会改变现有文件内容时才通过；兼容 Squash Merge，不单纯依赖提交祖先关系。
+- [主分支包含性检查](../.github/workflows/main-inclusion.yml)：要求最新 `main` 是待检查分支的提交祖先，或最新 `main` 的完整文件树已出现在该分支历史中；兼容 Squash Merge 重新生成提交 SHA 的情况。
 - [构建并发布 Docker 镜像](../.github/workflows/publish-image.yml)：在 `main` 上校验版本并发布 ARM64 镜像到 GHCR。
 - [清理废弃工作流运行记录](../.github/workflows/cleanup-obsolete-workflow-runs.yml)：定时清理已删除工作流留下的历史运行记录。
 - [Agent 项目级强制规则](../AGENTS.md)：分支操作、工作流触发限制、发布权限与并发策略，新增或修改工作流前必须阅读。
