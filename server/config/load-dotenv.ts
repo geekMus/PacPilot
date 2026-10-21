@@ -9,7 +9,7 @@ import dotenv from "dotenv";
  * - 未找到 .env：保留进程环境变量，不影响通过系统环境注入配置。
  * - 生产环境 / 容器：不读取 .env，只使用进程环境变量。
  *
- * NODE_ENV 和 GENPAC_ENV 是启动模式标记，由启动命令决定，不从 .env 覆盖。
+ * NODE_ENV 和 PACPILOT_ENV 是启动模式标记，由启动命令决定，不从 .env 覆盖。
  */
 export function loadDevelopmentDotEnv(): boolean {
   const inContainer =
@@ -20,7 +20,7 @@ export function loadDevelopmentDotEnv(): boolean {
 
   if (inContainer) return false;
 
-  const runtimeProfile = (process.env.GENPAC_ENV || "").toLowerCase();
+  const runtimeProfile = (process.env.PACPILOT_ENV || "").toLowerCase();
   const nodeEnv = (process.env.NODE_ENV || "").toLowerCase();
   const explicitDevelopment = runtimeProfile === "development" || runtimeProfile === "dev";
   const explicitProduction = runtimeProfile === "production" || runtimeProfile === "prod";
@@ -39,7 +39,7 @@ export function loadDevelopmentDotEnv(): boolean {
 
   // 未通过启动命令明确指定模式时，也避免仅凭 .env 中的生产标记加载配置。
   if (!explicitDevelopment && !nodeEnv) {
-    const fileProfile = (parsed.GENPAC_ENV || "").toLowerCase();
+    const fileProfile = (parsed.PACPILOT_ENV || "").toLowerCase();
     const fileNodeEnv = (parsed.NODE_ENV || "").toLowerCase();
     if (fileProfile === "production" || fileProfile === "prod" || fileNodeEnv === "production") {
       return false;
@@ -48,7 +48,7 @@ export function loadDevelopmentDotEnv(): boolean {
 
   let loaded = false;
   for (const [name, value] of Object.entries(parsed)) {
-    if (name === "NODE_ENV" || name === "GENPAC_ENV") continue;
+    if (name === "NODE_ENV" || name === "PACPILOT_ENV") continue;
     // 开发环境 .env 明确优先于 shell 中同名的变量。
     process.env[name] = value;
     loaded = true;
