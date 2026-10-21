@@ -1,14 +1,14 @@
 export default {
   app: {
-    name: "genpac-runner",
+    name: "PacPilot",
     zh: "中文",
     en: "English",
-    projectName: "genpac-runner project name",
+    projectName: "PacPilot project name",
     mainNav: "Main navigation",
   },
   serverErrors: {
     versionMismatch:
-      "The backend does not expose the save-and-generate endpoint (frontend/backend version mismatch). Stop old genpac-runner processes, update to the latest code, and restart from the project root. This request did not save or generate; verify settings and retry.",
+      "The backend does not expose the save-and-generate endpoint (frontend/backend version mismatch). Stop old PacPilot processes, update to the latest code, and restart from the project root. This request did not save or generate; verify settings and retry.",
     invalidTimezone: "Invalid time zone. Enter a valid IANA time zone, such as Asia/Shanghai.",
     invalidCron: "Invalid cron expression. Use the 5-field form: minute hour day month weekday.",
     activeWorkflowHistory:
@@ -315,11 +315,11 @@ export default {
       customParseError:
         "The PAC rule summary could not be fully parsed. You can still view the PAC file; a parsing failure does not mean its rules are invalid.",
       other:
-        "This file is not a recognized genpac-runner template, so rule counts cannot be shown reliably. Open the PAC file to inspect its content and behavior.",
+        "This file is not a recognized PacPilot template, so rule counts cannot be shown reliably. Open the PAC file to inspect its content and behavior.",
     },
   },
   footer: {
-    openGithub: "Open genpac-runner on GitHub",
+    openGithub: "Open PacPilot on GitHub",
     githubTitle: "GitHub repository",
     viewUpdate: "View new version details",
     viewVersion: "View current version info",
@@ -667,9 +667,9 @@ export default {
     ruleCheckHints:
       "Warnings include duplicates, possible redundancies, and overlaps between direct and block rules. Overlaps are not changed automatically; block rules take priority over direct rules.",
     defaultMessageTemplate:
-      "genpac-runner notification\nEvent: {{event}}\nStatus: {{status}}\nTime: {{timestamp}}\nDetails: {{message}}",
+      "PacPilot notification\nEvent: {{event}}\nStatus: {{status}}\nTime: {{timestamp}}\nDetails: {{message}}",
     testMessageTemplate:
-      "genpac-runner test notification\nTime: {{timestamp}}\nResult: {{message}}",
+      "PacPilot test notification\nTime: {{timestamp}}\nResult: {{message}}",
     tzShanghai: "China Standard Time (UTC+08:00)",
     tzTaipei: "Taiwan · Taipei",
     tzHongKong: "Hong Kong",
@@ -739,7 +739,7 @@ export default {
     k38: "Click to view request details",
     k39: "Access request details",
     k40: "Close",
-    k61: "Monitor data refreshes every 10 seconds. Request statistics include only traffic received by genpac-runner, not traffic forwarded by the proxy server.",
+    k61: "Monitor data refreshes every 10 seconds. Request statistics include only traffic received by PacPilot, not traffic forwarded by the proxy server.",
     k62: "Loading monitor data",
     k63: "Loading access statistics and access logs.",
     k64: "Unable to load monitor data",
