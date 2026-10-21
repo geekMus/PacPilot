@@ -200,7 +200,7 @@ function FindProxyForURL(url, host) {
 }
 
 /** 远程列表引擎为内置实现，始终可用 */
-export async function probeGenpac(): Promise<EngineProbe> {
+export async function probePacPilot(): Promise<EngineProbe> {
   return {
     available: true,
     engine: "builtin-remote-list",
