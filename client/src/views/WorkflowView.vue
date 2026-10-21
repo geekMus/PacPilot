@@ -9,6 +9,7 @@ import { useWorkflowDashboard } from "../composables/useWorkflowDashboard";
 
 const {
   t,
+  router,
   loading,
   refreshing,
   error,
