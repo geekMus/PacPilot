@@ -7,7 +7,7 @@ import {
   type AdminSession,
   type AppSettings,
   type GenerationLog,
-  type GenpacProbe,
+  type PacPilotProbe,
   type MonitorSummary,
   type PacStatus,
   type WorkflowRun,
@@ -36,7 +36,7 @@ const settings = ref<AppSettings | null>(null);
 const status = ref<PacStatus | null>(null);
 const logs = ref<GenerationLog[]>([]);
 const monitor = ref<MonitorSummary | null>(null);
-const engine = ref<GenpacProbe | null>(null);
+const engine = ref<PacPilotProbe | null>(null);
 const currentWorkflow = ref<WorkflowRun | null>(null);
 
 const modeLabel = computed(() =>
@@ -87,7 +87,7 @@ async function loadOverview(): Promise<void> {
         api.status(),
         api.logsPage(6, 0),
         api.monitorSummary().catch(() => null),
-        api.genpacStatus().catch(() => null),
+        api.pacpilotStatus().catch(() => null),
         api.workflows(6).catch(() => null),
       ]);
     settings.value = nextSettings;
