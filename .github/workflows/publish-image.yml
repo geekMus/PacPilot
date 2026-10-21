@@ -1,16 +1,12 @@
 name: 构建并发布 Docker 镜像
 
 on:
-  # 版本或镜像构建配置变化时检查发布条件；只有版本变化才会发布镜像。
+  # 所有分支提交和 PR 都执行检查；只有 main 分支的 push 可以发布镜像。
   push:
     branches:
-      - main
-    paths:
-      - package.json
-      - Dockerfile
-      - .dockerignore
-      - .github/workflows/publish-image.yml
-  # 其他分支只能手动触发；手动运行仅验证构建，绝不推送镜像。
+      - "**"
+  pull_request:
+  # 手动触发只检查并构建，不会推送镜像。
   workflow_dispatch:
 
 # 同一分支只保留最新一次运行；新提交到来时取消旧的构建/发布任务。
@@ -22,6 +18,27 @@ permissions:
   contents: read
 
 jobs:
+  check:
+    name: 类型检查与构建
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 安装依赖
+        run: bun install
+
+      - name: 完整项目检查
+        run: bun run check
+
   prepare:
     name: 判断镜像发布条件
     runs-on: ubuntu-24.04
@@ -236,7 +253,7 @@ jobs:
 
   publish:
     name: 构建并发布 ARM64 镜像
-    needs: prepare
+    needs: [prepare, check]
     if: needs.prepare.outputs.publish == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
