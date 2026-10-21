@@ -4,9 +4,6 @@ import { api, type Meta, type PacStatus } from "../api/client";
 
 export function useStatusDashboard() {
 
-import { useI18n } from "vue-i18n";
-import { onMounted, ref, computed, watch } from "vue";
-import { api, type Meta, type PacStatus } from "../api/client";
 const { t, locale } = useI18n();
 
 const status = ref<PacStatus | null>(null);
