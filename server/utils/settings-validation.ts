@@ -7,7 +7,7 @@ export function validateSettingsPayload(body: Record<string, unknown>): string |
     return "mode must be 'custom' or 'remote'";
   }
 
-  for (const key of ["pacProxy", "listUrl", "cronSchedule", "timezone", "proxyTestUrl"] as const) {
+  for (const key of ["pacProxy", "listUrl", "cronSchedule", "timezone"] as const) {
     if (body[key] !== undefined && typeof body[key] !== "string") {
       return key + " must be a string";
     }
