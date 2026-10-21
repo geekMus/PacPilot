@@ -11,6 +11,7 @@ import {
   type ProxyProbeRecord,
 } from "../api/client";
 import { useToast } from "../composables/useToast";
+import { testBrowserConnectivity } from "../utils/browser-connectivity";
 
 export function useMonitoringDashboard() {
   const { t, locale } = useI18n();
@@ -410,14 +411,43 @@ export function useMonitoringDashboard() {
     probeError.value = "";
     latestProbe.value = null;
     try {
-      latestProbe.value = await api.testProxies();
-      notify(t("monitor.k8"), "success");
-      await loadProbeHistory();
-      await refreshDashboard(true);
+      const targetUrl = new URL(savedProxyTestUrl.value);
+      const result = await testBrowserConnectivity(targetUrl.toString());
+      const errorCode = result.success ? "" : "monitor.browserProbeFailed";
+      latestProbe.value = {
+        targetUrl: targetUrl.toString(),
+        targetHost: targetUrl.hostname,
+        targetPort: Number(targetUrl.port || "443"),
+        results: [
+          {
+            testedAt: result.testedAt,
+            proxyLabel: t("monitor.browserNetwork"),
+            proxyHost: "browser",
+            proxyPort: 0,
+            targetHost: targetUrl.host,
+            success: result.success,
+            tcpMs: null,
+            handshakeMs: null,
+            targetMs: result.elapsedMs,
+            httpStatus: null,
+            phase: result.success ? "complete" : "BROWSER_FETCH",
+            errorCode,
+            errorDetail: result.errorDetail,
+            isLoopback: false,
+          },
+        ],
+        ignoredDirectEntries: 0,
+        parseWarnings: [],
+        limited: false,
+      };
+      if (result.success) {
+        notify(t("monitor.browserProbeSuccess"), "success");
+      } else {
+        notify(t("monitor.browserProbeFailed", { detail: result.errorDetail }), "error");
+      }
     } catch (caught) {
       probeError.value = errorMessage(caught);
       notify(probeError.value, "error");
-      await loadProbeHistory();
     } finally {
       probing.value = false;
     }
