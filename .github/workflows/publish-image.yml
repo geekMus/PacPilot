@@ -9,6 +9,8 @@ on:
       - main
     paths:
       - package.json
+  # 允许在 main 分支手动触发：执行检查和构建验证，但不推送镜像。
+  workflow_dispatch:
 
 # 同一分支只保留最新一次运行；新提交到来时取消旧的构建/发布任务。
 concurrency:
@@ -21,6 +23,8 @@ permissions:
 jobs:
   version_gate:
     name: 判断项目版本是否变化
+    # workflow_dispatch 没有分支过滤器，因此在 Job 层强制只允许 main 分支继续执行。
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
