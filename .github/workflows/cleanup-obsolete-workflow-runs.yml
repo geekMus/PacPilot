@@ -18,7 +18,7 @@ concurrency:
 jobs:
   discover:
     name: 阶段 1：获取工作流清单
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
       default_branch: ${{ steps.list.outputs.default_branch }}
@@ -83,7 +83,7 @@ jobs:
   scan:
     name: 阶段 2：扫描历史运行
     needs: discover
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     outputs:
       scanned: ${{ steps.scan.outputs.scanned }}
@@ -189,7 +189,7 @@ jobs:
   cleanup:
     name: 阶段 3：清理废弃运行
     needs: scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: 下载待清理记录
@@ -291,7 +291,7 @@ jobs:
     name: 最终总结
     needs: [discover, scan, cleanup]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: 汇总所有阶段结果
         env:
