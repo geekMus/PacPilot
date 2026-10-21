@@ -78,7 +78,7 @@ async function onSubmit() {
 
 <template>
   <main class="page auth-page">
-    <AppHeader brand="genpac-runner" :sub="t('login.secureLogin')">
+    <AppHeader brand="PacPilot" :sub="t('login.secureLogin')">
       <RouterLink to="/">{{ t("nav.publicStatus") }}</RouterLink>
     </AppHeader>
     <section class="auth-layout">
