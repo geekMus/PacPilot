@@ -60,6 +60,17 @@ describe("SQLite schema migration", () => {
     expect(log?.error).toBe("");
     expect(settings).not.toBeNull();
     expect(() => database?.query("SELECT * FROM workflow_stages").all()).not.toThrow();
+
+    // A second startup must leave the migrated database intact and keep its version.
+    database.close();
+    database = createDatabase(tempDir);
+    expect(
+      (database.query("PRAGMA user_version").get() as { user_version: number }).user_version
+    ).toBe(2);
+    expect(
+      (database.query("SELECT COUNT(*) AS count FROM generation_log").get() as { count: number })
+        .count
+    ).toBe(1);
   });
 
   test("rejects a future schema version instead of silently downgrading it", () => {
