@@ -8,7 +8,7 @@ import type { EnvConfig } from "./config/env";
 import { publicRoutes } from "./routes/public";
 import { adminRoutes } from "./routes/admin";
 import { requestMonitoringMiddleware } from "./services/request-monitor";
-import { isTrustedOrigin } from "./utils/origin-policy";
+import { isTrustedOrigin, normalizeOrigin } from "./utils/origin-policy";
 
 export function createApp(env: EnvConfig, database: AppDatabase): express.Application {
   const app = express();
@@ -23,12 +23,13 @@ export function createApp(env: EnvConfig, database: AppDatabase): express.Applic
   const allowedOrigins = new Set(
     (process.env.CORS_ALLOWED_ORIGINS || "")
       .split(",")
-      .map((origin) => origin.trim())
-      .filter(Boolean)
+      .map((origin) => normalizeOrigin(origin.trim()))
+      .filter((origin): origin is string => Boolean(origin))
   );
 
   app.use((_req, res, next) => {
     const origin = _req.get("Origin");
+    const normalizedOrigin = normalizeOrigin(origin);
     const isAdminMutation =
       _req.path.startsWith("/api/admin/") &&
       !["GET", "HEAD", "OPTIONS"].includes(_req.method);
@@ -41,10 +42,10 @@ export function createApp(env: EnvConfig, database: AppDatabase): express.Applic
       return;
     }
 
-    const corsAllowed = Boolean(origin && allowedOrigins.has(origin));
+    const corsAllowed = Boolean(normalizedOrigin && allowedOrigins.has(normalizedOrigin));
 
     if (corsAllowed) {
-      res.setHeader("Access-Control-Allow-Origin", origin!);
+      res.setHeader("Access-Control-Allow-Origin", normalizedOrigin!);
       res.setHeader("Access-Control-Allow-Credentials", "true");
       res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS");
       const requestedHeaders = _req.get("Access-Control-Request-Headers");
