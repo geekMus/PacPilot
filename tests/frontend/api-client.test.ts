@@ -35,7 +35,7 @@ describe("frontend API client request contract", () => {
         status: 400,
         statusText: "Bad Request",
         headers: { "Content-Type": "application/json" },
-      })) as typeof fetch;
+      })) as unknown as typeof fetch;
 
     try {
       await api.saveSettings({} as never);
@@ -52,7 +52,7 @@ describe("frontend API client request contract", () => {
 
   test("falls back to HTTP status text for non-JSON error responses", async () => {
     globalThis.fetch = (async () =>
-      new Response("upstream failure", { status: 502, statusText: "Bad Gateway" })) as typeof fetch;
+      new Response("upstream failure", { status: 502, statusText: "Bad Gateway" })) as unknown as typeof fetch;
 
     await expect(api.status()).rejects.toMatchObject({
       name: "ApiError",
@@ -68,7 +68,7 @@ describe("frontend API client request contract", () => {
         status: 404,
         statusText: "Not Found",
         headers: { "Content-Type": "application/json" },
-      })) as typeof fetch;
+      })) as unknown as typeof fetch;
 
     await expect(api.saveAndGenerate({} as never)).rejects.toMatchObject({
       name: "ApiError",
