@@ -96,9 +96,11 @@ const exited = await Promise.race([
   client.exited.then((code) => ({ process: "client" as const, code })),
 ]);
 
-await Promise.allSettled([viteStdout, viteStderr]);
+server.kill();
+client.kill();
+await Promise.allSettled([viteStdout, viteStderr, server.exited, client.exited]);
 runtimeLog(
   "warn",
   `${exited.process === "server" ? "后端服务" : "Vite 前端"}进程已退出，退出码：${exited.code}`,
 );
-shutdown();
+process.exit(exited.code ?? 0);
