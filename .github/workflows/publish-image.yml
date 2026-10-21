@@ -70,12 +70,29 @@ jobs:
             exit 1
           fi
 
-          REGISTRY_TOKEN="$(curl -fsSL 'https://ghcr.io/token?scope=repository:geekmus/pacpilot:pull&service=ghcr.io' | jq -er '.token // .access_token')"
+          # GHCR 的 token endpoint 即使在仓库尚无镜像时也应返回 token。
+          # 将认证失败与 latest 不存在区分开，避免把权限/网络问题误判为首次发布。
+          TOKEN_RESPONSE="$(curl --retry 2 --retry-delay 1 --connect-timeout 10 --max-time 30 -fsS \
+            'https://ghcr.io/token?scope=repository:geekmus/pacpilot:pull&service=ghcr.io')" || {
+            echo "::error::无法从 GHCR 获取读取令牌；请检查网络及镜像仓库可访问性。"
+            exit 1
+          }
+          REGISTRY_TOKEN="$(jq -r '.token // .access_token // empty' <<< "$TOKEN_RESPONSE")"
+          if [[ -z "$REGISTRY_TOKEN" ]]; then
+            echo "::error::GHCR token endpoint 未返回有效 token，响应结构无法识别。"
+            exit 1
+          fi
+
           MANIFEST_ACCEPT="application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json"
-          MANIFEST_STATUS="$(curl -sS -o "$RUNNER_TEMP/latest-manifest.json" -w '%{http_code}' \
+          MANIFEST_STATUS="$(curl --retry 2 --retry-delay 1 --connect-timeout 10 --max-time 30 -sS \
+            -o "$RUNNER_TEMP/latest-manifest.json" -w '%{http_code}' \
             -H "Authorization: Bearer $REGISTRY_TOKEN" \
             -H "Accept: $MANIFEST_ACCEPT" \
-            'https://ghcr.io/v2/geekmus/pacpilot/manifests/latest')"
+            'https://ghcr.io/v2/geekmus/pacpilot/manifests/latest')" || {
+            echo "::error::请求 GHCR latest 清单时网络连接失败。"
+            exit 1
+          }
+          echo "GHCR latest manifest HTTP 状态码：$MANIFEST_STATUS"
 
           PREVIOUS_VERSION=""
           if [[ "$MANIFEST_STATUS" == "200" ]]; then
