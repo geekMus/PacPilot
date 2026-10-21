@@ -47,7 +47,7 @@ describe("remote rule-list parsing and PAC generation", () => {
     globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
       calls++;
       requestHeaders = new Headers(init?.headers);
-      return new Response("||ads.example^\\n||cdn.example^", {
+      return new Response("||ads.example^\n||cdn.example^", {
         status: 200,
         headers: { "Content-Type": "text/plain; charset=utf-8", "X-Source": "test" },
       });
@@ -61,7 +61,7 @@ describe("remote rule-list parsing and PAC generation", () => {
       status: 200,
       attempts: 1,
       content_type: "text/plain; charset=utf-8",
-      response_bytes: Buffer.byteLength("||ads.example^\\n||cdn.example^", "utf8"),
+      response_bytes: Buffer.byteLength("||ads.example^\n||cdn.example^", "utf8"),
     });
     expect(requestHeaders?.get("User-Agent")).toBe("genpac-runner/2 (bun)");
     expect(parsed.fetch?.response_headers["x-source"]).toBe("test");
