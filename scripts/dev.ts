@@ -91,7 +91,7 @@ const shutdown = () => {
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
-const [serverExitCode, clientExitCode] = await Promise.race([
+const exited = await Promise.race([
   server.exited.then((code) => ({ process: "server" as const, code })),
   client.exited.then((code) => ({ process: "client" as const, code })),
 ]);
@@ -99,6 +99,6 @@ const [serverExitCode, clientExitCode] = await Promise.race([
 await Promise.allSettled([viteStdout, viteStderr]);
 runtimeLog(
   "warn",
-  `${serverExitCode.process === "server" ? "后端服务" : "Vite 前端"}进程已退出，退出码：${serverExitCode.code ?? clientExitCode}`,
+  `${exited.process === "server" ? "后端服务" : "Vite 前端"}进程已退出，退出码：${exited.code}`,
 );
 shutdown();
