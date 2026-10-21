@@ -25,7 +25,8 @@ describe("server-side webhook configuration validation", () => {
 
   test.each([
     ["{", "invalid body JSON"],
-    ["[]", "body must be object or array depending on validation"],
+    ["null", "null body is not an object"],
+    ["true", "primitive body is invalid"],
   ])("validates custom body JSON (%s)", (body) => {
     const errors = validateWebhookConfig(custom({ body }) as ReturnType<typeof createDefaultWebhookConfig>);
     expect(errors.length).toBeGreaterThan(0);
