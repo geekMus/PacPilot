@@ -4,18 +4,18 @@ import path from "path";
 
 export default defineConfig(({ mode }) => {
   // 读取项目根目录 .env，与后端 PORT 对齐
-  const rootEnv = loadEnv(mode, path.resolve(__dirname, ".."), "");
+  const rootEnv = loadEnv(mode, path.resolve(import.meta.dirname, ".."), "");
   const apiPort = rootEnv.PORT || process.env.PORT || "17321";
   const apiTarget = `http://127.0.0.1:${apiPort}`;
 
   return {
-    root: path.resolve(__dirname),
+    root: path.resolve(import.meta.dirname),
     plugins: [vue()],
     base: "/",
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "src"),
-        "@shared": path.resolve(__dirname, "../shared"),
+        "@": path.resolve(import.meta.dirname, "src"),
+        "@shared": path.resolve(import.meta.dirname, "../shared"),
       },
     },
     server: {
@@ -27,13 +27,20 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      outDir: path.resolve(__dirname, "../dist/client"),
+      outDir: path.resolve(import.meta.dirname, "../dist/client"),
       emptyOutDir: true,
-      rollupOptions: {
+      rolldownOptions: {
         output: {
-          manualChunks(id) {
-            if (id.includes("node_modules/zrender/")) return "zrender";
-            if (id.includes("node_modules/echarts/")) return "echarts";
+          codeSplitting: {
+            groups: [
+              {
+                name: "chart-vendor",
+                test: /node_modules\/(?:echarts|zrender)\//,
+                minSize: 100_000,
+                maxSize: 250_000,
+                priority: 10,
+              },
+            ],
           },
         },
       },
