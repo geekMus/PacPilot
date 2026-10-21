@@ -175,8 +175,6 @@ export interface MonitorSummary {
   }>;
 }
 
-}
-
 export class ApiError extends Error {
   constructor(
     message: string,
