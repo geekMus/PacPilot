@@ -8,23 +8,7 @@ import {
 } from "../db/sqlite";
 import type { AppSettings, GenerationMode } from "../db/settings";
 import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../db/settings";
-import {
-  checkLoginRateLimit,
-  clearLoginFailures,
-  clearSessionCookie,
-  createSessionToken,
-  isLoggedIn,
-  recordLoginFailure,
-  requireAdmin,
-  setSessionCookie,
-} from "../middleware/auth";
-import {
-  AdminPasswordError,
-  changeAdminPassword,
-  getAdminSessionSecret,
-  isAdminCredentialsMissing,
-  verifyAdminPassword,
-} from "../services/admin-credentials";
+import { requireAdmin } from "../middleware/auth";
 import { probeGenpac, validatePacProxyString } from "../services/pac-generator";
 import { startPacWorkflow } from "../services/workflow";
 import { reschedule } from "../services/scheduler";
@@ -37,6 +21,7 @@ import { validateSettingsPayload } from "../utils/settings-validation";
 import { adminWorkflowRoutes } from "./admin-workflows";
 import { adminMonitorRoutes } from "./admin-monitor";
 import { adminSystemRoutes } from "./admin-system";
+import { adminAuthRoutes } from "./admin-auth";
 
 function parseList(raw: unknown): string[] {
   if (Array.isArray(raw))
@@ -138,54 +123,7 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase): Router {
   router.use(adminWorkflowRoutes(database));
   router.use(adminMonitorRoutes(database));
   router.use(adminSystemRoutes(env, database));
-  router.get("/api/admin/session", (req, res) =>
-    res.json({
-      loggedIn: isLoggedIn(req, database),
-      adminCredentialsMissing: isAdminCredentialsMissing(database),
-    })
-  );
-  router.post("/api/admin/login", (req, res) => {
-    if (isAdminCredentialsMissing(database)) {
-      res.status(428).json({ error: "setup_required" });
-      return;
-    }
-    const rateError = checkLoginRateLimit(req);
-    if (rateError) {
-      res.status(429).json({ error: rateError });
-      return;
-    }
-    const pw = String(req.body?.password ?? "");
-    if (!verifyAdminPassword(database, pw)) {
-      recordLoginFailure(req);
-      res.status(401).json({ error: "Invalid password" });
-      return;
-    }
-    clearLoginFailures(req);
-    const token = createSessionToken(getAdminSessionSecret(database));
-    const secure = req.secure || req.headers["x-forwarded-proto"] === "https";
-    setSessionCookie(res, token, secure);
-    res.json({ ok: true });
-  });
-  router.post("/api/admin/logout", (req, res) => {
-    clearSessionCookie(res);
-    res.json({ ok: true });
-  });
-  router.post("/api/admin/password", requireAdmin(database), (req, res) => {
-    try {
-      changeAdminPassword(
-        database,
-        String(req.body?.currentPassword ?? ""),
-        String(req.body?.newPassword ?? "")
-      );
-      clearSessionCookie(res);
-      res.json({ ok: true });
-    } catch (e) {
-      res.status(400).json({
-        error: e instanceof Error ? e.message : String(e),
-        ...(e instanceof AdminPasswordError ? { errorCode: e.code } : {}),
-      });
-    }
-  });
+  router.use(adminAuthRoutes(database));
   router.get("/api/admin/settings", requireAdmin(database), (_req, res) =>
     res.json(getSettings(database))
   );
