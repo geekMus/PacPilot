@@ -21,7 +21,7 @@ async function main(): Promise<void> {
   markInterruptedWorkflows(database);
   const cleanupLogs = (): void => {
     const deleted = cleanupOperationalLogs(database);
-    if (deleted.generationLogs + deleted.accessEvents + deleted.proxyProbeRuns > 0) {
+    if (deleted.generationLogs + deleted.accessEvents > 0) {
       database.run("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
     }
   };
