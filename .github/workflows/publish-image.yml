@@ -146,6 +146,30 @@ jobs:
           echo "GHCR latest 版本：${PREVIOUS_VERSION:-（尚无 latest 镜像）}"
           echo "发布判断：$REASON"
 
+      - name: 汇总发布条件检查
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          VERSION: ${{ steps.version.outputs.version }}
+          PREVIOUS_VERSION: ${{ steps.version.outputs.previous_version }}
+          PUBLISH: ${{ steps.version.outputs.publish }}
+          REASON: ${{ steps.version.outputs.reason }}
+        shell: bash
+        run: |
+          {
+            echo "## 阶段 1：发布条件检查"
+            echo
+            echo "- **当前版本：** ${VERSION:-未能读取}"
+            echo "- **GHCR latest：** ${PREVIOUS_VERSION:-尚无镜像或未能读取}"
+            if [[ "$PUBLISH" == "true" ]]; then
+              echo "- **发布决策：** 允许进入后续检查与发布阶段"
+            elif [[ "$PUBLISH" == "false" ]]; then
+              echo "- **发布决策：** 跳过重复发布"
+            else
+              echo "- **发布决策：** 未能完成判断，请查看上方日志"
+            fi
+            echo "- **说明：** ${REASON:-阶段未产生判断结果，详见日志}"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   check:
     name: 类型检查与构建
@@ -170,6 +194,23 @@ jobs:
       - name: 完整项目检查
         run: bun run check
 
+      - name: 汇总类型检查与构建
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        shell: bash
+        run: |
+          {
+            echo "## 阶段 2：类型检查与构建"
+            echo
+            echo "- **目标版本：** ${VERSION:-未能读取}"
+            if [[ "$JOB_STATUS" == "success" ]]; then
+              echo "- **检查结果：** `bun run check` 已通过，可以进入镜像发布阶段"
+            else
+              echo "- **检查结果：** 未通过或被中断，请查看本阶段日志；镜像发布不会继续"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
   publish:
     name: 构建并发布 ARM64 镜像
@@ -226,4 +267,23 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: 汇总 ARM64 镜像发布
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        shell: bash
+        run: |
+          {
+            echo "## 阶段 3：构建并发布 ARM64 镜像"
+            echo
+            echo "- **架构：** linux/arm64"
+            echo "- **版本标签：** ${IMAGE_NAME}:${VERSION:-未知版本}"
+            echo "- **latest 标签：** ${IMAGE_NAME}:latest"
+            if [[ "$JOB_STATUS" == "success" ]]; then
+              echo "- **发布结果：** 镜像已推送至 GHCR"
+            else
+              echo "- **发布结果：** 发布未成功或被中断，请查看本阶段日志"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
