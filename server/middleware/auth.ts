@@ -3,7 +3,7 @@ import crypto from "crypto";
 import type { AppDatabase } from "../db/sqlite";
 import { getAdminSessionSecret, isAdminCredentialsMissing } from "../services/admin-credentials";
 
-const COOKIE_NAME = "genpac_admin_session";
+const COOKIE_NAME = "pacpilot_admin_session";
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** Sliding window login throttle (per client address). */
