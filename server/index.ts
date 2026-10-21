@@ -13,7 +13,7 @@ import { runtimeLog } from "./utils/runtime-log";
 
 async function main(): Promise<void> {
   const env = loadEnv();
-  process.env.GENPAC_RUNTIME_PROFILE = env.runtimeProfile;
+  process.env.PACPILOT_RUNTIME_PROFILE = env.runtimeProfile;
   const database = getDb(env.dataDir);
   const firstStart = isAdminCredentialsMissing(database);
   const initialAdminPassword = createInitialAdminCredentials(database);
