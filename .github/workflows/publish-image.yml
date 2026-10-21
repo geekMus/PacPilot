@@ -255,7 +255,7 @@ jobs:
             echo
             echo "- **目标版本：** ${VERSION:-未能读取}"
             if [[ "$JOB_STATUS" == "success" ]]; then
-              echo "- **检查结果：** `bun run check` 已通过，可以进入镜像发布阶段"
+              echo '- **检查结果：** `bun run check` 已通过，可以进入镜像发布阶段'
             else
               echo "- **检查结果：** 未通过或被中断，请查看本阶段日志；镜像发布不会继续"
             fi
@@ -305,6 +305,7 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
 
       - name: 构建并发布 linux/arm64 镜像
+        id: build_image
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -320,6 +321,7 @@ jobs:
         if: always()
         env:
           JOB_STATUS: ${{ job.status }}
+          BUILD_OUTCOME: ${{ steps.build_image.outcome }}
           VERSION: ${{ needs.prepare.outputs.version }}
         shell: bash
         run: |
@@ -330,8 +332,10 @@ jobs:
             echo "- **版本标签：** ${IMAGE_NAME}:${VERSION:-未知版本}"
             echo "- **latest 标签：** ${IMAGE_NAME}:latest"
             if [[ "$JOB_STATUS" == "success" ]]; then
-              echo "- **发布结果：** 镜像已推送至 GHCR"
+              echo "- **发布结果：** 镜像已成功推送至 GHCR"
             else
-              echo "- **发布结果：** 发布未成功或被中断，请查看本阶段日志"
+              echo "- **发布结果：** 未成功发布（工作阶段状态：${JOB_STATUS}）"
+              echo "- **构建步骤：** ${BUILD_OUTCOME:-未执行}"
+              echo "- **排查建议：** 打开“构建并发布 linux/arm64 镜像”步骤日志，查看首个错误；本次不应视为已更新 latest"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
