@@ -1,4 +1,5 @@
 import { loadDevelopmentDotEnv } from "../server/config/load-dotenv";
+import { runtimeLog } from "../server/utils/runtime-log";
 
 /**
  * 开发启动器：同时跑后端（Bun --hot）与 Vite 前端。
@@ -21,8 +22,9 @@ const env: Record<string, string | undefined> = {
   HOST: process.env.HOST || "0.0.0.0",
 };
 
-console.log(
-  `[开发环境] 已启动开发模式；数据目录：${env.DATA_DIR}；后端端口：${env.PORT}；前端地址：http://localhost:5173`
+runtimeLog(
+  "info",
+  `已启动开发模式；数据目录：${env.DATA_DIR}；后端端口：${env.PORT}；前端地址：http://localhost:5173`
 );
 
 // 子进程输出原样转发；服务端日志属于服务日志，不在开发启动器中改写。
