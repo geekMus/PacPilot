@@ -1,12 +1,5 @@
 import { t, type AppLocale } from "../../shared/i18n";
-import type {
-  AppSettings,
-  DingTalkMessageType,
-  GenerationMode,
-  WebhookConfig,
-  WebhookMethod,
-  WebhookProvider,
-} from "../../shared/contracts";
+import type { AppSettings, GenerationMode, WebhookConfig } from "../../shared/contracts";
 export type {
   AppSettings,
   DingTalkMessageType,
