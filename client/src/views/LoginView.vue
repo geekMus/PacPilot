@@ -142,7 +142,7 @@ async function onSubmit() {
         <p class="login-footnote">{{ t("login.footnote") }}</p>
         <p class="login-footnote">
           <a
-            href="https://github.com/geekMus/genpac-runner#重置管理员密码"
+            href="https://github.com/geekMus/genpac-runner#管理员密码"
             target="_blank"
             rel="noopener noreferrer"
             >{{ t("login.resetHelp") }}</a
