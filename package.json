@@ -1,6 +1,6 @@
 {
   "name": "PacPilot",
-  "version": "2026.10.21-r7",
+  "version": "2026.10.22",
   "private": true,
   "description": "带 Web 管理后台的 PAC 生成与管理服务，支持自定义规则、远程域名列表、工作流、定时更新和 Webhook 通知",
   "type": "module",
