@@ -32,7 +32,7 @@ docker run -d \
 
 ## Docker Compose
 
-仓库提供 [docker-compose.yml](../docker-compose.yml)。默认配置使用预构建镜像，但不会发布宿主机端口，也没有启用数据卷。请按需在 `genpac` 服务下启用端口映射和持久化挂载，再启动：
+仓库提供 [docker-compose.yml](../docker-compose.yml)。默认配置使用预构建镜像，但不会发布宿主机端口，也没有启用数据卷。请按需在 `pacpilot` 服务下启用端口映射和持久化挂载，再启动：
 
 ```bash
 docker compose pull
