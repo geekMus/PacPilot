@@ -496,7 +496,7 @@ export default {
     title: "Configuration",
     subtitle: "Manage PAC generation mode, rule lists, scheduled tasks, and Webhook notifications.",
     loading: "Loading configuration",
-    loadingDesc: "Loading configuration and generation history."
+    loadingDesc: "Loading configuration and generation history.",
     saveSuccess: "Configuration saved",
     saveAndGenerate: "Save and generate PAC",
     savingAndGenerating: "Saving and generating PAC",
@@ -721,7 +721,7 @@ export default {
     k22: "Target HTTP request",
     k23: "Complete",
     k24: "Network monitor",
-    k25: "Review access trends, service request statistics, and access logs."
+    k25: "Review access trends, service request statistics, and access logs.",
     refreshTitle: "Refresh monitor data",
     refreshingTitle: "Refreshing monitor data…",
     k27: "Refreshing…",
@@ -741,7 +741,7 @@ export default {
     k40: "Close",
     k61: "Monitor data refreshes every 10 seconds. Request statistics include only traffic received by genpac-runner, not traffic forwarded by the proxy server.",
     k62: "Loading monitor data",
-    k63: "Loading access statistics and access logs."
+    k63: "Loading access statistics and access logs.",
     k64: "Unable to load monitor data",
     k65: "Retry",
     k66: "PAC file service",
