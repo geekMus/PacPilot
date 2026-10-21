@@ -1,0 +1,41 @@
+name: 主从检查
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: main-inclusion-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  main-inclusion:
+    name: 主分支包含性检查
+    runs-on: ubuntu-24.04
+    steps:
+      - name: 检出当前分支
+        uses: actions/checkout@v7
+        with:
+          # PR 必须检查源分支本身，不能检查 GitHub 自动生成的合并提交。
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: 获取主分支最新提交
+        run: git fetch origin main:refs/remotes/origin/main
+
+      - name: 确认当前分支已包含主分支
+        shell: bash
+        run: |
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "当前分支已包含 main 的全部提交。"
+          else
+            echo "::error::当前分支尚未包含 main 的最新提交。请先将 main 合并或 rebase 到当前分支，再重新提交。"
+            exit 1
+          fi
