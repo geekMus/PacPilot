@@ -133,7 +133,6 @@ async function clearAllLogs() {
       t("systemPage.clearedLogsKeepWorkflow", {
         g: r.deleted.generationLogs,
         a: r.deleted.accessEvents,
-        p: r.deleted.proxyProbeRuns,
       }),
       "success"
     );
