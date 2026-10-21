@@ -337,7 +337,6 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
     appendGenerationLog(database, true, settings.mode, resultCode, resultData);
     const webhook = await notifySuccess(settings);
     if (webhook) detail = { ...detail, webhook };
-    runtimeLog("log", `PAC ${message}；文件：${pacPath}`);
     return {
       success: true,
       mode: settings.mode,
