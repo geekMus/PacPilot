@@ -132,7 +132,7 @@ bun run scripts/reset-admin-password.ts --production --data-dir "C:\genpac\data"
 
 ## 监控说明
 
-监控页面每 **10 秒**自动刷新数据。请求统计只包括 genpac-runner 自身接收的请求，不代表用户经代理访问的网站，也不代表代理服务器实际转发的流量。代理连通性测试由运行 genpac-runner 的主机或容器发起，不等同于客户端设备上的实际代理测试。
+监控页面每 **10 秒**自动刷新数据。请求统计只包括 genpac-runner 自身接收的请求，不代表用户经代理访问的网站，也不代表代理服务器实际转发的流量。
 
 ## 开发检查
 
@@ -140,10 +140,7 @@ bun run scripts/reset-admin-password.ts --production --data-dir "C:\genpac\data"
 # 根目录脚本、共享代码、服务端与客户端 TypeScript 检查
 bun run typecheck
 
-# 自动化测试
-bun run test
-
-# 完整项目检查：类型检查、测试、客户端生产构建、静态翻译检查
+# 完整项目检查：类型检查、客户端生产构建、静态翻译检查
 bun run check
 
 # 仅检查翻译目录与客户端静态翻译 key
