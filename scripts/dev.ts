@@ -1,8 +1,9 @@
+import path from "node:path";
 import { loadDevelopmentDotEnv } from "../server/config/load-dotenv";
 import { runtimeLog } from "../server/utils/runtime-log";
 
 /**
- * 开发启动器：先启动并确认后端可用，再启动 Vite，避免前端启动阶段的 API 代理请求被拒绝。
+ * 开发启动器：先确认后端可用，再启动 Vite，避免前端启动阶段的 API 代理请求被拒绝。
  * Vite 输出直接透传，保留其原始颜色和格式，不包装进项目日志。
  */
 process.env.NODE_ENV = "development";
@@ -20,7 +21,7 @@ const env: Record<string, string | undefined> = {
 
 const apiPort = env.PORT || "17321";
 const apiHealthUrl = `http://127.0.0.1:${apiPort}/api/meta`;
-const server = Bun.spawn(["bun", "--hot", "server/index.ts"], {
+const server = Bun.spawn([process.execPath, "--hot", "server/index.ts"], {
   stdout: "inherit",
   stderr: "inherit",
   stdin: "inherit",
@@ -78,18 +79,21 @@ if (backendReady.type === "exit" || !backendReady.ready) {
       "error",
       `\u7b49\u5f85\u540e\u7aef\u542f\u52a8\u8d85\u65f6\uff08\u7b49\u5f85\u5730\u5740\uff1a${apiHealthUrl}\uff09\u3002\u8bf7\u68c0\u67e5\u4e0a\u65b9\u540e\u7aef\u9519\u8bef\u3002`,
     );
-    process.exitCode = 1;
+    shutdown();
+    await server.exited;
+    process.exit(1);
   }
   shutdown();
   await server.exited;
   process.exit();
 }
 
+// 直接调用本地 Vite CLI，避免 Windows/Git Bash 下 bunx 包装进程提前退出。
+const viteCli = path.resolve("node_modules/vite/bin/vite.js");
 client = Bun.spawn(
   [
-    "bunx",
-    "--bun",
-    "vite",
+    process.execPath,
+    viteCli,
     "--config",
     "client/vite.config.ts",
     "--clearScreen",
@@ -124,12 +128,8 @@ async function forwardViteOutput(
       const { done, value } = await reader.read();
       if (done) break;
 
-      // 直接透传原始字节，保留 Vite 自己的 ANSI 颜色、进度和格式。
-      if (target === "stderr") {
-        process.stderr.write(value);
-      } else {
-        process.stdout.write(value);
-      }
+      if (target === "stderr") process.stderr.write(value);
+      else process.stdout.write(value);
 
       if (!hasViteReady && target === "stdout") {
         pending += decoder.decode(value, { stream: true });
@@ -159,7 +159,7 @@ if (!viteStartup.ready) {
   await Promise.allSettled([viteStdout, viteStderr]);
   runtimeLog(
     "error",
-    `\u524d\u7aef Vite \u5728\u5c31\u7eea\u524d\u9000\u51fa\uff0c\u9000\u51fa\u7801\uff1a${viteStartup.code}`,
+    `\u524d\u7aef Vite \u542f\u52a8\u5931\u8d25\uff0c\u9000\u51fa\u7801\uff1a${viteStartup.code}\u3002\u8bf7\u68c0\u67e5 Vite \u7684\u9519\u8bef\u8f93\u51fa\u3002`,
   );
   shutdown();
   process.exit(viteStartup.code ?? 1);
