@@ -792,22 +792,11 @@ const {
               </div>
               <div class="probe-metrics">
                 <div>
-                  <span>{{ t("monitor.k156") }}</span
-                  ><strong>{{ formatDuration(result.tcpMs) }}</strong>
-                </div>
-                <div>
-                  <span>{{ t("monitor.k157") }}</span
-                  ><strong>{{ formatDuration(result.handshakeMs) }}</strong>
-                </div>
-                <div>
-                  <span>{{ t("monitor.k158") }}</span
+                  <span>{{ t("monitor.browserTiming") }}</span
                   ><strong>{{ formatDuration(result.targetMs) }}</strong>
                 </div>
-                <div>
-                  <span>{{ t("monitor.k159") }}</span
-                  ><strong>{{ probePhaseLabel(result.phase) }}</strong>
-                </div>
               </div>
+              <p class="panel-footnote">{{ t("monitor.browserProbeNote") }}</p>
               <p v-if="result.httpStatus" class="probe-detail">
                 {{ t("monitor.targetStatusCode", { code: result.httpStatus }) }}
               </p>
