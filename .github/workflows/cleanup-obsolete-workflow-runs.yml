@@ -123,14 +123,15 @@ jobs:
             PATH_NAME="${RAW_PATH%%@*}"
             if [[ "$PATH_NAME" == "__MISSING__" || "$PATH_NAME" != .github/workflows/* ]]; then
               UNKNOWN=$((UNKNOWN + 1))
-              echo "::warning::无法识别运行记录 $ID 的工作流路径，跳过"
+              PATH_NAME="__UNKNOWN__"
+              echo "::warning::运行记录 $ID 的工作流路径无法识别，将按废弃记录处理"
+            elif grep -Fqx -- "$PATH_NAME" "$FILES"; then
+              # 当前默认分支仍存在的工作流：保留其运行记录。
               continue
             fi
 
-            if grep -Fqx -- "$PATH_NAME" "$FILES"; then
-              continue
-            fi
-
+            # 删除所有已完成且不属于当前工作流清单的运行，包括无法识别的记录。
+            # 未完成中的运行不会删除，以免中断正在执行的任务。
             if [[ "$STATUS" == "completed" ]]; then
               printf '%s\t%s\t%s\n' "$ID" "$PATH_NAME" "$STATUS" >> "$CANDIDATES"
             else
@@ -172,7 +173,7 @@ jobs:
             echo "- **结果：** $JOB_STATUS"
             echo "- **已扫描：** ${SCANNED:-未完成} 条"
             echo "- **待清理：** ${CANDIDATES:-未完成} 条"
-            echo "- **无法识别并跳过：** ${UNKNOWN:-未完成} 条"
+            echo "- **无法识别并纳入清理：** ${UNKNOWN:-未完成} 条"
             if [[ "$JOB_STATUS" != "success" ]]; then
               echo "- **后续处理：** 阶段 3 不执行。"
             elif [[ "${CANDIDATES:-}" == "0" ]]; then
@@ -230,7 +231,7 @@ jobs:
             TOTAL=$((TOTAL + 1))
 
             # 再次校验候选数据格式，任何异常都不尝试删除。
-            if [[ ! "$ID" =~ ^[0-9]+$ || "$PATH_NAME" != .github/workflows/* || "$STATUS" != "completed" ]]; then
+            if [[ ! "$ID" =~ ^[0-9]+$ || -z "$PATH_NAME" || "$STATUS" != "completed" ]]; then
               FAILED=$((FAILED + 1))
               echo "::warning::候选记录格式异常，跳过：$ID"
               continue
@@ -280,6 +281,6 @@ jobs:
             elif [[ "${CANDIDATE_COUNT:-}" == "0" ]]; then
               echo "- **处理方式：** 无候选记录，正常跳过删除。"
             else
-              echo "- 删除运行记录会同时移除关联日志和 artifacts。"
+              echo "- 删除运行记录会同时移除关联日志和 artifacts。无法识别的已完成运行也会删除；运行中的记录始终保留。"
             fi
           } >> "$GITHUB_STEP_SUMMARY"

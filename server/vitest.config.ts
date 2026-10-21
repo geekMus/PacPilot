@@ -10,7 +10,7 @@ export default defineConfig({
     restoreMocks: true,
     coverage: {
       provider: "v8",
-      reporter: ["text", "lcov", "html"],
+      reporter: ["text", "json-summary", "lcov", "html"],
       reportsDirectory: "coverage/server",
       include: [
         "server/utils/settings-validation.ts",

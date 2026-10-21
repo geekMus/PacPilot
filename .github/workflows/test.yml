@@ -34,9 +34,12 @@ jobs:
         run: bun install
 
       - name: 运行前后端单测并检查覆盖率
+        env:
+          NO_COLOR: "1"
+          FORCE_COLOR: "0"
         run: bun run test
 
-      - name: 汇总测试结果
+      - name: 汇总测试结果与覆盖率
         if: always()
         env:
           JOB_STATUS: ${{ job.status }}
@@ -51,4 +54,28 @@ jobs:
             else
               echo "- **结果：** 失败或被取消，请查看测试日志"
             fi
+            echo
+            echo "### 覆盖率汇总"
+            echo
+            echo "| 范围 | 语句覆盖率 | 分支覆盖率 | 函数覆盖率 | 行覆盖率 |"
+            echo "|---|---:|---:|---:|---:|"
+            node <<'NODE'
+          const fs = require("node:fs");
+          const reports = [
+            ["后端", "coverage/server/coverage-summary.json"],
+            ["前端", "coverage/client/coverage-summary.json"],
+          ];
+          let found = 0;
+          for (const [label, path] of reports) {
+            if (!fs.existsSync(path)) {
+              console.log(`| ${label} | 未生成 | 未生成 | 未生成 | 未生成 |`);
+              continue;
+            }
+            const total = JSON.parse(fs.readFileSync(path, "utf8")).total;
+            const pct = key => `${Number(total[key]?.pct ?? 0).toFixed(2)}%`;
+            console.log(`| ${label} | ${pct("statements")} | ${pct("branches")} | ${pct("functions")} | ${pct("lines")} |`);
+            found++;
+          }
+          if (!found) console.log("| — | 未生成 | 未生成 | 未生成 | 未生成 |");
+          NODE
           } >> "$GITHUB_STEP_SUMMARY"
