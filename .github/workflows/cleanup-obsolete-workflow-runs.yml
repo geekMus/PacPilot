@@ -192,7 +192,7 @@ jobs:
       processed: ${{ steps.delete.outputs.processed }}
     steps:
       - name: 下载待清理记录
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: cleanup-candidates-${{ github.run_id }}
           path: ${{ runner.temp }}/cleanup-candidates
