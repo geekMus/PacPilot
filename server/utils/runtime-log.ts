@@ -5,7 +5,6 @@ type RuntimeLogLevel = "log" | "info" | "warn" | "error";
 const ANSI = {
   reset: "\u001b[0m",
   timestamp: "\u001b[38;5;245m",
-  mutedBlue: "\u001b[38;5;110m",
   mutedAmber: "\u001b[38;5;179m",
   mutedRose: "\u001b[38;5;167m",
 } as const;
@@ -63,7 +62,6 @@ export function runtimeLog(
 ): void {
   const colored = supportsColor();
   const timestamp = colorize(`[${getTimestamp()}]`, ANSI.timestamp, colored);
-  const prefix = colorize("[genpac-runner]", ANSI.mutedBlue, colored);
   const messageColor =
     level === "error"
       ? ANSI.mutedRose
@@ -78,13 +76,11 @@ export function runtimeLog(
     ...details,
   );
   const lines = formatted.split(/\r?\n/);
-  const indent = " ".repeat("[YYYY-MM-DD HH:mm:ss] [genpac-runner] ".length);
+  const indent = " ".repeat("[YYYY-MM-DD HH:mm:ss] ".length);
   const output = lines
     .map((line, index) => {
       const body = colorize(line, messageColor, colored);
-      return index === 0
-        ? `${timestamp} ${prefix} ${body}`
-        : `${indent}${body}`;
+      return index === 0 ? `${timestamp} ${body}` : `${indent}${body}`;
     })
     .join("\n");
 
