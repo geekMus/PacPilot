@@ -1,0 +1,14 @@
+while read -r local_ref local_sha remote_ref remote_sha
+do
+  case "$remote_ref" in
+    refs/for/*)
+      echo >&2 ""
+      echo >&2 "错误：禁止推送到 refs/for/* 引用。"
+      echo >&2 "请推送到正常分支，并通过 GitHub Pull Request 合入 main。"
+      echo >&2 "被拒绝的目标引用：$remote_ref"
+      exit 1
+      ;;
+  esac
+done
+
+exit 0
