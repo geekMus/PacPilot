@@ -16,7 +16,7 @@
 - 普通工作流的自动触发（例如 `push`、`pull_request`）只允许面向 `main` 和 `dev`。
 - 对 `push` 事件，使用 `branches: [main, dev]`（或等价的 YAML 列表）限制分支。
 - 对 `pull_request` 事件，限制的是 PR 的**目标分支**，只允许 `main` 和 `dev`。
-- **工作流专属触发例外：** `.github/workflows/main-inclusion.yml`（主从检查）和 `.github/workflows/test.yml`（单测与覆盖率）只允许 `pull_request` 且目标分支为 `main` 时运行；不得为这两个工作流配置 `push` 或 `workflow_dispatch` 触发器，相关 Job/gate 也必须保留 PR 目标为 `main` 的条件。
+- **工作流专属触发规则：** `.github/workflows/main-inclusion.yml`（主从检查）和 `.github/workflows/test.yml`（单测与覆盖率）允许任意目标分支的 `pull_request` 触发，也允许 `workflow_dispatch` 手动运行；不得配置 `push` 触发器。PR 事件不限制目标分支；手动运行的 Job/gate 仅允许 `main` 或 `dev` 引用实际执行。
 - `workflow_dispatch` 即使保留为手动入口，也必须通过 job 级 `if` 或等效的明确校验限制实际执行范围；不能仅隐藏入口或依赖用户自行选择正确分支。
 - 新增任何工作流时，先明确分类它的自动触发、手动触发和例外，再实施分支限制。不能因为工作流文件不同而忽略这条规则。
 
