@@ -19,7 +19,9 @@
     "reset:admin-password:production": "bun run scripts/reset-admin-password.ts --production",
     "format": "prettier --write \"**/*.{ts,vue,js,cjs,mjs,json,css,md,html,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,vue,js,cjs,mjs,json,css,md,html,yml,yaml}\"",
-    "test": "bun test"
+    "test": "bun run test:backend && bun run test:frontend",
+    "test:backend": "bun test tests/*.test.ts tests/backend",
+    "test:frontend": "bun test tests/frontend"
   },
   "engines": {
     "bun": ">=1.1.0"
