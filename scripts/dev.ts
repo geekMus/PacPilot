@@ -66,7 +66,8 @@ async function forwardViteOutput(
 
       if (!hasViteReady && target === "stdout") {
         pending += decoder.decode(value, { stream: true });
-        if (/ready in\s+\d+\s*ms/i.test(pending)) {
+        const plainPending = pending.replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, "");
+        if (/ready in\s+\d+\s*ms/i.test(plainPending)) {
           hasViteReady = true;
           resolveViteReady();
         } else if (pending.length > 2000) {
