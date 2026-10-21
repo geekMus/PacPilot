@@ -12,6 +12,12 @@ export default defineConfig(({ mode }) => {
     root: path.resolve(__dirname),
     plugins: [vue()],
     base: "/",
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "src"),
+        "@shared": path.resolve(__dirname, "../shared"),
+      },
+    },
     server: {
       port: 5173,
       host: true,

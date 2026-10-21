@@ -12,7 +12,13 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "noEmit": true,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["shared/*"],
+      "@server/*": ["server/*"],
+      "@scripts/*": ["scripts/*"]
+    }
   },
   "include": ["scripts/**/*.ts", "shared/**/*.ts"],
   "exclude": ["node_modules"]

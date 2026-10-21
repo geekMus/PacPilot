@@ -11,7 +11,12 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "noEmit": true,
-    "allowImportingTsExtensions": false
+    "allowImportingTsExtensions": false,
+    "baseUrl": "..",
+    "paths": {
+      "@shared/*": ["shared/*"],
+      "@server/*": ["server/*"]
+    }
   },
   "include": ["./**/*"],
   "exclude": ["node_modules"]
