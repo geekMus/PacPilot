@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "bun run scripts/dev.ts",
     "dev:server": "bun run scripts/dev-server.ts",
-    "dev:client": "bun run vite --config client/vite.config.ts",
+    "dev:client": "bun run scripts/dev-client.ts",
     "build": "bun run build:client",
     "build:client": "bun run vite build --config client/vite.config.ts",
     "start": "bun run scripts/start-prod.ts",
@@ -26,7 +26,7 @@
     "test:client": "vitest run --config client/vitest.config.ts",
     "test:client:coverage": "vitest run --config client/vitest.config.ts --coverage",
     "test:coverage": "bun run test:server:coverage && bun run test:client:coverage",
-    "prepare": "bun run scripts/prepare.ts"
+    "prepare": "husky"
   },
   "engines": {
     "bun": ">=1.1.0"
