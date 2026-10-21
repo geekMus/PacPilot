@@ -3,8 +3,8 @@ import { loadDevelopmentDotEnv } from "../server/config/load-dotenv";
 import { runtimeLog } from "../server/utils/runtime-log";
 
 /**
- * 开发启动器：先确认后端可用，再启动 Vite，避免前端启动阶段的 API 代理请求被拒绝。
- * Vite 输出直接透传，保留其原始颜色和格式，不包装进项目日志。
+ * Start the backend and wait until its API is available before starting Vite.
+ * Forward Vite output unchanged so its native formatting and colors are preserved.
  */
 process.env.NODE_ENV = "development";
 process.env.GENPAC_ENV = "development";
@@ -53,7 +53,7 @@ async function waitForBackend(): Promise<boolean> {
       });
       if (response.ok) return true;
     } catch {
-      // 后端初始化时端口可能尚未监听；继续等待，同时检测子进程是否提前退出。
+      // The backend may need time to initialize and bind its port.
     }
 
     await new Promise((resolve) => setTimeout(resolve, 250));
@@ -69,16 +69,10 @@ const backendReady = await Promise.race([
 
 if (backendReady.type === "exit" || !backendReady.ready) {
   if (backendReady.type === "exit") {
-    runtimeLog(
-      "error",
-      `\u540e\u7aef\u670d\u52a1\u5728\u5c31\u7eea\u524d\u9000\u51fa\uff0c\u9000\u51fa\u7801\uff1a${backendReady.code}`,
-    );
+    runtimeLog("error", `Backend exited before becoming ready (exit code: ${backendReady.code}).`);
     process.exitCode = backendReady.code || 1;
   } else {
-    runtimeLog(
-      "error",
-      `\u7b49\u5f85\u540e\u7aef\u542f\u52a8\u8d85\u65f6\uff08\u7b49\u5f85\u5730\u5740\uff1a${apiHealthUrl}\uff09\u3002\u8bf7\u68c0\u67e5\u4e0a\u65b9\u540e\u7aef\u9519\u8bef\u3002`,
-    );
+    runtimeLog("error", `Timed out waiting for backend at ${apiHealthUrl}. Check the backend errors above.`);
     shutdown();
     await server.exited;
     process.exit(1);
@@ -88,7 +82,7 @@ if (backendReady.type === "exit" || !backendReady.ready) {
   process.exit();
 }
 
-// 直接调用本地 Vite CLI，避免 Windows/Git Bash 下 bunx 包装进程提前退出。
+// Launch the installed Vite CLI directly to avoid bunx wrapper-process issues on Windows/Git Bash.
 const viteCli = path.resolve("node_modules/vite/bin/vite.js");
 client = Bun.spawn(
   [
@@ -157,10 +151,7 @@ const viteStartup = await Promise.race([
 
 if (!viteStartup.ready) {
   await Promise.allSettled([viteStdout, viteStderr]);
-  runtimeLog(
-    "error",
-    `\u524d\u7aef Vite \u542f\u52a8\u5931\u8d25\uff0c\u9000\u51fa\u7801\uff1a${viteStartup.code}\u3002\u8bf7\u68c0\u67e5 Vite \u7684\u9519\u8bef\u8f93\u51fa\u3002`,
-  );
+  runtimeLog("error", `Vite failed to start (exit code: ${viteStartup.code}). See Vite output above.`);
   shutdown();
   process.exit(viteStartup.code ?? 1);
 }
@@ -174,6 +165,6 @@ shutdown();
 await Promise.allSettled([viteStdout, viteStderr, server.exited, client.exited]);
 runtimeLog(
   "warn",
-  `${exited.process === "server" ? "\u540e\u7aef\u670d\u52a1" : "Vite \u524d\u7aef"}\u8fdb\u7a0b\u5df2\u9000\u51fa\uff0c\u9000\u51fa\u7801\uff1a${exited.code}`,
+  `${exited.process === "server" ? "Backend" : "Vite frontend"} process exited (exit code: ${exited.code}).`,
 );
 process.exit(exited.code ?? 0);
