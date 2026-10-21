@@ -37,8 +37,6 @@
   color: var(--muted);
   font-size: 12px;
 }
-.live-dot,
-
 .live-dot.busy {
   background: var(--warn);
 }
@@ -323,8 +321,6 @@
     transform: rotate(360deg);
   }
 }
-.monitor-notice,
-
 .monitor-notice strong {
   color: var(--text);
 }
@@ -498,41 +494,6 @@
   border: 1px dashed var(--line);
   border-radius: 10px;
 }
-
-
-
-
-
-
-
-
-
-
-.probe-target-content code,
-
-
-
-
-
-
-
-
-
-.probe-card-top,
-
-
-
-
-
-
-
-
-
-.probe-detail,
-.probe-error,
-
-
-
 .monitor-alert {
   padding: 10px 12px;
   border-radius: 9px;
@@ -551,7 +512,6 @@
   background: var(--warn-soft);
   color: var(--warn);
 }
-
 .monitor-state {
   display: flex;
   align-items: center;
@@ -589,7 +549,6 @@
     transform: rotate(360deg);
   }
 }
-
 .access-row {
   cursor: pointer;
 }
@@ -719,7 +678,6 @@
   .monitor-panel {
     padding: 16px;
   }
-
   .pac-latest-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -753,8 +711,6 @@
     align-items: flex-start;
     flex-direction: column;
   }
-
-
   .monitor-title-row {
     flex-direction: column;
   }
@@ -796,8 +752,6 @@
     margin-left: 0;
     flex-basis: 100%;
   }
-
-
 }
 
 .panel-heading h2,
