@@ -41,6 +41,7 @@ jobs:
 
   prepare:
     name: 判断镜像发布条件
+    needs: check
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -253,7 +254,7 @@ jobs:
 
   publish:
     name: 构建并发布 ARM64 镜像
-    needs: [prepare, check]
+    needs: prepare
     if: needs.prepare.outputs.publish == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
