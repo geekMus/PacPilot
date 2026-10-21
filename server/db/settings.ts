@@ -69,7 +69,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   directList: [],
   cronSchedule: "",
   timezone: "Asia/Shanghai",
-  proxyTestUrl: "https://www.google.com/generate_204",
   logRetentionDays: 30,
   webhookSuccessConfig: { ...DEFAULT_WEBHOOK },
   webhookFailureConfig: { ...DEFAULT_WEBHOOK },
