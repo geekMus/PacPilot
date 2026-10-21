@@ -4,6 +4,7 @@ type RuntimeLogLevel = "log" | "info" | "warn" | "error";
 
 const ANSI = {
   reset: "\u001b[0m",
+  timestamp: "\u001b[38;5;245m",
   mutedBlue: "\u001b[38;5;110m",
   mutedAmber: "\u001b[38;5;179m",
   mutedRose: "\u001b[38;5;167m",
@@ -26,43 +27,34 @@ function colorize(value: string, color: string, enabled: boolean): string {
 }
 
 function getTimestamp(): string {
-  const now = new Date();
+  const options: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  };
+
   const configuredTimeZone =
     process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   try {
-    const timestamp = new Intl.DateTimeFormat("sv-SE", {
+    return new Intl.DateTimeFormat("sv-SE", {
+      ...options,
       timeZone: configuredTimeZone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hourCycle: "h23",
-    }).format(now);
-
-    return `${timestamp} ${configuredTimeZone}`;
+    }).format(new Date());
   } catch {
     // 无效的 TZ 配置不应导致业务日志本身丢失；退回运行时默认时区。
-    const timestamp = new Intl.DateTimeFormat("sv-SE", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hourCycle: "h23",
-    }).format(now);
-
-    return `${timestamp} ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
+    return new Intl.DateTimeFormat("sv-SE", options).format(new Date());
   }
 }
 
 /**
  * 统一开发与生产环境的日志格式。
- * 时间使用系统本地时区；Docker 中可通过 TZ 指定时区。
- * 多行内容的续行与正文起始位置对齐，避免堆栈或提示信息破坏日志层级。
+ * 时间戳不显示时区名称；Docker 中可通过 TZ 指定使用哪个时区。
+ * 多行正文逐行保留级别颜色，并与首行正文起始位置对齐。
  */
 export function runtimeLog(
   level: RuntimeLogLevel,
@@ -70,8 +62,8 @@ export function runtimeLog(
   ...details: unknown[]
 ): void {
   const colored = supportsColor();
-  const plainPrefix = `[${getTimestamp()}] [genpac-runner]`;
-  const prefix = colorize(plainPrefix, ANSI.mutedBlue, colored);
+  const timestamp = colorize(`[${getTimestamp()}]`, ANSI.timestamp, colored);
+  const prefix = colorize("[genpac-runner]", ANSI.mutedBlue, colored);
   const messageColor =
     level === "error"
       ? ANSI.mutedRose
@@ -79,15 +71,19 @@ export function runtimeLog(
         ? ANSI.mutedAmber
         : "";
 
-  const formatted = formatWithOptions({ colors: false, depth: 5 }, message, ...details);
+  const formatted = formatWithOptions(
+    { colors: colored, depth: 5 },
+    message,
+    ...details,
+  );
   const lines = formatted.split(/\r?\n/);
-  const indent = " ".repeat(plainPrefix.length + 1);
+  const indent = " ".repeat("[YYYY-MM-DD HH:mm:ss] [genpac-runner] ".length);
   const output = lines
     .map((line, index) => {
-      const body = index === 0 ? line : `${indent}${line}`;
+      const body = colorize(line, messageColor, colored);
       return index === 0
-        ? `${prefix} ${colorize(body, messageColor, colored)}`
-        : body;
+        ? `${timestamp} ${prefix} ${body}`
+        : `${indent}${body}`;
     })
     .join("\n");
 
