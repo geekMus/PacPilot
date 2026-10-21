@@ -41,9 +41,7 @@ async function main(): Promise<void> {
     if (!firstStart && !adminCredentialsMissing) {
       // Start listening first so the admin UI can observe the startup workflow in real time.
       void runPacWorkflow(database, env.dataDir, "startup")
-        .then(({ generation }) => {
-          if (!generation.success) runtimeLog("warn", `启动时 PAC 生成失败：${generation.message}`);
-        })
+        .then(() => undefined)
         .catch((error) => runtimeLog("error", "启动时 PAC 工作流失败：", error))
         .finally(() => reschedule(database, env.dataDir));
     }
