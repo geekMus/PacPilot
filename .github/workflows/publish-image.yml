@@ -1,13 +1,14 @@
 name: 构建并发布 Docker 镜像
 
 on:
-  # 所有分支提交和 PR 都执行检查；只有 main 分支的 push 可以发布镜像。
+  # GitHub 的 paths 只能按文件筛选，不能直接判断 JSON 中的 version 字段。
+  # 因此仅监听 main 分支的 package.json 变更，并由 version_gate 精确比较版本号；
+  # 非版本变更不会执行检查、版本判断或镜像构建。
   push:
     branches:
-      - "**"
-  pull_request:
-  # 手动触发只检查并构建，不会推送镜像。
-  workflow_dispatch:
+      - main
+    paths:
+      - package.json
 
 # 同一分支只保留最新一次运行；新提交到来时取消旧的构建/发布任务。
 concurrency:
@@ -18,8 +19,49 @@ permissions:
   contents: read
 
 jobs:
+  version_gate:
+    name: 判断项目版本是否变化
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.compare.outputs.changed }}
+      version: ${{ steps.compare.outputs.version }}
+    steps:
+      - name: 检出当前提交与历史
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 比较提交前后的 package.json 版本
+        id: compare
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          CURRENT_VERSION="$(git show "$CURRENT_SHA:package.json" | jq -er '.version')"
+          if [[ "$BEFORE_SHA" =~ ^0+$ ]] || ! git cat-file -e "$BEFORE_SHA:package.json" 2>/dev/null; then
+            PREVIOUS_VERSION=""
+          else
+            PREVIOUS_VERSION="$(git show "$BEFORE_SHA:package.json" | jq -er '.version')"
+          fi
+
+          if [[ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "项目版本已变化：${PREVIOUS_VERSION:-（无旧版本）} -> $CURRENT_VERSION"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "项目版本未变化（当前版本：$CURRENT_VERSION），跳过后续所有任务。"
+          fi
+          echo "version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+
   check:
     name: 类型检查与构建
+    needs: version_gate
+    if: needs.version_gate.outputs.changed == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
