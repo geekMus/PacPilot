@@ -45,7 +45,7 @@ function getTimestamp(): string {
       timeZone: configuredTimeZone,
     }).format(new Date());
   } catch {
-    // An invalid TZ setting must not suppress application logs; fall back to the runtime time zone.
+    // 无效的 TZ 配置不应导致业务日志本身丢失；退回运行时默认时区。
     return new Intl.DateTimeFormat("sv-SE", options).format(new Date());
   }
 }
@@ -69,7 +69,7 @@ export function runtimeLog(
         ? ANSI.mutedAmber
         : "";
 
-  // Format the message without ANSI codes, then apply severity colors line by line.
+  // 先生成无 ANSI 的正文，再对每一行统一应用日志级别颜色，避免换行后颜色丢失。
   const formatted = formatWithOptions(
     { colors: false, depth: 5 },
     message,
