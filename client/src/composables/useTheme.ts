@@ -2,7 +2,7 @@ import { ref, watch, onMounted, onUnmounted } from "vue";
 
 export type ThemeMode = "system" | "light" | "dark";
 
-const STORAGE_KEY = "genpac-theme";
+const STORAGE_KEY = "pacpilot-theme";
 
 function getStored(): ThemeMode {
   const v = localStorage.getItem(STORAGE_KEY);
