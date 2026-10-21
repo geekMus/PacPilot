@@ -2,8 +2,8 @@ import { loadDevelopmentDotEnv } from "../server/config/load-dotenv";
 import { runtimeLog } from "../server/utils/runtime-log";
 
 /**
- * 开发启动器：先完整显示 Vite 启动信息，再输出项目日志并启动后端。
- * Vite 输出直接透传，保留其原始颜色和格式，不包装进 genpac-runner 日志。
+ * 开发启动器：先完整显示 Vite 启动信息，再启动后端。
+ * Vite 输出直接透传，保留其原始颜色和格式，不包装进项目日志。
  */
 process.env.NODE_ENV = "development";
 process.env.GENPAC_ENV = "development";
@@ -90,10 +90,7 @@ const viteStartup = await Promise.race([
 
 if (!viteStartup.ready) {
   await Promise.allSettled([viteStdout, viteStderr]);
-  runtimeLog(
-    "error",
-    `Vite 在就绪前退出，退出码：${viteStartup.code}`,
-  );
+  runtimeLog("error", `Vite 在就绪前退出，退出码：${viteStartup.code}`);
   process.exit(viteStartup.code ?? 1);
 }
 
@@ -103,12 +100,6 @@ const server = Bun.spawn(["bun", "--hot", "server/index.ts"], {
   stdin: "inherit",
   env,
 });
-
-// 等 Vite 的启动信息（包括 ready in）输出完毕后，再输出项目自身日志。
-runtimeLog(
-  "info",
-  `开发环境启动参数已就绪；数据目录：${env.DATA_DIR}；后端端口：${env.PORT}；前端地址：http://localhost:5173`,
-);
 
 let shuttingDown = false;
 const shutdown = () => {
