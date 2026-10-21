@@ -14,9 +14,9 @@
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "paths": {
-      "@shared/*": ["shared/*"],
-      "@server/*": ["server/*"],
-      "@scripts/*": ["scripts/*"]
+      "@shared/*": ["./shared/*"],
+      "@server/*": ["./server/*"],
+      "@scripts/*": ["./scripts/*"]
     }
   },
   "include": ["scripts/**/*.ts", "shared/**/*.ts"],
