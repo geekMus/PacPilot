@@ -41,6 +41,9 @@ jobs:
       - name: 安装依赖
         run: bun install
 
+      - name: 类型检查、构建与国际化校验
+        run: bun run check
+
       - name: 运行前后端单测并检查覆盖率
         env:
           NO_COLOR: "1"
