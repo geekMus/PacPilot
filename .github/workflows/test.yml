@@ -207,3 +207,32 @@ jobs:
               echo "- **说明：** 未能下载覆盖率报告；请确认测试阶段是否生成并上传报告。"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+  gate:
+    name: 前后端单测与覆盖率门槛
+    needs: [prepare, test, coverage]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: 汇总并验证所有阶段结果
+        env:
+          PREPARE_RESULT: ${{ needs.prepare.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+          COVERAGE_RESULT: ${{ needs.coverage.result }}
+        shell: bash
+        run: |
+          {
+            echo "## 前后端单测与覆盖率门槛"
+            echo
+            echo "- **阶段 1（依赖安装与静态检查）：** ${PREPARE_RESULT}"
+            echo "- **阶段 2（前后端单元测试）：** ${TEST_RESULT}"
+            echo "- **阶段 3（覆盖率报告）：** ${COVERAGE_RESULT}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$PREPARE_RESULT" != "success" || "$TEST_RESULT" != "success" || "$COVERAGE_RESULT" != "success" ]]; then
+            echo "::error::至少一个必需阶段未成功，禁止通过前后端单测与覆盖率门槛。"
+            exit 1
+          fi
+
+          echo "所有必需阶段均已成功。"
