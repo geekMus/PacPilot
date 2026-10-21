@@ -3,6 +3,7 @@
 ## 工作流与日志
 
 - **工作流页面**：查看当前任务、排队任务、阶段、结果、错误详情及历史记录。
+- **单元测试摘要**：GitHub Actions 的 Step Summary 只显示前端、后端覆盖率汇总表；测试成功时隐藏冗长控制台输出，测试失败时才输出去除 ANSI 控制码的日志供排查。
 - **网络监控页面**：查看 genpac-runner 自身收到的请求，不代表客户端经代理访问网站的流量。
 - **系统设置页面**：查看数据目录、数据库和日志占用，查看 PAC 文件大小与更新时间。
 - **日志保留**：设置日志保留天数并执行清理，也可以手动清空日志。
@@ -40,6 +41,7 @@ docker run -d \
 
 - [代码正确性检查](../.github/workflows/check.yml)：按变更范围决定是否执行完整检查。
 - [GitHub 配置校验](../.github/workflows/validate-github-config.yml)：检查工作流、Issue 表单及仓库配置的 YAML 语法。
+- [前后端单元测试与覆盖率](../.github/workflows/test.yml)
 - [构建并发布 Docker 镜像](../.github/workflows/publish-image.yml)
 - [清理废弃工作流运行记录](../.github/workflows/cleanup-obsolete-workflow-runs.yml)
 - [Agent 项目级强制规则](../AGENTS.md)：分支操作、工作流触发限制、发布权限与并发策略，新增或修改工作流前必须阅读。
