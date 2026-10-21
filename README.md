@@ -45,6 +45,17 @@ docker logs genpac-runner
 - [运维与发布（工作流、日志、版本、升级）](docs/operations.md)
 - [故障排查](docs/troubleshooting.md)
 
+## 许可证
+
+本项目采用 **GeekMus Non-Commercial License 1.0（GNCL-1.0）** 自定义非商业许可证，并非 OSI 认可的标准开源许可证。
+
+- [许可证英文原文](LICENSE)
+- [许可证中文参考译文](LICENSE.zh-CN.md)
+
+该许可证允许个人非商业使用、修改及免费分发，但须保留作者署名、版权声明和许可证文本。公司或组织的内部业务使用，以及其他商业用途，均须事先取得作者书面授权。第三方组件仍适用其各自的许可证。
+
+商业授权申请：**geekMus@qq.com**。也可通过 [GitHub Issues](https://github.com/geekMus/genpac-runner/issues) 或 [GitHub Discussions](https://github.com/geekMus/genpac-runner/discussions) 咨询；请勿在公开讨论中发布机密商业信息。
+
 ## 项目信息
 
 - 镜像：`ghcr.io/geekmus/genpac-runner`
