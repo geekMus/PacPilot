@@ -6,13 +6,13 @@ import { runtimeLog } from "../server/utils/runtime-log";
  * Vite 输出按原始字节转发，保留其格式和颜色。
  */
 process.env.NODE_ENV = "development";
-process.env.GENPAC_ENV = "development";
+process.env.PACPILOT_ENV = "development";
 loadDevelopmentDotEnv();
 
 const env: Record<string, string | undefined> = {
   ...process.env,
   NODE_ENV: "development",
-  GENPAC_ENV: "development",
+  PACPILOT_ENV: "development",
   DATA_DIR: process.env.DATA_DIR || "./data",
   PORT: process.env.PORT || "17321",
   HOST: process.env.HOST || "0.0.0.0",
