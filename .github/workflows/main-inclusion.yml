@@ -17,9 +17,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  main-inclusion:
-    name: 主分支包含性检查
+  prepare:
+    name: 阶段 1：准备待检查分支
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      source_sha: ${{ steps.source.outputs.sha }}
+      main_sha: ${{ steps.main.outputs.sha }}
     steps:
       - name: 检出当前分支
         id: checkout
@@ -30,45 +34,62 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
-      - name: 检查检出阶段
-        if: always()
-        env:
-          RESULT: ${{ steps.checkout.outcome }}
-          BRANCH: ${{ github.head_ref || github.ref_name }}
-        shell: bash
-        run: |
-          {
-            echo "## 阶段 1：检出待检查分支"
-            echo
-            echo "- **分支：** ${BRANCH}"
-            echo "- **结果：** ${RESULT}"
-          } >> "$GITHUB_STEP_SUMMARY"
+      - name: 记录来源提交
+        id: source
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: 获取主仓库最新 main
-        id: fetch-main
+        id: main
+        env:
+          BASE_REPOSITORY: ${{ github.repository }}
         run: |
-          git remote add upstream "https://github.com/${GITHUB_REPOSITORY}.git"
+          git remote add upstream "https://github.com/${BASE_REPOSITORY}.git"
           git fetch upstream main:refs/remotes/upstream/main
+          echo "sha=$(git rev-parse upstream/main)" >> "$GITHUB_OUTPUT"
 
-      - name: 检查主分支获取阶段
+      - name: 阶段 1 小结
         if: always()
         env:
-          RESULT: ${{ steps.fetch-main.outcome }}
+          JOB_STATUS: ${{ job.status }}
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+          MAIN_SHA: ${{ steps.main.outputs.sha }}
         shell: bash
         run: |
           {
-            echo "## 阶段 2：获取主分支最新提交"
+            echo "## 阶段 1：准备待检查分支"
             echo
-            echo "- **结果：** ${RESULT}"
-            if [[ "${RESULT}" == "success" ]]; then
-              echo "- **目标：** 已获取 upstream/main，可进行包含性判断。"
-            else
-              echo "- **说明：** 获取 main 失败，后续包含性检查无法可靠执行。"
+            echo "- **结果：** ${JOB_STATUS}"
+            echo "- **来源提交：** ${SOURCE_SHA:-未获取}"
+            echo "- **检查时 main 提交：** ${MAIN_SHA:-未获取}"
+            if [[ "${JOB_STATUS}" != "success" ]]; then
+              echo "- **后续处理：** 阶段 2 不会执行。"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
+  inclusion:
+    name: 阶段 2：检查是否包含最新 main
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: 检出待检查提交
+        id: checkout
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ needs.prepare.outputs.source_sha }}
+          fetch-depth: 0
+
+      - name: 获取主仓库最新 main
+        id: fetch-main
+        env:
+          BASE_REPOSITORY: ${{ github.repository }}
+        run: |
+          git remote add upstream "https://github.com/${BASE_REPOSITORY}.git"
+          git fetch upstream main:refs/remotes/upstream/main
+
       - name: 确认当前分支已包含主分支
-        id: inclusion
+        id: inclusion-check
         shell: bash
         run: |
           if git merge-base --is-ancestor upstream/main HEAD; then
@@ -78,19 +99,27 @@ jobs:
             exit 1
           fi
 
-      - name: 检查包含性判断阶段
+      - name: 阶段 2 小结
         if: always()
         env:
-          RESULT: ${{ steps.inclusion.outcome }}
+          JOB_STATUS: ${{ job.status }}
+          SOURCE_SHA: ${{ needs.prepare.outputs.source_sha }}
+          MAIN_SHA: ${{ needs.prepare.outputs.main_sha }}
+          FETCH_RESULT: ${{ steps.fetch-main.outcome }}
+          CHECK_RESULT: ${{ steps.inclusion-check.outcome }}
         shell: bash
         run: |
           {
-            echo "## 阶段 3：检查是否包含 main"
+            echo "## 阶段 2：检查是否包含最新 main"
             echo
-            echo "- **结果：** ${RESULT}"
-            if [[ "${RESULT}" == "success" ]]; then
-              echo "- **结论：** 当前分支包含主仓库 main 的全部提交。"
+            echo "- **整体结果：** ${JOB_STATUS}"
+            echo "- **来源提交：** ${SOURCE_SHA:-未获取}"
+            echo "- **准备阶段记录的 main：** ${MAIN_SHA:-未获取}"
+            echo "- **检查阶段获取 main：** ${FETCH_RESULT}"
+            echo "- **包含性检查：** ${CHECK_RESULT:-未执行}"
+            if [[ "${CHECK_RESULT}" == "success" ]]; then
+              echo "- **结论：** 当前分支包含检查时主仓库 main 的全部提交。"
             else
-              echo "- **结论：** 当前分支未能通过包含性检查；请同步 main 后重新推送。"
+              echo "- **结论：** 当前分支未通过检查或检查未完成；请同步 main 后重新推送。"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
