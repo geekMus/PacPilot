@@ -174,7 +174,6 @@ function normalizeSettings(s: AppSettings): AppSettings {
       : [],
     cronSchedule: String(s.cronSchedule || "").trim(),
     timezone: normalizeTimeZone(String(s.timezone || DEFAULT_SETTINGS.timezone)),
-    proxyTestUrl: String(s.proxyTestUrl || DEFAULT_SETTINGS.proxyTestUrl).trim(),
     logRetentionDays: Math.max(
       0,
       Math.min(
@@ -190,11 +189,11 @@ function normalizeSettings(s: AppSettings): AppSettings {
 export function cleanupOperationalLogs(
   database: AppDatabase,
   retentionDays = getSettings(database).logRetentionDays
-): { generationLogs: number; accessEvents: number; proxyProbeRuns: number } {
-  if (retentionDays <= 0) return { generationLogs: 0, accessEvents: 0, proxyProbeRuns: 0 };
+): { generationLogs: number; accessEvents: number } {
+  if (retentionDays <= 0) return { generationLogs: 0, accessEvents: 0 };
   const cutoffDate = new Date(Date.now() - retentionDays * 86400000);
   // generation_log.created_at uses SQLite's UTC "YYYY-MM-DD HH:mm:ss" format;
-  // access/probe timestamps use ISO 8601. Compare each table in its stored format.
+  // Access-event timestamps use ISO 8601.
   const cutoffIso = cutoffDate.toISOString();
   const cutoffSql = cutoffIso.slice(0, 19).replace("T", " ");
   const generationLogs = Number(
@@ -203,24 +202,19 @@ export function cleanupOperationalLogs(
   const accessEvents = Number(
     database.query("DELETE FROM access_events WHERE created_at < ?").run(cutoffIso).changes
   );
-  const proxyProbeRuns = Number(
-    database.query("DELETE FROM proxy_probe_runs WHERE tested_at < ?").run(cutoffIso).changes
-  );
-  return { generationLogs, accessEvents, proxyProbeRuns };
+  return { generationLogs, accessEvents };
 }
 /** Delete operational logs without touching workflow execution history. */
 export function clearOperationalLogs(database: AppDatabase): {
   generationLogs: number;
   accessEvents: number;
-  proxyProbeRuns: number;
 } {
   database.run("BEGIN IMMEDIATE");
   try {
     const generationLogs = Number(database.query("DELETE FROM generation_log").run().changes);
     const accessEvents = Number(database.query("DELETE FROM access_events").run().changes);
-    const proxyProbeRuns = Number(database.query("DELETE FROM proxy_probe_runs").run().changes);
     database.run("COMMIT");
-    return { generationLogs, accessEvents, proxyProbeRuns };
+    return { generationLogs, accessEvents };
   } catch (error) {
     try {
       database.run("ROLLBACK");
@@ -237,8 +231,7 @@ export function operationalLogStorageBytes(database: AppDatabase): number {
       `
     SELECT
       COALESCE((SELECT SUM(length(result_code) + length(detail) + length(error) + length(mode) + 48) FROM generation_log),0) +
-      COALESCE((SELECT SUM(length(path) + length(category) + length(source_ip) + length(user_agent) + 96) FROM access_events),0) +
-      COALESCE((SELECT SUM(length(proxy_label) + length(proxy_host) + length(target_host) + length(error_code) + length(error_detail) + 96) FROM proxy_probe_runs),0)
+      COALESCE((SELECT SUM(length(path) + length(category) + length(source_ip) + length(user_agent) + 96) FROM access_events),0)
       AS bytes
   `
     )
