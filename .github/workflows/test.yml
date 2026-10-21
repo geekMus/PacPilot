@@ -45,25 +45,25 @@ jobs:
         env:
           NO_COLOR: "1"
           FORCE_COLOR: "0"
-        run: bun run test
+        shell: bash
+        run: |
+          set +e
+          bun run test > "$RUNNER_TEMP/test-output.log" 2>&1
+          TEST_STATUS=$?
+          set -e
 
-      - name: 汇总测试结果与覆盖率
+          # 成功时隐藏冗长的测试明细；失败时输出去除 ANSI 控制码的日志，便于排查。
+          if [[ "$TEST_STATUS" -ne 0 ]]; then
+            perl -pe 's/\e\[[0-9;?]*[ -\/]*[@-~]//g' "$RUNNER_TEMP/test-output.log"
+            exit "$TEST_STATUS"
+          fi
+
+      - name: 汇总覆盖率
         if: always()
-        env:
-          JOB_STATUS: ${{ job.status }}
         shell: bash
         run: |
           {
-            echo "## 前后端单元测试与覆盖率"
-            echo
-            echo "- **执行命令：** `bun run test`"
-            if [[ "$JOB_STATUS" == "success" ]]; then
-              echo "- **结果：** 通过"
-            else
-              echo "- **结果：** 失败或被取消，请查看测试日志"
-            fi
-            echo
-            echo "### 覆盖率汇总"
+            echo "## 覆盖率汇总"
             echo
             echo "| 范围 | 语句覆盖率 | 分支覆盖率 | 函数覆盖率 | 行覆盖率 |"
             echo "|---|---:|---:|---:|---:|"
