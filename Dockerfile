@@ -24,8 +24,9 @@ WORKDIR /app
 COPY package.json bunfig.toml ./
 # 复用构建阶段生成的锁文件，确保生产依赖与前端/类型检查使用的解析版本一致。
 COPY --from=builder /app/bun.lock ./bun.lock
+# 生产镜像不安装 devDependencies；跳过生命周期脚本，避免 prepare 调用未安装的 Husky CLI。
 RUN echo "正在按构建锁文件安装运行阶段依赖……" \
- && bun install --production --frozen-lockfile
+ && bun install --production --frozen-lockfile --ignore-scripts
 
 # 运行镜像保留完整项目源码，避免遗漏服务端运行时导入的共享模块。
 COPY . .
