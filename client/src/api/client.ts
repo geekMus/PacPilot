@@ -113,7 +113,7 @@ export interface StorageSummary {
   };
   pacFiles: { proxyPac: PacFileStatus; proxySourcePac: PacFileStatus };
 }
-export interface GenpacProbe {
+export interface PacPilotProbe {
   available: boolean;
   command?: string | null;
   engine?: string;
@@ -297,7 +297,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ confirm: "RESET" }),
     }),
-  genpacStatus: () => request<GenpacProbe>("/api/admin/genpac-status"),
+  pacpilotStatus: () => request<PacPilotProbe>("/api/admin/pacpilot-status"),
   monitorSummary: () => request<MonitorSummary>("/api/admin/monitor/summary"),
   monitorAccess: (limit = 50) => request<AccessEvent[]>(`/api/admin/monitor/access?limit=${limit}`),
   monitorAccessPage: (limit = 50, beforeId = 0) =>
