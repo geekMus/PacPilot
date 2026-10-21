@@ -60,7 +60,7 @@ watch(
       <div class="sidebar-brand" :aria-label="t('app.projectName')">
         <BrandMark :size="40" />
         <span class="brand-copy">
-          <strong>genpac-runner</strong>
+          <strong>PacPilot</strong>
           <small>{{ t("layout.adminConsole") }}</small>
         </span>
       </div>
