@@ -30,7 +30,7 @@ const {
 
 <template>
   <main class="page status-page">
-    <AppHeader brand="genpac-runner" :sub="t('status.sub')">
+    <AppHeader brand="PacPilot" :sub="t('status.sub')">
       <RouterLink v-if="meta?.adminEnabled" class="primary" :to="adminEntry">{{
         t("nav.admin")
       }}</RouterLink>
