@@ -2,8 +2,8 @@ import { loadDevelopmentDotEnv } from "../server/config/load-dotenv";
 import { runtimeLog } from "../server/utils/runtime-log";
 
 /**
- * Start the backend and wait for its API before launching Vite.
- * Forward Vite output as raw bytes to preserve its formatting and colors.
+ * 先启动后端，确认 API 可用后再启动 Vite，避免前端代理请求过早发出。
+ * Vite 输出按原始字节转发，保留其格式和颜色。
  */
 process.env.NODE_ENV = "development";
 process.env.GENPAC_ENV = "development";
@@ -52,7 +52,7 @@ async function waitForBackend(): Promise<boolean> {
       });
       if (response.ok) return true;
     } catch {
-      // The backend may need time to initialize and bind its port.
+      // 后端初始化并监听端口需要一点时间。
     }
 
     await new Promise((resolve) => setTimeout(resolve, 250));
@@ -81,7 +81,7 @@ if (backendReady.type === "exit" || !backendReady.ready) {
   process.exit();
 }
 
-// Use Bun to resolve and launch the project-local Vite executable.
+// 通过 Bun 启动项目本地的 Vite，避免直接调用 node_modules 中的入口文件。
 client = Bun.spawn(
   [
     process.execPath,
