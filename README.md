@@ -1,9 +1,5 @@
 # genpac-runner
 
-[![Docker 镜像](https://img.shields.io/badge/GHCR-genpac--runner-blue?logo=docker)](https://github.com/geekMus/genpac-runner/pkgs/container/genpac-runner)
-[![GitHub Actions](https://github.com/geekMus/genpac-runner/actions/workflows/publish-image.yml/badge.svg?branch=main)](https://github.com/geekMus/genpac-runner/actions/workflows/publish-image.yml)
-[![License](https://img.shields.io/badge/项目-开源代码库-lightgrey?logo=github)](https://github.com/geekMus/genpac-runner)
-
 **genpac-runner** 是一个带 Web 管理后台的 PAC 生成与管理服务。它可以根据自定义规则或远程域名列表生成 `proxy.pac`，并提供工作流记录、定时更新、Webhook 通知、请求监控和数据维护功能。
 
 项目使用 Bun、TypeScript、Vue 3 和 SQLite。部署时直接使用预构建的 Docker 镜像即可，不需要在服务器上克隆源码或安装构建工具。
