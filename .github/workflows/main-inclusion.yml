@@ -100,14 +100,25 @@ jobs:
         run: |
           set -euo pipefail
 
-          # 不检查提交祖先关系：Squash Merge 会为 main 生成新提交，即使代码已经相同，
-          # main 的提交也不一定是 dev 的祖先。这里模拟把 main 合入当前提交，比较结果树。
+          # Squash Merge 会在 main 上创建新的提交，因此不要求 main 提交必须是当前分支的祖先。
+          # 模拟把 main 合入当前提交；如果结果树与当前树一致，说明 main 不会再改变当前代码。
           if ! MERGE_OUTPUT="$(git merge-tree --write-tree HEAD upstream/main)"; then
             echo "::error::当前分支与最新 main 存在无法自动合并的冲突，请先同步并解决 main 的变更。"
             exit 1
           fi
 
-          MERGED_TREE="${MERGE_OUTPUT%%
+          MERGED_TREE="$(printf '%s\n' "$MERGE_OUTPUT" | head -n 1)"
+          CURRENT_TREE="$(git rev-parse 'HEAD^{tree}')"
+
+          if [[ "$MERGED_TREE" != "$CURRENT_TREE" ]]; then
+            echo "::error::最新 main 仍包含当前分支尚未体现的文件变更；请先将 main 的变更合入当前分支后重新推送。"
+            echo "当前分支 tree：$CURRENT_TREE"
+            echo "模拟合并 tree：$MERGED_TREE"
+            exit 1
+          fi
+
+          echo "检查通过：将最新 main 合入不会改变当前分支的文件内容。"
+
       - name: 阶段 2 小结
         if: always()
         env:
