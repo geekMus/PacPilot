@@ -1,3 +1,5 @@
+import { formatWithOptions } from "node:util";
+
 type RuntimeLogLevel = "log" | "info" | "warn" | "error";
 
 const ANSI = {
@@ -20,14 +22,47 @@ function supportsColor(): boolean {
 }
 
 function colorize(value: string, color: string, enabled: boolean): string {
-  return enabled ? `${color}${value}${ANSI.reset}` : value;
+  return enabled && color ? `${color}${value}${ANSI.reset}` : value;
+}
+
+function getTimestamp(): string {
+  const now = new Date();
+  const configuredTimeZone =
+    process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  try {
+    const timestamp = new Intl.DateTimeFormat("sv-SE", {
+      timeZone: configuredTimeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    }).format(now);
+
+    return `${timestamp} ${configuredTimeZone}`;
+  } catch {
+    // 无效的 TZ 配置不应导致业务日志本身丢失；退回运行时默认时区。
+    const timestamp = new Intl.DateTimeFormat("sv-SE", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    }).format(now);
+
+    return `${timestamp} ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
+  }
 }
 
 /**
  * 统一开发与生产环境的日志格式。
- * 使用低饱和度 256 色配色：雾蓝标识项目、柔和琥珀提示警告、灰玫瑰突出错误。
- * 普通日志正文保持终端默认颜色，避免整行高亮造成视觉噪声。
- * 默认在交互式终端启用颜色；Docker 等非 TTY 环境可通过 FORCE_COLOR=1 开启。
+ * 时间使用系统本地时区；Docker 中可通过 TZ 指定时区。
+ * 多行内容的续行与正文起始位置对齐，避免堆栈或提示信息破坏日志层级。
  */
 export function runtimeLog(
   level: RuntimeLogLevel,
@@ -35,14 +70,26 @@ export function runtimeLog(
   ...details: unknown[]
 ): void {
   const colored = supportsColor();
-  const prefix = colorize("[genpac-runner]", ANSI.mutedBlue, colored);
+  const plainPrefix = `[${getTimestamp()}] [genpac-runner]`;
+  const prefix = colorize(plainPrefix, ANSI.mutedBlue, colored);
   const messageColor =
     level === "error"
       ? ANSI.mutedRose
       : level === "warn"
         ? ANSI.mutedAmber
         : "";
-  const output = colorize(message, messageColor, colored);
 
-  console[level](`${prefix} ${output}`, ...details);
+  const formatted = formatWithOptions({ colors: false, depth: 5 }, message, ...details);
+  const lines = formatted.split(/\r?\n/);
+  const indent = " ".repeat(plainPrefix.length + 1);
+  const output = lines
+    .map((line, index) => {
+      const body = index === 0 ? line : `${indent}${line}`;
+      return index === 0
+        ? `${prefix} ${colorize(body, messageColor, colored)}`
+        : body;
+    })
+    .join("\n");
+
+  console[level](output);
 }
