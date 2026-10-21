@@ -53,12 +53,7 @@ async function forwardViteOutput(
   let pending = "";
 
   const writeLine = (line: string): void => {
-    const output = `[vite] ${line}\n`;
-    if (target === "stderr") {
-      process.stderr.write(output);
-    } else {
-      process.stdout.write(output);
-    }
+    runtimeLog(target === "stderr" ? "warn" : "info", `[vite] ${line}`);
   };
 
   try {
