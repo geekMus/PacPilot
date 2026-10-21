@@ -40,6 +40,7 @@ import cron from "node-cron";
 import { parseProxyTestUrl, ProxyProbeError } from "../services/proxy-probe";
 import { resolveLocale, t as serverT } from "../../shared/i18n";
 import { assertSafeHttpUrl } from "../utils/url-safety";
+import { validateSettingsPayload } from "../utils/settings-validation";
 import { adminWorkflowRoutes } from "./admin-workflows";
 import { adminMonitorRoutes } from "./admin-monitor";
 
@@ -99,6 +100,9 @@ function persistSettings(
   database: AppDatabase,
   locale: "zh_CN" | "en_US"
 ): { settings: AppSettings } | { error: string } {
+  const payloadError = validateSettingsPayload(body);
+  if (payloadError) return { error: `Invalid settings payload: ${payloadError}` };
+
   const p = bodyToSettings(body, getSettings(database).proxyTestUrl);
   if (p.mode === "remote") {
     const listUrlError = assertSafeHttpUrl(p.listUrl, "rule list URL");
