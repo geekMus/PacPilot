@@ -20,12 +20,11 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    # push / 手动触发只允许 main、dev；PR 按目标分支判断。
+  prepare:
+    name: 阶段 1：依赖安装与静态检查
     if: >-
       (github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'dev')) ||
       (github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))
-    name: 前后端单测与覆盖率门槛
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -33,16 +32,54 @@ jobs:
         id: checkout
         uses: actions/checkout@v7
 
-      - name: 阶段 1 小结：检出代码
+      - name: 安装 Bun
+        id: setup-bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 安装依赖
+        id: install
+        run: bun install
+
+      - name: 类型检查、构建与国际化校验
+        id: check
+        run: bun run check
+
+      - name: 阶段 1 小结
         if: always()
         env:
-          RESULT: ${{ steps.checkout.outcome }}
+          JOB_STATUS: ${{ job.status }}
+          CHECKOUT: ${{ steps.checkout.outcome }}
+          BUN: ${{ steps.setup-bun.outcome }}
+          INSTALL: ${{ steps.install.outcome }}
+          CHECK: ${{ steps.check.outcome }}
+        shell: bash
         run: |
           {
-            echo "## 阶段 1：检出代码"
+            echo "## 阶段 1：依赖安装与静态检查"
             echo
-            echo "- **结果：** ${RESULT}"
+            echo "- **整体结果：** ${JOB_STATUS}"
+            echo "- **代码检出：** ${CHECKOUT}"
+            echo "- **Bun 环境：** ${BUN}"
+            echo "- **依赖安装：** ${INSTALL}"
+            echo "- **类型检查、构建与国际化校验：** ${CHECK}"
+            if [[ "${JOB_STATUS}" == "success" ]]; then
+              echo "- **后续阶段：** 可以进入单元测试。"
+            else
+              echo "- **后续阶段：** 单元测试阶段不会执行；请先修复本阶段失败。"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+  test:
+    name: 阶段 2：前后端单元测试
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: 检出代码
+        id: checkout
+        uses: actions/checkout@v7
 
       - name: 安装 Bun
         id: setup-bun
@@ -50,52 +87,9 @@ jobs:
         with:
           bun-version: latest
 
-      - name: 阶段 2 小结：运行环境
-        if: always()
-        env:
-          RESULT: ${{ steps.setup-bun.outcome }}
-        run: |
-          {
-            echo "## 阶段 2：准备运行环境"
-            echo
-            echo "- **Bun 安装结果：** ${RESULT}"
-            echo "- **版本策略：** latest"
-          } >> "$GITHUB_STEP_SUMMARY"
-
       - name: 安装依赖
         id: install
         run: bun install
-
-      - name: 阶段 3 小结：依赖安装
-        if: always()
-        env:
-          RESULT: ${{ steps.install.outcome }}
-        run: |
-          {
-            echo "## 阶段 3：安装依赖"
-            echo
-            echo "- **结果：** ${RESULT}"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: 类型检查、构建与国际化校验
-        id: check
-        run: bun run check
-
-      - name: 阶段 4 小结：类型检查、构建与国际化
-        if: always()
-        env:
-          RESULT: ${{ steps.check.outcome }}
-        run: |
-          {
-            echo "## 阶段 4：类型检查、构建与国际化校验"
-            echo
-            echo "- **结果：** ${RESULT}"
-            if [[ "${RESULT}" == "success" ]]; then
-              echo "- **结论：** 检查通过，可以进入单元测试阶段。"
-            else
-              echo "- **结论：** 检查未通过或被跳过；请查看本阶段日志。"
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: 运行前后端单测并检查覆盖率
         id: tests
@@ -109,34 +103,65 @@ jobs:
           TEST_STATUS=$?
           set -e
 
-          # 成功时隐藏冗长的测试明细；失败时输出去除 ANSI 控制码的日志，便于排查。
           if [[ "$TEST_STATUS" -ne 0 ]]; then
             perl -pe 's/\e\[[0-9;?]*[ -\/]*[@-~]//g' "$RUNNER_TEMP/test-output.log"
             exit "$TEST_STATUS"
           fi
 
-      - name: 阶段 5 小结：单元测试
+      - name: 保存覆盖率报告
+        id: upload-coverage
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            coverage/server/coverage-summary.json
+            coverage/client/coverage-summary.json
+          if-no-files-found: warn
+          retention-days: 1
+
+      - name: 阶段 2 小结
         if: always()
         env:
-          RESULT: ${{ steps.tests.outcome }}
+          JOB_STATUS: ${{ job.status }}
+          TEST_RESULT: ${{ steps.tests.outcome }}
+          COVERAGE_UPLOAD: ${{ steps.upload-coverage.outcome }}
+        shell: bash
         run: |
           {
-            echo "## 阶段 5：前后端单元测试与覆盖率门槛"
+            echo "## 阶段 2：前后端单元测试"
             echo
-            echo "- **结果：** ${RESULT}"
-            if [[ "${RESULT}" == "success" ]]; then
-              echo "- **结论：** 单元测试与覆盖率门槛通过。"
+            echo "- **整体结果：** ${JOB_STATUS}"
+            echo "- **单元测试：** ${TEST_RESULT}"
+            echo "- **覆盖率报告保存：** ${COVERAGE_UPLOAD}"
+            if [[ "${TEST_RESULT}" == "success" ]]; then
+              echo "- **结论：** 单元测试命令执行成功。"
             else
-              echo "- **结论：** 测试未通过或被跳过；请查看本阶段日志。"
+              echo "- **结论：** 单元测试未通过或未执行，请查看本阶段日志。"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: 阶段 6 小结：覆盖率报告
+  coverage:
+    name: 阶段 3：覆盖率报告
+    needs: [prepare, test]
+    if: always() && needs.prepare.result == 'success' && needs.test.result != 'cancelled'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: 下载覆盖率报告
+        id: download-coverage
+        uses: actions/download-artifact@v8
+        with:
+          name: coverage-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: coverage
+
+      - name: 生成覆盖率阶段报告
+        id: report
         if: always()
         shell: bash
         run: |
           {
-            echo "## 阶段 6：覆盖率报告"
+            echo "## 阶段 3：覆盖率报告"
             echo
             echo "| 范围 | 语句覆盖率 | 分支覆盖率 | 函数覆盖率 | 行覆盖率 |"
             echo "|---|---:|---:|---:|---:|"
@@ -159,4 +184,25 @@ jobs:
           }
           if (!found) console.log("| — | 未生成 | 未生成 | 未生成 | 未生成 |");
           NODE
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 阶段 3 小结
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          DOWNLOAD_RESULT: ${{ steps.download-coverage.outcome }}
+          REPORT_RESULT: ${{ steps.report.outcome }}
+          TEST_RESULT: ${{ needs.test.result }}
+        shell: bash
+        run: |
+          {
+            echo
+            echo "### 阶段处理结果"
+            echo
+            echo "- **单元测试阶段：** ${TEST_RESULT}"
+            echo "- **覆盖率报告下载：** ${DOWNLOAD_RESULT}"
+            echo "- **覆盖率报告生成：** ${REPORT_RESULT}"
+            if [[ "${DOWNLOAD_RESULT}" != "success" ]]; then
+              echo "- **说明：** 未能下载覆盖率报告；请确认测试阶段是否生成并上传报告。"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
