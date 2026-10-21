@@ -28,6 +28,7 @@ describe("frontend admin settings validators", () => {
     ["PROXY example.com:0", "settings.proxyPortInvalid"],
     ["PROXY invalid_host:7890", "settings.proxyHostnameInvalid"],
     ["PROXY example.com:7890;;DIRECT", "settings.proxySemicolon"],
+    ["PROXY example.com:7890;;", "settings.proxySemicolon"],
   ])("validates proxy directive %s", (value, expected) => {
     expect(validators.validatePacProxyString(value)).toBe(expected);
   });
