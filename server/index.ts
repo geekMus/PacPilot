@@ -30,9 +30,10 @@ async function main(): Promise<void> {
   logCleanupTimer.unref();
 
   if (initialAdminPassword) {
-    runtimeLog("warn", `首次启动生成的管理员密码（可在后台修改）：${initialAdminPassword}`);
+    // Use ASCII here so the one-time password remains readable in terminals with a mismatched Windows code page.
+    runtimeLog("warn", `Initial administrator password (change it in the admin panel): ${initialAdminPassword}`);
   } else if (adminCredentialsMissing) {
-    runtimeLog("error", "无法初始化管理员凭据，管理后台将无法登录。");
+    runtimeLog("error", "Unable to initialize administrator credentials; the admin panel cannot be accessed.");
   }
 
   const app = createApp(env, database);
