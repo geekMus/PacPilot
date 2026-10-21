@@ -3,8 +3,8 @@ name: 清理废弃工作流记录
 on:
   workflow_dispatch:
   schedule:
-    # 每天北京时间 11:27。修改 cron 可更改运行时间，修改 timezone 可更改时区。
-    - cron: "27 11 * * *"
+    # 每天北京时间 00:00。修改 cron 可更改运行时间，修改 timezone 可更改时区。
+    - cron: "0 0 * * *"
       timezone: "Asia/Shanghai"
 
 permissions:
