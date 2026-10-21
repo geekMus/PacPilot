@@ -2,7 +2,7 @@ import { Router } from "express";
 import type { AppDatabase } from "../db/sqlite";
 import { getWorkflowRun } from "../db/sqlite";
 import { requireAdmin } from "../middleware/auth";
-import { probeGenpac } from "../services/pac-generator";
+import { probePacPilot } from "../services/pac-generator";
 import { startPacWorkflow } from "../services/workflow";
 
 export function adminGenerationRoutes(database: AppDatabase, dataDir: string): Router {
@@ -17,8 +17,8 @@ export function adminGenerationRoutes(database: AppDatabase, dataDir: string): R
       res.status(409).json({ error: e instanceof Error ? e.message : String(e) });
     }
   });
-  router.get("/api/admin/genpac-status", requireAdmin(database), async (_req, res) =>
-    res.json(await probeGenpac())
+  router.get("/api/admin/pacpilot-status", requireAdmin(database), async (_req, res) =>
+    res.json(await probePacPilot())
   );
   return router;
 }
