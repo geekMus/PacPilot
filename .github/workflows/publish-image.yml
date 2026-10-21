@@ -174,7 +174,7 @@ jobs:
   check:
     name: 类型检查与构建
     needs: prepare
-    if: needs.prepare.outputs.publish == 'true'
+    if: github.ref == 'refs/heads/main' && needs.prepare.outputs.publish == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -215,7 +215,7 @@ jobs:
   publish:
     name: 构建并发布 ARM64 镜像
     needs: [prepare, check]
-    if: needs.prepare.outputs.publish == 'true' && needs.check.result == 'success'
+    if: github.ref == 'refs/heads/main' && needs.prepare.outputs.publish == 'true' && needs.check.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
