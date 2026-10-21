@@ -1,0 +1,91 @@
+# GeekMus Non-Commercial License 1.0 (GNCL-1.0)
+
+Copyright (c) 2026 geekMus
+
+This License is a custom source-available software license. It is not an OSI-approved Open Source License. The Chinese translation is provided for convenience; the English text controls if the two texts conflict.
+
+## 1. Scope and Definitions
+
+“Author” means geekMus, but only with respect to the parts of the Project for which geekMus owns or controls the relevant rights.
+
+“Project” means the source code, scripts, documentation, and other materials in this repository that the Author owns or controls and makes available under this License. Third-party materials are not covered by this License unless their respective rights holders expressly place them under it; those materials remain subject to their own licenses and notices.
+
+“Non-Commercial Purpose” means use in a genuinely personal capacity, including personal learning, study, research, and experimentation, or use in a non-commercial community or open-source project, provided the use is not carried out for, on behalf of, or as part of the business operations or work duties of a business or organization.
+
+“Commercial Purpose” includes, without limitation:
+- use by or on behalf of a company, business, or other organization for its internal operations, work assignments, product development, testing, deployment, or service delivery;
+- incorporation into or use to develop, operate, or support a commercial product or service;
+- providing hosting, consulting, support, or other services for commercial advantage or compensation; and
+- selling, licensing for a fee, commercially distributing, or bundling the Project or a derivative version for sale.
+
+For clarity, a person's genuine personal learning or experimentation remains a Non-Commercial Purpose merely because that person is employed by a company, provided the activity is not performed on the company's behalf or as part of their work duties.
+
+## 2. Permission for Non-Commercial Use
+
+Subject to this License, the Author grants you a worldwide, non-exclusive, royalty-free, non-transferable license to use, reproduce, modify, and redistribute the Project, in source or object form, solely for Non-Commercial Purposes and subject to the conditions below.
+
+No permission for a Commercial Purpose is granted by this License. All rights not expressly granted are reserved.
+
+## 3. Attribution, Notices, and Modified Versions
+
+You may modify the Project and redistribute the original or modified Project free of charge for Non-Commercial Purposes, provided that you:
+
+1. retain all existing copyright, attribution, and license notices;
+2. include a copy of this License with each redistribution;
+3. give clear attribution to geekMus and identify the Project as derived from or based on `geekMus/genpac-runner`;
+4. clearly identify modified files or otherwise give a reasonable notice that you have changed the Project; and
+5. do not represent your modified version as the official version or imply that the Author endorses it without prior written permission.
+
+You may not remove or obscure the notices required by this section. You may not grant recipients permission to use the Project for purposes that this License does not permit.
+
+## 4. Donations and Non-Commercial Community Projects
+
+A non-commercial community or open-source project may accept voluntary donations or sponsorships. Receiving donations or sponsorships does not, by itself, make the project a Commercial Purpose, provided that the payments are voluntary and are not consideration for access to the Project, a license, paid features, commercial services, or other commercial benefits.
+
+The actual nature and purpose of the activity, rather than the label given to a payment, determine whether it is commercial.
+
+## 5. Commercial Use Requires Prior Written Authorization
+
+Any Commercial Purpose requires the Author's prior written authorization under a separate commercial permission or agreement. This requirement applies even if the Project is free to download, is not sold separately, or generates no direct payment.
+
+You may request commercial authorization through:
+
+- GitHub Issues: https://github.com/geekMus/genpac-runner/issues
+- GitHub Discussions: https://github.com/geekMus/genpac-runner/discussions
+- Email: geekMus@qq.com
+
+Submitting a request, opening a discussion, or receiving no response does not constitute authorization. Authorization exists only when the Author or an authorized representative expressly grants it in writing. Do not post confidential business information in public Issues or Discussions.
+
+## 6. No Unauthorized Sale or Commercial Distribution
+
+Without prior written authorization under Section 5, you may not sell, license for a fee, commercially distribute, or bundle the Project or any derivative version for sale, nor use the Project as part of a paid or commercial product or service.
+
+Free redistribution is permitted only for Non-Commercial Purposes and subject to Section 3. This section does not prohibit the Author from separately authorizing commercial activities in writing.
+
+## 7. Third-Party Materials and Trademarks
+
+This License grants rights only in materials for which the Author is entitled to grant them. Third-party components, dependencies, names, logos, and other materials may be subject to separate licenses or terms; you are responsible for complying with those terms.
+
+No right to use the Author's name, trademarks, logos, or branding is granted except for the factual attribution expressly required by Section 3. You must not imply official endorsement.
+
+## 8. Termination
+
+If you materially violate this License, the permissions granted to you terminate. Where permitted by applicable law, the permissions may be reinstated if you remedy the violation within 30 days after receiving written notice from the Author. This section does not limit any non-waivable rights or remedies under applicable law.
+
+## 9. Disclaimer of Warranty and Limitation of Liability
+
+To the maximum extent permitted by applicable law, the Project is provided “AS IS” and without warranties or conditions of any kind, whether express, implied, statutory, or otherwise.
+
+To the maximum extent permitted by applicable law, the Author shall not be liable for any damages or claims arising from this License or the use of the Project. Nothing in this License excludes or limits liability where such exclusion or limitation is prohibited by applicable law.
+
+## 10. Applicable Laws and Disputes
+
+Each user is responsible for complying with the laws and regulations applicable in the country or region where they use the Project.
+
+Any dispute relating to this License shall be handled in accordance with applicable law and procedure by a court or other authority with jurisdiction over the dispute. This section does not designate a single governing law or exclusive venue, and does not override mandatory rules concerning applicable law or jurisdiction.
+
+## 11. Reservation of Rights
+
+All rights not expressly granted by this License are reserved by the Author.
+
+For commercial licensing or permissions beyond this License, contact geekMus@qq.com.
