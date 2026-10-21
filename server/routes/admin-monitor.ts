@@ -8,13 +8,10 @@ import {
   DEFAULT_PROXY_TEST_URL,
   parseProxyTestUrl,
   ProxyProbeError,
-  testConfiguredProxies,
 } from "../services/proxy-probe";
 
 export function adminMonitorRoutes(database: AppDatabase): Router {
   const router = Router();
-  let probeInProgress = false;
-
   const proxyErrorResponse = (error: unknown) =>
     error instanceof ProxyProbeError
       ? { errorCode: error.code, errorDetail: error.detail }
@@ -95,31 +92,6 @@ export function adminMonitorRoutes(database: AppDatabase): Router {
     }
     const next = updateSettings(database, { proxyTestUrl: target.toString() });
     res.json({ url: next.proxyTestUrl });
-  });
-
-  router.post("/api/admin/monitor/probe", requireAdmin(database), async (_req, res) => {
-    res.setHeader("Cache-Control", "no-store");
-    if (probeInProgress) {
-      res.status(409).json({
-        errorCode: "monitor.probeErrors.inProgress",
-        errorDetail: "",
-      });
-      return;
-    }
-    probeInProgress = true;
-    try {
-      const settings = getSettings(database);
-      const result = await testConfiguredProxies(
-        database,
-        settings.pacProxy,
-        settings.proxyTestUrl
-      );
-      res.json(result);
-    } catch (error) {
-      res.status(400).json(proxyErrorResponse(error));
-    } finally {
-      probeInProgress = false;
-    }
   });
 
   return router;
