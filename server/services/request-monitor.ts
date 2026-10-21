@@ -70,7 +70,7 @@ export function requestMonitoringMiddleware(database: AppDatabase) {
       } catch (error) {
         runtimeLog(
           "warn",
-          "无法写入访问记录：",
+          "Failed to write access record: ",
           error instanceof Error ? error.message : String(error)
         );
       }
