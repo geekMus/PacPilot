@@ -74,21 +74,15 @@ jobs:
             exit 1
           fi
 
-          # GHCR 的 token endpoint 即使在仓库尚无镜像时也应返回 token。
-          # 将认证失败与 latest 不存在区分开，避免把权限/网络问题误判为首次发布。
-          TOKEN_RESPONSE="$(curl --retry 2 --retry-delay 1 --connect-timeout 10 --max-time 30 -fsS \
-            'https://ghcr.io/token?scope=repository:geekmus/pacpilot:pull&service=ghcr.io')" || {
-            echo "::error::无法从 GHCR 获取读取令牌；请检查网络及镜像仓库可访问性。"
-            exit 1
-          }
           PREVIOUS_VERSION=""
-          TOKEN_HTTP_STATUS="$(curl --retry 2 --retry-delay 1 --connect-timeout 10 --max-time 30 -sS \
+          TOKEN_HTTP_STATUS=""
+          if ! TOKEN_HTTP_STATUS="$(curl --retry 2 --retry-delay 1 --connect-timeout 10 --max-time 30 -sS \
             -u "${GITHUB_ACTOR}:${GH_TOKEN}" \
             -o "$RUNNER_TEMP/ghcr-token-response.json" -w '%{http_code}' \
-            'https://ghcr.io/token?scope=repository:geekmus/pacpilot:pull&service=ghcr.io')" || {
+            'https://ghcr.io/token?scope=repository:geekmus/pacpilot:pull&service=ghcr.io')"; then
             echo "::error::访问 GHCR token endpoint 失败；请检查网络连接。"
             exit 1
-          }"
+          fi
 
           if [[ "$TOKEN_HTTP_STATUS" == "200" ]]; then
             REGISTRY_TOKEN="$(jq -r '.token // .access_token // empty' "$RUNNER_TEMP/ghcr-token-response.json")"
@@ -98,14 +92,14 @@ jobs:
             fi
 
             MANIFEST_ACCEPT="application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json"
-            MANIFEST_STATUS="$(curl --retry 2 --retry-delay 1 --connect-timeout 10 --max-time 30 -sS \
+            if ! MANIFEST_STATUS="$(curl --retry 2 --retry-delay 1 --connect-timeout 10 --max-time 30 -sS \
               -o "$RUNNER_TEMP/latest-manifest.json" -w '%{http_code}' \
               -H "Authorization: Bearer $REGISTRY_TOKEN" \
               -H "Accept: $MANIFEST_ACCEPT" \
-              'https://ghcr.io/v2/geekmus/pacpilot/manifests/latest')" || {
+              'https://ghcr.io/v2/geekmus/pacpilot/manifests/latest')"; then
               echo "::error::请求 GHCR latest 清单时网络连接失败。"
               exit 1
-            }
+            fi
             echo "GHCR latest manifest HTTP 状态码：$MANIFEST_STATUS"
 
             if [[ "$MANIFEST_STATUS" == "200" ]]; then
@@ -138,16 +132,16 @@ jobs:
             fi
           elif [[ "$TOKEN_HTTP_STATUS" == "403" ]]; then
             # GHCR 在容器包尚未创建时，pull token 请求通常返回 403，而不是 404。
-            # 只有 GitHub Packages API 同时确认没有可见的同名包，才按首次发布继续。
-            PACKAGE_HTTP_STATUS="$(curl --retry 2 --retry-delay 1 --connect-timeout 10 --max-time 30 -sS \
+            # 仅当 GitHub Packages API 也返回 404 时，才按首次发布处理。
+            if ! PACKAGE_HTTP_STATUS="$(curl --retry 2 --retry-delay 1 --connect-timeout 10 --max-time 30 -sS \
               -H "Accept: application/vnd.github+json" \
               -H "Authorization: Bearer $GH_TOKEN" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
               -o "$RUNNER_TEMP/package-metadata.json" -w '%{http_code}' \
-              'https://api.github.com/users/geekMus/packages/container/pacpilot')" || {
+              'https://api.github.com/users/geekMus/packages/container/pacpilot')"; then
               echo "::error::GHCR 拒绝读取令牌，且查询 GitHub Packages 状态时网络连接失败。"
               exit 1
-            }
+            fi
             echo "GitHub Packages metadata HTTP 状态码：$PACKAGE_HTTP_STATUS"
             if [[ "$PACKAGE_HTTP_STATUS" == "404" ]]; then
               echo "GHCR 尚无可见的 pacpilot 容器包，允许首次发布 $VERSION。"
