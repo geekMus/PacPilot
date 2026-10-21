@@ -6,7 +6,7 @@ withDefaults(
   }>(),
   {
     size: 32,
-    title: "genpac-runner",
+    title: "PacPilot",
   }
 );
 </script>
