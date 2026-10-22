@@ -2,7 +2,6 @@
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { Toaster, toast } from "vue-sonner";
-import "vue-sonner/style.css";
 
 const { locale } = useI18n();
 const theme = ref<"light" | "dark">("light");
