@@ -383,9 +383,6 @@ watch(
     min-height: 44px;
     font-size: 16px;
   }
-  .admin-content {
-    padding: 16px;
-  }
 }
 @media (max-width: 360px) {
   .admin-topbar {
