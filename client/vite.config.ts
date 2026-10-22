@@ -27,6 +27,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      chunkSizeWarningLimit: 600,
       outDir: path.resolve(import.meta.dirname, "../dist/client"),
       emptyOutDir: true,
     },
