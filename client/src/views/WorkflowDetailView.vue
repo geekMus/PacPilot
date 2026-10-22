@@ -918,9 +918,6 @@ onUnmounted(() => {
   box-shadow: 0 18px 48px color-mix(in srgb, var(--text) 18%, transparent);
   overflow: auto;
 }
-.stage-detail-dialog::backdrop {
-  background: rgba(12, 16, 24, 0.45);
-}
 .stage-detail-shell {
   display: flex;
   flex-direction: column;
