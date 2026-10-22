@@ -155,10 +155,6 @@ async function copyContent(): Promise<void> {
   box-shadow: var(--shadow);
 }
 
-.text-detail-dialog::backdrop {
-  background: rgb(0 0 0 / 52%);
-  backdrop-filter: blur(2px);
-}
 
 .text-detail-header,
 .text-detail-footer {
