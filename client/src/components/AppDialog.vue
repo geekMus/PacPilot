@@ -53,7 +53,9 @@ function onCloseAutoFocus(event: Event): void {
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: rgba(12, 16, 24, 0.45);
+  background: var(--dialog-overlay-bg);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
 }
 .app-dialog-content {
   position: fixed;
@@ -63,10 +65,6 @@ function onCloseAutoFocus(event: Event): void {
   max-width: calc(100vw - 16px);
   transform: translate(-50%, -50%);
   outline: none;
-}
-.text-detail-dialog-overlay {
-  background: rgb(0 0 0 / 52%);
-  backdrop-filter: blur(2px);
 }
 @media (prefers-reduced-motion: reduce) {
   .app-dialog-overlay {
