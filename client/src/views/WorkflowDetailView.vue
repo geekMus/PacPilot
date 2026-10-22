@@ -426,7 +426,7 @@ onUnmounted(() => {
         :label="t('workflowDetailPage.k19')"
         @update:open="onStageDetailOpenChange"
       >
-        <div class="stage-detail-dialog">
+        <div v-if="selectedStage" class="stage-detail-dialog">
         <div class="stage-detail-shell">
           <header class="stage-detail-header">
             <div>
