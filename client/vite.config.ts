@@ -29,21 +29,6 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: path.resolve(import.meta.dirname, "../dist/client"),
       emptyOutDir: true,
-      rolldownOptions: {
-        output: {
-          codeSplitting: {
-            groups: [
-              {
-                name: "chart-vendor",
-                test: /node_modules\/(?:echarts|zrender)\//,
-                minSize: 100_000,
-                maxSize: 250_000,
-                priority: 10,
-              },
-            ],
-          },
-        },
-      },
     },
   };
 });
