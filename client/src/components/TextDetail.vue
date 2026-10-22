@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppIcon from "./AppIcon.vue";
+import { useCopyFeedback } from "../composables/useCopyFeedback";
 import { useI18n } from "vue-i18n";
 import { computed, nextTick, ref } from "vue";
 const { t } = useI18n();
@@ -18,13 +19,12 @@ const props = withDefaults(
 const dialog = ref<HTMLDialogElement | null>(null);
 const trigger = ref<HTMLButtonElement | null>(null);
 const dialogMounted = ref(false);
-const copyStateKey = ref<"common.copied" | "common.copyManual" | "">("");
-const copyState = computed(() => (copyStateKey.value ? t(copyStateKey.value) : ""));
+const { copyState, copyWithFeedback, resetCopyState } = useCopyFeedback();
 const fullText = computed(() => props.text ?? "");
 const resolvedLabel = computed(() => props.label || t("common.recordDetail"));
 
 async function openDetails(): Promise<void> {
-  copyStateKey.value = "";
+  resetCopyState();
   dialogMounted.value = true;
   await nextTick();
   if (dialog.value && !dialog.value.open) dialog.value.showModal();
@@ -44,16 +44,13 @@ function restoreFocus(): void {
 
 function onDialogClose(): void {
   restoreFocus();
+  resetCopyState();
   dialogMounted.value = false;
 }
 
 async function copyContent(): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(fullText.value || "—");
-    copyStateKey.value = "common.copied";
-  } catch {
-    copyStateKey.value = "common.copyManual";
-  }
+  const text = fullText.value || "—";
+  await copyWithFeedback(text);
 }
 </script>
 
@@ -95,10 +92,18 @@ async function copyContent(): Promise<void> {
     <pre class="text-detail-content">{{ fullText || "—" }}</pre>
 
     <footer class="text-detail-footer">
-      <span class="text-detail-copy-state" role="status" aria-live="polite">{{ copyState }}</span>
       <div class="text-detail-actions">
-        <button class="text-detail-button secondary" type="button" @click="copyContent">
-          <AppIcon name="copy" :size="14" />{{ t("common.copyContent") }}
+        <button
+          class="text-detail-button secondary"
+          :class="{ 'is-copy-success': copyState === 'success', 'is-copy-error': copyState === 'error' }"
+          type="button"
+          aria-live="polite"
+          @click="copyContent"
+        >
+          <AppIcon
+            :name="copyState === 'success' ? 'circle-check' : copyState === 'error' ? 'circle-x' : 'copy'"
+            :size="14"
+          />{{ copyState === 'success' ? t("common.copiedShort") : copyState === 'error' ? t("common.copyFailed") : t("common.copyContent") }}
         </button>
         <button class="text-detail-button primary" type="button" @click="closeDetails">
           {{ t("common.close") }}
@@ -242,13 +247,6 @@ async function copyContent(): Promise<void> {
   flex-wrap: wrap;
 }
 
-.text-detail-copy-state {
-  min-width: 0;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.5;
-}
-
 .text-detail-actions {
   display: flex;
   gap: 8px;
@@ -273,6 +271,16 @@ async function copyContent(): Promise<void> {
 .text-detail-button.secondary {
   background: var(--surface-2);
   color: var(--text);
+}
+
+.text-detail-button.is-copy-success {
+  border-color: color-mix(in srgb, var(--green) 55%, var(--line));
+  color: var(--green);
+}
+
+.text-detail-button.is-copy-error {
+  border-color: color-mix(in srgb, var(--red, #dc2626) 55%, var(--line));
+  color: var(--red, #dc2626);
 }
 
 .text-detail-button.secondary:hover {

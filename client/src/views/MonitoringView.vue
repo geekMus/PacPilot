@@ -28,7 +28,7 @@ const {
   accessStatus,
   selectedAccess,
   accessDetailDialog,
-  accessDetailCopyState,
+  accessCopyState,
   openAccessDetail,
   closeAccessDetail,
   onAccessDetailClose,
@@ -494,8 +494,17 @@ const {
               <h2>{{ t("monitor.k135") }}</h2>
             </div>
             <div class="access-detail-actions">
-              <button class="monitor-button secondary" type="button" @click="copyAccessDetail">
-                <AppIcon name="copy" :size="14" />{{ t("monitor.k136") }}
+              <button
+                class="monitor-button secondary"
+                :class="{ 'is-copy-success': accessCopyState === 'success', 'is-copy-error': accessCopyState === 'error' }"
+                type="button"
+                aria-live="polite"
+                @click="copyAccessDetail"
+              >
+                <AppIcon
+                  :name="accessCopyState === 'success' ? 'circle-check' : accessCopyState === 'error' ? 'circle-x' : 'copy'"
+                  :size="14"
+                />{{ accessCopyState === 'success' ? t("common.copiedShort") : accessCopyState === 'error' ? t("common.copyFailed") : t("monitor.k136") }}
               </button>
               <button
                 class="monitor-button secondary"
@@ -507,9 +516,6 @@ const {
               </button>
             </div>
           </header>
-          <p v-if="accessDetailCopyState" class="access-detail-copy-state" role="status">
-            {{ accessDetailCopyState }}
-          </p>
           <div class="access-detail-grid">
             <div>
               <span>{{ t("monitor.k127") }}</span

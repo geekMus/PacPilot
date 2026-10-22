@@ -837,3 +837,14 @@
     margin-top: 10px;
   }
 }
+
+
+.monitor-button.is-copy-success {
+  border-color: color-mix(in srgb, var(--green) 55%, var(--line));
+  color: var(--green);
+}
+
+.monitor-button.is-copy-error {
+  border-color: color-mix(in srgb, var(--red, #dc2626) 55%, var(--line));
+  color: var(--red, #dc2626);
+}

@@ -1,32 +1,32 @@
-import { reactive } from "vue";
+import { toast } from "vue-sonner";
+
 export type ToastKind = "success" | "error" | "info" | "warning";
-export interface ToastMessage {
-  id: number;
-  kind: ToastKind;
-  message: string;
-}
-const state = reactive<{ items: ToastMessage[] }>({ items: [] });
-let nextId = 1;
-const timers = new Map<number, ReturnType<typeof setTimeout>>();
+
 export function useToast() {
-  function dismiss(id: number) {
-    const index = state.items.findIndex((item) => item.id === id);
-    if (index >= 0) state.items.splice(index, 1);
-    const timer = timers.get(id);
-    if (timer) clearTimeout(timer);
-    timers.delete(id);
+  function dismiss(id: string | number) {
+    toast.dismiss(id);
   }
+
   function notify(message: string, kind: ToastKind = "info", duration = 4000) {
     const text = message.trim();
     if (!text) return;
-    const id = nextId++;
-    state.items.push({ id, kind, message: text });
-    if (state.items.length > 5) dismiss(state.items[0].id);
-    if (duration > 0)
-      timers.set(
-        id,
-        setTimeout(() => dismiss(id), duration)
-      );
+
+    const options = { duration: duration > 0 ? duration : Infinity };
+
+    switch (kind) {
+      case "success":
+        toast.success(text, options);
+        break;
+      case "error":
+        toast.error(text, options);
+        break;
+      case "warning":
+        toast.warning(text, options);
+        break;
+      default:
+        toast.info(text, options);
+    }
   }
-  return { toasts: state.items, notify, dismiss };
+
+  return { notify, dismiss };
 }

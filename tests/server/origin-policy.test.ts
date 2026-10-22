@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { isTrustedOrigin, normalizeOrigin } from "../../server/utils/origin-policy";
+import {
+  getLocalInterfaceAddresses,
+  isTrustedOrigin,
+  normalizeOrigin,
+} from "../../server/utils/origin-policy";
 
 describe("normalizeOrigin", () => {
   it("normalizes valid HTTP origins and removes path and query", () => {
@@ -15,16 +19,64 @@ describe("normalizeOrigin", () => {
   });
 });
 
+describe("getLocalInterfaceAddresses", () => {
+  it("always includes loopback addresses and returns normalized IP literals", () => {
+    const addresses = getLocalInterfaceAddresses();
+    expect(addresses.has("127.0.0.1")).toBe(true);
+    expect(addresses.has("::1")).toBe(true);
+    for (const address of addresses) {
+      expect(address.includes("%")).toBe(false);
+    }
+  });
+});
+
 describe("isTrustedOrigin", () => {
+  const localAddresses = new Set(["127.0.0.1", "::1", "192.168.31.133"]);
+
   it("accepts matching request origin and explicitly allowed origins", () => {
     expect(isTrustedOrigin("https://example.com/path", "https://example.com/api", new Set())).toBe(true);
-    expect(isTrustedOrigin("https://trusted.example", "https://other.example", new Set(["https://trusted.example"])))
-      .toBe(true);
+    expect(
+      isTrustedOrigin(
+        "https://trusted.example",
+        "https://other.example",
+        new Set(["https://trusted.example"]),
+        localAddresses
+      )
+    ).toBe(true);
+  });
+
+  it("accepts a discovered local interface IP on the service port or Vite port", () => {
+    expect(
+      isTrustedOrigin("http://192.168.31.133:5173", "http://127.0.0.1:17321", new Set(), localAddresses)
+    ).toBe(true);
+    expect(
+      isTrustedOrigin("http://192.168.31.133:17321", "http://127.0.0.1:17321", new Set(), localAddresses)
+    ).toBe(true);
+    expect(
+      isTrustedOrigin("http://localhost:5173", "http://127.0.0.1:17321", new Set(), localAddresses)
+    ).toBe(true);
+  });
+
+  it("does not trust another host or arbitrary ports on a local interface", () => {
+    expect(
+      isTrustedOrigin("http://192.168.31.200:5173", "http://127.0.0.1:17321", new Set(), localAddresses)
+    ).toBe(false);
+    expect(
+      isTrustedOrigin("http://192.168.31.133:9000", "http://127.0.0.1:17321", new Set(), localAddresses)
+    ).toBe(false);
+    expect(
+      isTrustedOrigin("http://localhost:9000", "http://127.0.0.1:17321", new Set(), localAddresses)
+    ).toBe(false);
+    expect(
+      isTrustedOrigin("https://attacker.example", "https://example.com", new Set(), localAddresses)
+    ).toBe(false);
   });
 
   it("rejects absent, malformed and untrusted origins", () => {
-    expect(isTrustedOrigin(undefined, "https://example.com", new Set())).toBe(false);
-    expect(isTrustedOrigin("bad", "https://example.com", new Set())).toBe(false);
-    expect(isTrustedOrigin("https://attacker.example", "https://example.com", new Set())).toBe(false);
+    expect(isTrustedOrigin(undefined, "https://example.com", new Set(), localAddresses)).toBe(false);
+    expect(isTrustedOrigin("bad", "https://example.com", new Set(), localAddresses)).toBe(false);
+    expect(
+      isTrustedOrigin("https://attacker.example", "https://example.com", new Set(), localAddresses)
+    ).toBe(false);
   });
 });
