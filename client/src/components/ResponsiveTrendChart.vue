@@ -134,7 +134,8 @@ function buildOption(): Record<string, unknown> {
     right: isMobile ? 8 : 14,
     top: 16,
     bottom: isMobile ? 28 : 32,
-    containLabel: true,
+    outerBoundsMode: "same",
+    outerBoundsContain: "axisLabel",
   };
 
   const axisCommon = {
