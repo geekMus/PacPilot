@@ -49,9 +49,8 @@ function onDialogClose(): void {
 
 function copyWithLegacyCommand(text: string): boolean {
   const textarea = document.createElement("textarea");
-  const previousFocus = document.activeElement instanceof HTMLElement
-    ? document.activeElement
-    : null;
+  const previousFocus =
+    document.activeElement instanceof HTMLElement ? document.activeElement : null;
   textarea.value = text;
   textarea.setAttribute("readonly", "");
   textarea.setAttribute("aria-hidden", "true");
@@ -76,7 +75,11 @@ function copyWithLegacyCommand(text: string): boolean {
     textarea.setSelectionRange(0, textarea.value.length);
 
     // Do not report success if the browser refused to focus/select the text.
-    if (document.activeElement === textarea && textarea.selectionStart === 0 && textarea.selectionEnd === text.length) {
+    if (
+      document.activeElement === textarea &&
+      textarea.selectionStart === 0 &&
+      textarea.selectionEnd === text.length
+    ) {
       copied = document.execCommand("copy");
     }
   } catch {
