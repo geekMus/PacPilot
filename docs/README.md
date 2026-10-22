@@ -2,7 +2,7 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-This directory contains the project's user, deployment, development, and operations documentation. The root [README.md](../README.md) provides a project overview, quick start, and documentation links. Detailed guidance belongs in the relevant document so that routine documentation updates do not require frequent edits to the root README.
+This directory contains the project's user, deployment, development, and operations documentation. This index is available in English and Chinese; the detailed guides linked below are currently maintained in Chinese. The root [README.md](../README.md) provides a project overview, quick start, and documentation links. Detailed guidance belongs in the relevant document so that routine documentation updates do not require frequent edits to the root README.
 
 | Document | Description |
 | --- | --- |
