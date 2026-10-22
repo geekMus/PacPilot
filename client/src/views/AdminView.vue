@@ -9,6 +9,7 @@ import {
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppDialog from "../components/AppDialog.vue";
+import { DialogDescription, DialogTitle } from "reka-ui";
 import AppFooter from "../components/AppFooter.vue";
 import TextDetail from "../components/TextDetail.vue";
 import VirtualTable from "../components/VirtualTable.vue";
@@ -270,7 +271,10 @@ const { style: timezonePanelStyle } = useViewportPanel(
             >
               <section class="timezone-sheet" aria-labelledby="mobile-timezone-title">
                 <header class="timezone-sheet-head">
-                  <h3 id="mobile-timezone-title">{{ t("settings.selectTimezone") }}</h3>
+                  <DialogTitle id="mobile-timezone-title" class="timezone-sheet-title">{{ t("settings.selectTimezone") }}</DialogTitle>
+                  <DialogDescription class="app-dialog-visually-hidden">
+                    {{ t("settings.timezoneHintFull") }}
+                  </DialogDescription>
                   <button
                     type="button"
                     class="timezone-sheet-close"
