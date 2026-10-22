@@ -311,6 +311,29 @@ code {
   }
 }
 
+/* Native text fields keep their semantic behavior while inheriting project theme tokens.
+   The zero-specificity baseline deliberately lets page-specific layouts retain their own styling. */
+:where(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea
+) {
+  color: var(--text);
+  border-color: var(--line);
+  background-color: var(--surface);
+}
+
+:where(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea
+)::placeholder {
+  color: var(--muted);
+  opacity: 0.82;
+}
+
+:where(input[type="checkbox"], input[type="radio"]) {
+  accent-color: var(--accent);
+}
+
 /* === scrollbars (VS Code–inspired: thin, quiet, theme-aware) === */
 :root {
   --scrollbar-size: 10px;
