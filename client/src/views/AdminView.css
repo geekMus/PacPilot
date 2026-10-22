@@ -565,7 +565,6 @@ textarea {
   color: var(--control-disabled-text);
 }
 .admin-page .field.is-disabled input:disabled,
-.admin-page .field.is-disabled select:disabled,
 .admin-page .field.is-disabled textarea:disabled {
   color: var(--control-disabled-text);
   -webkit-text-fill-color: var(--control-disabled-text);
@@ -798,8 +797,7 @@ tr:last-child td {
   font-weight: 600;
 }
 .admin-page input[aria-invalid="true"],
-.admin-page textarea[aria-invalid="true"],
-.admin-page select[aria-invalid="true"] {
+.admin-page textarea[aria-invalid="true"] {
   border-color: var(--red) !important;
   box-shadow: 0 0 0 3px var(--red-soft) !important;
 }
@@ -1160,16 +1158,6 @@ textarea.body-area {
   font-size: 11px;
   line-height: 1.6;
 }
-.retention-control select {
-  min-height: 40px;
-  min-width: 140px;
-  padding: 0 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-}
 .storage-counts {
   display: flex;
   flex-wrap: wrap;
@@ -1240,10 +1228,6 @@ textarea.body-area {
   .retention-setting {
     align-items: flex-start;
     flex-direction: column;
-  }
-  .retention-control,
-  .retention-control select {
-    width: 100%;
   }
   .storage-actions {
     display: grid;

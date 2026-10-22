@@ -508,8 +508,8 @@ const channelStatusText = computed(() => {
   font-weight: 700;
   line-height: 1.4;
 }
-.provider-picker select,
-.field select,
+ .provider-picker .app-select :deep(.app-select-trigger),
+.field .app-select :deep(.app-select-trigger),
 .field-static {
   box-sizing: border-box;
   width: 100%;
@@ -523,15 +523,18 @@ const channelStatusText = computed(() => {
   font: inherit;
   font-size: 12px;
 }
-.provider-picker select,
-.field select {
+ .provider-picker .app-select,
+.field .app-select {
+  width: 100%;
+  min-width: 0;
+}
+.provider-picker .app-select :deep(.app-select-trigger),
+.field .app-select :deep(.app-select-trigger) {
   cursor: pointer;
 }
-.provider-picker select:focus,
-.field select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+.provider-picker .app-select :deep(.app-select-trigger),
+.field .app-select :deep(.app-select-trigger) {
+  cursor: pointer;
 }
 .field {
   display: flex;
