@@ -98,7 +98,7 @@ jobs:
           fi
 
           # Redact the ephemeral development password before printing or uploading logs.
-          sed -E -i 's/(Initial administrator password[^:]*: ).*/\1[REDACTED]/' "$LOG"
+          sed -E -i 's/Initial administrator password.*/Initial administrator password: [REDACTED]/' "$LOG"
           # Snapshot before intentional shutdown so shutdown noise is not mistaken for a startup warning.
           cp "$LOG" "$RUNNER_TEMP/dev-server-before-shutdown.log"
           kill -INT "$pid" 2>/dev/null || true
