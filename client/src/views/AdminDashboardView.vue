@@ -13,7 +13,7 @@ import {
   type WorkflowRun,
 } from "../api/client";
 
-import AdminLayout from "../components/AdminLayout.vue";
+import AdminLayout from "../components/layout/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
 import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";

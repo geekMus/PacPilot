@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import { api } from "../api/client";
-import { invalidateAdminSessionCache } from "../composables/useAdminSession";
-import AppIcon from "./AppIcon.vue";
+import { api } from "../../api/client";
+import { invalidateAdminSessionCache } from "../../composables/useAdminSession";
+import AppIcon from "../AppIcon.vue";
 import { useI18n } from "vue-i18n";
-import BrandMark from "./BrandMark.vue";
+import BrandMark from "../BrandMark.vue";
 
 type AdminSection = "dashboard" | "settings" | "system-settings" | "monitor" | "workflow";
 const props = defineProps<{ active: AdminSection; open: boolean }>();

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import AdminLayout from "../components/AdminLayout.vue";
+import AdminLayout from "../components/layout/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppDialog from "../components/AppDialog.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";

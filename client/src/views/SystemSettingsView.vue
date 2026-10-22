@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { api, type AppSettings, type StorageSummary } from "../api/client";
-import AdminLayout from "../components/AdminLayout.vue";
+import AdminLayout from "../components/layout/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
 import ConfirmPopover from "../components/ConfirmPopover.vue";

@@ -2,8 +2,8 @@
 import { ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import AppIcon from "./AppIcon.vue";
-import UserPreferencesMenu from "./UserPreferencesMenu.vue";
+import AppIcon from "../AppIcon.vue";
+import UserPreferencesMenu from "../UserPreferencesMenu.vue";
 import AdminSidebar from "./AdminSidebar.vue";
 
 type AdminSection = "dashboard" | "settings" | "system-settings" | "monitor" | "workflow";
