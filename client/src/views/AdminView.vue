@@ -255,18 +255,13 @@ const { style: timezonePanelStyle } = useViewportPanel(
               <p v-if="timezoneError" class="field-error" role="alert">{{ timezoneError }}</p>
             </div>
 
-            <div
-              v-if="mobileTimezoneOpen"
-              class="timezone-sheet-backdrop"
-              @click.self="mobileTimezoneOpen = false"
+            <AppDialog
+              :open="mobileTimezoneOpen"
+              content-class="timezone-sheet"
+              :label="t('settings.selectTimezone')"
+              @update:open="mobileTimezoneOpen = $event"
             >
-              <section
-                class="timezone-sheet"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="mobile-timezone-title"
-                @keydown.esc="mobileTimezoneOpen = false"
-              >
+              <section class="timezone-sheet" aria-labelledby="mobile-timezone-title">
                 <header class="timezone-sheet-head">
                   <h3 id="mobile-timezone-title">{{ t("settings.selectTimezone") }}</h3>
                   <button
@@ -330,7 +325,7 @@ const { style: timezonePanelStyle } = useViewportPanel(
                   {{ t("settings.timezoneSelectHint") }}
                 </p>
               </section>
-            </div>
+            </AppDialog>
             <div class="chip-row timezone-presets">
               <button
                 v-for="zone in commonTimeZones.slice(0, 6)"
