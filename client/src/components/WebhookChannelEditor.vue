@@ -532,10 +532,6 @@ const channelStatusText = computed(() => {
 .field .app-select :deep(.app-select-trigger) {
   cursor: pointer;
 }
-.provider-picker .app-select :deep(.app-select-trigger),
-.field .app-select :deep(.app-select-trigger) {
-  cursor: pointer;
-}
 .field {
   display: flex;
   flex-direction: column;
