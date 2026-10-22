@@ -1053,7 +1053,8 @@ textarea.body-area {
     gap: 12px;
     margin-bottom: 12px;
   }
-  .timezone-sheet-head h3 {
+  .timezone-sheet-head h3,
+  .timezone-sheet-head .timezone-sheet-title {
     margin: 0;
     font-size: 16px;
   }
