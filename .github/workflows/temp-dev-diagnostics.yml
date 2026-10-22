@@ -1,0 +1,128 @@
+name: TEMP - Development Environment Diagnostics
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/temp-dev-diagnostics.yml"
+      - "client/**"
+      - "server/**"
+      - "shared/**"
+      - "scripts/**"
+      - "package.json"
+      - "bun.lock"
+      - "tsconfig.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: temp-dev-diagnostics-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  diagnostics:
+    name: Build and development-server smoke test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck and production build (retain warnings)
+        id: build
+        shell: bash
+        run: |
+          set +e
+          bun run check > "$RUNNER_TEMP/check.log" 2>&1
+          result=$?
+          set -e
+          cat "$RUNNER_TEMP/check.log"
+          echo "exit_code=$result" >> "$GITHUB_OUTPUT"
+          if grep -Ein 'warning|warn|deprecated|failed|error:' "$RUNNER_TEMP/check.log"; then
+            echo "::warning::Typecheck/build output contains warning/error-like messages; inspect the full log artifact."
+          fi
+          exit "$result"
+
+      - name: Start development server and check HTTP endpoints
+        id: dev
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          LOG="$RUNNER_TEMP/dev-server.log"
+          : > "$LOG"
+          bun run dev > "$LOG" 2>&1 &
+          pid=$!
+          ready=0
+
+          for _ in $(seq 1 40); do
+            if ! kill -0 "$pid" 2>/dev/null; then
+              echo "Development process exited before becoming ready."
+              break
+            fi
+            if curl --silent --show-error --fail http://127.0.0.1:5173/ -o "$RUNNER_TEMP/dev-index.html" 2>/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+
+          if [[ "$ready" -eq 1 ]]; then
+            echo "Vite HTTP check: PASS"
+            if curl --silent --show-error --fail http://127.0.0.1:5173/api/meta -o "$RUNNER_TEMP/dev-api-meta.json"; then
+              echo "API proxy check: PASS"
+            else
+              echo "API proxy check: FAIL"
+              ready=0
+            fi
+            # Give Vite time to emit startup and initial module-transform diagnostics.
+            sleep 8
+          else
+            echo "Vite HTTP check: FAIL (server did not become ready within 40 seconds)"
+          fi
+
+          # Snapshot before intentional shutdown so shutdown noise is not mistaken for a startup warning.
+          cp "$LOG" "$RUNNER_TEMP/dev-server-before-shutdown.log"
+          kill -INT "$pid" 2>/dev/null || true
+          for _ in $(seq 1 5); do
+            kill -0 "$pid" 2>/dev/null || break
+            sleep 1
+          done
+          kill -TERM "$pid" 2>/dev/null || true
+          wait "$pid" 2>/dev/null || true
+
+          echo "----- Development server output (before shutdown) -----"
+          cat "$RUNNER_TEMP/dev-server-before-shutdown.log"
+
+          if [[ "$ready" -ne 1 ]]; then
+            echo "::error::Development server smoke test failed."
+            exit 1
+          fi
+
+          if grep -Ein '(^|[^[:alpha:]])(warn(ing)?|error|failed|exception|deprecated)([^[:alpha:]]|$)' "$RUNNER_TEMP/dev-server-before-shutdown.log"; then
+            echo "::error::Development server emitted warning/error-like output."
+            exit 1
+          fi
+
+          echo "No warning/error-like startup output detected."
+
+      - name: Upload diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: temp-dev-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/check.log
+            ${{ runner.temp }}/dev-server.log
+            ${{ runner.temp }}/dev-server-before-shutdown.log
+          if-no-files-found: warn
+          retention-days: 1
