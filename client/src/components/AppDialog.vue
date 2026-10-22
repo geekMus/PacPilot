@@ -79,7 +79,7 @@ function onCloseAutoFocus(event: Event): void {
             <slot name="body">
               <slot />
             </slot>
-          </div>
+          </AppScrollArea>
           <footer v-if="$slots.footer" class="app-dialog-footer">
             <slot name="footer" />
           </footer>
