@@ -66,8 +66,12 @@ function sourceClass(source?: string): string {
   return "source-neutral";
 }
 
-function onScroll(event: Event) {
-  scrollTop.value = (event.currentTarget as HTMLDivElement).scrollTop;
+function onReady(element: HTMLElement): void {
+  viewport.value = element;
+}
+
+function onScroll(element: HTMLElement): void {
+  scrollTop.value = element.scrollTop;
 }
 
 watch(
@@ -86,7 +90,7 @@ watch(
     :style="{ height: viewportHeight + 'px' }"
     role="list"
     :aria-label="t('common.domainRules')"
-    @ready="(element) => { viewport = element; }"
+    @ready="onReady"
     @scroll="onScroll"
   >
     <div v-if="items.length" class="virtual-canvas" :style="{ height: totalHeight + 'px' }">
