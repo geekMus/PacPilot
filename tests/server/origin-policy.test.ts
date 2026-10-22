@@ -65,6 +65,9 @@ describe("isTrustedOrigin", () => {
       isTrustedOrigin("http://192.168.31.133:9000", "http://127.0.0.1:17321", new Set(), localAddresses)
     ).toBe(false);
     expect(
+      isTrustedOrigin("http://localhost:9000", "http://127.0.0.1:17321", new Set(), localAddresses)
+    ).toBe(false);
+    expect(
       isTrustedOrigin("https://attacker.example", "https://example.com", new Set(), localAddresses)
     ).toBe(false);
   });

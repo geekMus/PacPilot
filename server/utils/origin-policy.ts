@@ -48,12 +48,14 @@ function isLocalInterfaceOrigin(
     const hostname = normalizeIpAddress(originUrl.hostname);
     // Localhost is an explicit local development address. Other hostnames are
     // not resolved here, avoiding DNS-based trust and rebinding surprises.
-    if (hostname === "localhost") return true;
-    if (isIP(hostname) === 0 || !localAddresses.has(hostname)) return false;
-
     // Only trust the service's effective port and Vite's fixed dev port. This
     // avoids trusting arbitrary web apps hosted on another port of this host.
-    return effectivePort(originUrl) === effectivePort(requestUrl) || effectivePort(originUrl) === 5173;
+    const trustedPort =
+      effectivePort(originUrl) === effectivePort(requestUrl) || effectivePort(originUrl) === 5173;
+    if (!trustedPort) return false;
+    if (hostname === "localhost") return true;
+    if (isIP(hostname) === 0 || !localAddresses.has(hostname)) return false;
+    return true;
   } catch {
     return false;
   }
