@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onUnmounted, ref } from "vue";
+import AppScrollArea from "@/components/AppScrollArea.vue";
 
 const props = withDefaults(
   defineProps<{
@@ -43,17 +44,17 @@ function onScroll(): void {
   if (scroller.value) emit("scroll", scroller.value);
 }
 
-onMounted(() => {
-  const element = scroller.value;
-  if (!element) return;
+function onReady(element: HTMLElement): void {
+  scroller.value = element;
   syncHeader();
   emit("ready", element);
   if (typeof ResizeObserver !== "undefined") {
+    resizeObserver?.disconnect();
     resizeObserver = new ResizeObserver(syncHeader);
     resizeObserver.observe(element);
     if (element.parentElement) resizeObserver.observe(element.parentElement);
   }
-});
+}
 
 onUnmounted(() => resizeObserver?.disconnect());
 </script>
@@ -66,12 +67,12 @@ onUnmounted(() => resizeObserver?.disconnect());
         <thead><slot name="header" /></thead>
       </table>
     </div>
-    <div ref="scroller" class="app-table-body-scroll" @scroll.passive="onScroll">
+    <AppScrollArea root-class="app-table-body-scroll" orientation="both" @ready="onReady" @scroll="onScroll">
       <table class="app-table virtual-table" :class="props.tableClass">
         <colgroup><slot name="columns" /></colgroup>
         <tbody><slot name="body" /></tbody>
       </table>
-    </div>
+    </AppScrollArea>
   </div>
 </template>
 
@@ -120,11 +121,10 @@ onUnmounted(() => resizeObserver?.disconnect());
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
+  height: 0;
+}
+.app-table-body-scroll :deep(.app-scroll-area-viewport) {
   overflow-anchor: none;
-  -webkit-overflow-scrolling: touch;
 }
 .app-table :deep(tbody td) {
   box-sizing: border-box;
