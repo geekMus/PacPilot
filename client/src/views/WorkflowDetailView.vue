@@ -6,6 +6,7 @@ import { api, type WorkflowDetail, type WorkflowStage } from "../api/client";
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppDialog from "../components/AppDialog.vue";
+import { DialogDescription, DialogTitle } from "reka-ui";
 import { useCopyFeedback } from "../composables/useCopyFeedback";
 import AppFooter from "../components/AppFooter.vue";
 import ConfirmPopover from "../components/ConfirmPopover.vue";
@@ -431,9 +432,12 @@ onUnmounted(() => {
           <header class="stage-detail-header">
             <div>
               <p class="stage-detail-kicker">STAGE · {{ selectedStage.stage_key }}</p>
-              <h2>
+              <DialogTitle class="stage-detail-title">
                 {{ stageLabel(selectedStage.stage_key) }}
-              </h2>
+              </DialogTitle>
+              <DialogDescription class="app-dialog-visually-hidden">
+                {{ t("workflowDetailPage.k36") }}. {{ t("workflowDetailPage.k37") }}
+              </DialogDescription>
             </div>
             <div class="stage-detail-actions">
               <button
