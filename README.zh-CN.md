@@ -40,7 +40,7 @@ docker logs pacpilot
 
 ## 文档
 
-- [文档目录](docs/README.md)
+- [中文文档目录](docs/README.zh-CN.md)
 - [部署指南（Docker、Compose、首次使用）](docs/deployment.md)
 - [配置说明（规则、环境变量、数据、安全、管理员密码）](docs/configuration.md)
 - [开发指南（环境、命令、检查）](docs/development.md)
