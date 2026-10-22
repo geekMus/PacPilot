@@ -5,6 +5,7 @@ import { useRoute, useRouter } from "vue-router";
 import { api, type WorkflowDetail, type WorkflowStage } from "../api/client";
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
+import { copyText } from "../utils/clipboard";
 import AppFooter from "../components/AppFooter.vue";
 import ConfirmPopover from "../components/ConfirmPopover.vue";
 import { useToast } from "../composables/useToast";
@@ -127,12 +128,9 @@ async function copyStageDetail(): Promise<void> {
     t("workflowDetailPage.k11"),
     formatStageDetail(stage.detail),
   ].join("\n");
-  try {
-    await navigator.clipboard.writeText(text);
-    stageDetailCopyStateKey.value = "workflowDetailPage.k12";
-  } catch {
-    stageDetailCopyStateKey.value = "workflowDetailPage.k13";
-  }
+  stageDetailCopyStateKey.value = (await copyText(text))
+    ? "workflowDetailPage.k12"
+    : "workflowDetailPage.k13";
 }
 
 function durationLabel(s: WorkflowStage) {
