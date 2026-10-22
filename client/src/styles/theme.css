@@ -75,9 +75,10 @@ html.theme-dark {
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Keep a stable vertical scrollbar gutter so modal scroll locking cannot shift the layout. */
+  scrollbar-gutter: stable;
   /* Portaled Reka UI menus must not expand the document's horizontal scroll area. */
   overflow-x: clip;
-  /* Modal scroll locking is managed by Reka UI; avoid double scrollbar compensation. */
   /* 移除移动浏览器点击元素时默认出现的蓝色/半透明点击闪烁。 */
   -webkit-tap-highlight-color: transparent;
 }
