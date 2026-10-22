@@ -1,4 +1,4 @@
-name: 主从检查
+name: 主从同步检查
 
 on:
   pull_request:
