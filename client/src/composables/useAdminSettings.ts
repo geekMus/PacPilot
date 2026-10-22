@@ -285,16 +285,22 @@ export function useAdminSettings() {
 
     cronParsing.value = true;
     try {
-      const [{ CronExpressionParser }, cronstrueModule] = await Promise.all([
+      const [parserModule, cronstrueModule] = await Promise.all([
         import("cron-parser"),
         import("cronstrue"),
-        import("cronstrue/locales/zh_CN"),
-      ]).then(([parser, description]) => [parser, description] as const);
+      ]);
       if (request !== cronParseRequest) return;
-      CronExpressionParser.parse(value);
+
+      const isEnglish = locale.value === "en_US";
+      if (!isEnglish) {
+        await import("cronstrue/locales/zh_CN");
+      }
+      if (request !== cronParseRequest) return;
+
+      parserModule.CronExpressionParser.parse(value);
       cronParse.value = {
         description: cronstrueModule.default.toString(value, {
-          locale: locale.value === "en_US" ? "en" : "zh_CN",
+          locale: isEnglish ? "en" : "zh_CN",
           dayOfWeekStartIndexZero: false,
           use24HourTimeFormat: true,
           throwExceptionOnParseError: true,
