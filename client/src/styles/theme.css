@@ -107,8 +107,13 @@ body {
   letter-spacing: 0.01em;
 }
 
-html:has([aria-modal="true"], .sidebar-backdrop),
-body:has([aria-modal="true"], .sidebar-backdrop) {
+/*
+ * Reka UI Dialog manages modal scroll locking itself. Do not also lock the
+ * document root here: hiding the root scrollbar changes the layout viewport
+ * and makes fixed page headers jump when a layer opens. The custom sidebar
+ * backdrop only needs to stop body scrolling.
+ */
+body:has(.sidebar-backdrop) {
   overflow: hidden;
 }
 
