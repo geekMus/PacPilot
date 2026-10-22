@@ -322,7 +322,6 @@ onMounted(() => {
 }
 :global(.version-dialog-overlay) {
   background: rgba(15, 23, 42, 0.48);
-  backdrop-filter: blur(3px);
 }
 .version-dialog {
   box-sizing: border-box;
