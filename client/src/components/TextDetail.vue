@@ -47,13 +47,42 @@ function onDialogClose(): void {
   dialogMounted.value = false;
 }
 
-async function copyContent(): Promise<void> {
+function copyWithLegacyCommand(text: string): boolean {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  textarea.style.opacity = "0";
+  textarea.style.pointerEvents = "none";
+
+  document.body.appendChild(textarea);
+  textarea.focus({ preventScroll: true });
+  textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
+
+  let copied = false;
   try {
-    await navigator.clipboard.writeText(fullText.value || "—");
-    copyStateKey.value = "common.copied";
-  } catch {
-    copyStateKey.value = "common.copyManual";
+    copied = document.execCommand("copy");
+  } finally {
+    textarea.remove();
   }
+  return copied;
+}
+
+async function copyContent(): Promise<void> {
+  const text = fullText.value || "—";
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      copyStateKey.value = "common.copied";
+      return;
+    }
+  } catch {
+    // Clipboard API is unavailable or blocked, for example on an insecure HTTP origin.
+  }
+
+  copyStateKey.value = copyWithLegacyCommand(text) ? "common.copied" : "common.copyManual";
 }
 </script>
 
