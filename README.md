@@ -40,6 +40,8 @@ A fresh database does not generate a PAC file automatically. Sign in to the admi
 
 ## Documentation
 
+The documentation index is available in English and Chinese. The detailed deployment, configuration, development, operations, and troubleshooting guides are currently maintained in Chinese.
+
 - [Documentation index](docs/README.md) · [中文文档目录](docs/README.zh-CN.md)
 - [Deployment guide (Docker, Compose, first run)](docs/deployment.md)
 - [Configuration (rules, environment variables, data, security, admin password)](docs/configuration.md)
