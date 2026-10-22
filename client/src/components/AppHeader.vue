@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import UserPreferencesMenu from "./UserPreferencesMenu.vue";
-import BrandMark from "./BrandMark.vue";
+import UserPreferencesMenu from "@/components/UserPreferencesMenu.vue";
+import BrandMark from "@/components/BrandMark.vue";
 
 defineProps<{ brand?: string; sub?: string }>();
 const { t } = useI18n();

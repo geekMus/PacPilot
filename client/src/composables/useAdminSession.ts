@@ -1,4 +1,4 @@
-import { api, type AdminSession } from "../api/client";
+import { api, type AdminSession } from "@/api/client";
 
 let cache: { at: number; data: AdminSession } | null = null;
 const CACHE_TTL_MS = 2500;

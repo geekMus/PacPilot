@@ -2,12 +2,12 @@
 import { computed, nextTick, ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter, useRoute } from "vue-router";
-import { api } from "../api/client";
-import AppHeader from "../components/AppHeader.vue";
-import AppFooter from "../components/AppFooter.vue";
-import AppIcon from "../components/AppIcon.vue";
-import { useToast } from "../composables/useToast";
-import { PROJECT_LINKS } from "../../../shared/project-links";
+import { api } from "@/api/client";
+import AppHeader from "@/components/AppHeader.vue";
+import AppFooter from "@/components/AppFooter.vue";
+import AppIcon from "@/components/AppIcon.vue";
+import { useToast } from "@/composables/useToast";
+import { PROJECT_LINKS } from "@shared/project-links";
 const { t } = useI18n();
 const { notify } = useToast();
 
@@ -58,7 +58,7 @@ async function onSubmit() {
   try {
     await api.login(password.value);
     const { invalidateAdminSessionCache, fetchAdminSession } = await import(
-      "../composables/useAdminSession"
+      "@/composables/useAdminSession"
     );
     invalidateAdminSessionCache();
     await fetchAdminSession(true);

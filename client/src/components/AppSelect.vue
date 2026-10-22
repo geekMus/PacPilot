@@ -11,7 +11,7 @@ import {
   SelectValue,
   SelectViewport,
 } from "reka-ui";
-import AppIcon from "./AppIcon.vue";
+import AppIcon from "@/components/AppIcon.vue";
 
 export interface AppSelectOption {
   value: string | number;

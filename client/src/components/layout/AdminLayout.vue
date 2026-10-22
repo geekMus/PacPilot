@@ -2,9 +2,9 @@
 import { ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import AppIcon from "../AppIcon.vue";
-import UserPreferencesMenu from "../UserPreferencesMenu.vue";
-import AdminSidebar from "./AdminSidebar.vue";
+import AppIcon from "@/components/AppIcon.vue";
+import UserPreferencesMenu from "@/components/UserPreferencesMenu.vue";
+import AdminSidebar from "@/components/layout/AdminSidebar.vue";
 
 type AdminSection = "dashboard" | "settings" | "system-settings" | "monitor" | "workflow";
 

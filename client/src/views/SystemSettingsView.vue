@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
-import { api, type AppSettings, type StorageSummary } from "../api/client";
-import AdminLayout from "../components/layout/AdminLayout.vue";
-import AppIcon from "../components/AppIcon.vue";
-import AppFooter from "../components/AppFooter.vue";
-import ConfirmPopover from "../components/ConfirmPopover.vue";
-import AppSelect from "../components/AppSelect.vue";
-import { useToast } from "../composables/useToast";
+import { api, type AppSettings, type StorageSummary } from "@/api/client";
+import AdminLayout from "@/components/layout/AdminLayout.vue";
+import AppIcon from "@/components/AppIcon.vue";
+import AppFooter from "@/components/AppFooter.vue";
+import ConfirmPopover from "@/components/ConfirmPopover.vue";
+import AppSelect from "@/components/AppSelect.vue";
+import { useToast } from "@/composables/useToast";
 import { useI18n } from "vue-i18n";
 const router = useRouter(),
   { notify } = useToast();

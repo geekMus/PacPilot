@@ -6,23 +6,23 @@ import {
   RadioGroupItem,
   RadioGroupRoot,
 } from "reka-ui";
-import AdminLayout from "../components/layout/AdminLayout.vue";
-import AppIcon from "../components/AppIcon.vue";
-import AppDialog from "../components/AppDialog.vue";
+import AdminLayout from "@/components/layout/AdminLayout.vue";
+import AppIcon from "@/components/AppIcon.vue";
+import AppDialog from "@/components/AppDialog.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
-import AppFooter from "../components/AppFooter.vue";
-import TextDetail from "../components/TextDetail.vue";
-import VirtualTable from "../components/VirtualTable.vue";
-import { useAdminSettings } from "../composables/useAdminSettings";
-import { useViewportPanel } from "../composables/useViewportPanel";
-import { PROJECT_LINKS } from "../../../shared/project-links";
+import AppFooter from "@/components/AppFooter.vue";
+import TextDetail from "@/components/TextDetail.vue";
+import VirtualTable from "@/components/VirtualTable.vue";
+import { useAdminSettings } from "@/composables/useAdminSettings";
+import { useViewportPanel } from "@/composables/useViewportPanel";
+import { PROJECT_LINKS } from "@shared/project-links";
 
 const WebhookChannelEditor = defineAsyncComponent(
-  () => import("../components/WebhookChannelEditor.vue")
+  () => import("@/components/WebhookChannelEditor.vue")
 );
 
 const DomainListEditor = defineAsyncComponent(
-  () => import("../components/DomainListEditor.vue")
+  () => import("@/components/DomainListEditor.vue")
 );
 const {
   t,
@@ -267,23 +267,17 @@ const { style: timezonePanelStyle } = useViewportPanel(
               :open="mobileTimezoneOpen"
               content-class="timezone-sheet"
               :label="t('settings.selectTimezone')"
+              :close-label="t('settings.closeTimezone')"
               @update:open="mobileTimezoneOpen = $event"
             >
-              <section class="timezone-sheet" aria-labelledby="mobile-timezone-title">
-                <header class="timezone-sheet-head">
+              <template #header>
                   <DialogTitle id="mobile-timezone-title" class="timezone-sheet-title">{{ t("settings.selectTimezone") }}</DialogTitle>
                   <DialogDescription class="app-dialog-visually-hidden">
                     {{ t("settings.timezoneHintFull") }}
                   </DialogDescription>
-                  <button
-                    type="button"
-                    class="timezone-sheet-close"
-                    :aria-label="t('settings.closeTimezone')"
-                    @click="mobileTimezoneOpen = false"
-                  >
-                    <AppIcon name="x" :size="18" />
-                  </button>
-                </header>
+              </template>
+              <template #body>
+                <div class="timezone-sheet-body">
                 <input
                   v-model="timezoneQuery"
                   class="timezone-sheet-search"
@@ -335,7 +329,8 @@ const { style: timezonePanelStyle } = useViewportPanel(
                 <p class="timezone-sheet-hint">
                   {{ t("settings.timezoneSelectHint") }}
                 </p>
-              </section>
+                </div>
+              </template>
             </AppDialog>
             <div class="chip-row timezone-presets">
               <button
@@ -758,4 +753,4 @@ const { style: timezonePanelStyle } = useViewportPanel(
   </AdminLayout>
 </template>
 
-<style scoped src="./AdminView.css"></style>
+<style scoped src="@/views/AdminView.css"></style>

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import AdminLayout from "../components/layout/AdminLayout.vue";
-import AppIcon from "../components/AppIcon.vue";
-import AppFooter from "../components/AppFooter.vue";
-import ConfirmPopover from "../components/ConfirmPopover.vue";
-import VirtualTable from "../components/VirtualTable.vue";
-import AppSelect from "../components/AppSelect.vue";
-import { useWorkflowDashboard } from "../composables/useWorkflowDashboard";
+import AdminLayout from "@/components/layout/AdminLayout.vue";
+import AppIcon from "@/components/AppIcon.vue";
+import AppFooter from "@/components/AppFooter.vue";
+import ConfirmPopover from "@/components/ConfirmPopover.vue";
+import VirtualTable from "@/components/VirtualTable.vue";
+import AppSelect from "@/components/AppSelect.vue";
+import { useWorkflowDashboard } from "@/composables/useWorkflowDashboard";
 
 const {
   t,

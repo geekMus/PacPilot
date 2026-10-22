@@ -1,5 +1,5 @@
 import { onScopeDispose, ref } from "vue";
-import { copyText } from "../utils/clipboard";
+import { copyText } from "@/utils/clipboard";
 
 export type CopyButtonState = "success" | "error" | null;
 

@@ -1,11 +1,11 @@
-import { i18n, resolveLocale } from "../i18n";
+import { i18n, resolveLocale } from "@/i18n";
 import type {
   AppSettings,
   WebhookConfig,
   WorkflowRun,
   WorkflowStage,
   WorkflowStatus,
-} from "../../../shared/contracts";
+} from "@shared/contracts";
 export type {
   AppSettings,
   DingTalkMessageType,
@@ -15,7 +15,7 @@ export type {
   WorkflowRun,
   WorkflowStage,
   WorkflowStatus,
-} from "../../../shared/contracts";
+} from "@shared/contracts";
 
 export interface Meta {
   adminEnabled: boolean;

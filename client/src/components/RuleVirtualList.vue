@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
 import { computed, ref, watch } from "vue";
-import TextDetail from "./TextDetail.vue";
+import TextDetail from "@/components/TextDetail.vue";
 const { t } = useI18n();
 
 interface RuleEntry {

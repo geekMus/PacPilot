@@ -5,7 +5,7 @@ import { EditorView, keymap, lineNumbers, highlightActiveLine, Decoration } from
 import { EditorState, StateEffect, StateField } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { oneDark } from "@codemirror/theme-one-dark";
-import type { RuleDiagnostic } from "../utils/domain-rules";
+import type { RuleDiagnostic } from "@/utils/domain-rules";
 const { t } = useI18n();
 
 const props = withDefaults(

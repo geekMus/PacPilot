@@ -2,15 +2,15 @@
 import { useI18n } from "vue-i18n";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { api, type WorkflowDetail, type WorkflowStage } from "../api/client";
-import AdminLayout from "../components/layout/AdminLayout.vue";
-import AppIcon from "../components/AppIcon.vue";
-import AppDialog from "../components/AppDialog.vue";
+import { api, type WorkflowDetail, type WorkflowStage } from "@/api/client";
+import AdminLayout from "@/components/layout/AdminLayout.vue";
+import AppIcon from "@/components/AppIcon.vue";
+import AppDialog from "@/components/AppDialog.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
-import { useCopyFeedback } from "../composables/useCopyFeedback";
-import AppFooter from "../components/AppFooter.vue";
-import ConfirmPopover from "../components/ConfirmPopover.vue";
-import { useToast } from "../composables/useToast";
+import { useCopyFeedback } from "@/composables/useCopyFeedback";
+import AppFooter from "@/components/AppFooter.vue";
+import ConfirmPopover from "@/components/ConfirmPopover.vue";
+import { useToast } from "@/composables/useToast";
 const { t, locale } = useI18n();
 
 const route = useRoute();
@@ -87,10 +87,6 @@ function openStageDetail(stage: WorkflowStage): void {
   selectedStage.value = stage;
   resetCopyState();
   stageDetailOpen.value = true;
-}
-
-function closeStageDetail(): void {
-  stageDetailOpen.value = false;
 }
 
 function onStageDetailOpenChange(open: boolean): void {
@@ -425,21 +421,22 @@ onUnmounted(() => {
         :open="stageDetailOpen && !!selectedStage"
         content-class="stage-detail-dialog"
         :label="t('workflowDetailPage.k19')"
+        :close-label="t('workflowDetailPage.k20')"
         @update:open="onStageDetailOpenChange"
       >
-        <div v-if="selectedStage" class="stage-detail-dialog">
-        <div class="stage-detail-shell">
-          <header class="stage-detail-header">
-            <div>
-              <p class="stage-detail-kicker">STAGE · {{ selectedStage.stage_key }}</p>
+        <template #header>
+          <div class="stage-detail-heading">
+              <p class="stage-detail-kicker">STAGE · {{ selectedStage?.stage_key ?? "" }}</p>
               <DialogTitle class="stage-detail-title">
-                {{ stageLabel(selectedStage.stage_key) }}
+                {{ stageLabel(selectedStage?.stage_key ?? "") }}
               </DialogTitle>
               <DialogDescription class="app-dialog-visually-hidden">
                 {{ t("workflowDetailPage.k36") }}. {{ t("workflowDetailPage.k37") }}
               </DialogDescription>
-            </div>
-            <div class="stage-detail-actions">
+
+          </div>
+        </template>
+        <template #header-actions>
               <button
                 class="stage-detail-btn"
                 :class="{ 'is-copy-success': stageCopyState === 'success', 'is-copy-error': stageCopyState === 'error' }"
@@ -452,17 +449,10 @@ onUnmounted(() => {
                   :size="14"
                 />{{ stageCopyState === 'success' ? t("common.copiedShort") : stageCopyState === 'error' ? t("common.copyFailed") : t("workflowDetailPage.k31") }}
               </button>
-              <button
-                class="stage-detail-btn"
-                type="button"
-                :aria-label="t('workflowDetailPage.k20')"
-                @click="closeStageDetail"
-              >
-                <AppIcon name="x" :size="14" />
-              </button>
-            </div>
-          </header>
-          <div class="stage-detail-body">
+
+        </template>
+        <template #body>
+          <div v-if="selectedStage" class="stage-detail-body">
             <p class="stage-detail-message">
               {{ label(selectedStage.status) }}
             </p>
@@ -507,8 +497,7 @@ onUnmounted(() => {
               <pre class="stage-detail-pre">{{ formatStageDetail(selectedStage.detail) }}</pre>
             </section>
           </div>
-        </div>
-        </div>
+        </template>
       </AppDialog>
 
       <div v-if="detail" class="detail-page-actions">
@@ -910,34 +899,13 @@ onUnmounted(() => {
   }
 }
 
-.stage-detail-dialog {
+.app-dialog-content.app-dialog-content.stage-detail-dialog {
   width: min(640px, calc(100vw - 24px));
-  max-height: min(86dvh, 820px);
-  margin: auto;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--dialog-panel-shadow);
-  overflow: auto;
 }
-.stage-detail-shell {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-.stage-detail-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 18px 18px 12px;
-  border-bottom: 1px solid var(--line);
-  position: sticky;
-  top: 0;
-  background: var(--surface);
-  z-index: 1;
+.stage-detail-heading {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
 }
 .stage-detail-kicker {
   margin: 0 0 4px;
@@ -1000,7 +968,7 @@ onUnmounted(() => {
 .stage-detail-body {
   display: grid;
   gap: 16px;
-  padding: 14px 18px 18px;
+  padding: 0;
 }
 .stage-detail-message {
   margin: 0;
@@ -1138,3 +1106,13 @@ onUnmounted(() => {
   }
 }
 </style>
+
+/* The shared dialog owns the shell, fixed header and content scrolling. */
+.app-dialog-content.stage-detail-dialog {
+  max-height: calc(100dvh - 24px);
+  border-radius: inherit;
+  overflow: hidden;
+}
+.stage-detail-body {
+  padding: 0;
+}

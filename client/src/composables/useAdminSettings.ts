@@ -8,11 +8,11 @@ import {
   type GenerationLog,
   type PacPilotProbe,
   type WebhookConfig,
-} from "../api/client";
-import { analyzeDomainRules } from "../utils/domain-rules";
-import { createAdminSettingsValidators } from "../utils/admin-settings-validation";
-import { commonTimeZones, isValidTimeZone } from "../utils/time-zones";
-import { useToast } from "../composables/useToast";
+} from "@/api/client";
+import { analyzeDomainRules } from "@/utils/domain-rules";
+import { createAdminSettingsValidators } from "@/utils/admin-settings-validation";
+import { commonTimeZones, isValidTimeZone } from "@/utils/time-zones";
+import { useToast } from "@/composables/useToast";
 
 export function useAdminSettings() {
   const { t, locale } = useI18n();
@@ -613,7 +613,7 @@ export function useAdminSettings() {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       });
-      const { invalidateAdminSessionCache } = await import("../composables/useAdminSession");
+      const { invalidateAdminSessionCache } = await import("@/composables/useAdminSession");
       invalidateAdminSessionCache();
       notify(t("settings.passwordChangedOk"), "success");
       await router.replace({ path: "/admin/login", query: { passwordChanged: "1" } });

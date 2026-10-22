@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import AppIcon from "./AppIcon.vue";
-import AppDialog from "./AppDialog.vue";
-import { useCopyFeedback } from "../composables/useCopyFeedback";
+import AppIcon from "@/components/AppIcon.vue";
+import AppDialog from "@/components/AppDialog.vue";
+import { useCopyFeedback } from "@/composables/useCopyFeedback";
 import { useI18n } from "vue-i18n";
 import { computed, ref } from "vue";
 const { t } = useI18n();

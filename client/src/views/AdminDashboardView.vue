@@ -11,13 +11,14 @@ import {
   type MonitorSummary,
   type PacStatus,
   type WorkflowRun,
-} from "../api/client";
+} from "@/api/client";
 
-import AdminLayout from "../components/layout/AdminLayout.vue";
-import AppIcon from "../components/AppIcon.vue";
-import AppFooter from "../components/AppFooter.vue";
-import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
-import TextDetail from "../components/TextDetail.vue";
+import AdminLayout from "@/components/layout/AdminLayout.vue";
+import AppIcon from "@/components/AppIcon.vue";
+import AppFooter from "@/components/AppFooter.vue";
+import ResponsiveTrendChart from "@/components/ResponsiveTrendChart.vue";
+import TextDetail from "@/components/TextDetail.vue";
+import TableFrame from "@/components/TableFrame.vue";
 
 const { t, locale } = useI18n();
 const router = useRouter();
@@ -367,18 +368,20 @@ onMounted(() => {
               >{{ t("dashboard.viewLogs") }} <AppIcon name="arrow-up-right" :size="13"
             /></RouterLink>
           </header>
-          <div v-if="logs.length" class="table-scroll">
-            <table class="recent-table">
-              <thead>
-                <tr>
+          <TableFrame v-if="logs.length" height="260px" min-width="600px" table-class="recent-table" :row-height="40">
+            <template #columns>
+              <col style="width: 118px" />
+              <col style="width: 92px" />
+              <col style="width: 100px" />
+              <col style="width: 290px" />
+            </template>
+            <template #header><tr>
                   <th>{{ t("dashboard.colTime") }}</th>
                   <th>{{ t("dashboard.colResult") }}</th>
                   <th>{{ t("dashboard.colMode") }}</th>
                   <th>{{ t("dashboard.colMessage") }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="entry in logs" :key="entry.id">
+                </tr></template>
+            <template #body><tr v-for="entry in logs" :key="entry.id">
                   <td class="nowrap">{{ formatStatusDate(entry.created_at) }}</td>
                   <td>
                     <span class="result-pill" :class="entry.success ? 'good' : 'bad'"
@@ -394,10 +397,8 @@ onMounted(() => {
                       :label="t('dashboard.genLogLabel')"
                     />
                   </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                </tr></template>
+          </TableFrame>
           <div v-else class="panel-empty">
             {{ loading ? t("dashboard.readingGenLogs") : t("dashboard.noGenLogs") }}
           </div>
@@ -770,37 +771,6 @@ onMounted(() => {
   font-size: 10px;
   font-weight: 700;
   text-decoration: none;
-}
-.table-scroll {
-  width: 100%;
-  overflow: auto;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-}
-.recent-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 10px;
-}
-.recent-table th {
-  padding: 10px;
-  background: var(--surface-2);
-  color: var(--muted);
-  text-align: left;
-  font-weight: 800;
-  white-space: nowrap;
-  border-bottom: 1px solid var(--line);
-}
-.recent-table td {
-  padding: 10px;
-  border-bottom: 1px solid var(--line);
-  vertical-align: middle;
-}
-.recent-table tr:last-child td {
-  border-bottom: 0;
-}
-.recent-table tbody tr:hover {
-  background: color-mix(in srgb, var(--accent) 4%, transparent);
 }
 .nowrap {
   white-space: nowrap;

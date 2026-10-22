@@ -1,5 +1,5 @@
 import { createI18n } from "vue-i18n";
-import { catalogs, resolveLocale, type AppLocale } from "../../../shared/i18n";
+import { catalogs, resolveLocale, type AppLocale } from "@shared/i18n";
 
 export { resolveLocale, type AppLocale };
 

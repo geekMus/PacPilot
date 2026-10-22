@@ -3,9 +3,9 @@ import { useI18n } from "vue-i18n";
 
 import { computed, onMounted, ref } from "vue";
 import packageJson from "../../../package.json";
-import { PROJECT_LINKS } from "../../../shared/project-links";
-import AppIcon from "./AppIcon.vue";
-import AppDialog from "./AppDialog.vue";
+import { PROJECT_LINKS } from "@shared/project-links";
+import AppIcon from "@/components/AppIcon.vue";
+import AppDialog from "@/components/AppDialog.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 
 const { t } = useI18n();

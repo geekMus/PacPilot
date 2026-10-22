@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import AdminLayout from "../components/layout/AdminLayout.vue";
-import AppIcon from "../components/AppIcon.vue";
-import AppDialog from "../components/AppDialog.vue";
+import AdminLayout from "@/components/layout/AdminLayout.vue";
+import AppIcon from "@/components/AppIcon.vue";
+import AppDialog from "@/components/AppDialog.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
-import AppFooter from "../components/AppFooter.vue";
-import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
-import VirtualTable from "../components/VirtualTable.vue";
-import AppSelect from "../components/AppSelect.vue";
-import { useMonitoringDashboard } from "../composables/useMonitoringDashboard";
+import AppFooter from "@/components/AppFooter.vue";
+import ResponsiveTrendChart from "@/components/ResponsiveTrendChart.vue";
+import VirtualTable from "@/components/VirtualTable.vue";
+import AppSelect from "@/components/AppSelect.vue";
+import { useMonitoringDashboard } from "@/composables/useMonitoringDashboard";
 
 const {
   t,
@@ -32,7 +32,6 @@ const {
   accessDetailOpen,
   accessCopyState,
   openAccessDetail,
-  closeAccessDetail,
   onAccessDetailOpenChange,
   formatAccessHeaders,
   copyAccessDetail,
@@ -489,20 +488,21 @@ const {
           :open="accessDetailOpen && !!selectedAccess"
           content-class="access-detail-dialog"
           :label="t('monitor.k39')"
+          :close-label="t('monitor.k40')"
           @update:open="onAccessDetailOpenChange"
         >
-          <div v-if="selectedAccess" class="access-detail-dialog">
-          <header class="access-detail-header">
-            <div>
-              <p class="access-detail-kicker">ACCESS LOG #{{ selectedAccess.id }}</p>
+          <template #header>
+            <div class="access-detail-heading">
+              <p class="access-detail-kicker">ACCESS LOG #{{ selectedAccess?.id }}</p>
               <DialogTitle class="access-detail-title">{{ t("monitor.k135") }}</DialogTitle>
               <DialogDescription class="app-dialog-visually-hidden">
                 {{ t("monitor.k138") }}、{{ t("monitor.k139") }}、{{ t("monitor.k142") }}
               </DialogDescription>
             </div>
-            <div class="access-detail-actions">
+          </template>
+          <template #header-actions>
               <button
-                class="monitor-button secondary"
+                class="monitor-button secondary access-detail-copy"
                 :class="{ 'is-copy-success': accessCopyState === 'success', 'is-copy-error': accessCopyState === 'error' }"
                 type="button"
                 aria-live="polite"
@@ -513,16 +513,10 @@ const {
                   :size="14"
                 />{{ accessCopyState === 'success' ? t("common.copiedShort") : accessCopyState === 'error' ? t("common.copyFailed") : t("monitor.k136") }}
               </button>
-              <button
-                class="monitor-button secondary"
-                type="button"
-                :aria-label="t('monitor.k40')"
-                @click="closeAccessDetail"
-              >
-                <AppIcon name="x" :size="14" />
-              </button>
-            </div>
-          </header>
+
+          </template>
+          <template #body>
+            <div v-if="selectedAccess" class="access-detail-content">
           <div class="access-detail-grid">
             <div>
               <span>{{ t("monitor.k127") }}</span
@@ -601,7 +595,9 @@ const {
             <span>{{ t("monitor.k142") }}</span>
             <pre>{{ formatAccessHeaders(selectedAccess.request_headers) }}</pre>
           </div>
-          </div>
+
+            </div>
+          </template>
         </AppDialog>
       </template>
 
@@ -610,4 +606,4 @@ const {
   </AdminLayout>
 </template>
 
-<style scoped src="./MonitoringView.css"></style>
+<style scoped src="@/views/MonitoringView.css"></style>

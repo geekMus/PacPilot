@@ -1,4 +1,4 @@
-import { i18n } from "../i18n";
+import { i18n } from "@/i18n";
 
 function tr(key: string, params?: Record<string, unknown>): string {
   return String(i18n.global.t(key, params ?? {}));

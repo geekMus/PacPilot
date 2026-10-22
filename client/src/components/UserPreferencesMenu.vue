@@ -9,9 +9,9 @@ import {
   RadioGroupItem,
   RadioGroupRoot,
 } from "reka-ui";
-import AppIcon from "./AppIcon.vue";
-import { setAppLocale, type AppLocale } from "../i18n";
-import { useTheme, type ThemeMode } from "../composables/useTheme";
+import AppIcon from "@/components/AppIcon.vue";
+import { setAppLocale, type AppLocale } from "@/i18n";
+import { useTheme, type ThemeMode } from "@/composables/useTheme";
 
 const { t, locale } = useI18n();
 const { mode, setMode } = useTheme();

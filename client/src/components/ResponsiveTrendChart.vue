@@ -11,7 +11,7 @@ let echartsLoading: Promise<EChartsCoreModule> | undefined;
 /** Load only the registered chart modules when a chart is actually rendered. */
 function loadEcharts(): Promise<EChartsCoreModule> {
   if (!echartsLoading) {
-    echartsLoading = import("../lib/echarts")
+    echartsLoading = import("@/lib/echarts")
       .then(({ echarts }) => echarts)
       .catch((error: unknown) => {
         echartsLoading = undefined;

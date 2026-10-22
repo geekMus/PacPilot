@@ -1,8 +1,8 @@
 import { useI18n } from "vue-i18n";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { api, type WorkflowRun } from "../api/client";
-import { useToast } from "./useToast";
+import { api, type WorkflowRun } from "@/api/client";
+import { useToast } from "@/composables/useToast";
 
 export function useWorkflowDashboard() {
   const { t, locale } = useI18n();
