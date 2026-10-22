@@ -2,6 +2,7 @@
 import { defineAsyncComponent, ref } from "vue";
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
+import AppDialog from "../components/AppDialog.vue";
 import AppFooter from "../components/AppFooter.vue";
 import TextDetail from "../components/TextDetail.vue";
 import VirtualTable from "../components/VirtualTable.vue";
