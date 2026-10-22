@@ -1,21 +1,25 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import * as echarts from "echarts/core";
-import { BarChart, LineChart } from "echarts/charts";
-import { GridComponent, TooltipComponent, LegendComponent } from "echarts/components";
-import { CanvasRenderer } from "echarts/renderers";
 import type { EChartsType } from "echarts/core";
 const { t, locale } = useI18n();
 
-echarts.use([
-  BarChart,
-  LineChart,
-  GridComponent,
-  TooltipComponent,
-  LegendComponent,
-  CanvasRenderer,
-]);
+type EChartsCoreModule = typeof import("echarts/core");
+
+let echartsLoading: Promise<EChartsCoreModule> | undefined;
+
+/** Load only the registered chart modules when a chart is actually rendered. */
+function loadEcharts(): Promise<EChartsCoreModule> {
+  if (!echartsLoading) {
+    echartsLoading = import("../lib/echarts")
+      .then(({ echarts }) => echarts)
+      .catch((error: unknown) => {
+        echartsLoading = undefined;
+        throw error;
+      });
+  }
+  return echartsLoading;
+}
 
 export interface TrendPoint {
   hour: string;
@@ -329,10 +333,19 @@ function renderChart() {
     chart.value?.clear();
     return;
   }
-  if (!chart.value) {
-    chart.value = echarts.init(host.value, undefined, { renderer: "canvas" });
-  }
-  chart.value.setOption(buildOption(), true);
+
+  void loadEcharts()
+    .then((echarts) => {
+      const element = host.value;
+      if (!element || !props.points?.length) return;
+      if (!chart.value) {
+        chart.value = echarts.init(element, undefined, { renderer: "canvas" });
+      }
+      chart.value.setOption(buildOption(), true);
+    })
+    .catch((error: unknown) => {
+      console.error("[ResponsiveTrendChart] Failed to load ECharts modules.", error);
+    });
 }
 
 function handleResize() {
