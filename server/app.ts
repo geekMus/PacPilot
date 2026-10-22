@@ -8,7 +8,7 @@ import type { EnvConfig } from "./config/env";
 import { publicRoutes } from "./routes/public";
 import { adminRoutes } from "./routes/admin";
 import { requestMonitoringMiddleware } from "./services/request-monitor";
-import { isTrustedOrigin, normalizeOrigin } from "./utils/origin-policy";
+import { getLocalInterfaceAddresses, isTrustedOrigin, normalizeOrigin } from "./utils/origin-policy";
 
 export function createApp(env: EnvConfig, database: AppDatabase): express.Application {
   const app = express();
@@ -18,8 +18,8 @@ export function createApp(env: EnvConfig, database: AppDatabase): express.Applic
   // client IPs are correct when TLS terminates upstream.
   app.set("trust proxy", 1);
 
-  // Credentialed CORS must use an explicit allowlist. The SPA is served
-  // from this origin by default, so cross-origin access is opt-in.
+  // Explicit origins remain available for separately hosted frontends. Origins
+  // using this host's current interface IPs are also recognized dynamically.
   const allowedOrigins = new Set(
     (process.env.CORS_ALLOWED_ORIGINS || "")
       .split(",")
@@ -27,27 +27,22 @@ export function createApp(env: EnvConfig, database: AppDatabase): express.Applic
       .filter((origin): origin is string => Boolean(origin))
   );
 
-  // Vite's local development server proxies /api to this backend.
-  if (env.runtimeProfile === "development") {
-    allowedOrigins.add("http://localhost:5173");
-    allowedOrigins.add("http://127.0.0.1:5173");
-  }
-
   app.use((_req, res, next) => {
     const origin = _req.get("Origin");
     const normalizedOrigin = normalizeOrigin(origin);
+    const requestOrigin = `${_req.protocol}://${_req.get("host")}`;
+    // Re-read interfaces per request so address changes do not require a restart.
+    const localAddresses = getLocalInterfaceAddresses();
+    const trustedOrigin = isTrustedOrigin(origin, requestOrigin, allowedOrigins, localAddresses);
     const isAdminMutation =
       _req.path.startsWith("/api/admin/") && !["GET", "HEAD", "OPTIONS"].includes(_req.method);
 
-    if (
-      isAdminMutation &&
-      !isTrustedOrigin(origin, `${_req.protocol}://${_req.get("host")}`, allowedOrigins)
-    ) {
+    if (isAdminMutation && !trustedOrigin) {
       res.status(403).json({ error: "untrusted_origin" });
       return;
     }
 
-    const corsAllowed = Boolean(normalizedOrigin && allowedOrigins.has(normalizedOrigin));
+    const corsAllowed = Boolean(normalizedOrigin && trustedOrigin);
 
     if (corsAllowed) {
       res.setHeader("Access-Control-Allow-Origin", normalizedOrigin!);
