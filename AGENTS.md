@@ -1,6 +1,6 @@
 # Agent 工作约定
 
-本文件是本仓库自动化代理必须遵守的项目级指令。开始任何任务前先阅读本文件；修改 GitHub Actions 前还必须检查 `docs/operations.md` 和现有工作流。
+本文件是本仓库自动化代理必须遵守的项目级指令。开始任何任务前先阅读本文件；修改 GitHub Actions 前还必须检查 [`docs/operations.md`](docs/operations.md) 和现有工作流。工作流维护说明与规则在这两个文件中同步维护；若两者不一致，以本文件 `AGENTS.md` 的强制规则为准，并及时修正文档。
 
 ## Git 分支与工作流程
 
