@@ -152,7 +152,7 @@ onMounted(() => {
       <section class="version-dialog" aria-labelledby="version-dialog-title">
           <header class="dialog-header">
             <DialogTitle id="version-dialog-title" class="dialog-title">{{ t("footer.projectVersion") }}</DialogTitle>
-            <DialogDescription id="version-dialog-description" class="visually-hidden">
+            <DialogDescription id="version-dialog-description" class="app-dialog-visually-hidden">
               {{ t("footer.currentVersion") }}、{{ t("footer.latestVersion") }}
             </DialogDescription>
             <button
@@ -325,40 +325,30 @@ onMounted(() => {
 }
 .version-dialog {
   box-sizing: border-box;
-  width: min(100%, 440px);
-  max-height: calc(100dvh - 40px);
-  overflow-y: auto;
-  padding: 22px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--dialog-panel-shadow);
+  width: min(640px, calc(100vw - 24px));
+  max-height: min(86dvh, 820px);
+  overflow: auto;
+  padding: 0;
+  border-radius: 14px;
 }
 .dialog-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
-  margin-bottom: 19px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 18px 18px 12px;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
 }
 .dialog-header h2,
 .dialog-header .dialog-title {
   margin: 0;
   font-size: 20px;
   letter-spacing: -0.02em;
-}
-/* Keep accessible dialog metadata available to assistive technology without changing layout. */
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }
 .dialog-close {
   display: grid;
@@ -377,6 +367,7 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+  margin: 16px 18px 0;
 }
 .version-item {
   display: flex;
@@ -443,7 +434,7 @@ onMounted(() => {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  margin-top: 15px;
+  margin: 15px 18px 0;
   padding: 12px;
   border: 1px solid color-mix(in srgb, var(--warn) 55%, var(--line));
   border-radius: 12px;
@@ -468,7 +459,7 @@ onMounted(() => {
   line-height: 1.55;
 }
 .dialog-status {
-  margin: 15px 0 0;
+  margin: 15px 18px 0;
   color: var(--muted);
   font-size: 12px;
   line-height: 1.55;
@@ -477,7 +468,7 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 9px;
-  margin-top: 20px;
+  margin: 20px 18px 18px;
 }
 .dialog-project-button,
 .dialog-secondary-button {
@@ -529,10 +520,18 @@ onMounted(() => {
     margin-top: 22px;
     padding-top: 12px;
   }
-  .version-dialog {
-    max-height: calc(100dvh - 40px);
-    overflow-y: auto;
-    padding: 18px;
+  .dialog-header {
+    padding: 14px 14px 10px;
+    gap: 10px;
+  }
+  .version-grid,
+  .dialog-update-note,
+  .dialog-status {
+    margin-right: 14px;
+    margin-left: 14px;
+  }
+  .dialog-actions {
+    margin: 18px 14px 14px;
   }
 }
 </style>
