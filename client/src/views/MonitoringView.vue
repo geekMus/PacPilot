@@ -483,7 +483,7 @@ const {
         <AppDialog
           :open="accessDetailOpen && !!selectedAccess"
           content-class="access-detail-dialog"
-          :label="t('monitor.k39')
+          :label="t('monitor.k39')"
           @update:open="onAccessDetailOpenChange"
         >
           <div class="access-detail-dialog">
