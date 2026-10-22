@@ -24,20 +24,27 @@ const emit = defineEmits<{
   ready: [element: HTMLElement];
   scroll: [element: HTMLElement];
 }>();
-const viewport = ref<HTMLElement | null>(null);
+const root = ref<unknown>(null);
+
+function getViewport(): HTMLElement | null {
+  const value = root.value as { $el?: HTMLElement } | HTMLElement | null;
+  const element = value instanceof HTMLElement ? value : value?.$el;
+  return element?.querySelector<HTMLElement>(".app-scroll-area-viewport") ?? null;
+}
 
 onMounted(() => {
-  if (viewport.value) emit("ready", viewport.value);
+  const element = getViewport();
+  if (element) emit("ready", element);
 });
-function onScroll(): void {
-  if (viewport.value) emit("scroll", viewport.value);
+function onScroll(event: Event): void {
+  const element = event.currentTarget;
+  if (element instanceof HTMLElement) emit("scroll", element);
 }
 </script>
 
 <template>
-  <ScrollAreaRoot class="app-scroll-area" :class="rootClass" :type="type" :scroll-hide-delay="500">
+  <ScrollAreaRoot ref="root" class="app-scroll-area" :class="rootClass" :type="type" :scroll-hide-delay="500">
     <ScrollAreaViewport
-      ref="viewport"
       class="app-scroll-area-viewport"
       :class="viewportClass"
       @scroll.passive="onScroll"
