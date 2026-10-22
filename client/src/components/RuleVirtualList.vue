@@ -123,7 +123,7 @@ watch(
   border-radius: 8px;
   background: var(--bg);
 }
-.virtual-list-viewport {
+.virtual-list :deep(.virtual-list-viewport) {
   position: relative;
 }
 .virtual-canvas {
