@@ -1,0 +1,62 @@
+name: 代码正确性检查
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+# 同一分支只保留最新的检查运行。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: bun run check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: 检出代码
+        id: checkout
+        uses: actions/checkout@v7
+
+      - name: 安装 Bun
+        id: setup-bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 安装依赖
+        id: install
+        run: bun install
+
+      - name: 执行代码正确性检查
+        id: check
+        run: bun run check
+
+      - name: 检查结果小结
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          CHECKOUT: ${{ steps.checkout.outcome }}
+          BUN: ${{ steps.setup-bun.outcome }}
+          INSTALL: ${{ steps.install.outcome }}
+          CHECK: ${{ steps.check.outcome }}
+        shell: bash
+        run: |
+          {
+            echo "## 代码正确性检查"
+            echo
+            echo "- **整体结果：** ${JOB_STATUS}"
+            echo "- **代码检出：** ${CHECKOUT}"
+            echo "- **Bun 环境：** ${BUN}"
+            echo "- **依赖安装：** ${INSTALL}"
+            echo "- **bun run check：** ${CHECK}"
+          } >> "$GITHUB_STEP_SUMMARY"
