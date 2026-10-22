@@ -3,8 +3,8 @@
 ## 无法访问网页
 
 - 确认容器正在运行：`docker ps`
-- 确认已发布端口：`docker port PacPilot`
-- 查看服务日志：`docker logs --tail 200 PacPilot`
+- 确认已发布端口：`docker port pacpilot`
+- 查看服务日志：`docker logs --tail 200 pacpilot`
 - 检查宿主机防火墙、反向代理和端口映射。
 - 确认访问的宿主机端口与 Docker 的端口映射一致。
 
