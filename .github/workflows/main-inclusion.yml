@@ -15,7 +15,7 @@ concurrency:
 jobs:
   prepare:
     name: 准备待检查分支
-    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))
+    if: (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))) && (github.event_name != 'pull_request' || github.event.pull_request.head.ref != 'main' || github.event.pull_request.base.ref != 'dev')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
@@ -137,7 +137,7 @@ jobs:
   gate:
     name: 主分支包含性检查
     needs: [prepare, inclusion]
-    if: always() && (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')))
+    if: always() && (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))) && (github.event_name != 'pull_request' || github.event.pull_request.head.ref != 'main' || github.event.pull_request.base.ref != 'dev')
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
