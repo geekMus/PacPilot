@@ -1,6 +1,9 @@
 name: 前后端单元测试与覆盖率
 
 on:
+  push:
+    branches:
+      - dev
   pull_request:
   workflow_dispatch:
 
