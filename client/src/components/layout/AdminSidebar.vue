@@ -6,6 +6,7 @@ import { invalidateAdminSessionCache } from "@/composables/useAdminSession";
 import AppIcon from "@/components/AppIcon.vue";
 import { useI18n } from "vue-i18n";
 import BrandMark from "@/components/BrandMark.vue";
+import AppScrollArea from "@/components/AppScrollArea.vue";
 
 type AdminSection = "dashboard" | "settings" | "system-settings" | "monitor" | "workflow";
 const props = defineProps<{ active: AdminSection; open: boolean }>();
@@ -39,7 +40,7 @@ async function logout(): Promise<void> {
         </span>
       </div>
 
-      <nav class="sidebar-nav" :aria-label="t('layout.adminConsole')">
+      <AppScrollArea root-class="sidebar-nav" orientation="vertical" role="navigation" :aria-label="t('layout.adminConsole')">
         <section class="nav-group" aria-labelledby="nav-workbench">
           <p id="nav-workbench" class="nav-caption">{{ t("layout.workbench") }}</p>
           <RouterLink
@@ -96,7 +97,7 @@ async function logout(): Promise<void> {
             <span>{{ t("nav.publicStatus") }}</span>
           </RouterLink>
         </section>
-      </nav>
+      </AppScrollArea>
 
       <div class="sidebar-bottom">
         <div class="sidebar-status">
