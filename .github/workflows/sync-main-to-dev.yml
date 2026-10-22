@@ -7,8 +7,6 @@ on:
       - closed
     branches:
       - main
-  # 也允许维护者手动补做同步。
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -21,7 +19,7 @@ concurrency:
 jobs:
   sync:
     name: 同步 main 到 dev
-    if: (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main') || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -90,39 +88,3 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-  checks:
-    name: 触发 dev 检查
-    needs: sync
-    if: success()
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions:
-      actions: write
-    steps:
-      - name: 手动触发代码质量与主从同步检查
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          gh workflow run quality-checks.yml --repo "$GH_REPO" --ref dev
-          gh workflow run main-inclusion.yml --repo "$GH_REPO" --ref dev
-          echo "已为 dev 触发代码质量检查和主从同步检查。"
-
-      - name: 阶段 2 小结
-        if: always()
-        env:
-          JOB_STATUS: ${{ job.status }}
-        shell: bash
-        run: |
-          {
-            echo "## 阶段 2：触发 dev 检查"
-            echo
-            echo "- **结果：** ${JOB_STATUS}"
-            if [[ "${JOB_STATUS}" == "success" ]]; then
-              echo "- **检查任务：** 已请求运行代码质量检查与主从同步检查"
-            else
-              echo "- **检查任务：** 未能全部触发，请查看上方日志"
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
