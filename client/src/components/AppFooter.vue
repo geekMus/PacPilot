@@ -145,26 +145,21 @@ onMounted(() => {
     </div>
     <AppDialog
       :open="dialogOpen"
-      content-class="version-dialog"
       :label="t('footer.projectVersion')"
+      width="min(640px, calc(100vw - 24px))"
+      :close-label="t('common.closeDialog')"
       @update:open="dialogOpen = $event"
     >
-      <section class="version-dialog" aria-labelledby="version-dialog-title">
-          <header class="dialog-header">
-            <DialogTitle id="version-dialog-title" class="dialog-title">{{ t("footer.projectVersion") }}</DialogTitle>
-            <DialogDescription id="version-dialog-description" class="app-dialog-visually-hidden">
-              {{ t("footer.currentVersion") }}、{{ t("footer.latestVersion") }}
-            </DialogDescription>
-            <button
-              type="button"
-              class="dialog-close"
-              :aria-label="t('common.closeDialog')"
-              @click="dialogOpen = false"
-            >
-              <AppIcon name="x" :size="17" />
-            </button>
-          </header>
-          <div class="version-grid">
+      <template #header>
+        <div class="version-dialog-heading">
+          <DialogTitle id="version-dialog-title" class="version-dialog-title">{{ t("footer.projectVersion") }}</DialogTitle>
+          <DialogDescription id="version-dialog-description" class="app-dialog-visually-hidden">
+            {{ t("footer.currentVersion") }}、{{ t("footer.latestVersion") }}
+          </DialogDescription>
+        </div>
+      </template>
+      <template #body>
+        <div class="version-grid">
             <div class="version-item">
               <span>{{ t("footer.currentVersion") }}</span
               ><strong>v{{ currentVersion }}</strong>
@@ -209,8 +204,9 @@ onMounted(() => {
             {{ t("footer.alreadyLatest") }}
           </p>
           <p v-else class="dialog-status">{{ t("footerExtra.k2") }}</p>
-          <div class="dialog-actions">
-            <a
+      </template>
+      <template #footer>
+          <a
               class="dialog-project-button"
               :href="updateInfo?.repositoryUrl || projectUrl"
               target="_blank"
@@ -225,8 +221,7 @@ onMounted(() => {
             ><button type="button" class="dialog-secondary-button" @click="dialogOpen = false">
               {{ t("footerExtra.k4") }}
             </button>
-          </div>
-      </section>
+      </template>
     </AppDialog>
   </footer>
 </template>
@@ -323,51 +318,16 @@ onMounted(() => {
   line-height: 1.15;
   letter-spacing: 0.02em;
 }
-.version-dialog {
-  box-sizing: border-box;
-  width: min(640px, calc(100vw - 24px));
-  max-height: min(86dvh, 820px);
-  overflow: auto;
-  padding: 0;
-  border-radius: 14px;
-}
-.dialog-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  padding: 18px 18px 12px;
-  margin-bottom: 0;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
-}
-.dialog-header h2,
-.dialog-header .dialog-title {
+.version-dialog-title {
   margin: 0;
   font-size: 20px;
   letter-spacing: -0.02em;
-}
-.dialog-close {
-  display: grid;
-  place-items: center;
-  flex: 0 0 32px;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--surface-2);
-  color: var(--muted);
-  font-size: 22px;
-  cursor: pointer;
 }
 .version-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin: 16px 18px 0;
+  margin: 0 0 15px;
 }
 .version-item {
   display: flex;
@@ -434,7 +394,7 @@ onMounted(() => {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  margin: 15px 18px 0;
+  margin: 15px 0 0;
   padding: 12px;
   border: 1px solid color-mix(in srgb, var(--warn) 55%, var(--line));
   border-radius: 12px;
@@ -459,16 +419,10 @@ onMounted(() => {
   line-height: 1.55;
 }
 .dialog-status {
-  margin: 15px 18px 0;
+  margin: 15px 0 0;
   color: var(--muted);
   font-size: 12px;
   line-height: 1.55;
-}
-.dialog-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 9px;
-  margin: 20px 18px 18px;
 }
 .dialog-project-button,
 .dialog-secondary-button {
@@ -519,19 +473,6 @@ onMounted(() => {
     flex-direction: column;
     margin-top: 22px;
     padding-top: 12px;
-  }
-  .dialog-header {
-    padding: 14px 14px 10px;
-    gap: 10px;
-  }
-  .version-grid,
-  .dialog-update-note,
-  .dialog-status {
-    margin-right: 14px;
-    margin-left: 14px;
-  }
-  .dialog-actions {
-    margin: 18px 14px 14px;
   }
 }
 </style>
