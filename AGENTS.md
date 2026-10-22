@@ -19,6 +19,7 @@
 - **全局手动触发硬规则：每一个 `.github/workflows/*.yml` / `.yaml` 工作流都必须配置 `workflow_dispatch`，不得遗漏。** 即使工作流已有 `push`、`pull_request` 或 `schedule` 自动触发，也必须保留手动运行入口；只有维护者在当前任务中明确要求例外时才可不配置。
 - **工作流专属触发规则：** `.github/workflows/main-inclusion.yml`（主从检查）允许任意目标分支的 `pull_request` 触发，不配置 `push`；`.github/workflows/quality-checks.yml`（代码质量检查）允许任意目标分支的 `pull_request`，并在除 `main` 外的分支响应 `push`，不得在 `main` 的 `push` 时触发。以上两个工作流都必须支持 `workflow_dispatch`，手动运行时仅允许 `main` 或 `dev` 引用实际执行。
 - `workflow_dispatch` 即使保留为手动入口，也必须通过 job 级 `if` 或等效的明确校验限制实际执行范围；不能仅隐藏入口或依赖用户自行选择正确分支。发布工作流的手动运行只允许 `main` 实际执行；清理废弃工作流记录是唯一不设置分支限制的特例。
+- `.github/workflows/sync-main-to-dev.yml`（合并后同步）：仅在目标为 `main` 的 PR **确实合并**后自动执行；也支持 `workflow_dispatch`，手动运行仅允许从 `main` 或 `dev` 引用执行。工作流将 `main` 合并进 `dev`，遇到冲突时停止并报告，不强行覆盖；同步后通过 `workflow_dispatch` 显式触发 `dev` 上的代码质量检查和主从同步检查，因为 `GITHUB_TOKEN` 推送本身不会触发普通 `push` 工作流。
 - 新增任何工作流时，先明确分类它的自动触发、手动触发和例外，再实施分支限制。不能因为工作流文件不同而忽略这条规则。
 
 ### 2. 发布权限
