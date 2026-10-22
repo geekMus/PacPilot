@@ -3,6 +3,7 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { api, type AccessEvent, type AdminSession, type MonitorSummary } from "../api/client";
 import { useToast } from "../composables/useToast";
+import { copyText } from "../utils/clipboard";
 
 export function useMonitoringDashboard() {
   const { t, locale } = useI18n();
@@ -131,12 +132,9 @@ export function useMonitoringDashboard() {
       t("monitor.k3"),
       formatAccessHeaders(event.request_headers),
     ];
-    try {
-      await navigator.clipboard.writeText(lines.join("\n"));
-      accessDetailCopyStateKey.value = "monitor.k4";
-    } catch {
-      accessDetailCopyStateKey.value = "monitor.k5";
-    }
+    accessDetailCopyStateKey.value = (await copyText(lines.join("\n")))
+      ? "monitor.k4"
+      : "monitor.k5";
   }
 
   const filteredAccesses = computed(() => {
