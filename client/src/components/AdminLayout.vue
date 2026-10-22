@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { api } from "../api/client";
-import { invalidateAdminSessionCache } from "../composables/useAdminSession";
-import AppIcon from "./AppIcon.vue";
+import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import BrandMark from "./BrandMark.vue";
+import AppIcon from "./AppIcon.vue";
 import UserPreferencesMenu from "./UserPreferencesMenu.vue";
+import AdminSidebar from "./AdminSidebar.vue";
 
 type AdminSection = "dashboard" | "settings" | "system-settings" | "monitor" | "workflow";
 
@@ -18,25 +16,7 @@ defineProps<{
 
 const { t } = useI18n();
 const route = useRoute();
-const router = useRouter();
 const menuOpen = ref(false);
-const logoutBusy = ref(false);
-
-async function logout(): Promise<void> {
-  if (logoutBusy.value) return;
-  logoutBusy.value = true;
-  try {
-    await api.logout();
-    invalidateAdminSessionCache();
-  } finally {
-    menuOpen.value = false;
-    try {
-      await router.replace("/admin/login");
-    } finally {
-      logoutBusy.value = false;
-    }
-  }
-}
 
 watch(
   () => route.fullPath,
@@ -45,6 +25,7 @@ watch(
   }
 );
 </script>
+
 
 <template>
   <div class="admin-layout">
@@ -56,97 +37,7 @@ watch(
       @click="menuOpen = false"
     ></button>
 
-    <aside class="admin-sidebar" :class="{ 'is-open': menuOpen }">
-      <div class="sidebar-brand" :aria-label="t('app.projectName')">
-        <BrandMark :size="40" />
-        <span class="brand-copy">
-          <strong>PacPilot</strong>
-          <small>{{ t("layout.adminConsole") }}</small>
-        </span>
-      </div>
-
-      <nav class="sidebar-nav" :aria-label="t('layout.adminConsole')">
-        <section class="nav-group" aria-labelledby="nav-workbench">
-          <p id="nav-workbench" class="nav-caption">{{ t("layout.workbench") }}</p>
-          <RouterLink
-            to="/admin/dashboard"
-            class="sidebar-link"
-            :class="{ active: active === 'dashboard' }"
-            :aria-current="active === 'dashboard' ? 'page' : undefined"
-          >
-            <AppIcon name="layout-dashboard" :size="18" />
-            <span>{{ t("nav.dashboard") }}</span>
-          </RouterLink>
-          <RouterLink
-            to="/admin/monitor"
-            class="sidebar-link"
-            :class="{ active: active === 'monitor' }"
-            :aria-current="active === 'monitor' ? 'page' : undefined"
-          >
-            <AppIcon name="activity" :size="18" />
-            <span>{{ t("nav.monitor") }}</span>
-          </RouterLink>
-          <RouterLink
-            to="/admin/settings"
-            class="sidebar-link"
-            :class="{ active: active === 'settings' }"
-            :aria-current="active === 'settings' ? 'page' : undefined"
-          >
-            <AppIcon name="sliders-horizontal" :size="18" />
-            <span>{{ t("nav.settings") }}</span>
-          </RouterLink>
-          <RouterLink
-            to="/admin/workflows"
-            class="sidebar-link"
-            :class="{ active: active === 'workflow' }"
-            :aria-current="active === 'workflow' ? 'page' : undefined"
-          >
-            <AppIcon name="workflow" :size="18" />
-            <span>{{ t("nav.workflow") }}</span>
-          </RouterLink>
-          <RouterLink
-            to="/admin/system-settings"
-            class="sidebar-link"
-            :class="{ active: active === 'system-settings' }"
-            :aria-current="active === 'system-settings' ? 'page' : undefined"
-          >
-            <AppIcon name="settings-2" :size="18" />
-            <span>{{ t("nav.systemSettings") }}</span>
-          </RouterLink>
-        </section>
-
-        <section class="nav-group" aria-labelledby="nav-services">
-          <p id="nav-services" class="nav-caption">{{ t("nav.services") }}</p>
-          <RouterLink to="/" class="sidebar-link">
-            <AppIcon name="globe" :size="18" />
-            <span>{{ t("nav.publicStatus") }}</span>
-          </RouterLink>
-        </section>
-      </nav>
-
-      <div class="sidebar-bottom">
-        <div class="sidebar-status">
-          <span class="status-dot"></span><span>{{ t("layout.adminConnected") }}</span>
-        </div>
-        <span class="sidebar-note">{{ t("layout.settingsStoredLocal") }}</span>
-        <div class="sidebar-controls">
-          <button
-            type="button"
-            class="sidebar-logout-button"
-            :disabled="logoutBusy"
-            :title="logoutBusy ? t('layout.loggingOutTitle') : t('layout.logoutTitle')"
-            @click="logout"
-          >
-            <AppIcon
-              :name="logoutBusy ? 'loader-circle' : 'log-out'"
-              :size="16"
-              :class="{ 'icon-spinning': logoutBusy }"
-            />
-            {{ logoutBusy ? t("layout.loggingOut") : t("nav.logout") }}
-          </button>
-        </div>
-      </div>
-    </aside>
+    <AdminSidebar :active="active" :open="menuOpen" />
 
     <div class="admin-main">
       <header class="admin-topbar">
@@ -179,232 +70,26 @@ watch(
 <style scoped>
 .admin-layout {
   --sidebar-width: 258px;
-  min-height: 100vh;
+  display: flex;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
   color: var(--text);
   background: var(--bg);
 }
-.admin-sidebar {
-  position: fixed;
-  z-index: 50;
-  inset: 0 auto 0 0;
-  display: flex;
-  flex-direction: column;
-  width: var(--sidebar-width);
-  padding: 22px 14px 16px;
-  border-right: 1px solid var(--line);
-  background: var(--surface);
-}
-.sidebar-brand {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  margin: 0 8px 26px;
-  color: var(--text);
-  text-decoration: none;
-}
-
-.brand-copy {
-  min-width: 0;
-}
-.brand-copy strong {
-  display: block;
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: -0.035em;
-}
-.brand-copy small {
-  display: block;
-  margin-top: 3px;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-}
-.sidebar-nav {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 0 2px 10px;
-}
-.nav-group + .nav-group {
-  margin-top: 20px;
-  padding-top: 17px;
-  border-top: 1px solid var(--line);
-}
-.nav-caption {
-  margin: 0 10px 7px;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.13em;
-}
-.nav-lock-note {
-  margin: 0 8px 10px;
-  padding: 8px 10px;
-  border: 1px solid color-mix(in srgb, var(--warn, #d97706) 28%, var(--line));
-  border-radius: 9px;
-  background: var(--warn-soft, color-mix(in srgb, #d97706 12%, var(--surface)));
-  color: var(--warn, #b45309);
-  font-size: 11px;
-  line-height: 1.5;
-  font-weight: 650;
-}
-.sidebar-link {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 42px;
-  margin: 3px 0;
-  padding: 0 11px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  color: var(--muted);
-  text-decoration: none;
-  font-size: 12px;
-  font-weight: 650;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s;
-  background: transparent;
-  font: inherit;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-}
-.sidebar-link :deep(.app-icon) {
-  flex: 0 0 18px;
-}
-.sidebar-link:hover {
-  color: var(--text);
-  background: var(--surface-2);
-  text-decoration: none;
-}
-.sidebar-link:active:not(.active):not(.is-disabled) {
-  color: var(--accent);
-  background: var(--accent-soft);
-  border-color: color-mix(in srgb, var(--accent) 24%, var(--line));
-}
-.sidebar-link.active {
-  color: var(--accent);
-  background: var(--accent-soft);
-  border-color: color-mix(in srgb, var(--accent) 22%, var(--line));
-  box-shadow: inset 3px 0 0 var(--accent);
-}
-.sidebar-link.is-disabled,
-.sidebar-link.is-disabled:hover {
-  color: var(--muted);
-  background: transparent;
-  border-color: transparent;
-  opacity: 0.48;
-  cursor: not-allowed;
-}
-.external-mark {
-  margin-left: auto;
-  opacity: 0.65;
-  font-size: 13px;
-}
-.sidebar-bottom {
-  padding: 14px 10px 0;
-  border-top: 1px solid var(--line);
-}
-.sidebar-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-top: 16px;
-  padding-top: 15px;
-  border-top: 1px solid var(--line);
-}
-.sidebar-preferences-group {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-}
-.sidebar-control-label {
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-}
-.sidebar-logout-button {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  width: 100%;
-  min-height: 44px;
-  margin-top: 14px;
-  padding: 0 12px;
-  border: 1px solid color-mix(in srgb, var(--red) 28%, var(--line));
-  border-radius: 10px;
-  color: var(--red);
-  background: var(--red-soft);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 750;
-  cursor: pointer;
-  transition:
-    background-color 150ms ease,
-    border-color 150ms ease,
-    box-shadow 150ms ease,
-    transform 150ms ease;
-}
-.sidebar-logout-button :deep(.app-icon) {
-  flex: 0 0 auto;
-  color: var(--red);
-}
-.sidebar-logout-button:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--red) 58%, var(--line));
-  background: color-mix(in srgb, var(--red) 16%, var(--surface));
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--red) 10%, transparent);
-}
-.sidebar-logout-button:focus-visible {
-  outline: 2px solid var(--red);
-  outline-offset: 2px;
-}
-.sidebar-logout-button:disabled {
-  opacity: 0.72;
-  cursor: progress;
-  box-shadow: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .sidebar-logout-button {
-    transition: none;
-  }
-}
-.sidebar-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text);
-  font-size: 11px;
-  font-weight: 700;
-}
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 0 3px var(--green-soft);
-}
-.sidebar-note {
-  display: block;
-  margin-top: 7px;
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1.5;
-}
 .admin-main {
-  min-height: 100vh;
-  margin-left: var(--sidebar-width);
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
 }
 .admin-topbar {
-  position: sticky;
+  position: relative;
   z-index: 30;
-  top: 0;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -456,6 +141,12 @@ watch(
   font-size: 12px;
 }
 .admin-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   --radius: 12px;
   --admin-panel-padding: 20px;
   --admin-section-gap: 20px;
@@ -578,17 +269,6 @@ watch(
   }
 }
 @media (max-width: 900px) {
-  .admin-sidebar {
-    box-shadow: none;
-    transform: translateX(-102%);
-    transition:
-      transform 0.2s ease,
-      box-shadow 0.2s ease;
-  }
-  .admin-sidebar.is-open {
-    transform: translateX(0);
-    box-shadow: 18px 0 48px rgba(10, 20, 35, 0.18);
-  }
   .sidebar-backdrop {
     display: block;
     position: fixed;
@@ -596,9 +276,6 @@ watch(
     inset: 0;
     border: 0;
     background: rgba(12, 18, 30, 0.45);
-  }
-  .admin-main {
-    margin-left: 0;
   }
   .admin-topbar {
     min-height: 72px;

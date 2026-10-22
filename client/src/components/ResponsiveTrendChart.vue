@@ -50,6 +50,8 @@ const host = ref<HTMLElement | null>(null);
 const chart = shallowRef<EChartsType | null>(null);
 let resizeObserver: ResizeObserver | undefined;
 let themeObserver: MutationObserver | undefined;
+let mobileMediaQuery: MediaQueryList | undefined;
+let resizeFrame = 0;
 
 function cssVar(name: string, fallback: string): string {
   if (typeof window === "undefined") return fallback;
@@ -349,23 +351,34 @@ function renderChart() {
     });
 }
 
-function handleResize() {
-  chart.value?.resize();
+function scheduleChartResize() {
+  if (resizeFrame) return;
+  resizeFrame = window.requestAnimationFrame(() => {
+    resizeFrame = 0;
+    chart.value?.resize();
+  });
+}
+
+function onBreakpointChange() {
+  // Chart options differ at the mobile breakpoint; ordinary resizes only need canvas resizing.
   renderChart();
 }
 
 onMounted(() => {
   renderChart();
   if (host.value && typeof ResizeObserver !== "undefined") {
-    resizeObserver = new ResizeObserver(() => handleResize());
+    resizeObserver = new ResizeObserver(scheduleChartResize);
     resizeObserver.observe(host.value);
   }
-  window.addEventListener("resize", handleResize);
+  if (typeof window !== "undefined") {
+    mobileMediaQuery = window.matchMedia("(max-width: 560px)");
+    mobileMediaQuery.addEventListener("change", onBreakpointChange);
+  }
   if (typeof MutationObserver !== "undefined") {
     themeObserver = new MutationObserver(() => renderChart());
     themeObserver.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ["class", "data-theme", "style"],
+      attributeFilter: ["class", "data-theme"],
     });
   }
 });
@@ -373,7 +386,9 @@ onMounted(() => {
 onUnmounted(() => {
   resizeObserver?.disconnect();
   themeObserver?.disconnect();
-  window.removeEventListener("resize", handleResize);
+  mobileMediaQuery?.removeEventListener("change", onBreakpointChange);
+  if (resizeFrame) window.cancelAnimationFrame(resizeFrame);
+  resizeFrame = 0;
   chart.value?.dispose();
   chart.value = null;
 });

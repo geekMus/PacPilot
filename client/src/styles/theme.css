@@ -75,10 +75,6 @@ html.theme-dark {
 
 html {
   -webkit-text-size-adjust: 100%;
-  /* Keep a stable vertical scrollbar gutter so modal scroll locking cannot shift the layout. */
-  scrollbar-gutter: stable;
-  /* Portaled Reka UI menus must not expand the document's horizontal scroll area. */
-  overflow-x: clip;
   /* 移除移动浏览器点击元素时默认出现的蓝色/半透明点击闪烁。 */
   -webkit-tap-highlight-color: transparent;
 }
@@ -113,8 +109,22 @@ body {
  * and makes fixed page headers jump when a layer opens. The custom sidebar
  * backdrop only needs to stop body scrolling.
  */
+body:has(.admin-layout) {
+  overflow: hidden;
+}
+
 body:has(.sidebar-backdrop) {
   overflow: hidden;
+}
+
+/* Admin pages use an internal flex scroll area; public pages keep a stable viewport gutter. */
+html:has(.admin-layout) {
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+
+html:not(:has(.admin-layout)) {
+  scrollbar-gutter: stable;
 }
 
 [aria-modal="true"],
