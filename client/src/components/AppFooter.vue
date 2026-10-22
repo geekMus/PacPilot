@@ -151,7 +151,7 @@ onMounted(() => {
     >
       <section class="version-dialog" aria-labelledby="version-dialog-title">
           <header class="dialog-header">
-            <DialogTitle id="version-dialog-title">{{ t("footer.projectVersion") }}</DialogTitle>
+            <DialogTitle id="version-dialog-title" class="dialog-title">{{ t("footer.projectVersion") }}</DialogTitle>
             <DialogDescription id="version-dialog-description" class="visually-hidden">
               {{ t("footer.currentVersion") }}、{{ t("footer.latestVersion") }}
             </DialogDescription>
@@ -343,7 +343,7 @@ onMounted(() => {
   margin-bottom: 19px;
 }
 .dialog-header h2,
-.dialog-header [data-reka-ui-dialog-title] {
+.dialog-header .dialog-title {
   margin: 0;
   font-size: 20px;
   letter-spacing: -0.02em;
@@ -359,12 +359,6 @@ onMounted(() => {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-}
-/* legacy heading selector retained below for compatibility */
-.dialog-header h2 {
-  margin: 0;
-  font-size: 20px;
-  letter-spacing: -0.02em;
 }
 .dialog-close {
   display: grid;
