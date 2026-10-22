@@ -15,7 +15,7 @@ import { commonTimeZones, isValidTimeZone } from "../utils/time-zones";
 import { useToast } from "../composables/useToast";
 
 export function useAdminSettings() {
-  const { t, tm, locale } = useI18n();
+  const { t, locale } = useI18n();
 
   const { notify } = useToast();
 
