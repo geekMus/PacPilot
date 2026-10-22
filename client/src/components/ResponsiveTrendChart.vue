@@ -1,21 +1,42 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import * as echarts from "echarts/core";
-import { BarChart, LineChart } from "echarts/charts";
-import { GridComponent, TooltipComponent, LegendComponent } from "echarts/components";
-import { CanvasRenderer } from "echarts/renderers";
 import type { EChartsType } from "echarts/core";
 const { t, locale } = useI18n();
 
-echarts.use([
-  BarChart,
-  LineChart,
-  GridComponent,
-  TooltipComponent,
-  LegendComponent,
-  CanvasRenderer,
-]);
+type EChartsCoreModule = typeof import("echarts/core");
+
+let echartsCore: EChartsCoreModule | undefined;
+let echartsLoading: Promise<void> | undefined;
+
+/** Load chart code only when a chart is actually rendered. */
+function loadEcharts(): Promise<void> {
+  if (echartsCore) return Promise.resolve();
+  if (!echartsLoading) {
+    echartsLoading = Promise.all([
+      import("echarts/core"),
+      import("echarts/charts"),
+      import("echarts/components"),
+      import("echarts/renderers"),
+    ])
+      .then(([core, charts, components, renderers]) => {
+        core.use([
+          charts.BarChart,
+          charts.LineChart,
+          components.GridComponent,
+          components.TooltipComponent,
+          components.LegendComponent,
+          renderers.CanvasRenderer,
+        ]);
+        echartsCore = core;
+      })
+      .catch((error: unknown) => {
+        echartsLoading = undefined;
+        throw error;
+      });
+  }
+  return echartsLoading;
+}
 
 export interface TrendPoint {
   hour: string;
@@ -329,10 +350,19 @@ function renderChart() {
     chart.value?.clear();
     return;
   }
-  if (!chart.value) {
-    chart.value = echarts.init(host.value, undefined, { renderer: "canvas" });
-  }
-  chart.value.setOption(buildOption(), true);
+
+  void loadEcharts()
+    .then(() => {
+      const element = host.value;
+      if (!element || !props.points?.length || !echartsCore) return;
+      if (!chart.value) {
+        chart.value = echartsCore.init(element, undefined, { renderer: "canvas" });
+      }
+      chart.value.setOption(buildOption(), true);
+    })
+    .catch((error: unknown) => {
+      console.error("[ResponsiveTrendChart] Failed to load ECharts modules.", error);
+    });
 }
 
 function handleResize() {
