@@ -2,6 +2,7 @@
 import { useI18n } from "vue-i18n";
 import { computed, ref, watch } from "vue";
 import TextDetail from "@/components/TextDetail.vue";
+import AppScrollArea from "@/components/AppScrollArea.vue";
 const { t } = useI18n();
 
 interface RuleEntry {
@@ -79,12 +80,13 @@ watch(
 </script>
 
 <template>
-  <div
-    ref="viewport"
-    class="virtual-list"
+  <AppScrollArea
+    root-class="virtual-list"
+    viewport-class="virtual-list-viewport"
     :style="{ height: viewportHeight + 'px' }"
     role="list"
     :aria-label="t('common.domainRules')"
+    @ready="(element) => { viewport = element; }"
     @scroll="onScroll"
   >
     <div v-if="items.length" class="virtual-canvas" :style="{ height: totalHeight + 'px' }">
@@ -106,27 +108,19 @@ watch(
       </div>
     </div>
     <div v-else class="virtual-empty">{{ emptyText }}</div>
-  </div>
+  </AppScrollArea>
 </template>
 
 <style scoped>
 .virtual-list {
   position: relative;
   max-height: 300px;
-  overflow: auto;
-  overscroll-behavior: contain;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--bg);
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
-.virtual-list::-webkit-scrollbar {
-  width: var(--scrollbar-size);
-}
-.virtual-list::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 999px;
+.virtual-list-viewport {
+  position: relative;
 }
 .virtual-canvas {
   position: relative;
