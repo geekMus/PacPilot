@@ -348,53 +348,65 @@ code {
   accent-color: var(--accent);
 }
 
-/* === Scrollbars: slim, rounded, theme-aware, with legacy arrow buttons removed === */
+/* === Scrollbars: subtle, neutral, ChatGPT-inspired === */
 :root {
-  --scrollbar-size: 8px;
-  --scrollbar-thumb: color-mix(in srgb, var(--accent) 24%, var(--muted) 30%, transparent);
-  --scrollbar-thumb-hover: color-mix(in srgb, var(--accent) 58%, var(--muted) 18%, transparent);
+  --scrollbar-thumb: color-mix(in srgb, var(--text) 24%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--text) 42%, transparent);
   --scrollbar-track: transparent;
 }
 
+/*
+ * Prefer native thin scrollbars: this keeps the quiet, overlay-like appearance
+ * across platforms instead of forcing a permanently visible custom gutter.
+ * The accent color is intentionally not used for scrollbars.
+ */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
-*::-webkit-scrollbar {
-  width: var(--scrollbar-size);
-  height: var(--scrollbar-size);
+/* Legacy WebKit fallback only. Modern browsers use scrollbar-color above. */
+@supports not (scrollbar-color: auto) {
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    min-height: 28px;
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: var(--scrollbar-thumb);
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+    background-clip: padding-box;
+  }
+
+  /* Hide classic scrollbar arrow buttons where the legacy API is active. */
+  *::-webkit-scrollbar-button,
+  *::-webkit-scrollbar-button:single-button,
+  *::-webkit-scrollbar-button:double-button {
+    display: none;
+    width: 0;
+    height: 0;
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
 
-*::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
-  border-radius: 999px;
-}
-
-*::-webkit-scrollbar-thumb {
-  min-height: 28px;
-  border: 2px solid transparent;
-  border-radius: 999px;
-  background: var(--scrollbar-thumb);
-  background-clip: padding-box;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-
-/* Hide the old up/down and left/right scrollbar buttons found in classic themes. */
-*::-webkit-scrollbar-button,
-*::-webkit-scrollbar-button:single-button,
-*::-webkit-scrollbar-button:double-button {
-  display: none;
-  width: 0;
-  height: 0;
-  background: transparent;
-}
-
-*::-webkit-scrollbar-corner {
-  background: transparent;
+/* Preserve platform accessibility settings and high-contrast scrollbars. */
+@media (forced-colors: active) {
+  * {
+    scrollbar-color: auto;
+  }
 }
