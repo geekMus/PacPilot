@@ -349,11 +349,11 @@ code {
   accent-color: var(--accent);
 }
 
-/* === scrollbars (VS Code–inspired: thin, quiet, theme-aware) === */
+/* === Scrollbars: slim, rounded, theme-aware, with legacy arrow buttons removed === */
 :root {
-  --scrollbar-size: 10px;
-  --scrollbar-thumb: color-mix(in srgb, var(--muted) 45%, transparent);
-  --scrollbar-thumb-hover: color-mix(in srgb, var(--muted) 70%, transparent);
+  --scrollbar-size: 8px;
+  --scrollbar-thumb: color-mix(in srgb, var(--accent) 24%, var(--muted) 30%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--accent) 58%, var(--muted) 18%, transparent);
   --scrollbar-track: transparent;
 }
 
@@ -373,9 +373,10 @@ code {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 999px;
+  min-height: 28px;
   border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--scrollbar-thumb);
   background-clip: padding-box;
 }
 
@@ -383,6 +384,16 @@ code {
   background: var(--scrollbar-thumb-hover);
   border: 2px solid transparent;
   background-clip: padding-box;
+}
+
+/* Hide the old up/down and left/right scrollbar buttons found in classic themes. */
+*::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button:single-button,
+*::-webkit-scrollbar-button:double-button {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
 }
 
 *::-webkit-scrollbar-corner {
