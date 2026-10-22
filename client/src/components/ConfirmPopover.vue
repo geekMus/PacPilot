@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, toRef, watch } from "vue";
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { useViewportPanel } from "../composables/useViewportPanel";
+import { PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot } from "reka-ui";
 
 const props = withDefaults(
   defineProps<{
@@ -41,66 +41,43 @@ const emit = defineEmits<{
   "update:open": [value: boolean];
   confirm: [];
 }>();
-const root = ref<HTMLElement | null>(null);
-const panel = ref<HTMLElement | null>(null);
-const { style: panelStyle } = useViewportPanel(root, panel, toRef(props, "open"), {
-  align: props.align,
-  maxWidth: 285,
-});
 
 function toggle() {
   if (props.disabled || props.busy) return;
   emit("update:open", !props.open);
 }
+
 function close() {
   if (!props.busy) emit("update:open", false);
 }
-function onDocumentPointerDown(event: PointerEvent) {
-  const target = event.target;
-  if (!(target instanceof Node) || root.value?.contains(target) || panel.value?.contains(target)) {
+
+function onOpenChange(open: boolean) {
+  if (open) {
+    if (!props.disabled && !props.busy) emit("update:open", true);
     return;
   }
   close();
 }
-function onDocumentKeyDown(event: KeyboardEvent) {
-  if (event.key !== "Escape" || !props.open || props.busy) return;
-  event.preventDefault();
-  close();
-}
-function attachListeners() {
-  document.addEventListener("pointerdown", onDocumentPointerDown);
-  document.addEventListener("keydown", onDocumentKeyDown);
-}
-function detachListeners() {
-  document.removeEventListener("pointerdown", onDocumentPointerDown);
-  document.removeEventListener("keydown", onDocumentKeyDown);
-}
-watch(
-  () => props.open,
-  (open) => {
-    if (open) attachListeners();
-    else detachListeners();
-  }
-);
-onMounted(() => {
-  if (props.open) attachListeners();
-});
-onBeforeUnmount(detachListeners);
 </script>
 
 <template>
-  <div ref="root" class="confirm-anchor" @click.stop>
-    <slot name="trigger" :toggle="toggle" :open="props.open" />
-    <Teleport to="body">
-      <div
-        v-if="props.open"
-        ref="panel"
+  <PopoverRoot :open="props.open" @update:open="onOpenChange">
+    <PopoverAnchor as-child>
+      <div class="confirm-anchor" @click.stop>
+        <slot name="trigger" :toggle="toggle" :open="props.open" />
+      </div>
+    </PopoverAnchor>
+    <PopoverPortal>
+      <PopoverContent
         class="confirm-popover"
         :class="['tone-' + props.tone]"
-        :style="panelStyle"
-        role="group"
+        :align="props.align"
+        side="bottom"
+        :side-offset="6"
+        :collision-padding="8"
         :aria-label="t('common.confirmAction')"
-        @click.stop
+        @escape-key-down="close"
+        @pointer-down-outside="close"
       >
         <strong>{{ props.title }}</strong>
         <span>{{ props.description }}</span>
@@ -130,9 +107,9 @@ onBeforeUnmount(detachListeners);
             {{ props.busy ? resolvedBusyText : resolvedConfirmText }}
           </button>
         </div>
-      </div>
-    </Teleport>
-  </div>
+      </PopoverContent>
+    </PopoverPortal>
+  </PopoverRoot>
 </template>
 
 <style scoped>
@@ -149,8 +126,11 @@ onBeforeUnmount(detachListeners);
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--surface);
+  color: var(--text);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
   text-align: left;
+  transform-origin: var(--reka-popover-content-transform-origin);
+  animation: confirm-popover-in 120ms ease-out;
 }
 .confirm-popover.tone-warning {
   border-color: color-mix(in srgb, var(--amber, #d97706) 35%, var(--line));
@@ -214,5 +194,12 @@ onBeforeUnmount(detachListeners);
 .confirm-warning:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+@keyframes confirm-popover-in {
+  from { opacity: 0; transform: translateY(-2px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confirm-popover { animation: none; }
 }
 </style>
