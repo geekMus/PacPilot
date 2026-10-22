@@ -69,6 +69,7 @@ function onOpenChange(open: boolean) {
     :open="props.open"
     :label="props.title"
     :close-label="resolvedCancelText"
+    width="min(440px, calc(100vw - 24px))"
     content-class="confirm-dialog"
     @update:open="onOpenChange"
   >
@@ -107,9 +108,6 @@ function onOpenChange(open: boolean) {
   position: relative;
   display: inline-block;
   max-width: 100%;
-}
-.app-dialog-content.confirm-dialog {
-  width: min(440px, calc(100vw - 24px));
 }
 .confirm-dialog .app-dialog-header {
   padding-bottom: 14px;

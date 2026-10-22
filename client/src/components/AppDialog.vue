@@ -9,6 +9,7 @@ const props = withDefaults(
     label: string;
     contentClass?: string;
     bodyClass?: string;
+    width?: string;
     closeLabel?: string;
     showClose?: boolean;
   }>(),
@@ -54,7 +55,7 @@ function onCloseAutoFocus(event: Event): void {
         :aria-label="props.label"
         @close-auto-focus="onCloseAutoFocus"
       >
-        <section class="app-dialog-shell" :class="props.contentClass">
+        <section class="app-dialog-shell" :class="props.contentClass" :style="props.width ? { width: props.width } : undefined">
           <header v-if="$slots.header || $slots['header-actions'] || props.showClose" class="app-dialog-header">
             <div class="app-dialog-heading">
               <slot name="header" />

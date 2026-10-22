@@ -597,10 +597,7 @@
   min-width: 32px;
   padding: 0 8px;
 }
-.app-dialog-content.app-dialog-content.access-detail-dialog {
-  width: min(640px, calc(100vw - 24px));
-}
-.access-detail-title {
+.app-dialog-content.access-detail-title {
   margin: 0;
   font-size: 18px;
   font-weight: 800;

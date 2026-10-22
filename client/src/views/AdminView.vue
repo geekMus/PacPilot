@@ -265,8 +265,8 @@ const { style: timezonePanelStyle } = useViewportPanel(
 
             <AppDialog
               :open="mobileTimezoneOpen"
-              content-class="timezone-sheet"
               :label="t('settings.selectTimezone')"
+              width="min(640px, calc(100vw - 24px))"
               :close-label="t('settings.closeTimezone')"
               @update:open="mobileTimezoneOpen = $event"
             >

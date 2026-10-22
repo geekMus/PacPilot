@@ -1057,10 +1057,10 @@ textarea.body-area {
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
   }
-  .timezone-sheet .timezone-option {
+  .timezone-option {
     min-height: 48px;
   }
-  .timezone-sheet .timezone-option code {
+  .timezone-option code {
     overflow-wrap: anywhere;
     white-space: normal;
     text-align: right;
@@ -1207,40 +1207,37 @@ textarea.body-area {
 /* Keep the timezone picker aligned with the shared centered dialog surface. */
 
 
-.timezone-sheet .timezone-sheet-search {
+.timezone-sheet-search {
   flex: 0 0 auto;
   width: calc(100% - 36px);
   margin: 16px 18px 10px;
 }
-.timezone-sheet .timezone-sheet-options {
+.timezone-sheet-options {
   min-height: 0;
   margin: 0 18px;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
-.timezone-sheet .timezone-sheet-hint {
+.timezone-sheet-hint {
   margin: 10px 18px 18px;
 }
 @media (max-width: 720px) {
   
-  .timezone-sheet .timezone-sheet-search {
+  .timezone-sheet-search {
     width: calc(100% - 28px);
     margin: 16px 14px 10px;
   }
-  .timezone-sheet .timezone-sheet-options {
+  .timezone-sheet-options {
     margin: 0 14px;
   }
-  .timezone-sheet .timezone-sheet-hint {
+  .timezone-sheet-hint {
     margin: 10px 14px max(14px, env(safe-area-inset-bottom));
   }
 }
 
 
 /* The shared dialog owns the shell; only the timezone picker's content is customized here. */
-.app-dialog-content.timezone-sheet {
-  width: min(640px, calc(100vw - 24px));
-}
 .timezone-sheet-title {
   margin: 0;
   font-size: 16px;
@@ -1251,13 +1248,13 @@ textarea.body-area {
   gap: 10px;
   min-height: 0;
 }
-.timezone-sheet .timezone-sheet-search {
+.timezone-sheet-search {
   flex: 0 0 auto;
   width: 100%;
   min-height: 44px;
   margin: 0;
 }
-.timezone-sheet .timezone-sheet-options {
+.timezone-sheet-options {
   flex: 1 1 auto;
   min-height: 0;
   max-height: min(48dvh, 420px);
@@ -1265,6 +1262,6 @@ textarea.body-area {
   overflow: auto;
   overscroll-behavior: contain;
 }
-.timezone-sheet .timezone-sheet-hint {
+.timezone-sheet-hint {
   margin: 0;
 }

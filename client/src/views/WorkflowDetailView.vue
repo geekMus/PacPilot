@@ -419,8 +419,8 @@ onUnmounted(() => {
 
       <AppDialog
         :open="stageDetailOpen && !!selectedStage"
-        content-class="stage-detail-dialog"
         :label="t('workflowDetailPage.k19')"
+        width="min(640px, calc(100vw - 16px))"
         :close-label="t('workflowDetailPage.k20')"
         @update:open="onStageDetailOpenChange"
       >
@@ -898,10 +898,6 @@ onUnmounted(() => {
     animation-iteration-count: 1;
   }
 }
-
-.app-dialog-content.app-dialog-content.stage-detail-dialog {
-  width: min(640px, calc(100vw - 24px));
-}
 .stage-detail-heading {
   display: grid;
   gap: 4px;
@@ -1082,11 +1078,6 @@ onUnmounted(() => {
 </style>
 
 /* The shared dialog owns the shell, fixed header and content scrolling. */
-.app-dialog-content.stage-detail-dialog {
-  max-height: calc(100dvh - 24px);
-  border-radius: inherit;
-  overflow: hidden;
-}
 .stage-detail-body {
   padding: 0;
 }
