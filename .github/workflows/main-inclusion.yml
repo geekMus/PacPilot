@@ -2,6 +2,8 @@ name: 主从检查
 
 on:
   pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
