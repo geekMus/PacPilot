@@ -99,15 +99,13 @@ body {
   letter-spacing: 0.01em;
 }
 
-html:has(dialog[open], [aria-modal="true"], .sidebar-backdrop),
-body:has(dialog[open], [aria-modal="true"], .sidebar-backdrop) {
+html:has([aria-modal="true"], .sidebar-backdrop),
+body:has([aria-modal="true"], .sidebar-backdrop) {
   overflow: hidden;
 }
 
-dialog[open],
 [aria-modal="true"],
-.dialog-backdrop,
-.timezone-sheet-backdrop {
+.sidebar-backdrop {
   overscroll-behavior: contain;
 }
 
