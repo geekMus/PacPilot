@@ -80,7 +80,7 @@ CORS_ALLOWED_ORIGINS=https://admin.example.com,https://ops.example.com
 **Docker：**
 
 ```bash
-docker exec -it PacPilot bun run /app/scripts/reset-admin-password.ts
+docker exec -it pacpilot bun run /app/scripts/reset-admin-password.ts
 ```
 
 **本机开发：**
@@ -107,4 +107,4 @@ Windows PowerShell 示例：
 bun run scripts/reset-admin-password.ts --production --data-dir "C:\PacPilot\data"
 ```
 
-重置脚本会检查数据库是否存在，不会因为路径写错而创建空数据库。脚本只显示新生成的密码一次。容器名若不是 `PacPilot`，请修改对应的 `docker exec` 命令。
+重置脚本会检查数据库是否存在，不会因为路径写错而创建空数据库。脚本只显示新生成的密码一次。默认容器名为 `pacpilot`；如果创建容器时使用了其他名称，请相应修改 `docker exec` 命令。

@@ -1,19 +1,21 @@
-# 文档目录
+# Documentation
 
-本文档目录集中维护项目的使用、部署、开发和运维说明。根目录的 [README.md](../README.md) 仅保留项目介绍、快速开始和文档入口；详细说明请在对应文档中修改，避免日常补充说明时反复改动根 README。
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-| 文档                           | 内容                                               |
-| ------------------------------ | -------------------------------------------------- |
-| [部署指南](deployment.md)      | Docker、Docker Compose、首次启动和常用访问地址     |
-| [配置说明](configuration.md)   | PAC 规则、环境变量、数据文件、跨域策略与管理员密码 |
-| [开发指南](development.md)     | 本地开发环境、常用命令和检查范围                   |
-| [运维与发布](operations.md)    | 工作流、日志与数据维护、镜像发布和升级             |
-| [故障排查](troubleshooting.md) | 网页、登录、PAC 生成、远程列表和升级问题           |
+This directory contains the project's user, deployment, development, and operations documentation. This index is available in English and Chinese; the detailed guides linked below are currently maintained in Chinese. The root [README.md](../README.md) provides a project overview, quick start, and documentation links. Detailed guidance belongs in the relevant document so that routine documentation updates do not require frequent edits to the root README.
 
-## 文档维护约定
+| Document | Description |
+| --- | --- |
+| [Deployment guide](deployment.md) | Docker, Docker Compose, first startup, and common access URLs |
+| [Configuration](configuration.md) | PAC rules, environment variables, data files, CORS policy, and administrator password |
+| [Development guide](development.md) | Local development environment, common commands, and checks |
+| [Operations and releases](operations.md) | Workflows, log and data maintenance, image releases, and upgrades |
+| [Troubleshooting](troubleshooting.md) | Web UI, login, PAC generation, remote lists, and upgrade issues |
 
-- 面向用户的部署、配置、操作与故障排查说明放在 `docs/`。
-- 开发、测试、构建和发布流程说明也放在 `docs/`，按主题维护。
-- 根目录 `README.md` 只保留项目概览、最小可用的快速开始和文档索引。
-- 文档中的命令、环境变量、端口、路由和工作流行为必须与源码及配置文件一致；修改实现时同步检查相关文档。
-- 源码和工作流不应依赖 README 的段落位置或文字内容。需要机器读取的配置应使用结构化配置或独立脚本，而不是解析 README。
+## Documentation conventions
+
+- Keep user-facing deployment, configuration, usage, and troubleshooting guidance in `docs/`.
+- Keep development, testing, build, and release process documentation in `docs/`, organized by topic.
+- The root `README.md` should contain only the project overview, a minimal quick start, and links to documentation.
+- Commands, environment variables, ports, routes, and workflow behavior documented here must match the source code and configuration. Review the relevant documentation when implementation changes.
+- Source code and workflows must not depend on README section positions or wording. Machine-readable configuration should use structured configuration or standalone scripts rather than parsing README files.
