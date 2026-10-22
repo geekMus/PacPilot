@@ -45,8 +45,8 @@ async function logout(): Promise<void> {
           <RouterLink
             to="/admin/dashboard"
             class="sidebar-link"
-            :class="{ active: active === 'dashboard' }"
-            :aria-current="active === 'dashboard' ? 'page' : undefined"
+            :class="{ active: props.active === 'dashboard' }"
+            :aria-current="props.active === 'dashboard' ? 'page' : undefined"
           >
             <AppIcon name="layout-dashboard" :size="18" />
             <span>{{ t("nav.dashboard") }}</span>
@@ -54,8 +54,8 @@ async function logout(): Promise<void> {
           <RouterLink
             to="/admin/monitor"
             class="sidebar-link"
-            :class="{ active: active === 'monitor' }"
-            :aria-current="active === 'monitor' ? 'page' : undefined"
+            :class="{ active: props.active === 'monitor' }"
+            :aria-current="props.active === 'monitor' ? 'page' : undefined"
           >
             <AppIcon name="activity" :size="18" />
             <span>{{ t("nav.monitor") }}</span>
@@ -63,8 +63,8 @@ async function logout(): Promise<void> {
           <RouterLink
             to="/admin/settings"
             class="sidebar-link"
-            :class="{ active: active === 'settings' }"
-            :aria-current="active === 'settings' ? 'page' : undefined"
+            :class="{ active: props.active === 'settings' }"
+            :aria-current="props.active === 'settings' ? 'page' : undefined"
           >
             <AppIcon name="sliders-horizontal" :size="18" />
             <span>{{ t("nav.settings") }}</span>
@@ -72,8 +72,8 @@ async function logout(): Promise<void> {
           <RouterLink
             to="/admin/workflows"
             class="sidebar-link"
-            :class="{ active: active === 'workflow' }"
-            :aria-current="active === 'workflow' ? 'page' : undefined"
+            :class="{ active: props.active === 'workflow' }"
+            :aria-current="props.active === 'workflow' ? 'page' : undefined"
           >
             <AppIcon name="workflow" :size="18" />
             <span>{{ t("nav.workflow") }}</span>
@@ -81,8 +81,8 @@ async function logout(): Promise<void> {
           <RouterLink
             to="/admin/system-settings"
             class="sidebar-link"
-            :class="{ active: active === 'system-settings' }"
-            :aria-current="active === 'system-settings' ? 'page' : undefined"
+            :class="{ active: props.active === 'system-settings' }"
+            :aria-current="props.active === 'system-settings' ? 'page' : undefined"
           >
             <AppIcon name="settings-2" :size="18" />
             <span>{{ t("nav.systemSettings") }}</span>
