@@ -2,10 +2,7 @@ name: 代码质量检查
 
 on:
   push:
-    branches:
-      - dev
   pull_request:
-  workflow_dispatch:
 
 # 同一工作流、同一分支只保留最新运行；不同工作流和不同分支互不取消。
 concurrency:
@@ -18,7 +15,7 @@ permissions:
 jobs:
   prepare:
     name: 代码正确性检查
-    if: github.event_name == 'push' || github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -205,7 +202,7 @@ jobs:
   gate:
     name: 前后端单测与覆盖率门槛
     needs: [prepare, test, coverage]
-    if: always() && (github.event_name == 'push' || github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')))
+    if: always() && (github.event_name == 'push' || github.event_name == 'pull_request')
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
