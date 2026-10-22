@@ -39,7 +39,7 @@ docker run -d \
 
 ## GitHub 仓库维护
 
-- [前后端单元测试与覆盖率](../.github/workflows/test.yml)：任意目标分支的 Pull Request 都会运行项目检查、前后端测试并汇总覆盖率；也支持手动运行（仅允许选择 `main` 或 `dev`），不响应 push。
+- [代码质量检查](../.github/workflows/quality-checks.yml)：除 `main` 外的分支 push、任意目标分支的 Pull Request 都会运行项目检查、前后端测试并汇总覆盖率；也支持手动运行（仅允许选择 `main` 或 `dev`），不在 `main` 的 push 时触发。
 - [主分支包含性检查](../.github/workflows/main-inclusion.yml)：任意目标分支的 Pull Request 都会检查 PR 源分支是否包含最新 `main`；也支持手动运行（仅允许选择 `main` 或 `dev`），不响应 push。检查兼容 Squash Merge。
 - [构建并发布 Docker 镜像](../.github/workflows/publish-image.yml)：在 `main` 上校验版本并发布 ARM64 镜像到 GHCR。
 - [清理废弃工作流运行记录](../.github/workflows/cleanup-obsolete-workflow-runs.yml)：定时清理已删除工作流留下的历史运行记录。
@@ -51,10 +51,11 @@ docker run -d \
 
 新增或修改任何 GitHub Actions 工作流前，必须先阅读仓库根目录的 [`AGENTS.md`](../AGENTS.md)，并遵守以下不可自行放宽的规则：
 
-1. **分支范围：** 普通工作流只允许在 `main`、`dev` 上执行；PR 通常按目标分支限制；手动触发必须通过 Job 条件校验分支。例外：`main-inclusion.yml` 与 `test.yml` 的 `pull_request` 不限制目标分支，且支持 `workflow_dispatch`；两者均不响应 `push`，手动运行仅允许 `main` 或 `dev`。
-2. **发布限制：** 所有正式发布动作只允许在 `main` 执行，并且发布相关 Job 都要有明确的 `main` 分支保护。
-3. **唯一例外：** 清理废弃工作流记录只允许 `schedule` 和 `workflow_dispatch` 触发，不设置分支限制。
-4. **并发隔离：** 每个工作流必须在工作流顶层使用以下配置，不能改成固定组名或省略任一字段：
+1. **手动触发：每一个工作流都必须配置 `workflow_dispatch`。** 自动触发器不能替代手动运行入口。手动运行须通过 Job 条件明确限制执行分支：普通工作流仅允许 `main` / `dev`，发布工作流仅允许 `main`；清理废弃工作流记录是唯一不设置分支限制的特例。
+2. **分支范围：** 代码质量检查（`quality-checks.yml`）在非 `main` 分支 push 时触发、任意目标分支的 PR 时触发，不在 `main` 的 push 时触发；主分支包含性检查（`main-inclusion.yml`）只响应任意目标分支的 PR，不响应 push。两者都必须支持手动运行，且手动运行仅允许 `main` 或 `dev` 实际执行。
+3. **发布限制：** 所有正式发布动作只允许在 `main` 执行，并且发布相关 Job 都要有明确的 `main` 分支保护。
+4. **唯一例外：** 清理废弃工作流记录只允许 `schedule` 和 `workflow_dispatch` 触发，不设置分支限制。
+5. **并发隔离：** 每个工作流必须在工作流顶层使用以下配置，不能改成固定组名或省略任一字段：
 
    ```yaml
    concurrency:
@@ -63,6 +64,6 @@ docker run -d \
    ```
 
    这保证同一工作流、同一 ref 只保留最新运行；不同工作流或不同 ref 互不取消。
-5. **验证与同步：** 修改后检查触发器、Job 条件、并发配置和 YAML 校验结果，并同步更新相关文档。未实际运行验证时必须如实说明。
+6. **验证与同步：** 修改后检查 `workflow_dispatch`、触发器、Job 条件、并发配置和 YAML 校验结果，并同步更新相关文档。未实际运行验证时必须如实说明。
 
 工作流行为以仓库中的 YAML 文件为准；若本页与 [`AGENTS.md`](../AGENTS.md) 的强制规则有不一致，以 `AGENTS.md` 为准，并应及时修正文档。
