@@ -149,6 +149,8 @@ export default {
     temporarilyUnknown: "暂时未知",
     recordDetail: "记录详情",
     copied: "已复制到剪贴板",
+    copiedShort: "已复制",
+    copyFailed: "复制失败",
     copyManual: "当前环境无法自动复制，请选中文本后手动复制。",
     viewDetail: "点击查看{label}详情",
     viewDetailAria: "查看{label}详情",

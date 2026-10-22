@@ -5,7 +5,7 @@ import { useRoute, useRouter } from "vue-router";
 import { api, type WorkflowDetail, type WorkflowStage } from "../api/client";
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
-import { copyText } from "../utils/clipboard";
+import { useCopyFeedback } from "../composables/useCopyFeedback";
 import AppFooter from "../components/AppFooter.vue";
 import ConfirmPopover from "../components/ConfirmPopover.vue";
 import { useToast } from "../composables/useToast";
@@ -29,10 +29,7 @@ let requestInFlight = false;
 
 const selectedStage = ref<WorkflowStage | null>(null);
 const stageDetailDialog = ref<HTMLDialogElement | null>(null);
-const stageDetailCopyStateKey = ref<"workflowDetailPage.k12" | "workflowDetailPage.k13" | "">("");
-const stageDetailCopyState = computed(() =>
-  stageDetailCopyStateKey.value ? t(stageDetailCopyStateKey.value) : ""
-);
+const { copyState: stageCopyState, copyWithFeedback, resetCopyState } = useCopyFeedback();
 
 const statuses: Record<string, string> = {
   pending: "workflowDetailPage.k0",
@@ -86,7 +83,7 @@ function formatStageDetail(raw: string | undefined | null): string {
 
 async function openStageDetail(stage: WorkflowStage): Promise<void> {
   selectedStage.value = stage;
-  stageDetailCopyStateKey.value = "";
+  resetCopyState();
   await nextTick();
   if (stageDetailDialog.value && !stageDetailDialog.value.open) {
     stageDetailDialog.value.showModal();
@@ -99,7 +96,7 @@ function closeStageDetail(): void {
 
 function onStageDetailClose(): void {
   selectedStage.value = null;
-  stageDetailCopyStateKey.value = "";
+  resetCopyState();
 }
 
 function handleStageDetailBackdrop(event: MouseEvent): void {
@@ -128,9 +125,7 @@ async function copyStageDetail(): Promise<void> {
     t("workflowDetailPage.k11"),
     formatStageDetail(stage.detail),
   ].join("\n");
-  stageDetailCopyStateKey.value = (await copyText(text))
-    ? "workflowDetailPage.k12"
-    : "workflowDetailPage.k13";
+  await copyWithFeedback(text);
 }
 
 function durationLabel(s: WorkflowStage) {
@@ -261,7 +256,7 @@ watch(
     previousStatus = null;
     detail.value = null;
     selectedStage.value = null;
-    stageDetailCopyStateKey.value = "";
+    resetCopyState();
     loading.value = true;
     error.value = "";
     confirmingDelete.value = false;
@@ -443,8 +438,17 @@ onUnmounted(() => {
               </h2>
             </div>
             <div class="stage-detail-actions">
-              <button class="stage-detail-btn" type="button" @click="copyStageDetail">
-                <AppIcon name="copy" :size="14" />{{ t("workflowDetailPage.k31") }}
+              <button
+                class="stage-detail-btn"
+                :class="{ 'is-copy-success': stageCopyState === 'success', 'is-copy-error': stageCopyState === 'error' }"
+                type="button"
+                aria-live="polite"
+                @click="copyStageDetail"
+              >
+                <AppIcon
+                  :name="stageCopyState === 'success' ? 'circle-check' : stageCopyState === 'error' ? 'circle-x' : 'copy'"
+                  :size="14"
+                />{{ stageCopyState === 'success' ? t("common.copiedShort") : stageCopyState === 'error' ? t("common.copyFailed") : t("workflowDetailPage.k31") }}
               </button>
               <button
                 class="stage-detail-btn"
@@ -456,9 +460,6 @@ onUnmounted(() => {
               </button>
             </div>
           </header>
-          <p v-if="stageDetailCopyState" class="stage-detail-copy" role="status">
-            {{ stageDetailCopyState }}
-          </p>
           <div class="stage-detail-body">
             <p class="stage-detail-message">
               {{ label(selectedStage.status) }}
@@ -988,11 +989,13 @@ onUnmounted(() => {
   border-color: var(--accent);
   color: var(--accent);
 }
-.stage-detail-copy {
-  margin: 0;
-  padding: 8px 18px;
+.stage-detail-btn.is-copy-success {
+  border-color: color-mix(in srgb, var(--green) 55%, var(--line));
   color: var(--green);
-  font-size: 12px;
+}
+.stage-detail-btn.is-copy-error {
+  border-color: color-mix(in srgb, var(--red, #dc2626) 55%, var(--line));
+  color: var(--red, #dc2626);
 }
 .stage-detail-body {
   display: grid;
@@ -1132,9 +1135,6 @@ onUnmounted(() => {
   .stage-detail-pre {
     max-height: min(36vh, 240px);
     font-size: 11px;
-  }
-  .stage-detail-copy {
-    padding: 8px 14px;
   }
 }
 </style>

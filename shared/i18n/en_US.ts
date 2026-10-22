@@ -156,6 +156,8 @@ export default {
     temporarilyUnknown: "Temporarily unknown",
     recordDetail: "Record details",
     copied: "Copied to clipboard",
+    copiedShort: "Copied",
+    copyFailed: "Copy failed",
     copyManual: "Automatic copy is unavailable; select the text and copy manually.",
     viewDetail: "Click to view {label} details",
     viewDetailAria: "View {label} details",

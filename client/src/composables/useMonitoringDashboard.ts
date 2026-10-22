@@ -3,7 +3,7 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { api, type AccessEvent, type AdminSession, type MonitorSummary } from "../api/client";
 import { useToast } from "../composables/useToast";
-import { copyText } from "../utils/clipboard";
+import { useCopyFeedback } from "./useCopyFeedback";
 
 export function useMonitoringDashboard() {
   const { t, locale } = useI18n();
@@ -70,14 +70,11 @@ export function useMonitoringDashboard() {
 
   const accessDetailDialog = ref<HTMLDialogElement | null>(null);
 
-  const accessDetailCopyStateKey = ref<"monitor.k4" | "monitor.k5" | "">("");
-  const accessDetailCopyState = computed(() =>
-    accessDetailCopyStateKey.value ? t(accessDetailCopyStateKey.value) : ""
-  );
+  const { copyState: accessCopyState, copyWithFeedback, resetCopyState } = useCopyFeedback();
 
   async function openAccessDetail(event: AccessEvent): Promise<void> {
     selectedAccess.value = event;
-    accessDetailCopyStateKey.value = "";
+    resetCopyState();
     await nextTick();
     if (accessDetailDialog.value && !accessDetailDialog.value.open)
       accessDetailDialog.value.showModal();
@@ -89,7 +86,7 @@ export function useMonitoringDashboard() {
 
   function onAccessDetailClose(): void {
     selectedAccess.value = null;
-    accessDetailCopyStateKey.value = "";
+    resetCopyState();
   }
 
   function handleAccessDetailBackdrop(event: MouseEvent): void {
@@ -132,9 +129,7 @@ export function useMonitoringDashboard() {
       t("monitor.k3"),
       formatAccessHeaders(event.request_headers),
     ];
-    accessDetailCopyStateKey.value = (await copyText(lines.join("\n")))
-      ? "monitor.k4"
-      : "monitor.k5";
+    await copyWithFeedback(lines.join("\n"));
   }
 
   const filteredAccesses = computed(() => {
@@ -343,7 +338,7 @@ export function useMonitoringDashboard() {
     accessStatus,
     selectedAccess,
     accessDetailDialog,
-    accessDetailCopyState,
+    accessCopyState,
     openAccessDetail,
     closeAccessDetail,
     onAccessDetailClose,
