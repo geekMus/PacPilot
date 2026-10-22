@@ -4,7 +4,7 @@ import { DialogContent, DialogOverlay, DialogPortal, DialogRoot } from "reka-ui"
 
 const props = defineProps<{
   open: boolean;
-  ariaLabel: string;
+  label: string;
   contentClass: string;
 }>();
 
@@ -39,7 +39,7 @@ function onCloseAutoFocus(event: Event): void {
       <DialogContent
         as-child
         class="app-dialog-content"
-        :aria-label="props.ariaLabel"
+        :aria-label="props.label"
         @close-auto-focus="onCloseAutoFocus"
       >
         <slot />

@@ -423,7 +423,7 @@ onUnmounted(() => {
       <AppDialog
         :open="stageDetailOpen && !!selectedStage"
         content-class="stage-detail-dialog"
-        :aria-label="t('workflowDetailPage.k19')"
+        :label="t('workflowDetailPage.k19')"
         @update:open="onStageDetailOpenChange"
       >
         <div class="stage-detail-dialog">

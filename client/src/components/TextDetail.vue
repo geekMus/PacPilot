@@ -58,7 +58,7 @@ async function copyContent(): Promise<void> {
   <AppDialog
     :open="dialogOpen"
     content-class="text-detail-dialog"
-    :aria-label="t('common.detailAria', { label: resolvedLabel })"
+    :label="t('common.detailAria', { label: resolvedLabel })"
     @update:open="onDialogOpenChange"
   >
     <div class="text-detail-dialog">
