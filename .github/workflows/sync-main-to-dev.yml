@@ -1,0 +1,128 @@
+name: 合并后同步 main 到 dev
+
+on:
+  # main 上的 PR 合并后自动将 main 同步到 dev。
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+  # 也允许维护者手动补做同步。
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 同一工作流、同一 ref 只保留最新运行；不同工作流或不同 ref 互不取消。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    name: 同步 main 到 dev
+    if: (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main') || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: 检出 dev 历史
+        uses: actions/checkout@v7
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: 将 main 合并到 dev 并推送
+        id: sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          for attempt in 1 2 3; do
+            git fetch origin main dev
+            git checkout -B dev origin/dev
+
+            if git merge-base --is-ancestor origin/main HEAD; then
+              echo "同步状态：dev 已包含最新 main，无需更新。"
+              echo "changed=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            if ! git merge --no-edit origin/main; then
+              git merge --abort || true
+              echo "::error::无法自动将 main 合并到 dev，可能存在冲突；请检查日志并手动处理。"
+              exit 1
+            fi
+
+            if git push origin HEAD:refs/heads/dev; then
+              echo "同步状态：已将最新 main 合并并推送到 dev。"
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            echo "推送 dev 失败（尝试 $attempt/3），将重新获取分支并重试。"
+            if [[ "$attempt" == "3" ]]; then
+              echo "::error::多次尝试后仍无法推送 dev；可能有并发提交，请检查分支后手动同步。"
+              exit 1
+            fi
+          done
+
+      - name: 阶段 1 小结
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          SYNC_CHANGED: ${{ steps.sync.outputs.changed }}
+        shell: bash
+        run: |
+          {
+            echo "## 阶段 1：同步 main 到 dev"
+            echo
+            echo "- **结果：** ${JOB_STATUS}"
+            if [[ "${SYNC_CHANGED}" == "true" ]]; then
+              echo "- **同步状态：** 已将 main 合并并推送到 dev"
+            elif [[ "${SYNC_CHANGED}" == "false" ]]; then
+              echo "- **同步状态：** dev 已包含最新 main，无需创建新提交"
+            else
+              echo "- **同步状态：** 未完成，请查看上方日志"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  checks:
+    name: 触发 dev 检查
+    needs: sync
+    if: success()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: 手动触发代码质量与主从同步检查
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run quality-checks.yml --repo "$GH_REPO" --ref dev
+          gh workflow run main-inclusion.yml --repo "$GH_REPO" --ref dev
+          echo "已为 dev 触发代码质量检查和主从同步检查。"
+
+      - name: 阶段 2 小结
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        shell: bash
+        run: |
+          {
+            echo "## 阶段 2：触发 dev 检查"
+            echo
+            echo "- **结果：** ${JOB_STATUS}"
+            if [[ "${JOB_STATUS}" == "success" ]]; then
+              echo "- **检查任务：** 已请求运行代码质量检查与主从同步检查"
+            else
+              echo "- **检查任务：** 未能全部触发，请查看上方日志"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
