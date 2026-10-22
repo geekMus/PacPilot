@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   prepare:
-    name: 阶段 1：准备待检查分支
+    name: 准备待检查分支
     if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -64,7 +64,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   inclusion:
-    name: 阶段 2：检查是否包含最新 main
+    name: 检查是否包含最新 main
     needs: prepare
     runs-on: ubuntu-24.04
     timeout-minutes: 10
