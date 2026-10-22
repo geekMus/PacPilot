@@ -174,7 +174,9 @@ function onCloseAutoFocus(event: Event): void {
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
-
+}
+.app-dialog-body .app-scroll-area-viewport {
+  padding: 18px;
 }
 .app-dialog-footer {
   display: flex;
@@ -225,7 +227,7 @@ function onCloseAutoFocus(event: Event): void {
   .app-dialog-header {
     padding: 14px;
   }
-  .app-dialog-body :deep(.app-scroll-area-viewport) {
+  .app-dialog-body .app-scroll-area-viewport {
     padding: 14px;
   }
   .app-dialog-footer {
