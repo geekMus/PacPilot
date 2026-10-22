@@ -48,7 +48,8 @@ jobs:
           cat "$RUNNER_TEMP/check.log"
           echo "exit_code=$result" >> "$GITHUB_OUTPUT"
           if grep -Ein 'warning|warn|deprecated|failed|error:' "$RUNNER_TEMP/check.log"; then
-            echo "::warning::Typecheck/build output contains warning/error-like messages; inspect the full log artifact."
+            echo "::error::Typecheck/build output contains warning/error-like messages; inspect the full log artifact."
+            exit 1
           fi
           exit "$result"
 
@@ -84,12 +85,20 @@ jobs:
               echo "API proxy check: FAIL"
               ready=0
             fi
+            if curl --silent --show-error --fail "http://127.0.0.1:5173/src/components/ResponsiveTrendChart.vue" -o "$RUNNER_TEMP/dev-chart-module.js"; then
+              echo "ECharts component transform check: PASS"
+            else
+              echo "ECharts component transform check: FAIL"
+              ready=0
+            fi
             # Give Vite time to emit startup and initial module-transform diagnostics.
             sleep 8
           else
             echo "Vite HTTP check: FAIL (server did not become ready within 40 seconds)"
           fi
 
+          # Redact the ephemeral development password before printing or uploading logs.
+          sed -E -i 's/(Initial administrator password[^:]*: ).*/\1[REDACTED]/' "$LOG"
           # Snapshot before intentional shutdown so shutdown noise is not mistaken for a startup warning.
           cp "$LOG" "$RUNNER_TEMP/dev-server-before-shutdown.log"
           kill -INT "$pid" 2>/dev/null || true
