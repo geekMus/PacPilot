@@ -320,9 +320,6 @@ onMounted(() => {
   line-height: 1.15;
   letter-spacing: 0.02em;
 }
-:global(.version-dialog-overlay) {
-  background: rgba(15, 23, 42, 0.48);
-}
 .version-dialog {
   box-sizing: border-box;
   width: min(100%, 440px);
