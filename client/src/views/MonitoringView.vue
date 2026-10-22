@@ -2,6 +2,7 @@
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppDialog from "../components/AppDialog.vue";
+import { DialogDescription, DialogTitle } from "reka-ui";
 import AppFooter from "../components/AppFooter.vue";
 import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
 import VirtualTable from "../components/VirtualTable.vue";
@@ -494,7 +495,10 @@ const {
           <header class="access-detail-header">
             <div>
               <p class="access-detail-kicker">ACCESS LOG #{{ selectedAccess.id }}</p>
-              <h2>{{ t("monitor.k135") }}</h2>
+              <DialogTitle class="access-detail-title">{{ t("monitor.k135") }}</DialogTitle>
+              <DialogDescription class="app-dialog-visually-hidden">
+                {{ t("monitor.k138") }}、{{ t("monitor.k139") }}、{{ t("monitor.k142") }}
+              </DialogDescription>
             </div>
             <div class="access-detail-actions">
               <button
