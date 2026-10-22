@@ -1245,3 +1245,21 @@ textarea.body-area {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Shared Reka UI dialog primitives; retain the mobile bottom-sheet appearance. */
+@media (max-width: 720px) {
+  .timezone-sheet-overlay {
+    background: rgba(0, 0, 0, 0.48);
+  }
+  .app-dialog-content.timezone-sheet {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-width: none;
+    max-height: min(82dvh, 720px);
+    transform: none;
+  }
+}
