@@ -1,72 +1,12 @@
-/* Shared scrollbar tokens and behavior. Keep colors tied to the active theme. */
+/* Native scrollbars remain untouched; shared custom scrollbars are rendered by AppScrollArea (Reka UI). */
 :root {
-  --scrollbar-thumb: color-mix(in srgb, var(--text) 24%, transparent);
-  --scrollbar-thumb-hover: color-mix(in srgb, var(--text) 42%, transparent);
+  --scrollbar-thumb: color-mix(in srgb, var(--text) 26%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--text) 44%, transparent);
   --scrollbar-track: transparent;
 }
-
-* {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-
-/* Chromium / WebKit: reveal the track only while the pointer is on the scrollbar. */
-@supports selector(*::-webkit-scrollbar) {
-  * {
-    scrollbar-color: auto;
-  }
-
-  *::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  *::-webkit-scrollbar-track {
-    border-radius: 999px;
-    background: transparent;
-  }
-
-  *::-webkit-scrollbar-thumb {
-    min-height: 28px;
-    border: 2px solid transparent;
-    border-radius: 999px;
-    background: transparent;
-    background-clip: padding-box;
-  }
-
-  *::-webkit-scrollbar:hover {
-    background: color-mix(in srgb, var(--text) 6%, transparent);
-    border-radius: 999px;
-  }
-
-  *::-webkit-scrollbar-thumb:hover {
-    background: var(--scrollbar-thumb-hover);
-    background-clip: padding-box;
-  }
-
-  *::-webkit-scrollbar-button,
-  *::-webkit-scrollbar-button:single-button,
-  *::-webkit-scrollbar-button:double-button {
-    display: none;
-    width: 0;
-    height: 0;
-    background: transparent;
-  }
-
-  *::-webkit-scrollbar-corner {
-    background: transparent;
-  }
-}
-
-/* Firefox has no scrollbar-track hover selector; reveal it while the scroll area is hovered. */
-@supports not selector(*::-webkit-scrollbar) {
-  :is(.admin-content, .sidebar-nav, .app-select-content, .table-wrap):hover {
-    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-  }
-}
-
 @media (forced-colors: active) {
-  * {
-    scrollbar-color: auto;
+  :root {
+    --scrollbar-thumb: CanvasText;
+    --scrollbar-thumb-hover: CanvasText;
   }
 }
