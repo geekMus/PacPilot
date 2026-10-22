@@ -167,7 +167,9 @@ async function logout(): Promise<void> {
 .sidebar-nav {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  padding: 0;
+}
+.sidebar-nav :deep(.app-scroll-area-viewport) {
   padding: 0 2px 10px;
 }
 .nav-group + .nav-group {
