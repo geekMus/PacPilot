@@ -1,4 +1,4 @@
-import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { api, type AccessEvent, type AdminSession, type MonitorSummary } from "../api/client";
@@ -68,29 +68,26 @@ export function useMonitoringDashboard() {
 
   const selectedAccess = ref<AccessEvent | null>(null);
 
-  const accessDetailDialog = ref<HTMLDialogElement | null>(null);
+  const accessDetailOpen = ref(false);
 
   const { copyState: accessCopyState, copyWithFeedback, resetCopyState } = useCopyFeedback();
 
-  async function openAccessDetail(event: AccessEvent): Promise<void> {
+  function openAccessDetail(event: AccessEvent): void {
     selectedAccess.value = event;
     resetCopyState();
-    await nextTick();
-    if (accessDetailDialog.value && !accessDetailDialog.value.open)
-      accessDetailDialog.value.showModal();
+    accessDetailOpen.value = true;
   }
 
   function closeAccessDetail(): void {
-    if (accessDetailDialog.value?.open) accessDetailDialog.value.close();
+    accessDetailOpen.value = false;
   }
 
-  function onAccessDetailClose(): void {
-    selectedAccess.value = null;
-    resetCopyState();
-  }
-
-  function handleAccessDetailBackdrop(event: MouseEvent): void {
-    if (event.target === accessDetailDialog.value) closeAccessDetail();
+  function onAccessDetailOpenChange(open: boolean): void {
+    accessDetailOpen.value = open;
+    if (!open) {
+      selectedAccess.value = null;
+      resetCopyState();
+    }
   }
 
   function formatAccessHeaders(raw: string | undefined): string {
@@ -337,12 +334,11 @@ export function useMonitoringDashboard() {
     accessCategory,
     accessStatus,
     selectedAccess,
-    accessDetailDialog,
+    accessDetailOpen,
     accessCopyState,
     openAccessDetail,
     closeAccessDetail,
-    onAccessDetailClose,
-    handleAccessDetailBackdrop,
+    onAccessDetailOpenChange,
     formatAccessHeaders,
     copyAccessDetail,
     filteredAccesses,

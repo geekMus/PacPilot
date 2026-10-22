@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import AppIcon from "./AppIcon.vue";
+import AppDialog from "./AppDialog.vue";
 import { useCopyFeedback } from "../composables/useCopyFeedback";
 import { useI18n } from "vue-i18n";
-import { computed, nextTick, ref } from "vue";
+import { computed, ref } from "vue";
 const { t } = useI18n();
 
 const props = withDefaults(
@@ -16,36 +17,24 @@ const props = withDefaults(
   }
 );
 
-const dialog = ref<HTMLDialogElement | null>(null);
 const trigger = ref<HTMLButtonElement | null>(null);
-const dialogMounted = ref(false);
+const dialogOpen = ref(false);
 const { copyState, copyWithFeedback, resetCopyState } = useCopyFeedback();
 const fullText = computed(() => props.text ?? "");
 const resolvedLabel = computed(() => props.label || t("common.recordDetail"));
 
-async function openDetails(): Promise<void> {
+function openDetails(): void {
   resetCopyState();
-  dialogMounted.value = true;
-  await nextTick();
-  if (dialog.value && !dialog.value.open) dialog.value.showModal();
+  dialogOpen.value = true;
 }
 
 function closeDetails(): void {
-  if (dialog.value?.open) dialog.value.close();
+  dialogOpen.value = false;
 }
 
-function handleDialogClick(event: MouseEvent): void {
-  if (event.target === dialog.value) closeDetails();
-}
-
-function restoreFocus(): void {
-  trigger.value?.focus();
-}
-
-function onDialogClose(): void {
-  restoreFocus();
-  resetCopyState();
-  dialogMounted.value = false;
+function onDialogOpenChange(open: boolean): void {
+  dialogOpen.value = open;
+  if (!open) resetCopyState();
 }
 
 async function copyContent(): Promise<void> {
@@ -66,14 +55,13 @@ async function copyContent(): Promise<void> {
     <slot>{{ fullText || "—" }}</slot>
   </button>
 
-  <dialog
-    v-if="dialogMounted"
-    ref="dialog"
-    class="text-detail-dialog"
+  <AppDialog
+    :open="dialogOpen"
+    content-class="text-detail-dialog"
     :aria-label="t('common.detailAria', { label: resolvedLabel })"
-    @click="handleDialogClick"
-    @close="onDialogClose"
+    @update:open="onDialogOpenChange"
   >
+    <div class="text-detail-dialog">
     <header class="text-detail-header">
       <div class="text-detail-heading">
         <p>{{ resolvedLabel }}</p>
@@ -110,7 +98,8 @@ async function copyContent(): Promise<void> {
         </button>
       </div>
     </footer>
-  </dialog>
+    </div>
+  </AppDialog>
 </template>
 
 <style scoped>

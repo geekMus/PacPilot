@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
+import AppDialog from "../components/AppDialog.vue";
 import AppFooter from "../components/AppFooter.vue";
 import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
 import VirtualTable from "../components/VirtualTable.vue";
@@ -27,12 +28,11 @@ const {
   accessCategory,
   accessStatus,
   selectedAccess,
-  accessDetailDialog,
+  accessDetailOpen,
   accessCopyState,
   openAccessDetail,
   closeAccessDetail,
-  onAccessDetailClose,
-  handleAccessDetailBackdrop,
+  onAccessDetailOpenChange,
   formatAccessHeaders,
   copyAccessDetail,
   filteredAccesses,
@@ -480,14 +480,13 @@ const {
           </p>
         </section>
 
-        <dialog
-          v-if="selectedAccess"
-          ref="accessDetailDialog"
-          class="access-detail-dialog"
+        <AppDialog
+          :open="accessDetailOpen && !!selectedAccess"
+          content-class="access-detail-dialog"
           :aria-label="t('monitor.k39')"
-          @click="handleAccessDetailBackdrop"
-          @close="onAccessDetailClose"
+          @update:open="onAccessDetailOpenChange"
         >
+          <div class="access-detail-dialog">
           <header class="access-detail-header">
             <div>
               <p class="access-detail-kicker">ACCESS LOG #{{ selectedAccess.id }}</p>
@@ -594,7 +593,8 @@ const {
             <span>{{ t("monitor.k142") }}</span>
             <pre>{{ formatAccessHeaders(selectedAccess.request_headers) }}</pre>
           </div>
-        </dialog>
+          </div>
+        </AppDialog>
       </template>
 
       <AppFooter />

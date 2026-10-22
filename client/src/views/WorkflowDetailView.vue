@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { api, type WorkflowDetail, type WorkflowStage } from "../api/client";
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
+import AppDialog from "../components/AppDialog.vue";
 import { useCopyFeedback } from "../composables/useCopyFeedback";
 import AppFooter from "../components/AppFooter.vue";
 import ConfirmPopover from "../components/ConfirmPopover.vue";
@@ -28,7 +29,7 @@ let pollHandle: ReturnType<typeof setInterval> | undefined;
 let requestInFlight = false;
 
 const selectedStage = ref<WorkflowStage | null>(null);
-const stageDetailDialog = ref<HTMLDialogElement | null>(null);
+const stageDetailOpen = ref(false);
 const { copyState: stageCopyState, copyWithFeedback, resetCopyState } = useCopyFeedback();
 
 const statuses: Record<string, string> = {
@@ -81,26 +82,22 @@ function formatStageDetail(raw: string | undefined | null): string {
   }
 }
 
-async function openStageDetail(stage: WorkflowStage): Promise<void> {
+function openStageDetail(stage: WorkflowStage): void {
   selectedStage.value = stage;
   resetCopyState();
-  await nextTick();
-  if (stageDetailDialog.value && !stageDetailDialog.value.open) {
-    stageDetailDialog.value.showModal();
-  }
+  stageDetailOpen.value = true;
 }
 
 function closeStageDetail(): void {
-  if (stageDetailDialog.value?.open) stageDetailDialog.value.close();
+  stageDetailOpen.value = false;
 }
 
-function onStageDetailClose(): void {
-  selectedStage.value = null;
-  resetCopyState();
-}
-
-function handleStageDetailBackdrop(event: MouseEvent): void {
-  if (event.target === stageDetailDialog.value) closeStageDetail();
+function onStageDetailOpenChange(open: boolean): void {
+  stageDetailOpen.value = open;
+  if (!open) {
+    selectedStage.value = null;
+    resetCopyState();
+  }
 }
 
 async function copyStageDetail(): Promise<void> {
@@ -256,6 +253,7 @@ watch(
     previousStatus = null;
     detail.value = null;
     selectedStage.value = null;
+    stageDetailOpen.value = false;
     resetCopyState();
     loading.value = true;
     error.value = "";
@@ -271,6 +269,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopPolling();
+  stageDetailOpen.value = false;
   selectedStage.value = null;
 });
 </script>
@@ -421,14 +420,13 @@ onUnmounted(() => {
         {{ t("workflowDetailPage.k30") }}
       </div>
 
-      <dialog
-        v-if="selectedStage"
-        ref="stageDetailDialog"
-        class="stage-detail-dialog"
+      <AppDialog
+        :open="stageDetailOpen && !!selectedStage"
+        content-class="stage-detail-dialog"
         :aria-label="t('workflowDetailPage.k19')"
-        @click="handleStageDetailBackdrop"
-        @close="onStageDetailClose"
+        @update:open="onStageDetailOpenChange"
       >
+        <div class="stage-detail-dialog">
         <div class="stage-detail-shell">
           <header class="stage-detail-header">
             <div>
@@ -506,7 +504,8 @@ onUnmounted(() => {
             </section>
           </div>
         </div>
-      </dialog>
+        </div>
+      </AppDialog>
 
       <div v-if="detail" class="detail-page-actions">
         <RouterLink class="back-link" to="/admin/workflows">
