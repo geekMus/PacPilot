@@ -46,6 +46,7 @@ function onValueChange(value: string): void {
 <template>
   <span class="app-select" :class="{ 'is-block': props.block }">
     <SelectRoot
+      :modal="false"
       :model-value="selectedValue"
       :disabled="props.disabled"
       @update:model-value="onValueChange"
