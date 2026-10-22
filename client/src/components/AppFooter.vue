@@ -5,6 +5,7 @@ import { computed, onMounted, ref } from "vue";
 import packageJson from "../../../package.json";
 import { PROJECT_LINKS } from "../../../shared/project-links";
 import AppIcon from "./AppIcon.vue";
+import AppDialog from "./AppDialog.vue";
 
 const { t } = useI18n();
 const projectUrl = PROJECT_LINKS.repository;
@@ -113,7 +114,7 @@ onMounted(() => {
 });
 </script>
 <template>
-  <footer class="app-footer" @keydown.esc.stop.prevent="dialogOpen = false">
+  <footer class="app-footer">
     <div class="footer-project">
       <a
         class="github-project-link"
@@ -141,14 +142,13 @@ onMounted(() => {
         ><span v-if="hasUpdate" class="new-badge">New</span>
       </button>
     </div>
-    <Transition name="version-dialog">
-      <div v-if="dialogOpen" class="dialog-backdrop" @click.self="dialogOpen = false" tabindex="-1">
-        <section
-          class="version-dialog"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="version-dialog-title"
-        >
+    <AppDialog
+      :open="dialogOpen"
+      content-class="version-dialog"
+      :label="t('footer.projectVersion')"
+      @update:open="dialogOpen = $event"
+    >
+      <section class="version-dialog" aria-labelledby="version-dialog-title">
           <header class="dialog-header">
             <h2 id="version-dialog-title">{{ t("footer.projectVersion") }}</h2>
             <button
@@ -223,9 +223,8 @@ onMounted(() => {
               {{ t("footerExtra.k4") }}
             </button>
           </div>
-        </section>
-      </div>
-    </Transition>
+      </section>
+    </AppDialog>
   </footer>
 </template>
 <style scoped>
@@ -321,18 +320,12 @@ onMounted(() => {
   line-height: 1.15;
   letter-spacing: 0.02em;
 }
-.dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: grid;
-  place-items: center;
-  overflow-y: auto;
-  padding: 20px;
+:global(.version-dialog-overlay) {
   background: rgba(15, 23, 42, 0.48);
   backdrop-filter: blur(3px);
 }
 .version-dialog {
+  box-sizing: border-box;
   width: min(100%, 440px);
   padding: 22px;
   border: 1px solid var(--line);
@@ -515,24 +508,6 @@ onMounted(() => {
   border-color: var(--accent);
   color: var(--accent);
 }
-.version-dialog-enter-active,
-.version-dialog-leave-active {
-  transition:
-    opacity 0.16s ease,
-    transform 0.16s ease;
-}
-.version-dialog-enter-active .version-dialog,
-.version-dialog-leave-active .version-dialog {
-  transition: transform 0.16s ease;
-}
-.version-dialog-enter-from,
-.version-dialog-leave-to {
-  opacity: 0;
-}
-.version-dialog-enter-from .version-dialog,
-.version-dialog-leave-to .version-dialog {
-  transform: translateY(7px) scale(0.99);
-}
 @media (max-width: 560px) {
   .app-footer {
     align-items: flex-start;
@@ -541,6 +516,8 @@ onMounted(() => {
     padding-top: 12px;
   }
   .version-dialog {
+    max-height: calc(100dvh - 40px);
+    overflow-y: auto;
     padding: 18px;
   }
 }
