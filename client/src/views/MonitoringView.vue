@@ -486,7 +486,7 @@ const {
           :label="t('monitor.k39')"
           @update:open="onAccessDetailOpenChange"
         >
-          <div class="access-detail-dialog">
+          <div v-if="selectedAccess" class="access-detail-dialog">
           <header class="access-detail-header">
             <div>
               <p class="access-detail-kicker">ACCESS LOG #{{ selectedAccess.id }}</p>
