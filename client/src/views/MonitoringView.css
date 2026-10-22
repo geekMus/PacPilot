@@ -322,9 +322,7 @@
   }
 }
 .monitor-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
+  display: block;
   margin: 0 0 16px;
   padding: 11px 13px;
   border: 1px solid var(--line);
@@ -337,7 +335,8 @@
   min-width: 0;
 }
 .monitor-notice strong {
-  flex: 0 0 auto;
+  display: block;
+  margin-bottom: 3px;
   color: var(--text);
   font-weight: 700;
 }
@@ -346,10 +345,6 @@
     display: block;
     padding: 10px 11px;
     margin-bottom: 14px;
-  }
-  .monitor-notice strong {
-    display: block;
-    margin-bottom: 3px;
   }
 }
 .access-filters {
