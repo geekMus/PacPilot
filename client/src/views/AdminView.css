@@ -386,11 +386,27 @@ textarea {
   cursor: pointer;
   user-select: none;
 }
-.check input {
+.check .admin-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 18px;
   height: 18px;
-  flex-shrink: 0;
-  accent-color: var(--accent);
+  flex: 0 0 18px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--accent-contrast);
+  cursor: pointer;
+}
+.check .admin-checkbox[data-state="checked"] {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.check .admin-checkbox:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 .check span {
   line-height: 1.3;
@@ -565,7 +581,7 @@ textarea {
 .check.is-disabled span {
   color: var(--control-disabled-text);
 }
-.check.is-disabled input {
+.check.is-disabled .admin-checkbox {
   cursor: not-allowed;
   accent-color: var(--control-disabled-text);
 }

@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { defineAsyncComponent, ref } from "vue";
-import { RadioGroupItem, RadioGroupRoot } from "reka-ui";
+import {
+  CheckboxIndicator,
+  CheckboxRoot,
+  RadioGroupItem,
+  RadioGroupRoot,
+} from "reka-ui";
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppDialog from "../components/AppDialog.vue";
@@ -459,7 +464,15 @@ const { style: timezonePanelStyle } = useViewportPanel(
             </div>
             <div class="checks">
               <label class="check">
-                <input v-model="form.pacCompress" type="checkbox" />
+                <CheckboxRoot
+                  :checked="form.pacCompress"
+                  class="admin-checkbox"
+                  @update:checked="form.pacCompress = $event === true"
+                >
+                  <CheckboxIndicator>
+                    <AppIcon name="check" :size="14" aria-hidden="true" />
+                  </CheckboxIndicator>
+                </CheckboxRoot>
                 <span>{{ t("settings.compressPac") }}</span>
               </label>
             </div>
