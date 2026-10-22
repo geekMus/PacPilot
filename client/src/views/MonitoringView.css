@@ -416,12 +416,6 @@
   filter: none;
   box-shadow: none;
 }
-.table-scroll {
-  width: 100%;
-  overflow: auto;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-}
 .monitor-table {
   width: 100%;
   border-collapse: collapse;

@@ -886,10 +886,7 @@ onMounted(() => {
   .dashboard-panel {
     padding: 13px;
   }
-  .recent-table {
-    min-width: 560px;
-  }
-  .quick-actions {
+.quick-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 7px;
