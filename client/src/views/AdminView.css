@@ -1245,7 +1245,10 @@ textarea.body-area {
   max-height: min(86dvh, 820px);
   padding: 0;
   overflow: hidden;
+  border: 1px solid var(--line);
   border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--dialog-panel-shadow);
 }
 .timezone-sheet-head {
   position: sticky;
