@@ -3,7 +3,6 @@ import { defineAsyncComponent, ref } from "vue";
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
-import DomainListEditor from "../components/DomainListEditor.vue";
 import TextDetail from "../components/TextDetail.vue";
 import VirtualTable from "../components/VirtualTable.vue";
 import { useAdminSettings } from "../composables/useAdminSettings";
@@ -12,6 +11,10 @@ import { PROJECT_LINKS } from "../../../shared/project-links";
 
 const WebhookChannelEditor = defineAsyncComponent(
   () => import("../components/WebhookChannelEditor.vue")
+);
+
+const DomainListEditor = defineAsyncComponent(
+  () => import("../components/DomainListEditor.vue")
 );
 const {
   t,

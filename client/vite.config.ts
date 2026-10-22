@@ -27,6 +27,8 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      // 将构建产物的体积警告阈值设为 600 kB；此设置只调整警告阈值，不会自动拆分代码块。
+      chunkSizeWarningLimit: 600,
       outDir: path.resolve(import.meta.dirname, "../dist/client"),
       emptyOutDir: true,
     },

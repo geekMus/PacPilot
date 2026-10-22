@@ -13,9 +13,6 @@ import { analyzeDomainRules } from "../utils/domain-rules";
 import { createAdminSettingsValidators } from "../utils/admin-settings-validation";
 import { commonTimeZones, isValidTimeZone } from "../utils/time-zones";
 import { useToast } from "../composables/useToast";
-import cronstrue from "cronstrue";
-import { CronExpressionParser } from "cron-parser";
-import "cronstrue/locales/zh_CN";
 
 export function useAdminSettings() {
   const { t, tm, locale } = useI18n();
@@ -267,17 +264,43 @@ export function useAdminSettings() {
     { labelKey: "settings.cronWeekly", value: "0 0 * * 1", hintKey: "settings.cronWeeklyHint" },
   ] as const;
 
-  function parseCronDescription(expr: string): { description: string; error: string } {
+  const cronParse = ref({ description: "", error: "" });
+  const cronParsing = ref(false);
+  let cronParseRequest = 0;
+
+  /** Load cron-parser and cronstrue only when a non-empty cron expression needs validation. */
+  async function refreshCronParse(expr: string): Promise<void> {
+    const request = ++cronParseRequest;
     const value = expr.trim();
-    if (!value) return { description: "", error: "" };
-    if (value.split(/\s+/).length !== 5) {
-      return { description: "", error: t("settings.cronFormatError") };
+    if (!value) {
+      cronParse.value = { description: "", error: "" };
+      cronParsing.value = false;
+      return;
     }
+    if (value.split(/\s+/).length !== 5) {
+      cronParse.value = { description: "", error: t("settings.cronFormatError") };
+      cronParsing.value = false;
+      return;
+    }
+
+    cronParsing.value = true;
     try {
-      CronExpressionParser.parse(value);
-      return {
-        description: cronstrue.toString(value, {
-          locale: locale.value === "en_US" ? "en" : "zh_CN",
+      const [parserModule, cronstrueModule] = await Promise.all([
+        import("cron-parser"),
+        import("cronstrue"),
+      ]);
+      if (request !== cronParseRequest) return;
+
+      const isEnglish = locale.value === "en_US";
+      if (!isEnglish) {
+        await import("cronstrue/locales/zh_CN");
+      }
+      if (request !== cronParseRequest) return;
+
+      parserModule.CronExpressionParser.parse(value);
+      cronParse.value = {
+        description: cronstrueModule.default.toString(value, {
+          locale: isEnglish ? "en" : "zh_CN",
           dayOfWeekStartIndexZero: false,
           use24HourTimeFormat: true,
           throwExceptionOnParseError: true,
@@ -285,11 +308,21 @@ export function useAdminSettings() {
         error: "",
       };
     } catch {
-      return { description: "", error: t("settings.cronParseError") };
+      if (request === cronParseRequest) {
+        cronParse.value = { description: "", error: t("settings.cronParseError") };
+      }
+    } finally {
+      if (request === cronParseRequest) cronParsing.value = false;
     }
   }
 
-  const cronParse = computed(() => parseCronDescription(form.cronSchedule));
+  watch(
+    [() => form.cronSchedule, () => locale.value],
+    ([expr]) => {
+      void refreshCronParse(expr);
+    },
+    { immediate: true }
+  );
 
   const cronHint = computed(() => {
     if (!form.cronSchedule.trim()) return t("settings.cronDisabledMsg");
@@ -399,7 +432,9 @@ export function useAdminSettings() {
     if (formErrors.value.length) void jumpToFirstError();
   }
 
-  const canSubmit = computed(() => formErrors.value.length === 0 && !saving.value);
+  const canSubmit = computed(
+    () => formErrors.value.length === 0 && !saving.value && !cronParsing.value
+  );
 
   function applySettings(s: AppSettings) {
     form.mode = s.mode;
@@ -485,7 +520,7 @@ export function useAdminSettings() {
   onMounted(load);
 
   async function saveAndGenerate() {
-    if (saving.value) return;
+    if (saving.value || cronParsing.value) return;
     flash.value = "";
     error.value = "";
     if (formErrors.value.length) {
