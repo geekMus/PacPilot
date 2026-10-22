@@ -181,17 +181,6 @@ async function logout(): Promise<void> {
   font-weight: 800;
   letter-spacing: 0.13em;
 }
-.nav-lock-note {
-  margin: 0 8px 10px;
-  padding: 8px 10px;
-  border: 1px solid color-mix(in srgb, var(--warn, #d97706) 28%, var(--line));
-  border-radius: 9px;
-  background: var(--warn-soft, color-mix(in srgb, #d97706 12%, var(--surface)));
-  color: var(--warn, #b45309);
-  font-size: 11px;
-  line-height: 1.5;
-  font-weight: 650;
-}
 .sidebar-link {
   display: flex;
   align-items: center;
@@ -210,7 +199,6 @@ async function logout(): Promise<void> {
     border-color 0.15s,
     color 0.15s;
   background: transparent;
-  font: inherit;
   width: 100%;
   text-align: left;
   cursor: pointer;
@@ -242,11 +230,6 @@ async function logout(): Promise<void> {
   opacity: 0.48;
   cursor: not-allowed;
 }
-.external-mark {
-  margin-left: auto;
-  opacity: 0.65;
-  font-size: 13px;
-}
 .sidebar-bottom {
   padding: 14px 10px 0;
   border-top: 1px solid var(--line);
@@ -258,18 +241,6 @@ async function logout(): Promise<void> {
   margin-top: 16px;
   padding-top: 15px;
   border-top: 1px solid var(--line);
-}
-.sidebar-preferences-group {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-}
-.sidebar-control-label {
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
 }
 .sidebar-logout-button {
   display: flex;
