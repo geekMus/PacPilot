@@ -47,14 +47,13 @@ docker logs pacpilot
 
 ## 许可证
 
-本项目采用 **GeekMus Non-Commercial License 1.0（GNCL-1.0）** 自定义非商业许可证，并非 OSI 认可的标准开源许可证。
+本项目采用 **GNU Affero General Public License v3.0（AGPL-3.0）**。
 
 - [许可证英文原文](LICENSE)
-- [许可证中文参考译文](LICENSE.zh-CN.md)
+- [许可证中文说明（非正式译本）](LICENSE.zh-CN.md)
+- [GNU 官方许可证页面](https://www.gnu.org/licenses/agpl-3.0.html)
 
-该许可证允许个人非商业使用、修改及免费分发，但须保留作者署名、版权声明和许可证文本。公司或组织的内部业务使用，以及其他商业用途，均须事先取得作者书面授权。第三方组件仍适用其各自的许可证。
-
-商业授权申请：**geekMus@qq.com**。也可通过 [GitHub Issues](https://github.com/geekMus/PacPilot/issues) 咨询；请勿在公开 Issue 中发布机密商业信息。
+AGPL-3.0 是强著作权传染（copyleft）开源许可证。除遵守许可证关于复制、修改和分发的要求外，如果修改后的版本通过网络向用户提供交互服务，通常还需要依照第 13 条向这些用户提供获取对应源代码的机会。请阅读许可证全文并根据具体使用方式判断义务。第三方组件仍适用其各自的许可证。
 
 ## 社区与贡献
 
