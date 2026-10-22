@@ -6,30 +6,13 @@ const { t, locale } = useI18n();
 
 type EChartsCoreModule = typeof import("echarts/core");
 
-let echartsCore: EChartsCoreModule | undefined;
-let echartsLoading: Promise<void> | undefined;
+let echartsLoading: Promise<EChartsCoreModule> | undefined;
 
-/** Load chart code only when a chart is actually rendered. */
-function loadEcharts(): Promise<void> {
-  if (echartsCore) return Promise.resolve();
+/** Load only the registered chart modules when a chart is actually rendered. */
+function loadEcharts(): Promise<EChartsCoreModule> {
   if (!echartsLoading) {
-    echartsLoading = Promise.all([
-      import("echarts/core"),
-      import("echarts/charts"),
-      import("echarts/components"),
-      import("echarts/renderers"),
-    ])
-      .then(([core, charts, components, renderers]) => {
-        core.use([
-          charts.BarChart,
-          charts.LineChart,
-          components.GridComponent,
-          components.TooltipComponent,
-          components.LegendComponent,
-          renderers.CanvasRenderer,
-        ]);
-        echartsCore = core;
-      })
+    echartsLoading = import("../lib/echarts")
+      .then(({ echarts }) => echarts)
       .catch((error: unknown) => {
         echartsLoading = undefined;
         throw error;
@@ -352,11 +335,11 @@ function renderChart() {
   }
 
   void loadEcharts()
-    .then(() => {
+    .then((echarts) => {
       const element = host.value;
-      if (!element || !props.points?.length || !echartsCore) return;
+      if (!element || !props.points?.length) return;
       if (!chart.value) {
-        chart.value = echartsCore.init(element, undefined, { renderer: "canvas" });
+        chart.value = echarts.init(element, undefined, { renderer: "canvas" });
       }
       chart.value.setOption(buildOption(), true);
     })
