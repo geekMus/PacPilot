@@ -67,6 +67,12 @@ const toastOptions = {
   letter-spacing: 0.01em;
 }
 
+:deep([data-sonner-toast] [data-close-button]) {
+  left: auto !important;
+  right: 0 !important;
+  transform: translate(35%, -35%) !important;
+}
+
 @media (max-width: 600px) {
   :deep([data-sonner-toaster][data-x-position="center"]) {
     width: calc(100vw - 24px) !important;
