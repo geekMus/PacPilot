@@ -2,6 +2,8 @@ name: 代码质量检查
 
 on:
   push:
+    branches-ignore:
+      - main
   pull_request:
 
 # 同一工作流、同一分支只保留最新运行；不同工作流和不同分支互不取消。
