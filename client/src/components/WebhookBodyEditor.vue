@@ -244,6 +244,7 @@ watch(
 }
 .cm-host :deep(.cm-content) {
   min-height: 100%;
+  padding: 10px 12px;
 }
 .json-placeholder {
   position: absolute;

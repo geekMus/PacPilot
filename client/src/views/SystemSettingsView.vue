@@ -256,8 +256,7 @@ onMounted(() => void load());
               { value: 180, label: t('systemPage.k50') },
               { value: 365, label: t('systemPage.k51') },
             ]"
-          />
-          ><button
+          /><button
             class="primary"
             :disabled="
               loading || savingRetention || !settings || retention === settings.logRetentionDays
@@ -669,19 +668,14 @@ onMounted(() => void load());
   font-weight: 700;
   color: var(--text);
 }
-.retention .select-field {
+.retention .app-select {
   width: 145px;
   min-width: 145px;
   flex: 0 0 145px;
 }
-.retention .select-field :deep(select) {
-  min-height: 38px;
-  padding: 0 34px 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
+.retention .app-select :deep(.app-select-trigger) {
+  min-height: 40px;
+  padding: 9px 10px 9px 12px;
   font-size: 12px;
 }
 .primary,
@@ -810,7 +804,7 @@ button:disabled {
   .retention > * {
     width: 100%;
   }
-  .retention .select-field {
+  .retention .app-select {
     display: flex;
     width: 100%;
     min-width: 0;

@@ -190,8 +190,8 @@ export function useAdminSettings() {
         null,
         2
       ),
-      messageTemplate: String(tm("settings.defaultMessageTemplate")),
-      testMessageTemplate: String(tm("settings.testMessageTemplate")),
+      messageTemplate: "",
+      testMessageTemplate: "",
     };
   }
 
@@ -200,12 +200,8 @@ export function useAdminSettings() {
       ...defaultWebhookConfig(),
       ...value,
       testBody: value?.testBody ?? defaultWebhookConfig().testBody,
-      messageTemplate: value?.messageTemplate?.trim()
-        ? value.messageTemplate
-        : defaultWebhookConfig().messageTemplate,
-      testMessageTemplate: value?.testMessageTemplate?.trim()
-        ? value.testMessageTemplate
-        : defaultWebhookConfig().testMessageTemplate,
+      messageTemplate: value?.messageTemplate ?? "",
+      testMessageTemplate: value?.testMessageTemplate ?? "",
     };
   }
 

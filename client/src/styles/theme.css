@@ -73,6 +73,8 @@ html.theme-dark {
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Keep fixed controls from shifting when switching between short and tall form layouts. */
+  scrollbar-gutter: stable;
   /* 移除移动浏览器点击元素时默认出现的蓝色/半透明点击闪烁。 */
   -webkit-tap-highlight-color: transparent;
 }
@@ -317,6 +319,10 @@ code {
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
   textarea
 ) {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 40px;
+  padding: 9px 12px;
   color: var(--text);
   border-color: var(--line);
   background-color: var(--surface);

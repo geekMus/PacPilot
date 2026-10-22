@@ -75,7 +75,7 @@ function buildExtensions() {
         fontFamily: 'ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace',
         lineHeight: "1.5",
       },
-      ".cm-content": { padding: props.singleLine ? "10px 10px" : "10px 0" },
+      ".cm-content": { padding: "10px 12px" },
       ".cm-line": { padding: "0" },
       ".cm-gutters": { display: "none" },
       ".cm-cursor": { borderLeftColor: "var(--text)" },

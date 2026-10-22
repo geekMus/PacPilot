@@ -107,8 +107,8 @@ function onValueChange(value: string): void {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  min-height: 38px;
-  padding: 8px 10px;
+  min-height: 40px;
+  padding: 9px 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
