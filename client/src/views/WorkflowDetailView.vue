@@ -915,7 +915,7 @@ onUnmounted(() => {
   border-radius: 14px;
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 18px 48px color-mix(in srgb, var(--text) 18%, transparent);
+  box-shadow: var(--dialog-panel-shadow);
   overflow: auto;
 }
 .stage-detail-shell {

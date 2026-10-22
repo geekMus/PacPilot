@@ -1,5 +1,8 @@
 .admin-page {
   min-width: 0;
+  padding-bottom: 0;
+}
+.admin-page.has-floating-save {
   padding-bottom: 90px;
 }
 
@@ -644,7 +647,7 @@ tr:last-child td {
   color: var(--red);
 }
 @media (max-width: 720px) {
-  .admin-page {
+  .admin-page.has-floating-save {
     padding-bottom: 100px;
   }
   .floating-save-button {
@@ -1251,9 +1254,6 @@ textarea.body-area {
 
 /* Shared Reka UI dialog primitives; retain the mobile bottom-sheet appearance. */
 @media (max-width: 720px) {
-  .timezone-sheet-overlay {
-    background: rgba(0, 0, 0, 0.48);
-  }
   .app-dialog-content.timezone-sheet {
     top: auto;
     right: 0;

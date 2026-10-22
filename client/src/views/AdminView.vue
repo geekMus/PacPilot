@@ -89,7 +89,7 @@ const { style: timezonePanelStyle } = useViewportPanel(
 
 <template>
   <AdminLayout active="settings" :title="t('settings.title')" :subtitle="t('settings.subtitle')">
-    <div class="admin-page">
+    <div class="admin-page" :class="{ 'has-floating-save': hasUnsavedSettings }">
       <section v-if="loading" class="state-card" aria-live="polite">
         <span class="spinner" aria-hidden="true"></span>
         <div>
