@@ -1237,16 +1237,52 @@ textarea.body-area {
 }
 
 
-/* Shared Reka UI dialog primitives; retain the mobile bottom-sheet appearance. */
+/* Keep the timezone picker aligned with the shared centered dialog surface. */
+.timezone-sheet {
+  display: flex;
+  flex-direction: column;
+  width: min(640px, calc(100vw - 24px));
+  max-height: min(86dvh, 820px);
+  padding: 0;
+  overflow: hidden;
+  border-radius: 14px;
+}
+.timezone-sheet-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 18px 18px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.timezone-sheet .timezone-sheet-search {
+  flex: 0 0 auto;
+  width: calc(100% - 36px);
+  margin: 16px 18px 10px;
+}
+.timezone-sheet .timezone-sheet-options {
+  min-height: 0;
+  margin: 0 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.timezone-sheet .timezone-sheet-hint {
+  margin: 10px 18px 18px;
+}
 @media (max-width: 720px) {
-  .app-dialog-content.timezone-sheet {
-    top: auto;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    max-width: none;
-    max-height: min(82dvh, 720px);
-    transform: none;
+  .timezone-sheet-head {
+    padding: 14px 14px 10px;
+  }
+  .timezone-sheet .timezone-sheet-search {
+    width: calc(100% - 28px);
+    margin: 16px 14px 10px;
+  }
+  .timezone-sheet .timezone-sheet-options {
+    margin: 0 14px;
+  }
+  .timezone-sheet .timezone-sheet-hint {
+    margin: 10px 14px max(14px, env(safe-area-inset-bottom));
   }
 }
