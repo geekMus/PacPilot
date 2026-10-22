@@ -728,18 +728,15 @@ const {
   color: var(--muted);
   font-size: 11px;
 }
-.history-filters .select-field {
+.history-filters .app-select {
   min-width: 150px;
+  max-width: 100%;
 }
-.history-filters .select-field :deep(select) {
-  min-width: 150px;
-  min-height: 36px;
-  padding: 0 34px 0 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+.history-filters .app-select :deep(.app-select-trigger) {
+  min-width: 0;
+  min-height: 40px;
+  padding: 9px 12px;
   background: var(--surface-2);
-  color: var(--text);
-  font: inherit;
 }
 .history-pagination {
   display: flex;

@@ -150,10 +150,13 @@ function onValueChange(value: string): void {
 }
 .app-select-content {
   z-index: 1200;
-  min-width: var(--reka-select-trigger-width);
-  max-width: min(360px, calc(100vw - 16px));
+  box-sizing: border-box;
+  min-width: min(var(--reka-select-trigger-width), calc(100vw - 16px));
+  width: max-content;
+  max-width: calc(100vw - 16px);
   max-height: var(--reka-select-content-available-height);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--surface);
@@ -165,6 +168,10 @@ function onValueChange(value: string): void {
 }
 .app-select-item {
   position: relative;
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   display: flex;
   align-items: center;
   justify-content: space-between;
