@@ -61,7 +61,9 @@ watch(
         </div>
       </header>
       <main class="admin-content">
-        <slot></slot>
+        <div class="admin-content-inner">
+          <slot></slot>
+        </div>
       </main>
     </div>
   </div>
@@ -142,7 +144,9 @@ watch(
 }
 .admin-content {
   flex: 1 1 auto;
+  min-width: 0;
   min-height: 0;
+  width: 100%;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -150,6 +154,9 @@ watch(
   --radius: 12px;
   --admin-panel-padding: 20px;
   --admin-section-gap: 20px;
+}
+
+.admin-content-inner {
   width: 100%;
   max-width: 1680px;
   margin: 0 auto;
@@ -263,7 +270,7 @@ watch(
   .admin-topbar :deep(.monitor-top-updated) {
     display: none;
   }
-  .admin-content {
+  .admin-content-inner {
     padding-right: 24px;
     padding-left: 24px;
   }
@@ -309,7 +316,7 @@ watch(
   .topbar-title h1 {
     font-size: 18px;
   }
-  .admin-content {
+  .admin-content-inner {
     padding: 20px 18px 32px;
   }
 }
@@ -363,6 +370,8 @@ watch(
   .admin-content {
     --admin-panel-padding: 14px;
     --admin-section-gap: 16px;
+  }
+  .admin-content-inner {
     padding: 16px 16px 28px;
   }
   .admin-content :deep(.overview-metrics),
