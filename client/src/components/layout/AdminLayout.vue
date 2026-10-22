@@ -5,6 +5,7 @@ import { useI18n } from "vue-i18n";
 import AppIcon from "@/components/AppIcon.vue";
 import UserPreferencesMenu from "@/components/UserPreferencesMenu.vue";
 import AdminSidebar from "@/components/layout/AdminSidebar.vue";
+import AppScrollArea from "@/components/AppScrollArea.vue";
 
 type AdminSection = "dashboard" | "settings" | "system-settings" | "monitor" | "workflow";
 
@@ -60,11 +61,11 @@ watch(
           <UserPreferencesMenu />
         </div>
       </header>
-      <main class="admin-content">
+      <AppScrollArea root-class="admin-content" orientation="vertical">
         <div class="admin-content-inner">
           <slot></slot>
         </div>
-      </main>
+      </AppScrollArea>
     </div>
   </div>
 </template>
@@ -147,10 +148,7 @@ watch(
   min-width: 0;
   min-height: 0;
   width: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
+
   --radius: 12px;
   --admin-panel-padding: 20px;
   --admin-section-gap: 20px;
