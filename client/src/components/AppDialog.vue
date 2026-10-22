@@ -52,14 +52,14 @@ function onCloseAutoFocus(event: Event): void {
 .app-dialog-overlay {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: 1000;
   background: rgba(12, 16, 24, 0.45);
 }
 .app-dialog-content {
   position: fixed;
   top: 50%;
   left: 50%;
-  z-index: 81;
+  z-index: 1001;
   max-width: calc(100vw - 16px);
   transform: translate(-50%, -50%);
   outline: none;
