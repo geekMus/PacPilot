@@ -330,7 +330,7 @@ onMounted(() => {
   border-radius: 18px;
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
+  box-shadow: var(--dialog-panel-shadow);
 }
 .dialog-header {
   display: flex;
