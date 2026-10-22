@@ -327,6 +327,8 @@ onMounted(() => {
 .version-dialog {
   box-sizing: border-box;
   width: min(100%, 440px);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
   padding: 22px;
   border: 1px solid var(--line);
   border-radius: 18px;
