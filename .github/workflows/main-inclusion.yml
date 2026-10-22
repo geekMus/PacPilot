@@ -2,8 +2,6 @@ name: 主从同步检查
 
 on:
   pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
