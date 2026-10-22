@@ -331,29 +331,48 @@ watch(
 .sidebar-logout-button {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 10px;
   width: 100%;
-  min-height: 42px;
+  min-height: 44px;
   margin-top: 14px;
   padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  color: var(--text);
-  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--red) 28%, var(--line));
+  border-radius: 10px;
+  color: var(--red);
+  background: var(--red-soft);
   font: inherit;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 750;
   cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+.sidebar-logout-button :deep(.app-icon) {
+  flex: 0 0 auto;
+  color: var(--red);
 }
 .sidebar-logout-button:hover:not(:disabled) {
-  color: var(--red);
-  border-color: color-mix(in srgb, var(--red) 35%, var(--line));
-  background: var(--red-soft);
+  border-color: color-mix(in srgb, var(--red) 58%, var(--line));
+  background: color-mix(in srgb, var(--red) 16%, var(--surface));
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--red) 10%, transparent);
+}
+.sidebar-logout-button:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
 }
 .sidebar-logout-button:disabled {
-  opacity: 0.7;
+  opacity: 0.72;
   cursor: progress;
+  box-shadow: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-logout-button {
+    transition: none;
+  }
 }
 .sidebar-status {
   display: flex;
