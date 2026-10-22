@@ -6,7 +6,7 @@ import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
 import ConfirmPopover from "../components/ConfirmPopover.vue";
-import SelectField from "../components/SelectField.vue";
+import AppSelect from "../components/AppSelect.vue";
 import { useToast } from "../composables/useToast";
 import { useI18n } from "vue-i18n";
 const router = useRouter(),
@@ -244,19 +244,19 @@ onMounted(() => void load());
         </div>
         <div class="retention">
           <label for="retention">{{ t("systemPage.k45") }}</label
-          ><SelectField
-            ><select
-              id="retention"
-              v-model.number="retention"
-              :disabled="loading || savingRetention"
-            >
-              <option :value="0">{{ t("systemPage.k46") }}</option>
-              <option :value="7">{{ t("systemPage.k47") }}</option>
-              <option :value="30">{{ t("systemPage.k48") }}</option>
-              <option :value="90">{{ t("systemPage.k49") }}</option>
-              <option :value="180">{{ t("systemPage.k50") }}</option>
-              <option :value="365">{{ t("systemPage.k51") }}</option>
-            </select></SelectField
+          ><AppSelect
+            id="retention"
+            v-model="retention"
+            :disabled="loading || savingRetention"
+            :options="[
+              { value: 0, label: t('systemPage.k46') },
+              { value: 7, label: t('systemPage.k47') },
+              { value: 30, label: t('systemPage.k48') },
+              { value: 90, label: t('systemPage.k49') },
+              { value: 180, label: t('systemPage.k50') },
+              { value: 365, label: t('systemPage.k51') },
+            ]"
+          />
           ><button
             class="primary"
             :disabled="

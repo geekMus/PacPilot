@@ -4,7 +4,7 @@ import AppIcon from "../components/AppIcon.vue";
 import AppFooter from "../components/AppFooter.vue";
 import ConfirmPopover from "../components/ConfirmPopover.vue";
 import VirtualTable from "../components/VirtualTable.vue";
-import SelectField from "../components/SelectField.vue";
+import AppSelect from "../components/AppSelect.vue";
 import { useWorkflowDashboard } from "../composables/useWorkflowDashboard";
 
 const {
@@ -336,28 +336,30 @@ const {
         <div class="history-filters" :aria-label="t('workflowPage.k36')">
           <label
             >{{ t("workflowPage.k64") }}
-            <SelectField
-              ><select v-model="selectedStatus">
-                <option value="all">{{ t("workflowPage.k65") }}</option>
-                <option value="pending">{{ t("workflowPage.k0") }}</option>
-                <option value="running">{{ t("workflowPage.k1") }}</option>
-                <option value="succeeded">{{ t("workflowPage.k2") }}</option>
-                <option value="failed">{{ t("workflowPage.k3") }}</option>
-                <option value="cancelled">{{ t("workflowPage.k4") }}</option>
-              </select></SelectField
-            >
+            <AppSelect
+              v-model="selectedStatus"
+              :options="[
+                { value: 'all', label: t('workflowPage.k65') },
+                { value: 'pending', label: t('workflowPage.k0') },
+                { value: 'running', label: t('workflowPage.k1') },
+                { value: 'succeeded', label: t('workflowPage.k2') },
+                { value: 'failed', label: t('workflowPage.k3') },
+                { value: 'cancelled', label: t('workflowPage.k4') },
+              ]"
+            />
           </label>
           <label
             >{{ t("workflowPage.k66") }}
-            <SelectField
-              ><select v-model="selectedSource">
-                <option value="all">{{ t("workflowPage.k67") }}</option>
-                <option value="startup">{{ t("workflowPage.k5") }}</option>
-                <option value="scheduled">{{ t("workflowPage.k6") }}</option>
-                <option value="manual">{{ t("workflowPage.k7") }}</option>
-                <option value="save-and-generate">{{ t("workflowPage.k8") }}</option>
-              </select></SelectField
-            >
+            <AppSelect
+              v-model="selectedSource"
+              :options="[
+                { value: 'all', label: t('workflowPage.k67') },
+                { value: 'startup', label: t('workflowPage.k5') },
+                { value: 'scheduled', label: t('workflowPage.k6') },
+                { value: 'manual', label: t('workflowPage.k7') },
+                { value: 'save-and-generate', label: t('workflowPage.k8') },
+              ]"
+            />
           </label>
         </div>
         <VirtualTable

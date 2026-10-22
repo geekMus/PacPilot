@@ -3,7 +3,7 @@ import { computed, ref, useId } from "vue";
 import { useI18n } from "vue-i18n";
 import type { WebhookConfig, WebhookProvider } from "../api/client";
 import AppIcon from "./AppIcon.vue";
-import SelectField from "./SelectField.vue";
+import AppSelect from "./AppSelect.vue";
 import WebhookBodyEditor from "./WebhookBodyEditor.vue";
 import CodeMirrorField from "./CodeMirrorField.vue";
 const { t, tm } = useI18n();
@@ -123,17 +123,13 @@ const channelStatusText = computed(() => {
 
     <div class="provider-picker">
       <label :for="providerId">{{ t("webhookChannel.k27") }}</label>
-      <SelectField block
-        ><select
-          :id="providerId"
-          :value="config.provider"
-          @change="update('provider', inputValue($event) as WebhookProvider)"
-        >
-          <option v-for="item in providers" :key="item.value" :value="item.value">
-            {{ item.label }}
-          </option>
-        </select></SelectField
-      >
+      <AppSelect
+        :id="providerId"
+        block
+        :model-value="config.provider"
+        :options="providers"
+        @update:model-value="update('provider', $event as WebhookProvider)"
+      />
       <p class="field-hint">
         {{ providers.find((item) => item.value === config.provider)?.description }}
       </p>
@@ -159,16 +155,16 @@ const channelStatusText = computed(() => {
       <div class="two-fields">
         <div class="field">
           <label>{{ t("webhookChannel.k28") }}</label>
-          <SelectField block
-            ><select
-              :value="config.method"
-              @change="update('method', inputValue($event) as WebhookConfig['method'])"
-            >
-              <option value="POST">POST</option>
-              <option value="PUT">PUT</option>
-              <option value="PATCH">PATCH</option>
-            </select></SelectField
-          >
+          <AppSelect
+            block
+            :model-value="config.method"
+            :options="[
+              { value: 'POST', label: 'POST' },
+              { value: 'PUT', label: 'PUT' },
+              { value: 'PATCH', label: 'PATCH' },
+            ]"
+            @update:model-value="update('method', $event as WebhookConfig['method'])"
+          />
         </div>
         <div class="field">
           <label>{{ t("webhookChannel.k29") }}</label>

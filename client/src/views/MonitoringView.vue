@@ -5,7 +5,7 @@ import AppDialog from "../components/AppDialog.vue";
 import AppFooter from "../components/AppFooter.vue";
 import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
 import VirtualTable from "../components/VirtualTable.vue";
-import SelectField from "../components/SelectField.vue";
+import AppSelect from "../components/AppSelect.vue";
 import { useMonitoringDashboard } from "../composables/useMonitoringDashboard";
 
 const {
@@ -363,27 +363,31 @@ const {
             </label>
             <label class="access-filter">
               <span>{{ t("monitor.k117") }}</span>
-              <SelectField block
-                ><select v-model="accessCategory">
-                  <option value="all">{{ t("monitor.k118") }}</option>
-                  <option value="pac">{{ t("monitor.k10") }}</option>
-                  <option value="page">{{ t("monitor.k9") }}</option>
-                  <option value="public-api">{{ t("monitor.k11") }}</option>
-                  <option value="admin-api">{{ t("monitor.k12") }}</option>
-                </select></SelectField
-              >
+              <AppSelect
+                v-model="accessCategory"
+                block
+                :options="[
+                  { value: 'all', label: t('monitor.k118') },
+                  { value: 'pac', label: t('monitor.k10') },
+                  { value: 'page', label: t('monitor.k9') },
+                  { value: 'public-api', label: t('monitor.k11') },
+                  { value: 'admin-api', label: t('monitor.k12') },
+                ]"
+              />
             </label>
             <label class="access-filter">
               <span>{{ t("monitor.k119") }}</span>
-              <SelectField block
-                ><select v-model="accessStatus">
-                  <option value="all">{{ t("monitor.k120") }}</option>
-                  <option value="success">{{ t("monitor.k121") }}</option>
-                  <option value="redirect">{{ t("monitor.k122") }}</option>
-                  <option value="client-error">{{ t("monitor.k123") }}</option>
-                  <option value="server-error">{{ t("monitor.k124") }}</option>
-                </select></SelectField
-              >
+              <AppSelect
+                v-model="accessStatus"
+                block
+                :options="[
+                  { value: 'all', label: t('monitor.k120') },
+                  { value: 'success', label: t('monitor.k121') },
+                  { value: 'redirect', label: t('monitor.k122') },
+                  { value: 'client-error', label: t('monitor.k123') },
+                  { value: 'server-error', label: t('monitor.k124') },
+                ]"
+              />
             </label>
             <div
               class="access-reset-wrap"
