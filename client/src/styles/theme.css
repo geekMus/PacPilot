@@ -77,8 +77,7 @@ html {
   -webkit-text-size-adjust: 100%;
   /* Portaled Reka UI menus must not expand the document's horizontal scroll area. */
   overflow-x: clip;
-  /* Keep fixed controls from shifting when switching between short and tall form layouts. */
-  scrollbar-gutter: stable;
+  /* Modal scroll locking is managed by Reka UI; avoid double scrollbar compensation. */
   /* 移除移动浏览器点击元素时默认出现的蓝色/半透明点击闪烁。 */
   -webkit-tap-highlight-color: transparent;
 }
