@@ -29,7 +29,7 @@ const props = withDefaults(
     disabled?: boolean;
     invalid?: boolean;
   }>(),
-  { placeholder: "请选择", block: false, disabled: false, invalid: false }
+  { placeholder: "", block: false, disabled: false, invalid: false }
 );
 
 const emit = defineEmits<{
