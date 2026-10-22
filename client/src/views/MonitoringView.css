@@ -321,8 +321,36 @@
     transform: rotate(360deg);
   }
 }
+.monitor-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0 0 16px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
 .monitor-notice strong {
+  flex: 0 0 auto;
   color: var(--text);
+  font-weight: 700;
+}
+@media (max-width: 560px) {
+  .monitor-notice {
+    display: block;
+    padding: 10px 11px;
+    margin-bottom: 14px;
+  }
+  .monitor-notice strong {
+    display: block;
+    margin-bottom: 3px;
+  }
 }
 .access-filters {
   display: grid;
