@@ -64,7 +64,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   mode: "custom",
   pacProxy: "SOCKS5 127.0.0.1:1080; DIRECT",
   pacCompress: true,
-  listUrl: "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt",
+  listUrl: "",
   blockList: [],
   directList: [],
   cronSchedule: "",
