@@ -914,20 +914,6 @@ onUnmounted(() => {
   font-weight: 800;
   letter-spacing: 0.12em;
 }
-.stage-detail-header h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.3;
-  overflow-wrap: anywhere;
-}
-.stage-detail-actions {
-  display: flex;
-  gap: 8px;
-  flex: 0 0 auto;
-  flex-wrap: nowrap;
-}
 .stage-detail-btn {
   display: inline-flex;
   align-items: center;
@@ -1074,18 +1060,6 @@ onUnmounted(() => {
   }
   .detail-action-group {
     flex: 0 0 auto;
-  }
-  .stage-detail-dialog {
-    width: calc(100vw - 16px);
-    max-height: min(90dvh, 100%);
-    border-radius: 12px;
-  }
-  .stage-detail-header {
-    padding: 14px 14px 10px;
-    gap: 10px;
-  }
-  .stage-detail-header h2 {
-    font-size: 16px;
   }
   .stage-detail-btn {
     min-height: 36px;

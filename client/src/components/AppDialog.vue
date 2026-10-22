@@ -54,7 +54,7 @@ function onCloseAutoFocus(event: Event): void {
         :aria-label="props.label"
         @close-auto-focus="onCloseAutoFocus"
       >
-        <section class="app-dialog-shell" :class="['app-dialog-' + props.contentClass, props.contentClass]">
+        <section class="app-dialog-shell" :class="props.contentClass">
           <header v-if="$slots.header || $slots['header-actions'] || props.showClose" class="app-dialog-header">
             <div class="app-dialog-heading">
               <slot name="header" />

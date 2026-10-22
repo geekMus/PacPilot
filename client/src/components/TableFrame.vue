@@ -146,6 +146,21 @@ onUnmounted(() => resizeObserver?.disconnect());
 .app-table :deep(.actions-cell) {
   overflow: visible;
 }
+.app-table :deep(.virtual-spacer td) {
+  height: auto;
+  max-height: none;
+  padding: 0 !important;
+  border: 0 !important;
+  line-height: 0;
+}
+.app-table :deep(.virtual-state-row td) {
+  height: 42px;
+  max-height: none;
+  padding: 10px 12px;
+  text-align: center;
+  color: var(--muted);
+  border-bottom: 0;
+}
 .app-table.recent-table {
   font-size: 10px;
 }
