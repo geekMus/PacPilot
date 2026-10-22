@@ -112,7 +112,7 @@ function onOpenChange(open: boolean) {
   </PopoverRoot>
 </template>
 
-<style scoped>
+<style>
 .confirm-anchor {
   position: relative;
   display: inline-block;
