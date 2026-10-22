@@ -6,6 +6,7 @@ import packageJson from "../../../package.json";
 import { PROJECT_LINKS } from "../../../shared/project-links";
 import AppIcon from "./AppIcon.vue";
 import AppDialog from "./AppDialog.vue";
+import { DialogDescription, DialogTitle } from "reka-ui";
 
 const { t } = useI18n();
 const projectUrl = PROJECT_LINKS.repository;
@@ -150,13 +151,15 @@ onMounted(() => {
     >
       <section class="version-dialog" aria-labelledby="version-dialog-title">
           <header class="dialog-header">
-            <h2 id="version-dialog-title">{{ t("footer.projectVersion") }}</h2>
+            <DialogTitle id="version-dialog-title">{{ t("footer.projectVersion") }}</DialogTitle>
+            <DialogDescription id="version-dialog-description" class="visually-hidden">
+              {{ t("footer.currentVersion") }}、{{ t("footer.latestVersion") }}
+            </DialogDescription>
             <button
               type="button"
               class="dialog-close"
               :aria-label="t('common.closeDialog')"
               @click="dialogOpen = false"
-              autofocus
             >
               <AppIcon name="x" :size="17" />
             </button>
@@ -339,6 +342,25 @@ onMounted(() => {
   gap: 14px;
   margin-bottom: 19px;
 }
+.dialog-header h2,
+.dialog-header [data-reka-ui-dialog-title] {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+/* Keep accessible dialog metadata available to assistive technology without changing layout. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+/* legacy heading selector retained below for compatibility */
 .dialog-header h2 {
   margin: 0;
   font-size: 20px;
