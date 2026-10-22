@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { defineAsyncComponent, ref } from "vue";
+import { RadioGroupItem, RadioGroupRoot } from "reka-ui";
 import AdminLayout from "../components/AdminLayout.vue";
 import AppIcon from "../components/AppIcon.vue";
 import AppDialog from "../components/AppDialog.vue";
@@ -355,30 +356,37 @@ const { style: timezonePanelStyle } = useViewportPanel(
               </div>
             </div>
 
-            <div class="mode-grid">
-              <label class="mode-card" :class="{ active: form.mode === 'custom' }">
-                <input v-model="form.mode" type="radio" value="custom" />
-                <div class="mode-card-body">
-                  <div class="mode-top">
-                    <span class="mode-name">{{ t("settings.customRules") }}</span>
-                    <span class="tag">{{ t("settings.recommended") }}</span>
+            <RadioGroupRoot
+              :model-value="form.mode"
+              class="mode-grid"
+              :aria-label="t('settings.title')"
+              @update:model-value="form.mode = $event as 'custom' | 'remote'"
+            >
+              <RadioGroupItem as-child value="custom" :aria-label="t('settings.customRules')">
+                <label class="mode-card" :class="{ active: form.mode === 'custom' }">
+                  <div class="mode-card-body">
+                    <div class="mode-top">
+                      <span class="mode-name">{{ t("settings.customRules") }}</span>
+                      <span class="tag">{{ t("settings.recommended") }}</span>
+                    </div>
+                    <p class="mode-desc">{{ t("settings.customModeDesc") }}</p>
                   </div>
-                  <p class="mode-desc">{{ t("settings.customModeDesc") }}</p>
-                </div>
-              </label>
-              <label class="mode-card" :class="{ active: form.mode === 'remote' }">
-                <input v-model="form.mode" type="radio" value="remote" />
-                <div class="mode-card-body">
-                  <div class="mode-top">
-                    <span class="mode-name">{{ t("settings.remoteRules") }}</span>
-                    <span class="tag">{{ t("settings.bunBuiltin") }}</span>
+                </label>
+              </RadioGroupItem>
+              <RadioGroupItem as-child value="remote" :aria-label="t('settings.remoteRules')">
+                <label class="mode-card" :class="{ active: form.mode === 'remote' }">
+                  <div class="mode-card-body">
+                    <div class="mode-top">
+                      <span class="mode-name">{{ t("settings.remoteRules") }}</span>
+                      <span class="tag">{{ t("settings.bunBuiltin") }}</span>
+                    </div>
+                    <p class="mode-desc">
+                      {{ t("settings.remoteModeDesc") }}
+                    </p>
                   </div>
-                  <p class="mode-desc">
-                    {{ t("settings.remoteModeDesc") }}
-                  </p>
-                </div>
-              </label>
-            </div>
+                </label>
+              </RadioGroupItem>
+            </RadioGroupRoot>
 
             <p class="hint-line">{{ modeHint }}</p>
 
