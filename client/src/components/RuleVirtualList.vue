@@ -26,7 +26,7 @@ const props = withDefaults(
 );
 
 const scrollTop = ref(0);
-const viewport = ref<HTMLDivElement | null>(null);
+const viewport = ref<HTMLElement | null>(null);
 const viewportHeight = computed(() =>
   Math.min(props.height, Math.max(props.rowHeight * 3, props.items.length * props.rowHeight))
 );
