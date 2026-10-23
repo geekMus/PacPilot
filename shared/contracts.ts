@@ -70,14 +70,3 @@ export type NotificationDeliveryStatus = "pending"|"sending"|"succeeded"|"failed
 export interface NotificationDelivery { id:string; eventId:string; ruleId:string; channelId:string; status:NotificationDeliveryStatus; attemptCount:number; createdAt:string; updatedAt:string; deliveredAt?:string; lastError?:string; }
 export interface NotificationDocument { schemaVersion:number; legacyMigrated:boolean; channels:NotificationChannel[]; rules:NotificationRule[]; events:DomainEvent[]; deliveries:NotificationDelivery[]; }
 export interface NotificationEventDefinition { type:NotificationEventType; label:string; phases:NotificationEventPhase[]; outcomes:NotificationOutcome[]; subjectTypes:string[]; }
-
-export type NotificationEventType="task.execution"|"config.publish"|"request.process"|"system.error";
-export type NotificationEventPhase="started"|"progress"|"finished"|"state_changed";
-export type NotificationOutcome="success"|"failure"|"cancelled"|"timeout"|"unknown";
-export interface DomainEvent{id:string;type:NotificationEventType;phase:NotificationEventPhase;outcome?:NotificationOutcome;subject:{type:string;id:string;name?:string};occurredAt:string;correlationId:string;schemaVersion:number;summary?:string;details?:Record<string,unknown>}
-export interface NotificationChannel{id:string;name:string;provider:WebhookProvider;enabled:boolean;config:WebhookConfig;hasSecret?:boolean;createdAt:string;updatedAt:string}
-export interface NotificationRule{id:string;name:string;enabled:boolean;eventType:NotificationEventType;phase:NotificationEventPhase;outcome:NotificationOutcome|"any"|null;channelIds:string[];subjectType?:string;createdAt:string;updatedAt:string}
-export type NotificationDeliveryStatus="pending"|"sending"|"succeeded"|"failed";
-export interface NotificationDelivery{id:string;eventId:string;ruleId:string;channelId:string;status:NotificationDeliveryStatus;attemptCount:number;createdAt:string;updatedAt:string;deliveredAt?:string;lastError?:string}
-export interface NotificationDocument{schemaVersion:number;legacyMigrated:boolean;channels:NotificationChannel[];rules:NotificationRule[];events:DomainEvent[];deliveries:NotificationDelivery[]}
-export interface NotificationEventDefinition{type:NotificationEventType;label:string;phases:NotificationEventPhase[];outcomes:NotificationOutcome[];subjectTypes:string[]}

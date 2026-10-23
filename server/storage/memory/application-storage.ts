@@ -9,7 +9,6 @@ import { createMemoryMonitoringRepository } from "./monitoring-repository";
 import { createMemorySettingsRepository } from "./settings-repository";
 import { createMemoryWorkflowRepository } from "./workflow-repository";
 import { createMemoryNotificationRepository } from "./notification-repository";
-import { createMemoryNotificationRepository } from "./notification-repository";
 
 export function createMemoryApplicationStorage(): ApplicationStorage {
   const settings = createMemorySettingsRepository();
@@ -18,7 +17,6 @@ export function createMemoryApplicationStorage(): ApplicationStorage {
   const generationLogs = createMemoryGenerationLogRepository(() => settings.get().logRetentionDays);
   const monitoring = createMemoryMonitoringRepository(() => settings.get().logRetentionDays);
   const workflows = createMemoryWorkflowRepository();
-  const notifications = createMemoryNotificationRepository();
   const notifications = createMemoryNotificationRepository();
   let closed = false;
 
@@ -29,7 +27,6 @@ export function createMemoryApplicationStorage(): ApplicationStorage {
     generationLogs: asAsyncRepository(generationLogs),
     monitoring: asAsyncRepository(monitoring),
     workflows: asAsyncRepository(workflows),
-    notifications: asAsyncRepository(notifications),
     notifications: asAsyncRepository(notifications),
     artifacts: asAsyncRepository(artifacts),
     maintenance: asAsyncRepository({

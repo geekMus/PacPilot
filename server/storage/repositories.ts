@@ -189,14 +189,10 @@ export interface ApplicationStorage {
   readonly monitoring: MonitoringRepository;
   readonly workflows: WorkflowRepository;
   readonly notifications: NotificationRepository;
-  readonly notifications: NotificationRepository;
   readonly artifacts: ArtifactRepository;
   readonly maintenance: StorageMaintenance;
   close(): Promise<void>;
 }
-
-export interface SyncNotificationRepository { get(): NotificationDocument; set(document: NotificationDocument): void; }
-export type NotificationRepository = AsyncRepository<SyncNotificationRepository>;
 
 export interface SyncNotificationRepository { get(): NotificationDocument; set(document: NotificationDocument): void; }
 export type NotificationRepository = AsyncRepository<SyncNotificationRepository>;

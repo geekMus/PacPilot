@@ -1,7 +1,6 @@
 import { createHmac } from "node:crypto";
 import type { AppSettings, WebhookConfig } from "../domain/settings";
 import type { DomainEvent } from "../../shared/contracts";
-import type { DomainEvent } from "../../shared/contracts";
 import { createDefaultWebhookConfig, normalizeWebhookConfig } from "../domain/settings";
 import { assertSafeHttpUrl } from "../utils/url-safety";
 import { runtimeLog } from "../utils/runtime-log";
@@ -322,10 +321,5 @@ export async function notifyFailure(
 export async function sendWebhookForEvent(input: WebhookConfig, event: DomainEvent, timeZone = "Asia/Shanghai"): Promise<WebhookDeliveryResult> {
  const config=normalizeWebhookConfig(input);
  const context:MessageContext={event:event.type+"."+event.phase,ok:event.outcome==="success",status:event.outcome||(event.phase==="started"?"started":"unknown"),message:event.summary||event.type+" "+event.phase,timestamp:new Date(event.occurredAt).toLocaleString("zh-CN",{timeZone})};
- return config.provider==="dingtalk"?sendDingTalk(config,context):sendCustom(config,context);
-}
-
-export async function sendWebhookForEvent(input:WebhookConfig,event:DomainEvent,timeZone="Asia/Shanghai"):Promise<WebhookDeliveryResult>{
- const config=normalizeWebhookConfig(input),context:MessageContext={event:event.type+"."+event.phase,ok:event.outcome==="success",status:event.outcome||(event.phase==="started"?"started":"unknown"),message:event.summary||event.type+" "+event.phase,timestamp:new Date(event.occurredAt).toLocaleString("zh-CN",{timeZone})};
  return config.provider==="dingtalk"?sendDingTalk(config,context):sendCustom(config,context);
 }
