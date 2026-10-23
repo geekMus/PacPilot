@@ -14,6 +14,7 @@ const registeredIcons = new Set(
   )
 );
 const usedIcons = new Map<string, Set<string>>();
+const legacyScrollbarUsages: string[] = [];
 
 function collectSourceFiles(directory: string): string[] {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -25,6 +26,9 @@ function collectSourceFiles(directory: string): string[] {
 
 for (const file of collectSourceFiles(sourceRoot)) {
   const source = fs.readFileSync(file, "utf8");
+  if (/<CodeMirrorField\\b[^>]*\\bscrollbar-mode\\s*=\\s*["']always["']/s.test(source)) {
+    legacyScrollbarUsages.push(path.relative(process.cwd(), file));
+  }
   const appIconTags = /<AppIcon\b([^>]*)>/g;
   for (const tag of source.matchAll(appIconTags)) {
     const iconProps = /(?:^|\s):?name\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
@@ -55,4 +59,18 @@ if (missing.length) {
   throw new Error(`发现未注册的 AppIcon 图标名称：\n${details}`);
 }
 
-console.log(`AppIcon 检查通过：已验证 ${usedIcons.size} 个静态图标名称。`);
+if (legacyScrollbarUsages.length) {
+  throw new Error(
+    `发现已废弃的 CodeMirrorField scrollbar-mode="always"：\\n${legacyScrollbarUsages.join("\\n")}`
+  );
+}
+
+const editorComponent = fs.readFileSync(path.join(sourceRoot, "components/CodeMirrorField.vue"), "utf8");
+if (!/scrollbarMode\\?:\\s*["']hover["']\\s*\\|\\s*["']auto["']/.test(editorComponent)) {
+  throw new Error("CodeMirrorField scrollbarMode 应仅支持 hover | auto。");
+}
+if (!/scrollbarMode:\\s*["']auto["']/.test(editorComponent)) {
+  throw new Error('CodeMirrorField scrollbarMode 默认值应为 "auto"。');
+}
+
+console.log(`AppIcon 检查通过：已验证 ${usedIcons.size} 个静态图标名称；编辑器滚动条模式检查通过。`);
