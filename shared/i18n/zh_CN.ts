@@ -50,6 +50,8 @@ export default {
     settings: "配置管理",
     systemSettings: "系统设置",
     monitor: "网络监控",
+    logs: "日志服务",
+    notifications: "通知服务",
     workflow: "工作流",
     status: "状态",
     logout: "退出登录",

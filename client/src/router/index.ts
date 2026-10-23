@@ -64,6 +64,18 @@ const router = createRouter({
       component: () => import("@/views/MonitoringView.vue"),
     },
     {
+      path: "/admin/logs",
+      name: "admin-logs",
+      meta: { titleKey: "nav.logs", layout: "admin" },
+      component: () => import("@/views/LogsView.vue"),
+    },
+    {
+      path: "/admin/notifications",
+      name: "admin-notifications",
+      meta: { titleKey: "nav.notifications", layout: "admin" },
+      component: () => import("@/views/NotificationsView.vue"),
+    },
+    {
       path: "/:pathMatch(.*)*",
       name: "not-found",
       meta: { titleKey: "notFound.title" },

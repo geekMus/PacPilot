@@ -57,6 +57,8 @@ export default {
     settings: "Configuration",
     systemSettings: "System settings",
     monitor: "Network monitor",
+    logs: "Logs",
+    notifications: "Notifications",
     workflow: "Workflows",
     status: "Status",
     logout: "Log out",

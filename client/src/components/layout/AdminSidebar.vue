@@ -8,7 +8,7 @@ import { useI18n } from "vue-i18n";
 import BrandMark from "@/components/BrandMark.vue";
 import AppScrollArea from "@/components/AppScrollArea.vue";
 
-type AdminSection = "dashboard" | "settings" | "system-settings" | "monitor" | "workflow";
+type AdminSection = "dashboard" | "settings" | "system-settings" | "monitor" | "workflow" | "logs" | "notifications";
 const props = defineProps<{ active: AdminSection; open: boolean }>();
 const { t } = useI18n();
 const router = useRouter();
@@ -60,6 +60,24 @@ async function logout(): Promise<void> {
           >
             <AppIcon name="activity" :size="18" />
             <span>{{ t("nav.monitor") }}</span>
+          </RouterLink>
+          <RouterLink
+            to="/admin/logs"
+            class="sidebar-link"
+            :class="{ active: props.active === 'logs' }"
+            :aria-current="props.active === 'logs' ? 'page' : undefined"
+          >
+            <AppIcon name="scroll-text" :size="18" />
+            <span>{{ t("nav.logs") }}</span>
+          </RouterLink>
+          <RouterLink
+            to="/admin/notifications"
+            class="sidebar-link"
+            :class="{ active: props.active === 'notifications' }"
+            :aria-current="props.active === 'notifications' ? 'page' : undefined"
+          >
+            <AppIcon name="bell-ring" :size="18" />
+            <span>{{ t("nav.notifications") }}</span>
           </RouterLink>
           <RouterLink
             to="/admin/settings"

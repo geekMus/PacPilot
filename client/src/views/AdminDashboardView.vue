@@ -364,7 +364,7 @@ onMounted(() => {
               <h3>{{ t("dashboard.recentGenLogs") }}</h3>
               <p>{{ t("dashboard.recentGenLogsDesc") }}</p>
             </div>
-            <RouterLink to="/admin/settings#logs"
+            <RouterLink to="/admin/logs"
               >{{ t("dashboard.viewLogs") }} <AppIcon name="arrow-up-right" :size="13"
             /></RouterLink>
           </header>

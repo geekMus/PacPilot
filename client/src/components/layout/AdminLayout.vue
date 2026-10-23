@@ -7,7 +7,7 @@ import UserPreferencesMenu from "@/components/UserPreferencesMenu.vue";
 import AdminSidebar from "@/components/layout/AdminSidebar.vue";
 import AppScrollArea from "@/components/AppScrollArea.vue";
 
-type AdminSection = "dashboard" | "settings" | "system-settings" | "monitor" | "workflow";
+type AdminSection = "dashboard" | "settings" | "system-settings" | "monitor" | "workflow" | "logs" | "notifications";
 
 defineProps<{
   active: AdminSection;
