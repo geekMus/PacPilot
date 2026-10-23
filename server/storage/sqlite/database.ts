@@ -1,11 +1,10 @@
 import { Database } from "bun:sqlite";
-import fs from "fs";
-import path from "path";
-import type { AppSettings, GenerationMode } from "../../domain/settings";
+import fs from "node:fs";
+import path from "node:path";
 import { DEFAULT_SETTINGS, normalizeAppSettings } from "../../domain/settings";
 import { initializeSchema } from "./schema";
 
-/** Bun 内置 SQLite 连接类型 */
+/** The concrete database type is confined to the SQLite adapter. */
 export type AppDatabase = Database;
 
 let db: AppDatabase | null = null;
@@ -18,7 +17,12 @@ export function createDatabase(dataDir: string): AppDatabase {
   try {
     database.run("PRAGMA journal_mode = WAL;");
     database.run("PRAGMA foreign_keys = ON;");
-    initializeSchema(database, () => setSettings(database, DEFAULT_SETTINGS));
+    initializeSchema(database, () => {
+      const normalized = normalizeAppSettings(DEFAULT_SETTINGS);
+      database
+        .query("INSERT INTO settings (key, value) VALUES ('config', ?)")
+        .run(JSON.stringify(normalized));
+    });
     return database;
   } catch (error) {
     try {
@@ -36,165 +40,8 @@ export function getDb(dataDir: string): AppDatabase {
   return db;
 }
 
-export function getSettings(database: AppDatabase): AppSettings {
-  const row = database.query("SELECT value FROM settings WHERE key = ?").get("config") as {
-    value: string;
-  } | null;
-
-  if (!row) throw new Error("Application settings are not initialized in the database.");
-
-  try {
-    const parsed: unknown = JSON.parse(row.value);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw new Error("Stored application settings must be a JSON object.");
-    }
-    return normalizeAppSettings({ ...DEFAULT_SETTINGS, ...parsed });
-  } catch (error) {
-    throw new Error(
-      `Failed to read application settings: ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
-}
-
-export function setSettings(database: AppDatabase, settings: AppSettings): void {
-  const normalized = normalizeAppSettings(settings);
-  database
-    .query(
-      `INSERT INTO settings (key, value) VALUES ('config', ?)
-       ON CONFLICT(key) DO UPDATE SET value = excluded.value`
-    )
-    .run(JSON.stringify(normalized));
-}
-
-export function updateSettings(database: AppDatabase, patch: Partial<AppSettings>): AppSettings {
-  const current = getSettings(database);
-  const next = normalizeAppSettings({ ...current, ...patch });
-  setSettings(database, next);
-  return next;
-}
-
-export function appendGenerationLog(
-  database: AppDatabase,
-  success: boolean,
-  mode: GenerationMode,
-  resultCode: string,
-  detail: Record<string, string | number | boolean> = {},
-  error = ""
-): void {
-  database
-    .query(
-      `INSERT INTO generation_log (success, mode, result_code, detail, error) VALUES (?, ?, ?, ?, ?)`
-    )
-    .run(success ? 1 : 0, mode, resultCode, JSON.stringify(detail), error);
-}
-
-function parseRecord(value: string): Record<string, string | number | boolean> {
-  const parsed: unknown = JSON.parse(value);
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("Stored generation log detail must be a JSON object.");
-  }
-  const result: Record<string, string | number | boolean> = {};
-  for (const [key, entry] of Object.entries(parsed)) {
-    if (typeof entry === "string" || typeof entry === "number" || typeof entry === "boolean") {
-      result[key] = entry;
-    }
-  }
-  return result;
-}
-
-export function recentLogs(
-  database: AppDatabase,
-  limit = 20,
-  offset = 0,
-  beforeId = 0
-): Array<{
-  id: number;
-  success: boolean;
-  mode: string;
-  result_code: string;
-  detail: Record<string, string | number | boolean>;
-  error: string;
-  created_at: string;
-}> {
-  const safeLimit = Math.max(1, Math.min(101, Math.trunc(limit) || 20));
-  const cursor = Math.max(0, Math.trunc(beforeId) || 0);
-  const rows = (
-    cursor > 0
-      ? database
-          .query(
-            "SELECT id, success, mode, result_code, detail, error, created_at FROM generation_log WHERE id < ? ORDER BY id DESC LIMIT ?"
-          )
-          .all(cursor, safeLimit)
-      : database
-          .query(
-            "SELECT id, success, mode, result_code, detail, error, created_at FROM generation_log ORDER BY id DESC LIMIT ? OFFSET ?"
-          )
-          .all(safeLimit, Math.max(0, Math.trunc(offset) || 0))
-  ) as Array<{
-    id: number;
-    success: number;
-    mode: string;
-    result_code: string;
-    detail: string;
-    error: string;
-    created_at: string;
-  }>;
-
-  return rows.map((r) => ({
-    id: r.id,
-    success: Boolean(r.success),
-    mode: r.mode,
-    result_code: r.result_code,
-    detail: parseRecord(r.detail),
-    error: r.error,
-    created_at: r.created_at.replace(" ", "T") + "Z",
-  }));
-}
-
-export function countGenerationLogs(database: AppDatabase): number {
-  return Number((database.query("SELECT COUNT(*) AS total FROM generation_log").get() as { total: number }).total);
-}
-
-export function countWorkflowRuns(database: AppDatabase): number {
-  return Number((database.query("SELECT COUNT(*) AS total FROM workflow_runs").get() as { total: number }).total);
-}
-
-export function countAccessEvents(database: AppDatabase): number {
-  return Number((database.query("SELECT COUNT(*) AS total FROM access_events").get() as { total: number }).total);
-}
-
-export function vacuumDatabase(database: AppDatabase, truncateWal = false): void {
-  if (truncateWal) database.run("PRAGMA wal_checkpoint(TRUNCATE);");
-  database.run("VACUUM;");
-}
-
-
-export function checkpointDatabase(database: AppDatabase): void {
-  database.run("PRAGMA wal_checkpoint(TRUNCATE);");
-}
-
-export function resetOperationalData(database: AppDatabase, settings = DEFAULT_SETTINGS): {
-  generationLogs: number;
-  accessEvents: number;
-  workflows: number;
-} {
-  database.run("BEGIN IMMEDIATE");
-  try {
-    const generationLogs = Number(database.query("DELETE FROM generation_log").run().changes);
-    const accessEvents = Number(database.query("DELETE FROM access_events").run().changes);
-    const workflows = Number(database.query("DELETE FROM workflow_runs").run().changes);
-    setSettings(database, settings);
-    database.run("COMMIT");
-    return { generationLogs, accessEvents, workflows };
-  } catch (error) {
-    try { database.run("ROLLBACK"); } catch { /* transaction already closed */ }
-    throw error;
-  }
-}
-
 export function closeDb(): void {
-  if (db) {
-    db.close();
-    db = null;
-  }
+  if (!db) return;
+  db.close();
+  db = null;
 }

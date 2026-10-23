@@ -2,6 +2,12 @@ import type { AppDatabase } from "./database";
 import type { WorkflowRun, WorkflowStage } from "../../../shared/contracts";
 export type { WorkflowRun, WorkflowStage, WorkflowStatus } from "../../../shared/contracts";
 
+export function countWorkflowRuns(database: AppDatabase): number {
+  return Number(
+    (database.query("SELECT COUNT(*) AS total FROM workflow_runs").get() as { total: number }).total
+  );
+}
+
 export function createWorkflowRun(database: AppDatabase, source: string, mode: string): number {
   const now = new Date().toISOString();
   const result = database

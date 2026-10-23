@@ -3,6 +3,12 @@ import type { AppDatabase } from "./database";
 import type { AccessEvent, AccessEventInput, MonitorSummary } from "../repositories";
 export type { AccessEvent, AccessEventInput, MonitorSummary } from "../repositories";
 
+export function countAccessEvents(database: AppDatabase): number {
+  return Number(
+    (database.query("SELECT COUNT(*) AS total FROM access_events").get() as { total: number }).total
+  );
+}
+
 let lastPruneAt = 0;
 
 export function recordAccessEvent(database: AppDatabase, event: AccessEventInput): void {

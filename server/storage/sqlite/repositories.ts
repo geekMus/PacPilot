@@ -11,23 +11,15 @@ import type {
   SettingsRepository,
   WorkflowRepository,
 } from "../repositories";
-import {
-  appendGenerationLog,
-  checkpointDatabase,
-  countAccessEvents,
-  countGenerationLogs,
-  countWorkflowRuns,
-  getSettings,
-  recentLogs,
-  resetOperationalData,
-  vacuumDatabase,
-  setSettings,
-  updateSettings,
-} from "./database";
+import { appendGenerationLog, countGenerationLogs, recentLogs } from "./generation-logs";
+import { getSettings, setSettings, updateSettings } from "./settings";
+import { checkpointDatabase, resetOperationalData, vacuumDatabase } from "./maintenance";
+
 import {
   cancelPendingWorkflow,
   clearWorkflowHistory,
   claimWorkflowRun,
+  countWorkflowRuns,
   createWorkflowRun,
   deleteWorkflowRun,
   finishWorkflowStage,
@@ -40,7 +32,7 @@ import {
   startWorkflowStage,
   updateWorkflowRun,
 } from "./workflows";
-import { getMonitorSummary, listAccessEvents, recordAccessEvent } from "./monitoring";
+import { countAccessEvents, getMonitorSummary, listAccessEvents, recordAccessEvent } from "./monitoring";
 import { SqliteAdminCredentialRepository } from "./credentials";
 import { normalizeArtifactKey } from "../artifact-key";
 
