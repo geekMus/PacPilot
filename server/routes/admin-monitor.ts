@@ -1,15 +1,14 @@
 import { Router } from "express";
 import type { AppDatabase } from "../db/sqlite";
-import { countAccessEvents, getSettings } from "../db/sqlite";
-import { getMonitorSummary, listAccessEvents } from "../db/monitoring";
+import type { ApplicationStorage } from "../storage/repositories";
 import { requireAdmin } from "../middleware/auth";
 import { getActiveRequestCount, getTcpConnectionCount } from "../services/request-monitor";
-export function adminMonitorRoutes(database: AppDatabase): Router {
+export function adminMonitorRoutes(database: AppDatabase, storage: ApplicationStorage): Router {
   const router = Router();
   router.get("/api/admin/monitor/summary", requireAdmin(database), (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
-    const summary = getMonitorSummary(database, getActiveRequestCount(), getTcpConnectionCount());
-    res.json({ ...summary, timezone: getSettings(database).timezone });
+    const summary = storage.monitoring.summarize(getActiveRequestCount(), getTcpConnectionCount());
+    res.json({ ...summary, timezone: storage.settings.get().timezone });
   });
 
   router.get("/api/admin/monitor/access", requireAdmin(database), (req, res) => {
@@ -20,13 +19,13 @@ export function adminMonitorRoutes(database: AppDatabase): Router {
       Math.max(1, Number.parseInt(String(req.query.limit ?? "50"), 10) || 50)
     );
     const beforeId = Math.max(0, Number.parseInt(String(req.query.beforeId ?? "0"), 10) || 0);
-    const rows = listAccessEvents(database, paged ? limit + 1 : limit, beforeId);
+    const rows = storage.monitoring.list(paged ? limit + 1 : limit, beforeId);
     if (!paged) {
       res.json(rows);
       return;
     }
     const hasMore = rows.length > limit;
-    const total = countAccessEvents(database);
+    const total = storage.monitoring.count();
     res.json({
       items: rows.slice(0, limit),
       nextCursor:
