@@ -8,7 +8,7 @@ import { startPacWorkflow } from "../services/workflow";
 
 export function adminGenerationRoutes(database: AppDatabase, dataDir: string, storage: ApplicationStorage): Router {
   const router = Router();
-  router.post("/api/admin/generate", requireAdmin(database), (_req, res) => {
+  router.post("/api/admin/generate", requireAdmin(storage.credentials), (_req, res) => {
     try {
       const workflowId = startPacWorkflow(storage, dataDir, "manual");
       res
@@ -18,7 +18,7 @@ export function adminGenerationRoutes(database: AppDatabase, dataDir: string, st
       res.status(409).json({ error: e instanceof Error ? e.message : String(e) });
     }
   });
-  router.get("/api/admin/pacpilot-status", requireAdmin(database), async (_req, res) =>
+  router.get("/api/admin/pacpilot-status", requireAdmin(storage.credentials), async (_req, res) =>
     res.json(await probePacPilot())
   );
   return router;
