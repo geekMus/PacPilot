@@ -78,8 +78,11 @@ const formatDate = (value?: string) => {
 const shortUrl = (value: string) => value.replace(/^https?:\/\//, "").replace(/\?.*$/, "");
 const phaseDescription = computed(() => rule.phase === "started" ? "任务开始时立即触发，不需要等待执行结果。" : rule.phase === "finished" ? "任务结束后，根据最终执行结果决定是否发送。" : rule.phase === "state_changed" ? "当对象状态发生变化时触发。" : "任务执行过程中触发。");
 
-async function load() {
-  loading.value = true;
+async function load(options: { preserveView?: boolean } = {}) {
+  const preserveView = options.preserveView ?? false;
+  // Background refreshes after save/delete must not swap the editor for the
+  // loading panel; doing so changes document height and makes the page jump.
+  if (!preserveView) loading.value = true;
   error.value = "";
   try {
     if (!(await api.session()).loggedIn) {
@@ -96,7 +99,7 @@ async function load() {
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
-    loading.value = false;
+    if (!preserveView) loading.value = false;
   }
 }
 function resetC() {
@@ -114,7 +117,7 @@ async function saveC() {
   try {
     const payload = { name: ch.name.trim(), enabled: ch.enabled, config: { ...ch.config } };
     const saved = cid.value ? await api.updateNotificationChannel(cid.value, payload) : await api.createNotificationChannel(payload);
-    await load();
+    await load({ preserveView: true });
     editC(saved);
     notify("通知渠道已保存", "success");
   } catch (e) {
@@ -128,7 +131,7 @@ async function deleteC(item: NotificationChannel) {
   try {
     await api.deleteNotificationChannel(item.id);
     if (cid.value === item.id) resetC();
-    await load();
+    await load({ preserveView: true });
     notify("通知渠道已删除", "success");
   } catch (e) {
     notify(e instanceof Error ? e.message : String(e), "error");
@@ -163,7 +166,7 @@ async function saveR() {
   try {
     const payload = { ...rule, name: rule.name.trim(), subjectType: rule.subjectType.trim() || undefined };
     const saved = rid.value ? await api.updateNotificationRule(rid.value, payload) : await api.createNotificationRule(payload);
-    await load();
+    await load({ preserveView: true });
     editR(saved);
     notify("通知规则已保存", "success");
   } catch (e) {
@@ -177,7 +180,7 @@ async function deleteR(item: NotificationRule) {
   try {
     await api.deleteNotificationRule(item.id);
     if (rid.value === item.id) resetR();
-    await load();
+    await load({ preserveView: true });
     notify("通知规则已删除", "success");
   } catch (e) {
     notify(e instanceof Error ? e.message : String(e), "error");
@@ -186,7 +189,7 @@ async function deleteR(item: NotificationRule) {
 async function retry(id: string) {
   try {
     await api.retryNotificationDelivery(id);
-    await load();
+    await load({ preserveView: true });
     notify("已重新提交投递", "success");
   } catch (e) {
     notify(e instanceof Error ? e.message : String(e), "error");
