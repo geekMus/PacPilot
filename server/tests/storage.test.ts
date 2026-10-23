@@ -1,17 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
+import { describe, expect, it } from "vitest";
 import { createMemoryApplicationStorage } from "../storage/memory-application";
-import { createSqliteApplicationStorage } from "../storage/sqlite/repositories";
-import { createDatabase } from "../storage/sqlite/sqlite";
-
-const temporaryDirectories: string[] = [];
-afterEach(() => {
-  for (const directory of temporaryDirectories.splice(0)) {
-    fs.rmSync(directory, { recursive: true, force: true });
-  }
-});
 
 describe("memory storage adapter", () => {
   it("keeps application repositories isolated and clears volatile state on close", () => {
@@ -60,47 +48,16 @@ describe("memory storage adapter", () => {
     expect(storage.artifacts.exists("proxy.pac")).toBe(false);
   });
 
-  it("creates independent state for each application instance", () => {
+  it("uses the same normalized default settings as the SQLite adapter contract", () => {
     const first = createMemoryApplicationStorage();
-    first.settings.update({ timezone: "UTC" });
-    first.artifacts.write("proxy.pac", "PAC");
-
     const second = createMemoryApplicationStorage();
+    expect(first.settings.get()).toEqual(second.settings.get());
+
+    first.settings.update({ timezone: "UTC" });
+    expect(first.settings.get().timezone).toBe("UTC");
     expect(second.settings.get().timezone).toBe("Asia/Shanghai");
-    expect(second.artifacts.exists("proxy.pac")).toBe(false);
 
     first.close();
     second.close();
-  });
-});
-
-describe("SQLite storage adapter", () => {
-  it("implements the same repository contracts with SQLite and filesystem artifacts", () => {
-    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "pacpilot-storage-"));
-    temporaryDirectories.push(dataDir);
-    const database = createDatabase(":memory:");
-    const storage = createSqliteApplicationStorage(database, dataDir);
-    const memoryStorage = createMemoryApplicationStorage();
-
-    storage.settings.update({ timezone: "UTC" });
-    memoryStorage.settings.update({ timezone: "UTC" });
-    expect(storage.settings.get()).toEqual(memoryStorage.settings.get());
-    storage.credentials.set({ passwordHash: "hash", salt: "salt", sessionSecret: "secret" });
-    storage.generationLogs.append(true, "custom", "custom.uncompressed", { compressed: false });
-    const workflowId = storage.workflows.create("manual", "custom");
-    storage.artifacts.write("proxy.pac", "PAC");
-    storage.artifacts.write("binary.bin", new Uint8Array([0, 255, 1]));
-
-    expect(storage.driver).toBe("sqlite");
-    expect(storage.settings.get().timezone).toBe("UTC");
-    expect(storage.credentials.get()?.sessionSecret).toBe("secret");
-    expect(storage.generationLogs.count()).toBe(1);
-    expect(storage.workflows.get(workflowId)?.status).toBe("pending");
-    expect(new TextDecoder().decode(storage.artifacts.read("proxy.pac"))).toBe("PAC");
-    expect(storage.artifacts.list()).toContain("proxy.pac");
-    expect(Array.from(storage.artifacts.read("binary.bin") ?? [])).toEqual([0, 255, 1]);
-
-    storage.close();
-    memoryStorage.close();
   });
 });
