@@ -372,7 +372,12 @@ watch(
           >
         </div>
       </div>
-      <AppScrollArea root-class="rule-diagnostic-list" viewport-class="rule-diagnostic-viewport" :style="{ height: Math.min(220, diagnostics.length * 42 + 8) + 'px' }" orientation="vertical">
+      <AppScrollArea
+        root-class="rule-diagnostic-list"
+        viewport-class="rule-diagnostic-viewport"
+        :style="{ height: Math.min(220, diagnostics.length * 42 + 8) + 'px' }"
+        orientation="vertical"
+      >
         <button
           v-for="(item, index) in diagnostics"
           :key="item.line + '-' + item.severity + '-' + item.message + '-' + index"
