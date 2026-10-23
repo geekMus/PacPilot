@@ -1,5 +1,6 @@
 import { Router } from "express";
 import type { AppDatabase } from "../db/sqlite";
+import type { ApplicationStorage } from "../storage/repositories";
 import type { EnvConfig } from "../config/env";
 import { getSettings, updateSettings, getWorkflowRun } from "../db/sqlite";
 import type { AppSettings, GenerationMode } from "../db/settings";
@@ -63,6 +64,7 @@ function requestLocale(req: import("express").Request): "zh_CN" | "en_US" {
 function persistSettings(
   body: Record<string, unknown>,
   env: EnvConfig,
+  storage: ApplicationStorage,
   database: AppDatabase,
   locale: "zh_CN" | "en_US"
 ): { settings: AppSettings } | { error: string } {
@@ -89,20 +91,21 @@ function persistSettings(
       if (errors.length) return { error: errors.join("\n") };
     }
   }
-  const settings = updateSettings(database, p);
-  reschedule(database, env.dataDir);
+  const settings = storage.settings.update(p);
+  reschedule(storage, env.dataDir);
   return { settings };
 }
 
-export function adminSettingsRoutes(env: EnvConfig, database: AppDatabase): Router {
+export function adminSettingsRoutes(env: EnvConfig, database: AppDatabase, storage: ApplicationStorage): Router {
   const router = Router();
   router.get("/api/admin/settings", requireAdmin(database), (_req, res) =>
-    res.json(getSettings(database))
+    res.json(storage.settings.get())
   );
   router.put("/api/admin/settings", requireAdmin(database), (req, res) => {
     const result = persistSettings(
       (req.body || {}) as Record<string, unknown>,
       env,
+      storage,
       database,
       requestLocale(req)
     );
@@ -124,7 +127,7 @@ export function adminSettingsRoutes(env: EnvConfig, database: AppDatabase): Rout
       return;
     }
     try {
-      const workflowId = startPacWorkflow(database, env.dataDir, "save-and-generate");
+      const workflowId = startPacWorkflow(storage, env.dataDir, "save-and-generate");
       res.status(202).json({
         settings: saved.settings,
         workflowId,
@@ -141,7 +144,7 @@ export function adminSettingsRoutes(env: EnvConfig, database: AppDatabase): Rout
       res.status(400).json({ error: errors.join("\n") });
       return;
     }
-    res.json(await sendWebhookTest(c, getSettings(database).timezone));
+    res.json(await sendWebhookTest(c, storage.settings.get().timezone));
   });
   return router;
 }
