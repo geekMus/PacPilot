@@ -75,9 +75,6 @@ function onValueChange(value: string): void {
           <ScrollAreaRoot class="app-select-scroll-area" type="auto">
             <SelectViewport as-child>
               <ScrollAreaViewport class="app-select-viewport">
-                <ScrollAreaScrollbar class="app-scrollbar" orientation="vertical">
-                  <ScrollAreaThumb class="app-scrollbar-thumb" />
-                </ScrollAreaScrollbar>
                 <SelectItem
                   v-for="option in props.options"
                   :key="String(option.value)"
@@ -92,6 +89,9 @@ function onValueChange(value: string): void {
                 </SelectItem>
               </ScrollAreaViewport>
             </SelectViewport>
+            <ScrollAreaScrollbar class="app-scrollbar" orientation="vertical">
+              <ScrollAreaThumb class="app-scrollbar-thumb" />
+            </ScrollAreaScrollbar>
           </ScrollAreaRoot>
         </SelectContent>
       </SelectPortal>
