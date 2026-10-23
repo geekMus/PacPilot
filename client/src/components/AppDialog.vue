@@ -106,8 +106,8 @@ function onCloseAutoFocus(event: Event): void {
   top: 50%;
   left: 50%;
   z-index: 1001;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   box-sizing: border-box;
   width: max-content;
   max-width: calc(100vw - 16px);
@@ -177,7 +177,7 @@ function onCloseAutoFocus(event: Event): void {
   outline-offset: 2px;
 }
 .app-dialog-body {
-  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
   min-width: 0;
   min-height: 0;
