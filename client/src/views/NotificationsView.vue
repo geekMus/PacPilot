@@ -502,8 +502,14 @@ onMounted(() => {
 .editor-placeholder p { margin: 0; font-size: 13px; line-height: 1.7; }
 .editor-body { flex: 0 0 auto; align-content: start; }
 .directory-panel, .editor-panel, .history-panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
-.directory-panel { position: static; min-width: 0; min-height: 0; height: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface); box-shadow: var(--shadow); }
-.directory-panel :deep(.app-scroll-area-viewport) { overflow-x: hidden; overflow-y: scroll; scrollbar-gutter: stable; }
+.directory-panel { position: relative; display: block; box-sizing: border-box; min-width: 0; min-height: 0; height: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface); box-shadow: var(--shadow); }
+.directory-panel :deep(.app-scroll-area-viewport) { display: flex; flex-direction: column; gap: 0; overflow-x: hidden; overflow-y: scroll; scrollbar-gutter: stable; }
+.directory-panel .panel-heading { flex: 0 0 auto; }
+.directory-panel .directory-item { flex: 0 0 auto; }
+.directory-panel .directory-bottom { flex: 0 0 auto; margin-top: auto; }
+.directory-panel :deep(.app-scrollbar[data-orientation="vertical"]) { width: 10px; background: color-mix(in srgb, var(--surface-2) 72%, transparent); }
+.directory-panel :deep(.app-scrollbar-thumb) { background: color-mix(in srgb, var(--text) 32%, transparent); }
+.directory-panel :deep(.app-scrollbar-thumb:hover) { background: color-mix(in srgb, var(--text) 48%, transparent); }
 .editor-scroll { flex: 1 1 auto; min-width: 0; min-height: 0; overflow: hidden; }
 .editor-scroll :deep(.app-scroll-area-viewport) { overflow-x: hidden; overflow-y: scroll; scrollbar-gutter: stable; }
 .editor-scroll .editor-body { min-height: min-content; }
