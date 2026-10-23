@@ -5,40 +5,11 @@
   --scrollbar-track: transparent;
 }
 
-/* CodeMirror uses project-owned overlay controls instead of native scrollbar chrome. */
-.cm-scroller { scrollbar-width: none !important; -ms-overflow-style: none; }
-.cm-scroller::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
-.cm-editor { position: relative; isolation: isolate; }
-.cm-overlay-scrollbar {
-  position: absolute; z-index: 20; display: block; padding: 2px; border-radius: 999px;
-  background: transparent; opacity: .92; transition: opacity 120ms ease, background-color 120ms ease;
-  touch-action: none; user-select: none;
-}
-.cm-overlay-scrollbar[hidden] { display: none !important; }
-.cm-overlay-scrollbar-vertical { top: 2px; right: 2px; bottom: 2px; width: var(--scrollbar-size, 8px); }
-.cm-overlay-scrollbar-horizontal { right: 2px; bottom: 2px; left: 2px; height: var(--scrollbar-size, 8px); }
-.cm-overlay-scrollbar:hover, .cm-editor:focus-within .cm-overlay-scrollbar {
-  background: color-mix(in srgb, var(--text) 5%, transparent); opacity: 1;
-}
-.cm-overlay-scrollbar-thumb {
-  position: absolute; top: 2px; left: 2px; display: block; box-sizing: border-box;
-  min-width: 4px; min-height: 4px; margin: 0; padding: 0; border: 0; border-radius: 999px;
-  background: var(--scrollbar-thumb); cursor: grab; touch-action: none; pointer-events: auto; opacity: 1;
-}
-.cm-overlay-scrollbar-thumb:hover, .cm-overlay-scrollbar-thumb:focus-visible {
-  background: var(--scrollbar-thumb-hover); outline: none;
-}
-.cm-overlay-scrollbar-vertical .cm-overlay-scrollbar-thumb { left: 2px; right: 2px; width: auto !important; }
-.cm-overlay-scrollbar-horizontal .cm-overlay-scrollbar-thumb { top: 2px; bottom: 2px; height: auto !important; }
-.cm-overlay-scrollbar-thumb:active { cursor: grabbing; }
-@media (prefers-reduced-motion: reduce) { .cm-overlay-scrollbar { transition: none; } }
-@media (forced-colors: active) {
-  :where(*) {
-    scrollbar-color: auto;
-  }
-
-  :where(*)::-webkit-scrollbar-thumb {
-    background: CanvasText;
-    background-clip: padding-box;
-  }
-}
+/* Monaco scrollbars share the application's scrollbar tokens. */
+.monaco-editor .scrollbar { background: transparent !important; }
+.monaco-editor .scrollbar.vertical { width: var(--scrollbar-size) !important; }
+.monaco-editor .scrollbar.horizontal { height: var(--scrollbar-size) !important; }
+.monaco-editor .scrollbar .slider { border-radius: 999px; background: var(--scrollbar-thumb) !important; }
+.monaco-editor .scrollbar .slider:hover { background: var(--scrollbar-thumb-hover) !important; }
+.monaco-editor .scrollbar .slider.active { background: color-mix(in srgb, var(--text) 64%, transparent) !important; }
+@media (forced-colors: active) { .monaco-editor .scrollbar .slider { background: CanvasText !important; } }

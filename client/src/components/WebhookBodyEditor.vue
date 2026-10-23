@@ -1,134 +1,30 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { EditorView, highlightActiveLine, keymap, lineNumbers } from "@codemirror/view";
-import { EditorState } from "@codemirror/state";
-import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { oneDark } from "@codemirror/theme-one-dark";
-import { json } from "@codemirror/lang-json";
-import { attachCodeMirrorOverlayScrollbars } from "@/utils/codemirror-overlay-scrollbar";
+import MonacoEditorField from "@/components/MonacoEditorField.vue";
 const { t } = useI18n();
-
-const props = withDefaults(
-  defineProps<{
-    modelValue: string;
-    placeholder?: string;
-    sample?: string;
-    height?: number;
-    emptyHint?: string;
-    invalid?: boolean;
-  }>(),
-  {
-    placeholder: "",
-    sample: "",
-    height: 220,
-    invalid: false,
-  }
-);
+const props = withDefaults(defineProps<{ modelValue: string; placeholder?: string; sample?: string; height?: number; emptyHint?: string; invalid?: boolean; }>(),
+  { placeholder: "", sample: "", height: 220, invalid: false });
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
-const host = ref<HTMLDivElement | null>(null);
-let view: EditorView | null = null;
-let disposeOverlayScrollbars: (() => void) | null = null;
-let themeObserver: MutationObserver | null = null;
-
+const editorModel = computed({ get: () => props.modelValue, set: (value: string) => emit("update:modelValue", value) });
 const jsonStatus = computed(() => {
   const raw = props.modelValue.trim();
   if (!raw) return { kind: "empty", text: props.emptyHint ?? t("webhookBody.k0") };
   try {
     const value: unknown = JSON.parse(raw);
-    if (value === null || typeof value !== "object")
-      return { kind: "invalid", text: t("webhookBody.k1") };
+    if (value === null || typeof value !== "object") return { kind: "invalid", text: t("webhookBody.k1") };
     return { kind: "valid", text: t("webhookBody.k2") };
-  } catch {
-    return { kind: "invalid", text: t("webhookBody.k3") };
-  }
+  } catch { return { kind: "invalid", text: t("webhookBody.k3") }; }
 });
 const canFormat = computed(() => jsonStatus.value.kind === "valid");
-
-function isDark(): boolean {
-  return document.documentElement.classList.contains("theme-dark");
-}
-function buildExtensions(dark: boolean) {
-  const base = [
-    lineNumbers(),
-    highlightActiveLine(),
-    history(),
-    keymap.of([...defaultKeymap, ...historyKeymap]),
-    json(),
-    EditorView.lineWrapping,
-    EditorView.updateListener.of((update) => {
-      if (update.docChanged) emit("update:modelValue", update.state.doc.toString());
-    }),
-    EditorView.theme({
-      "&": { height: `${props.height}px`, maxHeight: `${props.height}px`, fontSize: "13px" },
-      ".cm-scroller": {
-        overflow: "auto",
-        fontFamily: 'ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace',
-        lineHeight: "1.55",
-      },
-      ".cm-content": { padding: "10px 0" },
-      "&.cm-focused": { outline: "none" },
-    }),
-  ];
-  if (dark) base.push(oneDark);
-  return base;
-}
-function mountEditor() {
-  if (!host.value) return;
-  const doc = view ? view.state.doc.toString() : props.modelValue || "";
-  const selection = view ? view.state.selection.main.head : 0;
-  disposeOverlayScrollbars?.();
-  disposeOverlayScrollbars = null;
-  view?.destroy();
-  view = new EditorView({
-    parent: host.value,
-    state: EditorState.create({ doc, extensions: buildExtensions(isDark()) }),
-  });
-  disposeOverlayScrollbars = attachCodeMirrorOverlayScrollbars(view);
-  view.dispatch({ selection: { anchor: Math.min(selection, view.state.doc.length) } });
-}
-function replaceDocument(value: string) {
-  if (!view) {
-    emit("update:modelValue", value);
-    return;
-  }
-  const current = view.state.doc.toString();
-  if (current !== value) view.dispatch({ changes: { from: 0, to: current.length, insert: value } });
-}
+function replaceDocument(value: string) { emit("update:modelValue", value); }
 function formatJson() {
   if (!canFormat.value) return;
-  try {
-    replaceDocument(JSON.stringify(JSON.parse(props.modelValue), null, 2));
-  } catch {
-    // The status bar already reports invalid JSON; formatting leaves the source unchanged.
-  }
+  try { replaceDocument(JSON.stringify(JSON.parse(props.modelValue), null, 2)); }
+  catch { /* Preserve the source if formatting fails. */ }
 }
-function insertSample() {
-  if (props.sample) replaceDocument(props.sample);
-}
-onMounted(() => {
-  mountEditor();
-  themeObserver = new MutationObserver(() => mountEditor());
-  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-});
-onBeforeUnmount(() => {
-  themeObserver?.disconnect();
-  disposeOverlayScrollbars?.();
-  disposeOverlayScrollbars = null;
-  view?.destroy();
-  view = null;
-});
-watch(
-  () => props.modelValue,
-  (value) => {
-    if (!view) return;
-    const current = view.state.doc.toString();
-    if (value !== current)
-      view.dispatch({ changes: { from: 0, to: current.length, insert: value || "" } });
-  }
-);
+function insertSample() { if (props.sample) replaceDocument(props.sample); }
 </script>
-
 <template>
   <div class="json-editor" :class="{ invalid: invalid || jsonStatus.kind === 'invalid' }">
     <div class="json-editor-toolbar">
@@ -151,7 +47,7 @@ watch(
       </div>
     </div>
     <div class="json-editor-frame" :style="{ height: height + 'px' }">
-      <div ref="host" class="cm-host"></div>
+      <MonacoEditorField v-model="editorModel" class="webhook-monaco-editor" :height="height" language="json" :line-numbers="true" aria-label="Webhook JSON body" />
       <div v-if="!modelValue && placeholder" class="json-placeholder">{{ placeholder }}</div>
     </div>
     <div class="json-editor-status" :class="jsonStatus.kind" role="status" aria-live="polite">
@@ -234,23 +130,10 @@ watch(
   position: relative;
   overflow: hidden;
 }
-.cm-host,
-.cm-host :deep(.cm-editor) {
-  height: 100%;
-  background: transparent;
-}
-.cm-host :deep(.cm-scroller) {
-  overflow: auto !important;
-}
-.cm-host :deep(.cm-gutters) {
-  background: var(--surface-2);
-  border-right: 1px solid var(--line);
-  color: var(--muted);
-}
-.cm-host :deep(.cm-content) {
-  min-height: 100%;
-  padding: 10px 12px;
-}
+.webhook-monaco-editor { width: 100%; height: 100%; }
+.webhook-monaco-editor :deep(.monaco-field-frame) { height: 100%; border: 0; border-radius: 0; }
+.webhook-monaco-editor :deep(.monaco-field-host) { height: 100% !important; }
+.webhook-monaco-editor :deep(.monaco-editor), .webhook-monaco-editor :deep(.monaco-editor .overflow-guard) { height: 100% !important; }
 .json-placeholder {
   position: absolute;
   top: 10px;
