@@ -110,6 +110,7 @@ function onCloseAutoFocus(event: Event): void {
   box-sizing: border-box;
   width: max-content;
   max-width: calc(100vw - 16px);
+  height: fit-content;
   max-height: calc(100dvh - 24px);
   min-width: 0;
   overflow: hidden;
@@ -168,12 +169,14 @@ function onCloseAutoFocus(event: Event): void {
   outline-offset: 2px;
 }
 .app-dialog-body {
-  flex: 1 1 0%;
+  flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
 .app-dialog-body .app-scroll-area-viewport {
+  box-sizing: border-box;
+  min-height: 0;
   padding: 18px;
 }
 .app-dialog-footer {

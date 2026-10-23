@@ -591,10 +591,23 @@
   min-width: 32px;
   padding: 0 8px;
 }
-.app-dialog-content.access-detail-title {
+.access-detail-title {
   margin: 0;
   font-size: 18px;
   font-weight: 800;
+}
+.access-detail-heading {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.access-detail-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
 }
 .access-detail-kicker {
   margin: 0 0 4px;
@@ -617,6 +630,11 @@
   padding: 8px 18px;
   color: var(--green);
   font-size: 12px;
+}
+ .access-detail-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 .access-detail-grid {
   display: grid;

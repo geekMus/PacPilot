@@ -5,37 +5,31 @@
   --scrollbar-track: transparent;
 }
 
-/*
- * 原生滚动容器（包括 CodeMirror 编辑器、文本控件和第三方组件内部滚动区）
- * 统一使用与 AppScrollArea 相同的细滚动条配色。AppScrollArea 与 AppSelect
- * 使用 Reka UI 自绘滚动条，并复用相同的颜色变量。
- */
-:where(*) {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+/* CodeMirror uses project-owned overlay controls instead of native scrollbar chrome. */
+.cm-scroller { scrollbar-width: none !important; -ms-overflow-style: none; }
+.cm-scroller::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+.cm-editor { position: relative; }
+.cm-overlay-scrollbar {
+  position: absolute; z-index: 20; display: block; padding: 2px; border-radius: 999px;
+  background: transparent; opacity: .78; transition: opacity 120ms ease, background-color 120ms ease;
+  touch-action: none; user-select: none;
 }
-
-:where(*)::-webkit-scrollbar {
-  width: var(--scrollbar-size);
-  height: var(--scrollbar-size);
+.cm-overlay-scrollbar[hidden] { display: none !important; }
+.cm-overlay-scrollbar-vertical { top: 2px; right: 2px; bottom: 2px; width: var(--scrollbar-size, 8px); }
+.cm-overlay-scrollbar-horizontal { right: 2px; bottom: 2px; left: 2px; height: var(--scrollbar-size, 8px); }
+.cm-overlay-scrollbar:hover, .cm-editor:focus-within .cm-overlay-scrollbar {
+  background: color-mix(in srgb, var(--text) 5%, transparent); opacity: 1;
 }
-
-:where(*)::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
+.cm-overlay-scrollbar-thumb {
+  position: absolute; top: 2px; left: 2px; display: block; box-sizing: border-box;
+  min-width: 4px; min-height: 4px; margin: 0; padding: 0; border: 0; border-radius: 999px;
+  background: var(--scrollbar-thumb); cursor: grab; touch-action: none;
 }
-
-:where(*)::-webkit-scrollbar-thumb {
-  border: 2px solid transparent;
-  border-radius: 999px;
-  background: var(--scrollbar-thumb);
-  background-clip: padding-box;
+.cm-overlay-scrollbar-thumb:hover, .cm-overlay-scrollbar-thumb:focus-visible {
+  background: var(--scrollbar-thumb-hover); outline: none;
 }
-
-:where(*)::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
-  background-clip: padding-box;
-}
-
+.cm-overlay-scrollbar-thumb:active { cursor: grabbing; }
+@media (prefers-reduced-motion: reduce) { .cm-overlay-scrollbar { transition: none; } }
 @media (forced-colors: active) {
   :where(*) {
     scrollbar-color: auto;

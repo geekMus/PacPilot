@@ -7,6 +7,7 @@ import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { oneDark } from "@codemirror/theme-one-dark";
 import type { RuleDiagnostic } from "@/utils/domain-rules";
 import AppScrollArea from "@/components/AppScrollArea.vue";
+import { attachCodeMirrorOverlayScrollbars } from "@/utils/codemirror-overlay-scrollbar";
 const { t } = useI18n();
 
 const props = withDefaults(
@@ -120,6 +121,7 @@ const ruleDecorationField = StateField.define({
 
 const host = ref<HTMLDivElement | null>(null);
 let view: EditorView | null = null;
+let disposeOverlayScrollbars: (() => void) | null = null;
 let themeObs: MutationObserver | null = null;
 
 let jumpHighlightTimer: number | null = null;
@@ -269,6 +271,8 @@ function mountEditor() {
   if (!host.value) return;
   const doc = view ? view.state.doc.toString() : props.modelValue || "";
   const sel = view ? view.state.selection.main.head : 0;
+  disposeOverlayScrollbars?.();
+  disposeOverlayScrollbars = null;
   view?.destroy();
   view = new EditorView({
     parent: host.value,
@@ -277,6 +281,7 @@ function mountEditor() {
       extensions: buildExtensions(isDark()),
     }),
   });
+  disposeOverlayScrollbars = attachCodeMirrorOverlayScrollbars(view);
   view.dispatch({
     selection: { anchor: Math.min(sel, view.state.doc.length) },
     effects: setRuleDiagnostics.of(props.diagnostics),
@@ -296,6 +301,8 @@ onBeforeUnmount(() => {
   themeObs?.disconnect();
   if (jumpHighlightTimer !== null) window.clearTimeout(jumpHighlightTimer);
   jumpHighlightTimer = null;
+  disposeOverlayScrollbars?.();
+  disposeOverlayScrollbars = null;
   view?.destroy();
   view = null;
 });
