@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { api, type AppSettings, type StorageSummary } from "@/api/client";
 import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppIcon from "@/components/AppIcon.vue";
+import AppInput from "@/components/AppInput.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import ConfirmPopover from "@/components/ConfirmPopover.vue";
 import AppSelect from "@/components/AppSelect.vue";
@@ -191,9 +192,9 @@ onMounted(() => void load());
           <div><h2>{{ t("settings.changePasswordTitle") }}</h2><p>{{ t("settings.passwordStoredLocal") }}</p></div>
         </div>
         <form class="system-password-form" @submit.prevent="changeAdminPassword">
-          <label><span>{{ t("settings.currentPassword") }}</span><input v-model="passwordForm.currentPassword" type="password" autocomplete="current-password" required @input="passwordError = ''" /></label>
-          <label><span>{{ t("settings.newPassword") }}</span><input v-model="passwordForm.newPassword" type="password" autocomplete="new-password" required :placeholder="t('settings.newPasswordPlaceholder')" @input="passwordError = ''" /></label>
-          <label><span>{{ t("settings.confirmPassword") }}</span><input v-model="passwordForm.confirmPassword" type="password" autocomplete="new-password" required @input="passwordError = ''" /></label>
+          <label><span>{{ t("settings.currentPassword") }}</span><AppInput v-model="passwordForm.currentPassword" type="password" autocomplete="current-password" required :placeholder="t('settings.currentPassword')" @input="passwordError = ''" /></label>
+          <label><span>{{ t("settings.newPassword") }}</span><AppInput v-model="passwordForm.newPassword" type="password" autocomplete="new-password" required :placeholder="t('settings.newPasswordPlaceholder')" @input="passwordError = ''" /></label>
+          <label><span>{{ t("settings.confirmPassword") }}</span><AppInput v-model="passwordForm.confirmPassword" type="password" autocomplete="new-password" required :placeholder="t('settings.confirmPassword')" @input="passwordError = ''" /></label>
           <p v-if="passwordError" class="system-password-error" role="alert">{{ passwordError }}</p>
           <p class="system-password-help">{{ t("settings.resetHelpFull") }} <a :href="PROJECT_LINKS.adminPasswordReset" target="_blank" rel="noopener noreferrer">{{ t("settings.resetHelpLink") }}</a></p>
           <div class="password-settings-actions"><button class="primary" type="submit" :disabled="passwordSaving"><AppIcon :name="passwordSaving ? 'loader-circle' : 'key-round'" :size="15" />{{ passwordSaving ? t("settings.changingPassword") : t("settings.changePassword") }}</button></div>
@@ -526,8 +527,7 @@ onMounted(() => void load());
 }
 .system-password-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .system-password-form label { display: grid; gap: 7px; color: var(--muted); font-size: 12px; font-weight: 650; }
-.system-password-form input { width: 100%; min-width: 0; min-height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); background: var(--surface-2); font: inherit; }
-.system-password-form input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
 .system-password-error { grid-column: 1 / -1; margin: 0; color: var(--red); font-size: 12px; }
 .system-password-help { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
 .system-password-help a { color: var(--accent); }
