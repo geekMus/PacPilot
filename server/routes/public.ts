@@ -1,14 +1,13 @@
 import { Router } from "express";
-import type { EnvConfig } from "../config/env";
 import { pacFileMtime, readPacFile, readPacSourceFile } from "../services/pac-generator";
 import { parsePacStatus } from "../services/pac-parser";
 import type { ApplicationStorage } from "../storage/repositories";
 import { APP_VERSION, PROJECT_URL } from "../version";
 
-function sendPac(req: import("express").Request, res: import("express").Response, dataDir: string) {
+function sendPac(req: import("express").Request, res: import("express").Response, storage: ApplicationStorage) {
   const fallback =
     "// 尚未生成 PAC；临时回退策略为所有请求直连\nfunction FindProxyForURL(url, host){return 'DIRECT';}\n";
-  const pac = readPacFile(dataDir) || fallback;
+  const pac = readPacFile(storage) || fallback;
 
   // 公共状态页是 PAC 文件的主要 UI 入口；默认在浏览器中查看，?download=1 时才触发下载。
   const asDownload = req.query.download === "1" || req.query.download === "true";
@@ -25,10 +24,10 @@ function sendPac(req: import("express").Request, res: import("express").Response
   res.send(pac);
 }
 
-export function publicRoutes(env: EnvConfig, storage: ApplicationStorage): Router {
+export function publicRoutes(storage: ApplicationStorage): Router {
   const router = Router();
 
-  router.get("/proxy.pac", (req, res) => sendPac(req, res, env.dataDir));
+  router.get("/proxy.pac", (req, res) => sendPac(req, res, storage));
 
   router.get("/api/meta", (_req, res) => {
     res.json({
@@ -39,8 +38,8 @@ export function publicRoutes(env: EnvConfig, storage: ApplicationStorage): Route
   });
 
   router.get("/api/status", (_req, res) => {
-    const pacSource = readPacSourceFile(env.dataDir);
-    res.json(parsePacStatus(pacSource, storage.settings.get().timezone, pacFileMtime(env.dataDir)));
+    const pacSource = readPacSourceFile(storage);
+    res.json(parsePacStatus(pacSource, storage.settings.get().timezone, pacFileMtime(storage)));
   });
 
   return router;
