@@ -424,9 +424,17 @@ onMounted(() => void load());
 <style scoped>
 .webhook-page {
   --wh-radius: 13px;
-  display: grid;
+  /*
+   * This page has a multi-section editor and a footer inside the shared admin
+   * scroll viewport. Give the page a viewport-derived minimum height so the
+   * editor doesn't stop at its intrinsic content height and leave a large
+   * dead area below it on short forms.
+   */
+  display: flex;
+  flex-direction: column;
   gap: 18px;
   min-width: 0;
+  min-height: calc(100dvh - var(--admin-topbar-space) - 65px);
   color: var(--text);
 }
 .page-intro {
@@ -475,7 +483,9 @@ onMounted(() => void load());
 .workspace-tabs button.active { color: var(--text); border-color: var(--line); background: var(--surface); box-shadow: 0 1px 2px #00000008; }
 .tab-count { display: inline-grid; place-items: center; min-width: 21px; height: 21px; padding: 0 5px; border-radius: 6px; background: var(--surface-2); color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
 .tab-alert { display: inline-grid; place-items: center; min-width: 19px; height: 19px; padding: 0 4px; border-radius: 6px; background: var(--red-soft); color: var(--red); font-size: 10px; }
-.workspace-layout { display: grid; grid-template-columns: minmax(245px, .72fr) minmax(0, 1.8fr); align-items: start; gap: 16px; min-width: 0; }
+.workspace-layout { display: grid; flex: 1 1 auto; grid-template-columns: minmax(245px, .72fr) minmax(0, 1.8fr); align-items: stretch; gap: 16px; min-width: 0; }
+.editor-panel { display: flex; flex-direction: column; }
+.editor-body { flex: 1 1 auto; align-content: start; }
 .directory-panel, .editor-panel, .history-panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
 .directory-panel { position: sticky; top: 18px; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 19px 19px 16px; }
@@ -609,6 +619,10 @@ onMounted(() => void load());
   .editor-footer { padding-right: 17px; padding-left: 17px; }
 }
 @media (max-width: 900px) {
+  .webhook-page { min-height: 0; }
+  .workspace-layout { flex: 0 0 auto; align-items: start; }
+  .editor-panel { display: block; }
+  .editor-body { flex: 0 0 auto; }
   .workspace-layout, .history-workspace { grid-template-columns: minmax(0, 1fr); }
   .directory-panel { position: static; }
   .directory-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
