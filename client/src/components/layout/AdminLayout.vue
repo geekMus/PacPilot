@@ -164,6 +164,11 @@ watch(
 
 .admin-content-inner {
   width: 100%;
+  /* The scroll viewport fills the admin pane, so its content wrapper must
+     also establish a full-height layout box. Otherwise short pages leave the
+     shared content surface ending early while the viewport continues below. */
+  min-height: 100%;
+  box-sizing: border-box;
   max-width: 1680px;
   margin: 0 auto;
   padding: calc(var(--admin-topbar-space) + 25px) clamp(20px, 3vw, 42px) 40px;
