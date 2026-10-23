@@ -1,8 +1,7 @@
 import { Router } from "express";
-import type { AppDatabase } from "../db/sqlite";
 import type { ApplicationStorage } from "../storage/repositories";
 import type { EnvConfig } from "../config/env";
-import { getSettings, updateSettings, getWorkflowRun } from "../db/sqlite";
+
 import type { AppSettings, GenerationMode } from "../db/settings";
 import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../db/settings";
 import { requireAdmin } from "../middleware/auth";
@@ -65,7 +64,6 @@ function persistSettings(
   body: Record<string, unknown>,
   env: EnvConfig,
   storage: ApplicationStorage,
-  database: AppDatabase,
   locale: "zh_CN" | "en_US"
 ): { settings: AppSettings } | { error: string } {
   const payloadError = validateSettingsPayload(body);
@@ -96,7 +94,7 @@ function persistSettings(
   return { settings };
 }
 
-export function adminSettingsRoutes(env: EnvConfig, database: AppDatabase, storage: ApplicationStorage): Router {
+export function adminSettingsRoutes(env: EnvConfig, storage: ApplicationStorage): Router {
   const router = Router();
   router.get("/api/admin/settings", requireAdmin(storage.credentials), (_req, res) =>
     res.json(storage.settings.get())
@@ -106,7 +104,6 @@ export function adminSettingsRoutes(env: EnvConfig, database: AppDatabase, stora
       (req.body || {}) as Record<string, unknown>,
       env,
       storage,
-      database,
       requestLocale(req)
     );
     if ("error" in result) {
@@ -131,7 +128,7 @@ export function adminSettingsRoutes(env: EnvConfig, database: AppDatabase, stora
       res.status(202).json({
         settings: saved.settings,
         workflowId,
-        status: getWorkflowRun(database, workflowId)?.status ?? "pending",
+        status: storage.workflows.get(workflowId)?.status ?? "pending",
       });
     } catch (e) {
       res.status(409).json({ error: e instanceof Error ? e.message : String(e) });
