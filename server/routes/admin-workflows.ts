@@ -1,20 +1,11 @@
 import { Router } from "express";
 import type { AppDatabase } from "../db/sqlite";
+import type { ApplicationStorage } from "../storage/repositories";
 import { countWorkflowRuns, vacuumDatabase } from "../db/sqlite";
-import {
-  cancelPendingWorkflow,
-  clearWorkflowHistory,
-  deleteWorkflowRun,
-  getCurrentWorkflow,
-  getWorkflowRun,
-  listActiveWorkflowRuns,
-  listWorkflowRuns,
-  listWorkflowStages,
-} from "../db/sqlite";
 import { requireAdmin } from "../middleware/auth";
 import { resolveLocale, t } from "../../shared/i18n";
 
-export function adminWorkflowRoutes(database: AppDatabase): Router {
+export function adminWorkflowRoutes(database: AppDatabase, storage: ApplicationStorage): Router {
   const router = Router();
   const errorText = (req: import("express").Request, key: string) =>
     t(resolveLocale(req.get("accept-language")), key);
@@ -28,12 +19,12 @@ export function adminWorkflowRoutes(database: AppDatabase): Router {
       Math.max(1, Number.parseInt(String(req.query.limit ?? "50"), 10) || 50)
     );
     const beforeId = Math.max(0, Number.parseInt(String(req.query.beforeId ?? "0"), 10) || 0);
-    const page = listWorkflowRuns(database, limit + 1, beforeId);
+    const page = storage.workflows.list(limit + 1, beforeId);
     const total = countWorkflowRuns(database);
     const hasMore = page.length > limit;
     res.json({
-      current: getCurrentWorkflow(database),
-      active: listActiveWorkflowRuns(database),
+      current: storage.workflows.current(),
+      active: storage.workflows.listActive(),
       runs: page.slice(0, limit),
       beforeId,
       nextCursor:
@@ -45,7 +36,7 @@ export function adminWorkflowRoutes(database: AppDatabase): Router {
 
   router.delete("/api/admin/workflows", requireAdmin(database), (req, res) => {
     try {
-      const result = clearWorkflowHistory(database);
+      const result = storage.workflows.clearHistory();
       if (result.activeRuns > 0) {
         res.status(409).json({
           error: errorText(req, "serverErrors.activeWorkflowHistory"),
@@ -53,7 +44,6 @@ export function adminWorkflowRoutes(database: AppDatabase): Router {
         });
         return;
       }
-      if (result.deletedRuns > 0) vacuumDatabase(database, true);
       res.json({ ok: true, deletedRuns: result.deletedRuns });
     } catch (error) {
       res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
@@ -67,12 +57,12 @@ export function adminWorkflowRoutes(database: AppDatabase): Router {
       res.status(400).json({ error: errorText(req, "serverErrors.invalidWorkflowId") });
       return;
     }
-    const run = getWorkflowRun(database, id);
+    const run = storage.workflows.get(id);
     if (!run) {
       res.status(404).json({ error: errorText(req, "serverErrors.workflowNotFound") });
       return;
     }
-    res.json({ run, stages: listWorkflowStages(database, id) });
+    res.json({ run, stages: storage.workflows.stages(id) });
   });
 
   router.post("/api/admin/workflows/:id/cancel", requireAdmin(database), (req, res) => {
@@ -82,7 +72,7 @@ export function adminWorkflowRoutes(database: AppDatabase): Router {
       res.status(400).json({ error: errorText(req, "serverErrors.invalidWorkflowId") });
       return;
     }
-    const result = cancelPendingWorkflow(database, id);
+    const result = storage.workflows.cancelPending(id);
     if (result === "not-found") {
       res.status(404).json({ error: errorText(req, "serverErrors.workflowNotFound") });
       return;
@@ -101,7 +91,7 @@ export function adminWorkflowRoutes(database: AppDatabase): Router {
       res.status(400).json({ error: errorText(req, "serverErrors.invalidWorkflowId") });
       return;
     }
-    const result = deleteWorkflowRun(database, id);
+    const result = storage.workflows.delete(id);
     if (result === "not-found") {
       res.status(404).json({ error: errorText(req, "serverErrors.workflowNotFound") });
       return;
