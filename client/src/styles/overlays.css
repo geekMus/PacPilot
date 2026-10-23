@@ -5,11 +5,13 @@
  */
 .timezone-options-menu {
   z-index: 1200;
+  display: flex;
+  flex-direction: column;
   box-sizing: border-box;
   width: min(var(--reka-combobox-trigger-width, 100%), calc(100vw - 16px));
   min-width: min(var(--reka-combobox-trigger-width, 100%), calc(100vw - 16px));
   max-width: calc(100vw - 16px);
-  max-height: var(--reka-combobox-content-available-height, calc(100dvh - 24px));
+  max-height: min(320px, var(--reka-combobox-content-available-height, calc(100dvh - 24px)));
   overflow: hidden;
   padding: 4px;
   border: 1px solid var(--line);
@@ -20,9 +22,10 @@
 }
 
 .timezone-options-scroll {
+  flex: 0 1 auto;
   width: 100%;
   height: min(320px, var(--reka-combobox-content-available-height, 320px));
-  max-height: min(320px, var(--reka-combobox-content-available-height, 320px));
+  max-height: 100%;
   min-height: 0;
   overflow: hidden;
 }
@@ -33,6 +36,8 @@
   min-height: 0;
   max-height: 100%;
   overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .timezone-option {
