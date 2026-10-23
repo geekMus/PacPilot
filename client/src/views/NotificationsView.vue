@@ -448,16 +448,26 @@ onMounted(() => {
 /* ============================================================
    Notification workspace — "quiet console" restyle.
 
-   Layout contract (single owner per scroll region):
-   - Desktop: the admin layout owns the viewport. This page is a
-     flex column; intro/overview/tabs/footer are fixed bands and the
-     workspace region takes exactly the remaining height. Panels are
-     bounded by max-height:100% and scroll only inside AppScrollArea.
-   - <=900px: the page returns to natural document flow and each panel
-     gets its own bounded height (clamp against the viewport), so no
-     region exceeds the size limits on small screens.
-   Scrollbars come exclusively from the shared AppScrollArea component
-   and are tuned through its public CSS variables (--scrollbar-size /
+   Layout contract (single owner per scroll region, three tiers):
+
+   1. Pinned tier (desktop, viewport height > 620px):
+      the intro and overview bands scroll away; the workspace sticks just
+      below the admin header and is exactly the band between the header
+      offset and the footer reserve. Tabs stay under the header, the middle
+      row stretches with the viewport, and the footer stays visible at the
+      bottom. Each panel scrolls only inside its own AppScrollArea.
+
+   2. Shrink tier: while pinned, only the middle row reacts to a shrinking
+      viewport. It stops at a 320px floor (the row's min-height) so the
+      panels always remain usable.
+
+   3. Flow tier (height < 620px, or width <= 900px): the pinned band can no
+      longer honour its floor, so the workspace stops sticking and the whole
+      content area scrolls as one document, like the dashboard overview
+      page. Panels keep bounded heights so their inner scrollbars survive.
+
+   Scrollbars come exclusively from the shared AppScrollArea component and
+   are tuned through its public CSS variables (--scrollbar-size /
    --scrollbar-thumb / --scrollbar-thumb-hover), never with bespoke
    scrollbar markup or duplicated thumb styling.
    ============================================================ */
@@ -484,15 +494,21 @@ onMounted(() => {
   --wh-editor-height: clamp(360px, 56dvh, 680px);
   --wh-history-height: clamp(320px, 50dvh, 620px);
 
-  /* Sticky workspace geometry (desktop). The header gap mirrors the 25px
-     offset the admin layout uses between the topbar and page content, so
-     the pinned tabs sit exactly where they would in normal flow. The
-     footer reserve covers the footer band plus the page bottom padding. */
+  /* Sticky workspace geometry (desktop).
+     --wh-header-gap mirrors the 25px offset the admin layout uses between
+     the topbar and page content, so the pinned tabs sit exactly where they
+     would in normal flow.
+     --wh-footer-reserve must stay BELOW the real space under the region
+     (page gap 18 + footer ~53 + page bottom padding 40 = ~111). The slack
+     (111 - reserve) is exactly the scroll distance during which the region
+     is genuinely pinned, so a larger reserve silently kills the pin. */
   --wh-header-gap: 25px;
-  --wh-footer-reserve: 110px;
+  --wh-footer-reserve: 100px;
 
   display: flex;
-  flex: 1 1 0%;
+  /* Content-sized on purpose: the sticky workspace travels inside this box,
+     so clamping it to the viewport height would clamp the pin too. */
+  flex: 0 0 auto;
   flex-direction: column;
   gap: clamp(12px, 1.35vw, 18px);
   width: 100%;
@@ -504,10 +520,11 @@ onMounted(() => {
 
 .webhook-page > :deep(.app-footer) {
   flex: 0 0 auto;
-  /* Pins the footer to the page end whenever the workspace reserves less
-     than the full viewport; during normal scrolling it collapses to the
-     natural 0 gap because the page content already exceeds the viewport. */
-  margin-top: auto;
+  /* The footer is a fixed band of the page column: the workspace above it
+     takes the remaining space, so the footer can never be pushed under the
+     workshop panels (no auto margin — that reintroduced the gap the flex
+     chain is supposed to own). */
+  margin-top: 0;
 }
 
 /* ---------- Page intro ---------- */
@@ -743,17 +760,24 @@ onMounted(() => {
   z-index: 1;
   top: calc(var(--admin-topbar-space, 104px) + var(--wh-header-gap, 25px));
   display: flex;
+  /* Pinned tier: the region is exactly the band between the header offset
+     and the footer reserve, so the middle row stretches/shrinks with the
+     viewport while the footer always stays visible at the scroll bottom.
+     The height is explicit (not flex-grown) because the page column is
+     content-sized; a flex basis would not track the viewport. */
   flex: 0 0 auto;
   flex-direction: column;
   gap: 12px;
   width: 100%;
   min-width: 0;
-  height: max(
-    320px,
-    calc(
-      100dvh - var(--admin-topbar-space, 104px) - var(--wh-header-gap, 25px) -
-        var(--wh-footer-reserve, 110px)
-    )
+  min-height: 0;
+  height: calc(
+    100dvh - var(--admin-topbar-space, 104px) - var(--wh-header-gap, 25px) -
+      var(--wh-footer-reserve, 100px)
+  );
+  max-height: calc(
+    100dvh - var(--admin-topbar-space, 104px) - var(--wh-header-gap, 25px) -
+      var(--wh-footer-reserve, 100px)
   );
   background: var(--bg);
 }
@@ -1696,6 +1720,32 @@ onMounted(() => {
   .editor-heading { padding-right: 17px; padding-left: 17px; }
   .editor-body { padding-right: 17px; padding-left: 17px; }
   .editor-footer { padding-right: 17px; padding-left: 17px; }
+}
+
+/* Short-viewport fallback (wide screens only — the narrow layout below has
+   its own bounded-panel model). The pinned tier needs, at minimum, the
+   topbar + header gap + tabs + 12px gap + the 320px row floor + the footer
+   reserve, which lands at roughly 620px of viewport height. Below that the
+   pinned layout could no longer honour its floor, so the workspace stops
+   sticking and the whole content area scrolls as one document, exactly
+   like the dashboard overview page. Keeping the switch here also prevents
+   the footer from ever being pushed under the panels. */
+@media (min-width: 901px) and (max-height: 620px) {
+  .workspace-region {
+    position: static;
+    height: auto;
+    max-height: none;
+  }
+
+  .workspace-layout,
+  .history-workspace {
+    flex: 0 0 auto;
+    /* Same 320px floor as the pinned tier, so the row stops shrinking at the
+       same point in both tiers; below that the document scrolls instead. */
+    height: clamp(320px, 62dvh, 560px);
+    min-height: 0;
+    max-height: none;
+  }
 }
 
 @media (max-width: 900px) {

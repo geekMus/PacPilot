@@ -162,14 +162,17 @@ watch(
   --admin-section-gap: 20px;
 }
 
+/* The notifications page owns a sticky workspace that must be able to
+   travel inside its own page box. The wrapper therefore provides a full
+   height floor but must not clamp the page to the viewport height, and the
+   page itself stays content-sized. */
 .admin-content-inner--notifications {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 0;
+  min-height: 100%;
 }
 .admin-content-inner--notifications > :deep(.webhook-page) {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   min-height: 0;
 }
 .admin-content-inner {
