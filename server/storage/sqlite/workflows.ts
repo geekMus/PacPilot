@@ -1,5 +1,5 @@
 import type { AppDatabase } from "./sqlite";
-import type { WorkflowRun, WorkflowStage } from "../../shared/contracts";
+import type { WorkflowRun, WorkflowStage } from "../../../shared/contracts";
 export type { WorkflowRun, WorkflowStage, WorkflowStatus } from "../../shared/contracts";
 
 export function createWorkflowRun(database: AppDatabase, source: string, mode: string): number {
