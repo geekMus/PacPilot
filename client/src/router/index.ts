@@ -1,3 +1,4 @@
+import { nextTick } from "vue";
 import { createRouter, createWebHistory } from "vue-router";
 import { i18n } from "@/i18n";
 import { fetchAdminSession, isAdminAppRoute } from "@/composables/useAdminSession";
@@ -17,7 +18,7 @@ const router = createRouter({
     {
       path: "/admin/dashboard",
       name: "admin-dashboard",
-      meta: { titleKey: "nav.dashboard" },
+      meta: { titleKey: "nav.dashboard", layout: "admin" },
       component: () => import("@/views/AdminDashboardView.vue"),
     },
     {
@@ -29,13 +30,13 @@ const router = createRouter({
     {
       path: "/admin/settings",
       name: "admin-settings",
-      meta: { titleKey: "nav.settings" },
+      meta: { titleKey: "nav.settings", layout: "admin" },
       component: () => import("@/views/AdminView.vue"),
     },
     {
       path: "/admin/system-settings",
       name: "admin-system-settings",
-      meta: { titleKey: "nav.systemSettings" },
+      meta: { titleKey: "nav.systemSettings", layout: "admin" },
       component: () => import("@/views/SystemSettingsView.vue"),
     },
     {
@@ -46,20 +47,20 @@ const router = createRouter({
     {
       path: "/admin/workflows",
       name: "admin-workflows",
-      meta: { titleKey: "nav.workflow" },
+      meta: { titleKey: "nav.workflow", layout: "admin" },
       component: () => import("@/views/WorkflowView.vue"),
     },
     {
       path: "/admin/workflows/:id",
       name: "admin-workflow-detail",
-      meta: { titleKey: "workflow.detailTitle" },
+      meta: { titleKey: "workflow.detailTitle", layout: "admin" },
       component: () => import("@/views/WorkflowDetailView.vue"),
       props: true,
     },
     {
       path: "/admin/monitor",
       name: "admin-monitor",
-      meta: { titleKey: "nav.monitor" },
+      meta: { titleKey: "nav.monitor", layout: "admin" },
       component: () => import("@/views/MonitoringView.vue"),
     },
     {
@@ -70,8 +71,30 @@ const router = createRouter({
     },
   ],
   scrollBehavior(to) {
-    if (to.hash) return { el: to.hash, top: 14, behavior: "smooth" };
-    return { top: 0 };
+    return nextTick().then(() => {
+      const selector =
+        to.meta.layout === "admin"
+          ? ".admin-content .app-scroll-area-viewport"
+          : ".app-public-scroll .app-scroll-area-viewport";
+      const viewport = document.querySelector<HTMLElement>(selector);
+      if (!viewport) return { top: 0 };
+
+      if (to.hash) {
+        const target = document.querySelector<HTMLElement>(to.hash);
+        if (target) {
+          const top =
+            target.getBoundingClientRect().top -
+            viewport.getBoundingClientRect().top +
+            viewport.scrollTop -
+            14;
+          viewport.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+          return false;
+        }
+      }
+
+      viewport.scrollTo({ top: 0, behavior: "auto" });
+      return false;
+    });
   },
 });
 
