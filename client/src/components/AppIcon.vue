@@ -120,7 +120,11 @@ const iconMap = {
 } as const;
 
 const selectedIcon = computed(() => {
-  return iconMap[props.name as keyof typeof iconMap] ?? CircleHelp;
+  const icon = iconMap[props.name as keyof typeof iconMap];
+  if (!icon && import.meta.env.DEV) {
+    console.warn(`[AppIcon] 未注册的图标名称："${props.name}"`);
+  }
+  return icon ?? CircleHelp;
 });
 </script>
 
