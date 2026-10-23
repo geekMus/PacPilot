@@ -13,7 +13,7 @@ import { useMonitoringDashboard } from "@/composables/useMonitoringDashboard";
 import { useI18n } from "vue-i18n";
 
 const router = useRouter();
-const { t, locale } = useI18n();
+const { t } = useI18n();
 const {
   accesses, accessHasMore, accessLoadingMore, accessLoadError, accessTotal,
   accessKeyword, accessCategory, accessStatus,
@@ -29,11 +29,6 @@ const logLoadingMore = ref(false);
 const logTotal = ref(0);
 const pageSize = 50;
 
-function generationLogDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN");
-}
 function generationModeLabel(mode: string): string {
   return mode === "remote" ? t("workflow.remoteMode") : t("workflow.customMode");
 }
