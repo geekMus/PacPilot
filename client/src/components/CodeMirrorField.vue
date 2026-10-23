@@ -169,7 +169,7 @@ watch(
       root-class="cm-field-scroll-area"
       viewport-class="cm-field-scroll-viewport"
       orientation="both"
-      type="always"
+      type="hover"
     >
       <div ref="host" class="cm-field-host cm-field-host-scrollable"></div>
     </AppScrollArea>
@@ -235,6 +235,22 @@ watch(
 }
 .cm-field-frame.single-line .cm-field-host {
   height: 100%;
+  min-height: 0;
+}
+
+/* A one-line field is a single-line control, not a scroll container. */
+.cm-field-frame.single-line .cm-field-host :deep(.cm-editor),
+.cm-field-frame.single-line .cm-field-host :deep(.cm-scroller) {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden !important;
+}
+
+.cm-field-frame.single-line .cm-field-host :deep(.cm-content) {
+  white-space: nowrap;
 }
 .cm-field-host {
   width: 100%;
