@@ -25,7 +25,7 @@ const emit = defineEmits<{
 
 const scroller = ref<HTMLElement | null>(null);
 const bodyTable = ref<HTMLTableElement | null>(null);
-const contentHeight = ref(0);
+const contentHeight = ref<number | null>(null);
 const maxHeight = computed(() => {
   const value = props.height ?? 480;
   const parsed = typeof value === "number" ? value : Number.parseFloat(value);
@@ -34,9 +34,11 @@ const maxHeight = computed(() => {
 const headerViewportWidth = ref("100%");
 const headerOffset = ref(0);
 const frameStyle = computed(() => {
-  // Treat height as a cap: short tables shrink to their content, but keep a comfortable 144px minimum.
-  const measuredContent = contentHeight.value > 0 ? 44 + contentHeight.value + 2 : maxHeight.value;
-  const height = Math.min(maxHeight.value, Math.max(144, measuredContent));
+  // Height is a maximum. Add only 8px of breathing room to avoid a false vertical scrollbar
+  // caused by table borders and fractional row layout; keep the empty state comfortably usable.
+  const bodyHeight = contentHeight.value ?? Math.max(0, maxHeight.value - 44);
+  const contentFitHeight = 44 + bodyHeight + 8;
+  const height = Math.min(maxHeight.value, Math.max(144, contentFitHeight));
   return {
     height: height + "px",
     "--virtual-row-height": props.rowHeight + "px",
