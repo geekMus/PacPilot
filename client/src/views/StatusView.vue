@@ -3,6 +3,7 @@ import AppHeader from "@/components/AppHeader.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import RuleVirtualList from "@/features/domain-rules/components/RuleVirtualList.vue";
 import AppIcon from "@/components/AppIcon.vue";
+import AppInput from "@/components/AppInput.vue";
 import { useStatusDashboard } from "@/composables/useStatusDashboard";
 
 const {
@@ -177,7 +178,7 @@ const {
             </div>
           </div>
           <form class="domain-check-form" @submit.prevent="checkDomain">
-            <input
+            <AppInput
               v-model="domainInput"
               type="text"
               inputmode="url"
@@ -552,23 +553,8 @@ const {
   gap: 10px;
   margin-top: 16px;
 }
-.domain-check-form input {
-  box-sizing: border-box;
-  width: 100%;
-  min-width: 0;
-  min-height: 40px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 9px 12px;
-  color: var(--text);
+.domain-check-form .app-input {
   background: var(--bg);
-  font: inherit;
-  font-size: 13px;
-}
-.domain-check-form input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .domain-check-form button {
   white-space: nowrap;
@@ -1115,7 +1101,7 @@ const {
   .domain-check-form {
     grid-template-columns: minmax(0, 1fr);
   }
-  .domain-check-form input {
+  .domain-check-form .app-input {
     min-height: 44px;
     font-size: 16px;
   }
