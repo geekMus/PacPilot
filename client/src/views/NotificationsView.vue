@@ -484,6 +484,13 @@ onMounted(() => {
   --wh-editor-height: clamp(360px, 56dvh, 680px);
   --wh-history-height: clamp(320px, 50dvh, 620px);
 
+  /* Sticky workspace geometry (desktop). The header gap mirrors the 25px
+     offset the admin layout uses between the topbar and page content, so
+     the pinned tabs sit exactly where they would in normal flow. The
+     footer reserve covers the footer band plus the page bottom padding. */
+  --wh-header-gap: 25px;
+  --wh-footer-reserve: 110px;
+
   display: flex;
   flex: 1 1 0%;
   flex-direction: column;
@@ -497,7 +504,10 @@ onMounted(() => {
 
 .webhook-page > :deep(.app-footer) {
   flex: 0 0 auto;
-  margin-top: 0;
+  /* Pins the footer to the page end whenever the workspace reserves less
+     than the full viewport; during normal scrolling it collapses to the
+     natural 0 gap because the page content already exceeds the viewport. */
+  margin-top: auto;
 }
 
 /* ---------- Page intro ---------- */
@@ -715,16 +725,37 @@ onMounted(() => {
 .state-error strong { font-size: 12px; }
 .state-error p { margin: 5px 0 0; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
 
-/* ---------- Workspace frame (bounded height chain) ---------- */
+/* ---------- Workspace frame (header-anchored sticky) ---------- */
 
+/*
+   Desktop scroll model: the intro and overview bands scroll away with the
+   document, while the workspace region sticks into the band between the
+   admin header and the footer. Once the page reaches its bottom, the
+   viewport shows exactly header → tabs → left/right panels → footer. The
+   sticky top keeps the same 25px rhythm as the page's natural content
+   offset below the header, so the gap never changes between free scroll
+   and the pinned state. The workspace height is derived from 100dvh minus
+   the header band and the footer reserve, so it adapts to any display
+   size; the two columns each own an independent AppScrollArea scrollbar.
+*/
 .workspace-region {
+  position: sticky;
+  z-index: 1;
+  top: calc(var(--admin-topbar-space, 104px) + var(--wh-header-gap, 25px));
   display: flex;
-  flex: 1 1 0%;
+  flex: 0 0 auto;
   flex-direction: column;
   gap: 12px;
+  width: 100%;
   min-width: 0;
-  min-height: 0;
-  max-height: 100%;
+  height: max(
+    320px,
+    calc(
+      100dvh - var(--admin-topbar-space, 104px) - var(--wh-header-gap, 25px) -
+        var(--wh-footer-reserve, 110px)
+    )
+  );
+  background: var(--bg);
 }
 
 .workspace-tabs {
@@ -1668,15 +1699,22 @@ onMounted(() => {
 }
 
 @media (max-width: 900px) {
-  /* Natural document flow: the admin viewport owns page scrolling, and each
-     panel becomes its own height-bounded scroll owner. */
+  /* Natural document flow: the admin viewport owns page scrolling, the
+     sticky workspace is released, and each panel becomes its own
+     height-bounded scroll owner. */
   .webhook-page {
     flex: 0 0 auto;
     min-height: 0;
   }
 
+  .webhook-page > :deep(.app-footer) {
+    margin-top: 0;
+  }
+
   .workspace-region {
+    position: static;
     flex: 0 0 auto;
+    height: auto;
     max-height: none;
   }
 
