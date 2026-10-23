@@ -160,7 +160,10 @@ export function createSqliteArtifactRepository(dataDir: string): ArtifactReposit
       }
     },
     exists(key) {
-      return Boolean(this.stat(key));
+      try {
+        if (isMemoryPath(dataDir)) { statEphemeralFile(filePath(key)); return true; }
+        return fs.statSync(filePath(key)).isFile();
+      } catch { return false; }
     },
     stat(key) {
       try {
