@@ -42,7 +42,7 @@ watch(
 
     <div class="admin-main">
       <AppScrollArea root-class="admin-content" orientation="vertical">
-        <div class="admin-content-inner">
+        <div class="admin-content-inner" :class="{ 'admin-content-inner--notifications': active === 'notifications' }">
           <slot></slot>
         </div>
       </AppScrollArea>
@@ -162,6 +162,16 @@ watch(
   --admin-section-gap: 20px;
 }
 
+.admin-content-inner--notifications {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.admin-content-inner--notifications > :deep(.webhook-page) {
+  flex: 1 1 auto;
+  min-height: 0;
+}
 .admin-content-inner {
   width: 100%;
   /* The scroll viewport fills the admin pane, so its content wrapper must
