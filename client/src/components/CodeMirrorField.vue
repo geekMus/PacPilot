@@ -25,7 +25,7 @@ const props = withDefaults(
     extensions?: Extension[];
     theme?: "app" | "one-dark";
     embedded?: boolean;
-    scrollbarMode?: "hover" | "always";
+    scrollbarMode?: "hover" | "auto";
   }>(),
   {
     placeholder: "",
@@ -40,7 +40,7 @@ const props = withDefaults(
     extensions: () => [],
     theme: "app",
     embedded: false,
-    scrollbarMode: "always",
+    scrollbarMode: "auto",
   }
 );
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
