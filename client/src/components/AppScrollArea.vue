@@ -103,7 +103,10 @@ function onScroll(event: Event): void {
 }
 
 .app-scrollbar {
+  position: relative;
+  z-index: 10;
   display: flex;
+  pointer-events: auto;
   touch-action: none;
   user-select: none;
   padding: 2px;
