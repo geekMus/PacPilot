@@ -423,9 +423,9 @@ const {
               tabindex="0"
               role="link"
               :aria-label="t('workflowPage.viewRunDetails', { id: run.id })"
-              @click="openRunDetail(run)"
-              @keydown.enter.prevent="openRunDetail(run)"
-              @keydown.space.prevent="openRunDetail(run)"
+              @click="router.push(`/admin/workflows/${run.id}`)"
+              @keydown.enter.prevent="router.push(`/admin/workflows/${run.id}`)"
+              @keydown.space.prevent="router.push(`/admin/workflows/${run.id}`)"
             >
               <td class="task-id">
                 <span class="id-trigger">#{{ run.id }}</span>
