@@ -502,16 +502,19 @@ onMounted(() => {
 .editor-placeholder p { margin: 0; font-size: 13px; line-height: 1.7; }
 .editor-body { flex: 0 0 auto; align-content: start; }
 .directory-panel, .editor-panel, .history-panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
-.directory-panel { position: relative; display: block; box-sizing: border-box; min-width: 0; min-height: 0; height: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface); box-shadow: var(--shadow); }
-.directory-panel :deep(.app-scroll-area-viewport) { display: flex; flex-direction: column; gap: 0; overflow-x: hidden; overflow-y: scroll; scrollbar-gutter: stable; }
+.directory-panel { position: relative; display: flex !important; flex: 0 0 auto; flex-direction: column; box-sizing: border-box; min-width: 0; min-height: 0; height: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface, #fff) !important; box-shadow: var(--shadow); }
+.directory-panel :deep(.app-scroll-area-viewport) { display: flex; flex: 1 1 0%; flex-direction: column; width: 100%; height: 100%; min-height: 0; gap: 0; overflow-x: hidden; overflow-y: auto; scrollbar-gutter: stable; }
 .directory-panel .panel-heading { flex: 0 0 auto; }
 .directory-panel .directory-item { flex: 0 0 auto; }
 .directory-panel .directory-bottom { flex: 0 0 auto; margin-top: auto; }
-.directory-panel :deep(.app-scrollbar[data-orientation="vertical"]) { width: 10px; background: color-mix(in srgb, var(--surface-2) 72%, transparent); }
+.directory-panel :deep(.app-scrollbar[data-orientation="vertical"]) { width: 10px; background: color-mix(in srgb, var(--surface-2) 72%, transparent); opacity: 1 !important; }
+.directory-panel :deep(.app-scrollbar[data-state="hidden"]) { opacity: 1 !important; }
 .directory-panel :deep(.app-scrollbar-thumb) { background: color-mix(in srgb, var(--text) 32%, transparent); }
 .directory-panel :deep(.app-scrollbar-thumb:hover) { background: color-mix(in srgb, var(--text) 48%, transparent); }
-.editor-scroll { flex: 1 1 auto; min-width: 0; min-height: 0; overflow: hidden; }
-.editor-scroll :deep(.app-scroll-area-viewport) { overflow-x: hidden; overflow-y: scroll; scrollbar-gutter: stable; }
+.editor-scroll { display: block; flex: 1 1 0%; width: 100%; height: 0; min-width: 0; min-height: 0; overflow: hidden; }
+.editor-scroll :deep(.app-scroll-area-viewport) { width: 100%; height: 100%; min-height: 0; overflow-x: hidden; overflow-y: auto; scrollbar-gutter: stable; }
+.editor-scroll :deep(.app-scrollbar[data-orientation="vertical"]) { width: 10px; background: color-mix(in srgb, var(--surface-2) 72%, transparent); opacity: 1 !important; }
+.editor-scroll :deep(.app-scrollbar[data-state="hidden"]) { opacity: 1 !important; }
 .editor-scroll .editor-body { min-height: min-content; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 19px 19px 16px; }
 .panel-heading h3 { margin: 0; font-size: 13px; font-weight: 780; }
