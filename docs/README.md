@@ -10,6 +10,7 @@ This directory contains the project's user, deployment, development, and operati
 | [Deployment guide](deployment.md) | Docker, Docker Compose, first startup, and common access URLs |
 | [Configuration](configuration.md) | PAC rules, environment variables, data files, CORS policy, and administrator password |
 | [Development guide](development.md) | Local development environment, common commands, and checks |
+| [Frontend architecture](frontend-architecture.md) | Shared component boundaries, editor architecture, naming, and validation |
 | [Operations and releases](operations.md) | Workflows, log and data maintenance, image releases, and upgrades |
 | [Troubleshooting](troubleshooting.md) | Web UI, login, PAC generation, remote lists, and upgrade issues |
 

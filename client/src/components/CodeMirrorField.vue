@@ -4,7 +4,7 @@ import { useI18n } from "vue-i18n";
 import { EditorView, keymap, lineNumbers, placeholder as cmPlaceholder } from "@codemirror/view";
 import { EditorState, type Extension } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
+import { syntaxHighlighting as addSyntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
 import { json } from "@codemirror/lang-json";
 import { javascript } from "@codemirror/lang-javascript";
 import { java } from "@codemirror/lang-java";
@@ -19,6 +19,9 @@ const props = withDefaults(
     placeholder?: string;
     height?: number;
     singleLine?: boolean;
+    lineNumbers?: boolean;
+    syntaxHighlighting?: boolean;
+    readOnly?: boolean;
     language?: "json" | "javascript" | "java" | "text";
     ariaLabel?: string;
     invalid?: boolean;
@@ -30,6 +33,9 @@ const props = withDefaults(
     placeholder: "",
     height: 160,
     singleLine: false,
+    lineNumbers: true,
+    syntaxHighlighting: true,
+    readOnly: false,
     language: "text",
     ariaLabel: "", // i18n
     invalid: false,
@@ -67,9 +73,9 @@ function buildExtensions() {
   ];
   return [
     history(),
-    ...(!props.singleLine ? [lineNumbers()] : []),
+    ...(!props.singleLine && props.lineNumbers ? [lineNumbers()] : []),
     keymap.of(bindings),
-    syntaxHighlighting(defaultHighlightStyle),
+    ...(props.syntaxHighlighting ? [addSyntaxHighlighting(defaultHighlightStyle)] : []),
     ...(props.theme === "one-dark" && isDark() ? [oneDark] : []),
     ...(props.language === "json"
       ? [json()]
@@ -86,6 +92,8 @@ function buildExtensions() {
       autocapitalize: "off",
       autocomplete: "off",
     }),
+    EditorState.readOnly.of(props.readOnly),
+    EditorView.editable.of(!props.readOnly),
     EditorView.updateListener.of((update) => {
       if (!update.docChanged) return;
       const value = update.state.doc.toString();
@@ -159,7 +167,7 @@ onBeforeUnmount(() => {
   view = null;
 });
 watch(
-  () => [props.singleLine, props.language, props.height, props.placeholder, props.extensions, props.theme],
+  () => [props.singleLine, props.lineNumbers, props.syntaxHighlighting, props.readOnly, props.language, props.height, props.placeholder, props.extensions, props.theme],
   () => mountEditor()
 );
 watch(

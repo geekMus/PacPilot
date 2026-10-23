@@ -10,6 +10,7 @@
 | [部署指南](deployment.md)      | Docker、Docker Compose、首次启动和常用访问地址     |
 | [配置说明](configuration.md)   | PAC 规则、环境变量、数据文件、跨域策略与管理员密码 |
 | [开发指南](development.md)     | 本地开发环境、常用命令和检查范围                   |
+| [前端架构与组件约定](frontend-architecture.md) | 公共组件边界、编辑器架构、命名和验证要求 |
 | [运维与发布](operations.md)    | 工作流、日志与数据维护、镜像发布和升级             |
 | [故障排查](troubleshooting.md) | 网页、登录、PAC 生成、远程列表和升级问题           |
 

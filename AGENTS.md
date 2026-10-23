@@ -15,6 +15,15 @@
 - 前端和后端分别维护自己的 Vitest 配置、测试发现范围和覆盖率报告；不要把前后端单测放回仓库根目录的统一 `tests/` 目录。
 - 新增或迁移测试后，必须同步检查对应 Vitest 配置、`package.json` 测试脚本、TypeScript 检查范围和开发文档；验证 `bun run test` 能运行两套测试与覆盖率门槛。
 
+
+## 前端组件分层与编辑器规范
+
+- `client/src/components/` 只放跨页面通用组件；业务专属组件放在 `client/src/features/<feature>/components/`，页面组件负责组合而不是复制通用组件实现。
+- `client/src/components/CodeMirrorField.vue` 是唯一允许创建和管理 CodeMirror `EditorView` 的组件。业务组件可以通过参数和 extensions 配置语言、主题、行号及诊断扩展，但不得再创建 `EditorView`、维护重复生命周期或自行实现编辑器滚动条。
+- 新增通用能力时优先扩展现有公共组件；只有交互语义不同且确实需要跨页面复用时，才新增一个公共组件。不要为同一种通用能力创建多个并列实现。
+- 文件和目录名统一使用 `kebab-case`；TypeScript 类型/类使用 `PascalCase`，变量/函数使用 `camelCase`，真正的全局常量使用 `UPPER_SNAKE_CASE`。
+- 组件移动或重命名后必须同步更新所有导入路径并删除旧实现；完成后运行 `bun run check` 和 `bun run test`，并明确区分 CI 验证与真实浏览器视觉验证。
+
 ## 前端滚动区域开发规范
 
 - 普通页面、弹窗、表格、下拉菜单、列表等需要独立滚动的区域，优先使用共享组件 `client/src/components/AppScrollArea.vue`，或使用已经在内部集成该组件的布局/业务组件；不要在业务页面中重复实现滚动条结构。
