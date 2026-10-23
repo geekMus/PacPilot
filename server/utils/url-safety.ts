@@ -20,10 +20,10 @@ function parseIpv4(host: string): number[] | null {
 
 /** Return the dotted IPv4 address embedded in any valid IPv4-mapped IPv6 form. */
 function mappedIpv4Address(host: string): string | null {
-  let normalized = host.toLowerCase().replace(/^\\[|\\]$/g, "").split("%")[0] ?? "";
+  let normalized = host.toLowerCase().replace(/^\[|\]$/g, "").split("%")[0] ?? "";
   if (!normalized.includes(":")) return null;
 
-  const dottedTail = normalized.match(/(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})$/);
+  const dottedTail = normalized.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
   if (dottedTail) {
     const octets = parseIpv4(dottedTail[1]);
     if (!octets) return null;
