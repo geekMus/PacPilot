@@ -55,7 +55,16 @@ function onScroll(event: Event): void {
     :type="type"
     :scroll-hide-delay="500"
   >
+    <template v-if="$slots.viewport">
+      <slot
+        name="viewport"
+        :viewport-component="ScrollAreaViewport"
+        :viewport-class="viewportClass"
+        :on-scroll="onScroll"
+      />
+    </template>
     <ScrollAreaViewport
+      v-else
       class="app-scroll-area-viewport"
       :class="viewportClass"
       @scroll.passive="onScroll"

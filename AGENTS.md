@@ -21,7 +21,7 @@
 - 新增滚动区域前，先判断滚动应该由哪一层负责。页面级滚动交给页面布局，弹窗内容滚动交给 `AppDialog`，表格和独立列表由对应组件管理；避免父子容器同时滚动导致滚动条嵌套、滚动穿透或滚动区域边界不清晰。
 - 所有页面和组件的滚动条视觉必须统一，包括普通页面、表格、弹窗、下拉框、CodeMirror 等编辑器、文本输入控件及第三方组件内部滚动区。优先复用 `AppScrollArea.vue` 的交互/结构；确实必须保留原生或第三方内部滚动机制时，也必须通过 `scrollbars.css` 使用相同的尺寸、轨道、滑块和悬停配色。
 - 只有在组件的交互行为确实需要、且共享组件无法满足时，才新增原生 `overflow: auto` / `overflow: scroll` 滚动容器；应在代码结构或注释中清晰表达其用途，并确保不会与外层滚动区域产生不必要的嵌套。
-- 共享滚动容器的底层实现统一维护在 `AppScrollArea.vue`。业务组件不要直接拼装 Reka UI 的 ScrollArea primitives，也不要为单个页面另写一套滚动条外观；如共享组件缺少必要能力，应先扩展共享组件再由业务层使用。**例外：** `AppSelect.vue` 为兼容 Reka UI `SelectViewport` 的 `as-child` 组合与选项键盘交互，可以在组件内部组合 ScrollArea primitives，但必须复用 `scrollbars.css` 中的统一滚动条样式；不要把这种例外扩展到普通业务页面。
+- 共享滚动容器的底层实现统一维护在 `AppScrollArea.vue`。业务组件不要直接拼装 Reka UI 的 ScrollArea primitives，也不要为单个页面另写一套滚动条外观；如共享组件缺少必要能力，应先扩展共享组件再由业务层使用。对于 Reka UI `SelectViewport`、`ComboboxViewport` 等需要 `as-child` 的特殊列表，使用 `AppScrollArea` 的 `viewport` 插槽组合对应视口；只有共享组件内部（例如 `AppSelect.vue`）才允许直接维护 ScrollArea primitives，并且必须复用 `scrollbars.css` 的统一样式。
 - 以上是开发规范，依靠开发者在设计和代码评审时遵守；不额外添加自动扫描或阻断构建的检查代码。
 
 ## GitHub Actions 工作流硬性规则

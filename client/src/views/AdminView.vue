@@ -13,10 +13,6 @@ import {
   ComboboxPortal,
   ComboboxRoot,
   ComboboxViewport,
-  ScrollAreaRoot,
-  ScrollAreaViewport,
-  ScrollAreaScrollbar,
-  ScrollAreaThumb,
 } from "reka-ui";
 import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppIcon from "@/components/AppIcon.vue";
@@ -239,31 +235,37 @@ const {
                     :side-offset="5"
                     :collision-padding="10"
                   >
-                    <ScrollAreaRoot
-                      class="timezone-options-scroll"
+                    <AppScrollArea
+                      root-class="timezone-options-scroll"
+                      viewport-class="timezone-options-viewport"
+                      orientation="vertical"
                       type="auto"
                       :style="{ '--timezone-list-height': Math.max(44, filteredTimeZones.length * 44 + 8) + 'px' }"
                     >
-                      <ComboboxViewport as-child>
-                        <ScrollAreaViewport class="timezone-options-viewport">
-                          <ComboboxItem
-                            v-for="zone in filteredTimeZones"
-                            :key="zone.value"
-                            :value="zone.value"
-                            class="timezone-option"
+                      <template #viewport="{ viewportComponent, viewportClass, onScroll }">
+                        <ComboboxViewport as-child>
+                          <component
+                            :is="viewportComponent"
+                            class="app-scroll-area-viewport"
+                            :class="viewportClass"
+                            @scroll.passive="onScroll"
                           >
-                            <span>{{ t(zone.labelKey) }}</span>
-                            <code>{{ zone.value }}</code>
-                          </ComboboxItem>
-                          <ComboboxEmpty class="timezone-no-results">
-                            {{ t("settings.timezoneNoMatch") }}
-                          </ComboboxEmpty>
-                        </ScrollAreaViewport>
-                      </ComboboxViewport>
-                      <ScrollAreaScrollbar class="app-scrollbar" orientation="vertical">
-                        <ScrollAreaThumb class="app-scrollbar-thumb" />
-                      </ScrollAreaScrollbar>
-                    </ScrollAreaRoot>
+                            <ComboboxItem
+                              v-for="zone in filteredTimeZones"
+                              :key="zone.value"
+                              :value="zone.value"
+                              class="timezone-option"
+                            >
+                              <span>{{ t(zone.labelKey) }}</span>
+                              <code>{{ zone.value }}</code>
+                            </ComboboxItem>
+                            <ComboboxEmpty class="timezone-no-results">
+                              {{ t("settings.timezoneNoMatch") }}
+                            </ComboboxEmpty>
+                          </component>
+                        </ComboboxViewport>
+                      </template>
+                    </AppScrollArea>
                   </ComboboxContent>
                 </ComboboxPortal>
               </ComboboxRoot>
