@@ -18,7 +18,7 @@ function requestLocale(req: import("express").Request): "zh_CN" | "en_US" {
 
 export function adminSystemRoutes(env: EnvConfig, database: AppDatabase, storage: ApplicationStorage): Router {
   const router = Router();
-  router.get("/api/admin/storage", requireAdmin(database), (_req, res) => {
+  router.get("/api/admin/storage", requireAdmin(storage.credentials), (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     let dataBytes = 0;
     const walk = (dir: string): void => {
@@ -68,7 +68,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase, storage
       },
     });
   });
-  router.delete("/api/admin/pac-files", requireAdmin(database), (req, res) => {
+  router.delete("/api/admin/pac-files", requireAdmin(storage.credentials), (req, res) => {
     if (hasActivePacWorkflow(storage)) {
       res.status(409).json({
         error: serverT(requestLocale(req), "serverErrors.activeWorkflowPacDelete"),
@@ -108,7 +108,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase, storage
       res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
     }
   });
-  router.post("/api/admin/logs/cleanup", requireAdmin(database), (_req, res) => {
+  router.post("/api/admin/logs/cleanup", requireAdmin(storage.credentials), (_req, res) => {
     const retentionDays = storage.settings.get().logRetentionDays;
     const deleted = {
       generationLogs: storage.generationLogs.cleanup(retentionDays),
@@ -119,7 +119,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase, storage
     }
     res.json({ deleted, retentionDays: storage.settings.get().logRetentionDays });
   });
-  router.post("/api/admin/logs/clear", requireAdmin(database), (_req, res) => {
+  router.post("/api/admin/logs/clear", requireAdmin(storage.credentials), (_req, res) => {
     try {
       const deleted = {
         generationLogs: storage.generationLogs.clear(),
@@ -131,7 +131,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase, storage
       res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
     }
   });
-  router.post("/api/admin/factory-reset", requireAdmin(database), (req, res) => {
+  router.post("/api/admin/factory-reset", requireAdmin(storage.credentials), (req, res) => {
     if (req.body?.confirm !== "RESET") {
       res.status(400).json({
         error: serverT(requestLocale(req), "serverErrors.invalidFactoryResetConfirmation"),
@@ -164,10 +164,10 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase, storage
       res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
     }
   });
-  router.get("/api/admin/logs", requireAdmin(database), (_req, res) => {
+  router.get("/api/admin/logs", requireAdmin(storage.credentials), (_req, res) => {
     res.json(storage.generationLogs.list(50));
   });
-  router.get("/api/admin/logs/page", requireAdmin(database), (req, res) => {
+  router.get("/api/admin/logs/page", requireAdmin(storage.credentials), (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     const limit = Math.min(
       100,
