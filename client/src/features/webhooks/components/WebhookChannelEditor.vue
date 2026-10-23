@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import type { WebhookConfig, WebhookProvider } from "@/api/client";
 import AppIcon from "@/components/AppIcon.vue";
 import AppSelect from "@/components/AppSelect.vue";
+import AppInput from "@/components/AppInput.vue";
 import WebhookBodyEditor from "./WebhookBodyEditor.vue";
 import CodeMirrorField from "@/components/CodeMirrorField.vue";
 const { t, tm } = useI18n();
@@ -265,13 +266,13 @@ const channelStatusText = computed(() => {
           <span class="label-hint">{{ t("webhookChannel.k43") }}</span></label
         >
         <div class="secret-field">
-          <input
-            :value="config.dingTalkSecret"
+          <AppInput
+            :model-value="config.dingTalkSecret"
             :type="showDingTalkSecret ? 'text' : 'password'"
             :aria-invalid="Boolean(validationErrors?.secret)"
             autocomplete="new-password"
             :placeholder="t('webhookChannel.k19')"
-            @input="update('dingTalkSecret', inputValue($event))"
+            @update:model-value="update('dingTalkSecret', $event)"
           />
           <button
             type="button"
@@ -580,7 +581,7 @@ const channelStatusText = computed(() => {
   gap: 8px;
   min-width: 0;
 }
-.secret-field input {
+.secret-field .app-input {
   box-sizing: border-box;
   flex: 1;
   width: 100%;
@@ -594,12 +595,12 @@ const channelStatusText = computed(() => {
   font: inherit;
   font-size: 12px;
 }
-.secret-field input:focus {
+.secret-field .app-input:focus-visible {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
-.secret-field input[aria-invalid="true"] {
+.secret-field .app-input[aria-invalid="true"] {
   border-color: var(--red);
   box-shadow: 0 0 0 3px var(--red-soft);
 }
