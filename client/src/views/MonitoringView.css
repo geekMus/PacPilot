@@ -659,8 +659,6 @@
   line-height: 1.55;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  max-height: 220px;
-  overflow: auto;
 }
 @media (max-width: 560px) {
   .access-detail-grid {
