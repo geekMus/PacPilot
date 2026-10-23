@@ -22,9 +22,6 @@ const {
   loadMoreAccesses, formatDate, formatDuration, formatBytes, categoryLabel, statusLabel, statusTone, error: monitorError,
 } = useMonitoringDashboard();
 const logs = ref<GenerationLog[]>([]);
-const selectedGenerationLog = ref<GenerationLog | null>(null);
-const generationLogDetailOpen = ref(false);
-function openGenerationLogDetail(entry: GenerationLog): void { selectedGenerationLog.value = entry; generationLogDetailOpen.value = true; }
 const logsLoading = ref(true);
 const logsError = ref("");
 const logHasMore = ref(false);
@@ -32,10 +29,6 @@ const logLoadingMore = ref(false);
 const logTotal = ref(0);
 const pageSize = 50;
 
-function generationLogText(entry: GenerationLog): string {
-  return entry.success ? t(`gen.success.${entry.result_code}`, entry.detail) : entry.error || t("common.failed");
-}
-function generationLogDetailJson(entry: GenerationLog): string { return JSON.stringify(entry.detail ?? {}, null, 2); }
 function generationLogDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -87,7 +80,7 @@ onMounted(() => void refreshGenerationLogs());
           </button>
         </div>
         <p v-if="logsError" class="monitor-state is-error" role="alert">{{ logsError }}</p>
-        <GenerationLogTable :items="logs" :height="480" :has-more="logHasMore" :loading="logLoadingMore" :error="logsError" :empty-text="t('settings.noLogs')" :load-more="loadMoreGenerationLogs" @row-click="openGenerationLogDetail" />
+        <GenerationLogTable :items="logs" :height="480" :has-more="logHasMore" :loading="logLoadingMore" :error="logsError" :empty-text="t('settings.noLogs')" :load-more="loadMoreGenerationLogs" />
       </section>
 
 <section class="monitor-panel">
@@ -244,28 +237,6 @@ onMounted(() => void refreshGenerationLogs());
           </p>
         </section>
 
-        <AppDialog :open="generationLogDetailOpen && !!selectedGenerationLog" :label="t('settings.genLogInfo')" width="min(680px, calc(100vw - 16px))" @update:open="generationLogDetailOpen = $event">
-          <template #header>
-            <div>
-              <p class="detail-kicker">GENERATION LOG #{{ selectedGenerationLog?.id }}</p>
-              <DialogTitle>{{ t("settings.genLogInfo") }}</DialogTitle>
-              <DialogDescription>{{ selectedGenerationLog ? generationLogDate(selectedGenerationLog.created_at) : "" }}</DialogDescription>
-            </div>
-          </template>
-          <template #body>
-            <div v-if="selectedGenerationLog" class="generation-log-detail">
-              <div class="generation-log-detail-grid">
-                <div><span>{{ t("settings.colTime") }}</span><strong>{{ generationLogDate(selectedGenerationLog.created_at) }}</strong></div>
-                <div><span>{{ t("settings.colResult") }}</span><strong>{{ selectedGenerationLog.success ? t("common.success") : t("common.failed") }}</strong></div>
-                <div><span>{{ t("settings.colMode") }}</span><strong>{{ generationModeLabel(selectedGenerationLog.mode) }}</strong></div>
-                <div><span>ID</span><strong>#{{ selectedGenerationLog.id }}</strong></div>
-              </div>
-              <section class="generation-log-detail-block"><h3>{{ t("settings.colMessage") }}</h3><pre>{{ generationLogText(selectedGenerationLog) }}</pre></section>
-              <section class="generation-log-detail-block"><h3>{{ t("common.details") }}</h3><pre>{{ generationLogDetailJson(selectedGenerationLog) }}</pre></section>
-              <section v-if="selectedGenerationLog.error" class="generation-log-detail-block is-error"><h3>{{ t("common.failed") }}</h3><pre>{{ selectedGenerationLog.error }}</pre></section>
-            </div>
-          </template>
-        </AppDialog>
         <AppDialog
           :open="accessDetailOpen && !!selectedAccess"
           :label="t('monitor.k39')"
