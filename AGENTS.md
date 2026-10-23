@@ -19,10 +19,17 @@
 ## 前端组件分层与编辑器规范
 
 - `client/src/components/` 只放跨页面通用组件；业务专属组件放在 `client/src/features/<feature>/components/`，页面组件负责组合而不是复制通用组件实现。
-- `client/src/components/CodeMirrorField.vue` 是唯一允许创建和管理 CodeMirror `EditorView` 的组件。业务组件可以通过参数和 extensions 配置语言、主题、行号及诊断扩展，但不得再创建 `EditorView`、维护重复生命周期或自行实现编辑器滚动条。
+- `client/src/components/CodeMirrorField.vue` 是唯一允许创建和管理 CodeMirror `EditorView` 的组件。当前编辑器语言仅支持 `text` 和 `json`；未经维护者明确要求，不要加入其他语言模式或对应依赖。业务组件可以通过参数和 extensions 配置主题、行号及诊断扩展，但不得再创建 `EditorView`、维护重复生命周期或自行实现编辑器滚动条。
 - 新增通用能力时优先扩展现有公共组件；只有交互语义不同且确实需要跨页面复用时，才新增一个公共组件。不要为同一种通用能力创建多个并列实现。
 - 文件和目录名统一使用 `kebab-case`；TypeScript 类型/类使用 `PascalCase`，变量/函数使用 `camelCase`，真正的全局常量使用 `UPPER_SNAKE_CASE`。
 - 组件移动或重命名后必须同步更新所有导入路径并删除旧实现；完成后运行 `bun run check` 和 `bun run test`，并明确区分 CI 验证与真实浏览器视觉验证。
+
+## 后端分层与数据库适配器规范
+
+- 后端目录、依赖方向和 TypeScript 命名约定见 `docs/backend-architecture.md`；新增或替换持久化驱动前必须阅读 `docs/storage-adapter-contract.md`。
+- `server/storage/repositories.ts` 是唯一公共存储契约来源。任何数据库适配器都必须实现其中定义的 repository 接口和 `ApplicationStorage` 聚合结构，保持相同的返回值、缺失值、分页、ID、时间格式和事务语义；不要让数据库驱动类型泄漏到业务层。
+- 内存实现只放在 `server/storage/memory/`；SQLite 的连接、schema/migrations 和 SQL 查询只放在 `server/storage/sqlite/`；文件/对象存储等非数据库持久化实现应与具体数据库目录分离。
+- 新增适配器时必须同步更新驱动配置与组合入口、实现契约测试，并验证现有数据迁移；不能只通过 TypeScript 编译就认为实现完成。
 
 ## 前端滚动区域开发规范
 
