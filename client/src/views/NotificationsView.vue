@@ -12,7 +12,7 @@ import { api, type NotificationChannel, type NotificationRule, type WebhookConfi
 import { useToast } from "@/composables/useToast";
 
 type ViewTab = "channels" | "rules" | "history";
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const router = useRouter();
 const { notify } = useToast();
 const loading = ref(true);
@@ -66,20 +66,60 @@ const failedDeliveries = computed(() => deliveries.value.filter((x) => x.status 
 const pendingDeliveries = computed(() => deliveries.value.filter((x) => x.status === "pending" || x.status === "sending"));
 const filteredDeliveries = computed(() => deliveryFilter.value === "all" ? deliveries.value : deliveries.value.filter((x) => x.status === deliveryFilter.value));
 const channelReady = computed(() => Boolean(ch.config.url.trim()) && (ch.config.provider !== "dingtalk" || Boolean(ch.config.dingTalkSecret.trim()) || Boolean(cid.value && channels.value.find((x) => x.id === cid.value)?.hasSecret)));
-const evName = (v: string) => catalog.value.find((x) => x.type === v)?.label ?? v;
-const phaseName = (v: string) => ({ started: "开始时", finished: "结束时", state_changed: "状态变化时", progress: "执行中" } as Record<string, string>)[v] ?? v;
-const outcomeName = (v?: string | null) => ({ success: "成功", failure: "失败", cancelled: "已取消", timeout: "超时", unknown: "未知", any: "不限制" } as Record<string, string>)[v ?? "any"] ?? "不限制";
+const evName = (v: string) => {
+  switch (v) {
+    case "task.execution": return t("notifications.eventTaskExecution");
+    case "config.publish": return t("notifications.eventConfigPublish");
+    case "request.process": return t("notifications.eventRequestProcess");
+    case "system.error": return t("notifications.eventSystemError");
+    default: return catalog.value.find((x) => x.type === v)?.label ?? v;
+  }
+};
+const phaseName = (v: string) => {
+  switch (v) {
+    case "started": return t("notifications.phaseStarted");
+    case "finished": return t("notifications.phaseFinished");
+    case "state_changed": return t("notifications.phaseStateChanged");
+    case "progress": return t("notifications.phaseProgress");
+    default: return v;
+  }
+};
+const outcomeName = (v?: string | null) => {
+  switch (v ?? "any") {
+    case "success": return t("notifications.outcomeSuccess");
+    case "failure": return t("notifications.outcomeFailure");
+    case "cancelled": return t("notifications.outcomeCancelled");
+    case "timeout": return t("notifications.outcomeTimeout");
+    case "unknown": return t("notifications.outcomeUnknown");
+    default: return t("notifications.outcomeAny");
+  }
+};
 const channelName = (id: string) => channels.value.find((x) => x.id === id)?.name ?? id;
-const providerName = (provider: string) => provider === "dingtalk" ? "钉钉机器人" : "HTTP Webhook";
-const statusName = (status: string) => ({ succeeded: "已送达", pending: "等待发送", sending: "发送中", failed: "发送失败" } as Record<string, string>)[status] ?? status;
+const providerName = (provider: string) => provider === "dingtalk" ? t("notifications.providerDingTalk") : t("notifications.providerHttp");
+const statusName = (status: string) => {
+  switch (status) {
+    case "succeeded": return t("notifications.deliverySucceeded");
+    case "pending": return t("notifications.deliveryPending");
+    case "sending": return t("notifications.deliverySending");
+    case "failed": return t("notifications.deliveryFailed");
+    default: return status;
+  }
+};
 const statusIcon = (status: string): "circle-check" | "clock" | "loader-circle" | "circle-alert" => ({ succeeded: "circle-check", pending: "clock", sending: "loader-circle", failed: "circle-alert" } as Record<string, "circle-check" | "clock" | "loader-circle" | "circle-alert">)[status] ?? "clock";
 const formatDate = (value?: string) => {
   if (!value) return "—";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(locale.value === "en_US" ? "en-US" : "zh-CN", { dateStyle: "medium", timeStyle: "short" }).format(date);
 };
 const shortUrl = (value: string) => value.replace(/^https?:\/\//, "").replace(/\?.*$/, "");
-const phaseDescription = computed(() => rule.phase === "started" ? "任务开始时立即触发，不需要等待执行结果。" : rule.phase === "finished" ? "任务结束后，根据最终执行结果决定是否发送。" : rule.phase === "state_changed" ? "当对象状态发生变化时触发。" : "任务执行过程中触发。");
+const phaseDescription = computed(() => {
+  switch (rule.phase) {
+    case "started": return t("notifications.phaseDescStarted");
+    case "finished": return t("notifications.phaseDescFinished");
+    case "state_changed": return t("notifications.phaseDescStateChanged");
+    default: return t("notifications.phaseDescProgress");
+  }
+});
 
 async function load(options: { preserveView?: boolean } = {}) {
   const preserveView = options.preserveView ?? false;
@@ -123,29 +163,31 @@ async function saveC() {
     const saved = cid.value ? await api.updateNotificationChannel(cid.value, payload) : await api.createNotificationChannel(payload);
     await load({ preserveView: true });
     editC(saved);
-    notify("通知渠道已保存", "success");
+    notify(t("notifications.toastChannelSaved"), "success");
   } catch (e) {
     notify(e instanceof Error ? e.message : String(e), "error");
   } finally {
     busy.value = false;
   }
 }
-async function deleteC(item: NotificationChannel) {
-  if (!confirm("确定删除通知渠道“" + item.name + "”？被规则引用的渠道无法删除。")) return;
+async function deleteC(item?: NotificationChannel) {
+  if (!item) return;
+  if (!confirm(t("notifications.confirmDeleteChannel", { name: item.name }))) return;
   try {
     await api.deleteNotificationChannel(item.id);
     if (cid.value === item.id) resetC();
     await load({ preserveView: true });
-    notify("通知渠道已删除", "success");
+    notify(t("notifications.toastChannelDeleted"), "success");
   } catch (e) {
     notify(e instanceof Error ? e.message : String(e), "error");
   }
 }
-async function testC(item: NotificationChannel) {
+async function testC(item?: NotificationChannel) {
+  if (!item) return;
   testingId.value = item.id;
   try {
     const result = await api.testNotificationChannel(item.id);
-    notify(result.success ? "测试通知已被接受" : result.message, result.success ? "success" : "error");
+    notify(result.success ? t("notifications.toastTestAccepted") : result.message, result.success ? "success" : "error");
   } catch (e) {
     notify(e instanceof Error ? e.message : String(e), "error");
   } finally {
@@ -174,20 +216,21 @@ async function saveR() {
     const saved = rid.value ? await api.updateNotificationRule(rid.value, payload) : await api.createNotificationRule(payload);
     await load({ preserveView: true });
     editR(saved);
-    notify("通知规则已保存", "success");
+    notify(t("notifications.toastRuleSaved"), "success");
   } catch (e) {
     notify(e instanceof Error ? e.message : String(e), "error");
   } finally {
     busy.value = false;
   }
 }
-async function deleteR(item: NotificationRule) {
-  if (!confirm("确定删除通知规则“" + item.name + "”？")) return;
+async function deleteR(item?: NotificationRule) {
+  if (!item) return;
+  if (!confirm(t("notifications.confirmDeleteRule", { name: item.name }))) return;
   try {
     await api.deleteNotificationRule(item.id);
     if (rid.value === item.id) resetR();
     await load({ preserveView: true });
-    notify("通知规则已删除", "success");
+    notify(t("notifications.toastRuleDeleted"), "success");
   } catch (e) {
     notify(e instanceof Error ? e.message : String(e), "error");
   }
@@ -196,7 +239,7 @@ async function retry(id: string) {
   try {
     await api.retryNotificationDelivery(id);
     await load({ preserveView: true });
-    notify("已重新提交投递", "success");
+    notify(t("notifications.toastRetried"), "success");
   } catch (e) {
     notify(e instanceof Error ? e.message : String(e), "error");
   }
@@ -211,66 +254,66 @@ onMounted(() => {
     <main class="webhook-page">
       <section class="page-intro">
         <div class="intro-copy">
-          <div class="eyebrow"><AppIcon name="workflow" :size="14" /> NOTIFICATION WORKSPACE</div>
-          <h2>通知工作台</h2>
-          <p>从业务事件到通知投递，一处管理渠道、触发规则与发送记录。</p>
+          <div class="eyebrow"><AppIcon name="workflow" :size="14" /> {{ t("notifications.workspace") }}</div>
+          <h2>{{ t("notifications.workspace") }}</h2>
+          <p>{{ t("notifications.workspaceHint") }}</p>
         </div>
         <div class="intro-state">
           <span class="state-dot" :class="{ online: enabledChannels.length > 0 && enabledRules.length > 0 }"></span>
-          <div><strong>{{ enabledChannels.length && enabledRules.length ? "通知规则已配置" : "完成基础配置以启用通知" }}</strong><small>事件驱动 · 多渠道投递</small></div>
+          <div><strong>{{ enabledChannels.length && enabledRules.length ? t("notifications.stateReady") : t("notifications.stateSetup") }}</strong><small>{{ t("notifications.stateHint") }}</small></div>
         </div>
       </section>
 
-      <section class="overview-grid" aria-label="通知概览">
+      <section class="overview-grid" :aria-label="t('notifications.workspace')">
         <article class="overview-card">
           <div class="overview-top">
             <span class="overview-icon channel-icon"><AppIcon name="network" :size="18" /></span>
             <div class="overview-value">{{ enabledChannels.length }}<span> / {{ channels.length }}</span></div>
           </div>
-          <div class="overview-label">通知渠道</div>
-          <div class="overview-foot">已启用渠道</div>
+          <div class="overview-label">{{ t("notifications.overviewChannels") }}</div>
+          <div class="overview-foot">{{ t("notifications.overviewChannelsHint") }}</div>
         </article>
         <article class="overview-card">
           <div class="overview-top">
             <span class="overview-icon rule-icon"><AppIcon name="route" :size="18" /></span>
             <div class="overview-value">{{ enabledRules.length }}<span> / {{ rules.length }}</span></div>
           </div>
-          <div class="overview-label">生效规则</div>
-          <div class="overview-foot">按事件条件自动匹配</div>
+          <div class="overview-label">{{ t("notifications.overviewRules") }}</div>
+          <div class="overview-foot">{{ t("notifications.overviewRulesHint") }}</div>
         </article>
         <article class="overview-card">
           <div class="overview-top">
             <span class="overview-icon delivery-icon"><AppIcon name="activity" :size="18" /></span>
             <div class="overview-value">{{ pendingDeliveries.length }}</div>
           </div>
-          <div class="overview-label">等待投递</div>
-          <div class="overview-foot">待发送或正在发送</div>
+          <div class="overview-label">{{ t("notifications.overviewPending") }}</div>
+          <div class="overview-foot">{{ t("notifications.overviewPendingHint") }}</div>
         </article>
         <article class="overview-card" :class="{ 'has-failures': failedDeliveries.length > 0 }">
           <div class="overview-top">
             <span class="overview-icon failure-icon"><AppIcon name="circle-alert" :size="18" /></span>
             <div class="overview-value">{{ failedDeliveries.length }}</div>
           </div>
-          <div class="overview-label">投递失败</div>
-          <div class="overview-foot">{{ failedDeliveries.length ? "需要检查或重新发送" : "当前没有失败投递" }}</div>
+          <div class="overview-label">{{ t("notifications.overviewFailed") }}</div>
+          <div class="overview-foot">{{ failedDeliveries.length ? t("notifications.overviewFailedHint") : t("notifications.overviewFailedNone") }}</div>
         </article>
       </section>
 
-      <p v-if="loading" class="state-panel"><AppIcon name="loader-circle" :size="18" class="spin" /> 正在加载通知配置…</p>
+      <p v-if="loading" class="state-panel"><AppIcon name="loader-circle" :size="18" class="spin" /> {{ t("notifications.loading") }}</p>
       <section v-else-if="error" class="state-panel state-error">
-        <AppIcon name="circle-alert" :size="20" /><div><strong>暂时无法加载通知配置</strong><p>{{ error }}</p></div><button class="button secondary" @click="load()">重试</button>
+        <AppIcon name="circle-alert" :size="20" /><div><strong>{{ t("notifications.loadFailed") }}</strong><p>{{ error }}</p></div><button class="button secondary" @click="load()">{{ t("common.retry") }}</button>
       </section>
       <template v-else>
         <section class="workspace-region">
-          <nav class="workspace-tabs" aria-label="通知管理分类">
+          <nav class="workspace-tabs" :aria-label="t('notifications.workspace')">
             <button :class="{ active: tab === 'channels' }" @click="tab = 'channels'">
-              <AppIcon name="network" :size="16" /> 通知渠道 <span class="tab-count">{{ channels.length }}</span>
+              <AppIcon name="network" :size="16" /> {{ t("notifications.tabChannels") }} <span class="tab-count">{{ channels.length }}</span>
             </button>
             <button :class="{ active: tab === 'rules' }" @click="tab = 'rules'">
-              <AppIcon name="route" :size="16" /> 触发规则 <span class="tab-count">{{ rules.length }}</span>
+              <AppIcon name="route" :size="16" /> {{ t("notifications.tabRules") }} <span class="tab-count">{{ rules.length }}</span>
             </button>
             <button :class="{ active: tab === 'history' }" @click="tab = 'history'">
-              <AppIcon name="activity" :size="16" /> 事件与投递 <span class="tab-count">{{ deliveries.length }}</span>
+              <AppIcon name="activity" :size="16" /> {{ t("notifications.tabRecords") }} <span class="tab-count">{{ deliveries.length }}</span>
               <span v-if="failedDeliveries.length" class="tab-alert">{{ failedDeliveries.length }}</span>
             </button>
           </nav>
@@ -279,14 +322,14 @@ onMounted(() => {
             <section class="directory-panel">
               <header class="panel-heading">
                 <span class="panel-heading-icon"><AppIcon name="network" :size="16" /></span>
-                <div class="panel-heading-copy"><h3>通知渠道</h3><p>保存可复用的通知目标</p></div>
-                <button class="icon-button" title="新建渠道" aria-label="新建渠道" @click="resetC">＋</button>
+                <div class="panel-heading-copy"><h3>{{ t("notifications.channelsTitle") }}</h3><p>{{ t("notifications.channelsPanelHint") }}</p></div>
+                <button class="icon-button" :title="t('notifications.newChannel')" :aria-label="t('notifications.newChannel')" @click="resetC">＋</button>
               </header>
               <AppScrollArea root-class="panel-scroll" type="auto">
                 <div v-if="!channels.length" class="empty-directory">
                   <span class="empty-icon"><AppIcon name="network" :size="22" /></span>
-                  <strong>还没有通知渠道</strong><p>添加钉钉机器人或 HTTP Webhook，供规则调用。</p>
-                  <button class="button primary full" @click="resetC">创建第一个渠道</button>
+                  <strong>{{ t("notifications.emptyChannels") }}</strong><p>{{ t("notifications.emptyChannelsHint") }}</p>
+                  <button class="button primary full" @click="resetC">{{ t("notifications.createFirstChannel") }}</button>
                 </div>
                 <div
                   v-for="item in channels"
@@ -300,82 +343,82 @@ onMounted(() => {
                   @keydown.space.prevent="editC(item)"
                 >
                   <span class="provider-icon"><AppIcon :name="item.provider === 'dingtalk' ? 'bell-ring' : 'globe'" :size="18" /></span>
-                  <span class="directory-content"><strong>{{ item.name }}</strong><small>{{ providerName(item.provider) }}</small><small class="url-preview">{{ shortUrl(item.config.url) || "尚未配置 URL" }}</small></span>
-                  <span class="status-dot" :class="{ online: item.enabled }" :title="item.enabled ? '已启用' : '已停用'"></span>
-                  <button type="button" class="row-delete" :aria-label="'删除渠道 ' + item.name" :title="'删除渠道 ' + item.name" @click.stop="deleteC(item)"><AppIcon name="trash-2" :size="14" /></button>
+                  <span class="directory-content"><strong>{{ item.name }}</strong><small>{{ providerName(item.provider) }}</small><small class="url-preview">{{ shortUrl(item.config.url) || t("notifications.urlUnset") }}</small></span>
+                  <span class="status-dot" :class="{ online: item.enabled }" :title="item.enabled ? t('notifications.statusEnabled') : t('notifications.statusDisabled')"></span>
+                  <button type="button" class="row-delete" :aria-label="t('notifications.deleteChannelTitle', { name: item.name })" :title="t('notifications.deleteChannelTitle', { name: item.name })" @click.stop="deleteC(item)"><AppIcon name="trash-2" :size="14" /></button>
                 </div>
               </AppScrollArea>
-              <footer v-if="channels.length" class="panel-footer"><span class="status-dot online"></span> {{ enabledChannels.length }} 个渠道已启用</footer>
+              <footer v-if="channels.length" class="panel-footer"><span class="status-dot online"></span> {{ t("notifications.channelsEnabledCount", { count: enabledChannels.length }) }}</footer>
             </section>
 
             <form v-if="channelEditorOpen" class="editor-panel" @submit.prevent="saveC">
               <header class="editor-heading">
                 <div class="editor-title-mark"><AppIcon name="network" :size="19" /></div>
-                <div class="editor-heading-copy"><div class="editor-kicker">{{ cid ? "CHANNEL SETTINGS" : "NEW CHANNEL" }}</div><h3>{{ cid ? "编辑通知渠道" : "创建通知渠道" }}</h3><p>配置接收通知的目标地址和消息格式。</p></div>
-                <div class="editor-heading-tools"><span class="status-pill" :class="ch.enabled ? 'pill-enabled' : 'pill-disabled'"><span class="status-dot" :class="{ online: ch.enabled }"></span>{{ ch.enabled ? "已启用" : "已停用" }}</span></div>
+                <div class="editor-heading-copy"><div class="editor-kicker">{{ cid ? t("notifications.channelKickerEdit") : t("notifications.channelKickerNew") }}</div><h3>{{ cid ? t("notifications.channelEdit") : t("notifications.channelNew") }}</h3><p>{{ t("notifications.channelDesc") }}</p></div>
+                <div class="editor-heading-tools"><span class="status-pill" :class="ch.enabled ? 'pill-enabled' : 'pill-disabled'"><span class="status-dot" :class="{ online: ch.enabled }"></span>{{ ch.enabled ? t("notifications.statusEnabled") : t("notifications.statusDisabled") }}</span></div>
               </header>
               <AppScrollArea root-class="editor-scroll" type="auto"><div class="editor-body">
                 <section class="form-section">
-                  <div class="section-title"><span>01</span><div><h4>基本信息</h4><p>为渠道命名并选择接入类型。</p></div></div>
+                  <div class="section-title"><span>01</span><div><h4>{{ t("notifications.sectionBasics") }}</h4><p>{{ t("notifications.sectionBasicsHint") }}</p></div></div>
                   <div class="field-grid">
-                    <label class="field"><span>渠道名称 <i>*</i></span><input v-model="ch.name" required maxlength="80" placeholder="例如：生产环境钉钉群" /></label>
-                    <label class="field"><span>通知类型 <i>*</i></span><select v-model="ch.config.provider"><option value="dingtalk">钉钉机器人</option><option value="custom">通用 HTTP Webhook</option></select></label>
+                    <label class="field"><span>{{ t("notifications.fieldName") }} <i>*</i></span><input v-model="ch.name" required maxlength="80" :placeholder="t('notifications.placeholderChannelName')" /></label>
+                    <label class="field"><span>{{ t("notifications.fieldProvider") }} <i>*</i></span><select v-model="ch.config.provider"><option value="dingtalk">{{ t("notifications.providerDingTalk") }}</option><option value="custom">{{ t("notifications.providerHttp") }}</option></select></label>
                   </div>
                 </section>
 
                 <section class="form-section">
-                  <div class="section-title"><span>02</span><div><h4>连接配置</h4><p>通知目标的地址和身份验证信息。</p></div></div>
+                  <div class="section-title"><span>02</span><div><h4>{{ t("notifications.sectionConnection") }}</h4><p>{{ t("notifications.sectionConnectionHint") }}</p></div></div>
                   <label class="field">
-                    <span>Webhook URL <i>*</i></span>
-                    <CodeMirrorField :model-value="ch.config.url" single-line :height="42" language="text" aria-label="Webhook URL" :placeholder="ch.config.provider === 'dingtalk' ? 'https://oapi.dingtalk.com/robot/send?access_token=…' : 'https://example.com/hooks/pacpilot'" @update:model-value="ch.config.url = $event" />
-                    <small class="field-hint"><AppIcon name="shield-check" :size="13" /> URL 中的敏感参数会在页面和日志中脱敏。</small>
+                    <span>{{ t("notifications.fieldUrl") }} <i>*</i></span>
+                    <CodeMirrorField :model-value="ch.config.url" single-line :height="42" language="text" :aria-label="t('notifications.fieldUrl')" :placeholder="ch.config.provider === 'dingtalk' ? t('notifications.placeholderUrlDingTalk') : t('notifications.placeholderUrlHttp')" @update:model-value="ch.config.url = $event" />
+                    <small class="field-hint"><AppIcon name="shield-check" :size="13" /> {{ t("notifications.hintUrlRedacted") }}</small>
                   </label>
                   <template v-if="ch.config.provider === 'dingtalk'">
                     <label class="field">
-                      <span>加签密钥 <em>可选</em></span>
-                      <div class="secret-input"><input v-model="ch.config.dingTalkSecret" :type="showSecret ? 'text' : 'password'" autocomplete="new-password" :placeholder="cid && channels.find(x => x.id === cid)?.hasSecret ? '已保存密钥，留空则保持不变' : '如果启用了加签，请填写密钥'" /><button type="button" class="reveal-button" :aria-label="showSecret ? '隐藏密钥' : '显示密钥'" @click="showSecret = !showSecret"><AppIcon :name="showSecret ? 'eye-off' : 'eye'" :size="16" /></button></div>
-                      <small class="field-hint">出于安全考虑，已保存的密钥不会回显。</small>
+                      <span>{{ t("notifications.fieldSecret") }} <em>{{ t("notifications.optional") }}</em></span>
+                      <div class="secret-input"><input v-model="ch.config.dingTalkSecret" :type="showSecret ? 'text' : 'password'" autocomplete="new-password" :placeholder="cid && channels.find(x => x.id === cid)?.hasSecret ? t('notifications.placeholderSecretSaved') : t('notifications.placeholderSecretNew')" /><button type="button" class="reveal-button" :aria-label="showSecret ? t('notifications.fieldSecret') : t('notifications.fieldSecret')" @click="showSecret = !showSecret"><AppIcon :name="showSecret ? 'eye-off' : 'eye'" :size="16" /></button></div>
+                      <small class="field-hint">{{ t("notifications.hintSecretHidden") }}</small>
                     </label>
-                    <label class="field"><span>消息格式</span><select v-model="ch.config.dingTalkMessageType"><option value="text">纯文本</option><option value="markdown">Markdown</option></select></label>
-                    <label class="field"><span>通知消息模板</span><CodeMirrorField :model-value="ch.config.messageTemplate" language="text" :height="120" aria-label="通知消息模板" placeholder="事件：{{event}}&#10;状态：{{status}}&#10;说明：{{message}}" @update:model-value="ch.config.messageTemplate = $event" /><small class="field-hint">支持变量：<code v-pre>{{event}}</code>、<code v-pre>{{status}}</code>、<code v-pre>{{message}}</code>、<code v-pre>{{timestamp}}</code>、<code v-pre>{{ok}}</code>。</small></label>
-                    <label class="field"><span>测试消息内容</span><CodeMirrorField :model-value="ch.config.testMessageTemplate" language="text" :height="82" aria-label="测试消息内容" placeholder="PacPilot 测试通知" @update:model-value="ch.config.testMessageTemplate = $event" /></label>
+                    <label class="field"><span>{{ t("notifications.fieldMessageType") }}</span><select v-model="ch.config.dingTalkMessageType"><option value="text">{{ t("notifications.fieldMessageType") }}</option><option value="markdown">Markdown</option></select></label>
+                    <label class="field"><span>{{ t("notifications.fieldMessageTemplate") }}</span><CodeMirrorField :model-value="ch.config.messageTemplate" language="text" :height="120" :aria-label="t('notifications.fieldMessageTemplate')" @update:model-value="ch.config.messageTemplate = $event" /><small class="field-hint">{{ t("notifications.hintVariables") }}<code v-pre>{{event}}</code>、<code v-pre>{{status}}</code>、<code v-pre>{{message}}</code>、<code v-pre>{{timestamp}}</code>、<code v-pre>{{ok}}</code>。</small></label>
+                    <label class="field"><span>{{ t("notifications.fieldTestMessage") }}</span><CodeMirrorField :model-value="ch.config.testMessageTemplate" language="text" :height="82" :aria-label="t('notifications.fieldTestMessage')" @update:model-value="ch.config.testMessageTemplate = $event" /></label>
                   </template>
                   <template v-else>
                     <div class="field-grid">
-                      <label class="field"><span>HTTP 方法</span><select v-model="ch.config.method"><option value="POST">POST</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option></select></label>
-                      <label class="field"><span>内容类型</span><div class="field-static"><AppIcon name="file-text" :size="15" /> application/json</div></label>
+                      <label class="field"><span>{{ t("notifications.fieldMethod") }}</span><select v-model="ch.config.method"><option value="POST">POST</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option></select></label>
+                      <label class="field"><span>{{ t("notifications.fieldContentType") }}</span><div class="field-static"><AppIcon name="file-text" :size="15" /> application/json</div></label>
                     </div>
-                    <label class="field"><span>自定义请求头 <em>JSON</em></span><WebhookBodyEditor :model-value="ch.config.headers" :height="126" placeholder='{"Authorization":"Bearer …"}' @update:model-value="ch.config.headers = $event" /><small class="field-hint">敏感请求头在重新编辑时会显示脱敏占位符。</small></label>
-                    <label class="field"><span>请求体模板 <em>JSON</em></span><WebhookBodyEditor :model-value="ch.config.body" :height="190" :sample="JSON.stringify({ event: '{{event}}', status: '{{status}}', ok: '{{ok}}', message: '{{message}}', timestamp: '{{timestamp}}' }, null, 2)" placeholder='{"event":"{{event}}","status":"{{status}}","message":"{{message}}"}' @update:model-value="ch.config.body = $event" /><small class="field-hint">请求体需要是有效 JSON，可使用事件变量自动填充通知内容。</small></label>
-                    <label class="field"><span>测试请求体 <em>JSON</em></span><WebhookBodyEditor :model-value="ch.config.testBody" :height="144" :sample='JSON.stringify({ event: "{{event}}", status: "{{status}}", ok: "{{ok}}", message: "{{message}}", timestamp: "{{timestamp}}" }, null, 2)' placeholder='{"event":"PacPilot test","status":"test"}' @update:model-value="ch.config.testBody = $event" /></label>
+                    <label class="field"><span>{{ t("notifications.fieldHeaders") }} <em>{{ t("notifications.json") }}</em></span><WebhookBodyEditor :model-value="ch.config.headers" :height="126" placeholder='{"Authorization":"Bearer …"}' @update:model-value="ch.config.headers = $event" /><small class="field-hint">{{ t("notifications.hintHeadersRedacted") }}</small></label>
+                    <label class="field"><span>{{ t("notifications.fieldBody") }} <em>{{ t("notifications.json") }}</em></span><WebhookBodyEditor :model-value="ch.config.body" :height="190" :sample="JSON.stringify({ event: '{{event}}', status: '{{status}}', ok: '{{ok}}', message: '{{message}}', timestamp: '{{timestamp}}' }, null, 2)" placeholder='{"event":"{{event}}","status":"{{status}}","message":"{{message}}"}' @update:model-value="ch.config.body = $event" /><small class="field-hint">{{ t("notifications.hintBodyJson") }}</small></label>
+                    <label class="field"><span>{{ t("notifications.fieldTestBody") }} <em>{{ t("notifications.json") }}</em></span><WebhookBodyEditor :model-value="ch.config.testBody" :height="144" :sample='JSON.stringify({ event: "{{event}}", status: "{{status}}", ok: "{{ok}}", message: "{{message}}", timestamp: "{{timestamp}}" }, null, 2)' placeholder='{"event":"PacPilot test","status":"test"}' @update:model-value="ch.config.testBody = $event" /></label>
                   </template>
                 </section>
                 <section class="form-section compact-section">
-                  <div class="section-title"><span>03</span><div><h4>渠道状态</h4><p>停用后规则仍保留，但不会向此渠道投递。</p></div></div>
-                  <label class="toggle-row"><span class="toggle-copy"><strong>启用此渠道</strong><small>启用后，匹配的通知规则可以向该目标发送消息。</small></span><input v-model="ch.enabled" type="checkbox" class="toggle-input" /><span class="toggle-track"></span></label>
+                  <div class="section-title"><span>03</span><div><h4>{{ t("notifications.sectionChannelStatus") }}</h4><p>{{ t("notifications.sectionChannelStatusHint") }}</p></div></div>
+                  <label class="toggle-row"><span class="toggle-copy"><strong>{{ t("notifications.toggleChannel") }}</strong><small>{{ t("notifications.toggleChannelHint") }}</small></span><input v-model="ch.enabled" type="checkbox" class="toggle-input" /><span class="toggle-track"></span></label>
                 </section>
               </div></AppScrollArea>
               <footer class="editor-footer">
-                <button type="button" class="button secondary" @click="resetC">新建空白表单</button>
-                <button v-if="cid" type="button" class="button danger-ghost" @click="deleteC(channels.find(x => x.id === cid)!)"><AppIcon name="trash-2" :size="15" /> 删除</button>
+                <button type="button" class="button secondary" @click="resetC">{{ t("notifications.buttonNewBlank") }}</button>
+                <button v-if="cid" type="button" class="button danger-ghost" @click="deleteC(channels.find(x => x.id === cid))"><AppIcon name="trash-2" :size="15" /> {{ t("common.delete") }}</button>
                 <span class="footer-spacer"></span>
-                <button type="button" class="button secondary" :disabled="!cid || testingId === cid" @click="testC(channels.find(x => x.id === cid)!)"><AppIcon :name="testingId === cid ? 'loader-circle' : 'activity'" :size="15" :class="{ spin: testingId === cid }" /> {{ testingId === cid ? "正在测试…" : "测试发送" }}</button>
-                <button type="submit" class="button primary" :disabled="busy || !ch.name.trim() || !ch.config.url.trim()"><AppIcon name="save" :size="15" /> {{ busy ? "正在保存…" : "保存渠道" }}</button>
+                <button type="button" class="button secondary" :disabled="!cid || testingId === cid" @click="testC(channels.find(x => x.id === cid))"><AppIcon :name="testingId === cid ? 'loader-circle' : 'activity'" :size="15" :class="{ spin: testingId === cid }" /> {{ testingId === cid ? t("notifications.buttonTesting") : t("notifications.buttonTest") }}</button>
+                <button type="submit" class="button primary" :disabled="busy || !ch.name.trim() || !ch.config.url.trim()"><AppIcon name="save" :size="15" /> {{ busy ? t("notifications.buttonSaving") : t("notifications.buttonSaveChannel") }}</button>
               </footer>
-              <div v-if="cid && !channelReady" class="editor-note"><AppIcon name="info" :size="15" /> 请补齐 URL；钉钉渠道还需要有效的机器人配置后才能测试发送。</div>
+              <div v-if="cid && !channelReady" class="editor-note"><AppIcon name="info" :size="15" /> {{ t("notifications.hintChannelIncomplete") }}</div>
             </form>
-            <section v-else class="editor-panel editor-placeholder" aria-live="polite"><div class="placeholder-icon"><AppIcon name="file-text" :size="22" /></div><p>暂无可查看信息,请选中一条再试吧</p></section>
+            <section v-else class="editor-panel editor-placeholder" aria-live="polite"><div class="placeholder-icon"><AppIcon name="file-text" :size="22" /></div><p>{{ t("notifications.selectHint") }}</p></section>
           </section>
 
           <section v-else-if="tab === 'rules'" class="workspace-layout rule-layout">
             <section class="directory-panel">
               <header class="panel-heading">
                 <span class="panel-heading-icon"><AppIcon name="route" :size="16" /></span>
-                <div class="panel-heading-copy"><h3>触发规则</h3><p>决定何时向哪些渠道发送</p></div>
-                <button class="icon-button" title="新建规则" aria-label="新建规则" @click="resetR">＋</button>
+                <div class="panel-heading-copy"><h3>{{ t("notifications.rulesTitle") }}</h3><p>{{ t("notifications.rulesPanelHint") }}</p></div>
+                <button class="icon-button" :title="t('notifications.newRule')" :aria-label="t('notifications.newRule')" @click="resetR">＋</button>
               </header>
               <AppScrollArea root-class="panel-scroll" type="auto">
-                <div v-if="!rules.length" class="empty-directory"><span class="empty-icon"><AppIcon name="route" :size="22" /></span><strong>还没有通知规则</strong><p>创建规则，把业务事件路由到通知渠道。</p><button class="button primary full" @click="resetR">创建第一条规则</button></div>
+                <div v-if="!rules.length" class="empty-directory"><span class="empty-icon"><AppIcon name="route" :size="22" /></span><strong>{{ t("notifications.emptyRules") }}</strong><p>{{ t("notifications.emptyRulesHint") }}</p><button class="button primary full" @click="resetR">{{ t("notifications.createFirstRule") }}</button></div>
                 <div
                   v-for="item in rules"
                   :key="item.id"
@@ -388,90 +431,90 @@ onMounted(() => {
                   @keydown.space.prevent="editR(item)"
                 >
                   <span class="provider-icon rule-provider"><AppIcon name="route" :size="18" /></span>
-                  <span class="directory-content"><strong>{{ item.name }}</strong><small>{{ evName(item.eventType) }} · {{ phaseName(item.phase) }}</small><small>{{ outcomeName(item.outcome) }} · {{ item.channelIds.length }} 个通知渠道</small></span>
-                  <span class="status-dot" :class="{ online: item.enabled }" :title="item.enabled ? '已启用' : '已停用'"></span>
-                  <button type="button" class="row-delete" :aria-label="'删除规则 ' + item.name" :title="'删除规则 ' + item.name" @click.stop="deleteR(item)"><AppIcon name="trash-2" :size="14" /></button>
+                  <span class="directory-content"><strong>{{ item.name }}</strong><small>{{ evName(item.eventType) }} · {{ phaseName(item.phase) }}</small><small>{{ outcomeName(item.outcome) }} · {{ item.channelIds.length }}</small></span>
+                  <span class="status-dot" :class="{ online: item.enabled }" :title="item.enabled ? t('notifications.statusEnabled') : t('notifications.statusDisabled')"></span>
+                  <button type="button" class="row-delete" :aria-label="t('notifications.deleteRuleTitle', { name: item.name })" :title="t('notifications.deleteRuleTitle', { name: item.name })" @click.stop="deleteR(item)"><AppIcon name="trash-2" :size="14" /></button>
                 </div>
               </AppScrollArea>
-              <footer v-if="rules.length" class="panel-footer"><span class="status-dot online"></span> {{ enabledRules.length }} 条规则正在生效</footer>
+              <footer v-if="rules.length" class="panel-footer"><span class="status-dot online"></span> {{ t("notifications.rulesActiveCount", { count: enabledRules.length }) }}</footer>
             </section>
 
             <form v-if="ruleEditorOpen" class="editor-panel" @submit.prevent="saveR">
               <header class="editor-heading">
                 <div class="editor-title-mark rule-title-mark"><AppIcon name="route" :size="19" /></div>
-                <div class="editor-heading-copy"><div class="editor-kicker">{{ rid ? "RULE SETTINGS" : "NEW RULE" }}</div><h3>{{ rid ? "编辑触发规则" : "创建触发规则" }}</h3><p>用简单条件定义事件触发时机与通知目标。</p></div>
-                <span class="status-pill" :class="rule.enabled ? 'pill-enabled' : 'pill-disabled'"><span class="status-dot" :class="{ online: rule.enabled }"></span>{{ rule.enabled ? "已启用" : "已停用" }}</span>
+                <div class="editor-heading-copy"><div class="editor-kicker">{{ rid ? t("notifications.ruleKickerEdit") : t("notifications.ruleKickerNew") }}</div><h3>{{ rid ? t("notifications.ruleEdit") : t("notifications.ruleNew") }}</h3><p>{{ t("notifications.ruleDesc") }}</p></div>
+                <span class="status-pill" :class="rule.enabled ? 'pill-enabled' : 'pill-disabled'"><span class="status-dot" :class="{ online: rule.enabled }"></span>{{ rule.enabled ? t("notifications.statusEnabled") : t("notifications.statusDisabled") }}</span>
               </header>
               <AppScrollArea root-class="editor-scroll" type="auto"><div class="editor-body">
                 <section class="form-section">
-                  <div class="section-title"><span>01</span><div><h4>规则信息</h4><p>给规则一个容易识别的名称。</p></div></div>
-                  <label class="field"><span>规则名称 <i>*</i></span><input v-model="rule.name" required maxlength="80" placeholder="例如：任务失败时通知运维群" /></label>
+                  <div class="section-title"><span>01</span><div><h4>{{ t("notifications.sectionRuleInfo") }}</h4><p>{{ t("notifications.sectionRuleInfoHint") }}</p></div></div>
+                  <label class="field"><span>{{ t("notifications.fieldRuleName") }} <i>*</i></span><input v-model="rule.name" required maxlength="80" :placeholder="t('notifications.placeholderRuleName')" /></label>
                 </section>
                 <section class="form-section">
-                  <div class="section-title"><span>02</span><div><h4>触发条件</h4><p>只有同时满足以下条件时，规则才会触发。</p></div></div>
-                  <label class="field"><span>业务事件</span><select :value="rule.eventType" @change="setEvent(($event.target as HTMLSelectElement).value)"><option v-for="item in catalog" :key="item.type" :value="item.type">{{ item.label }}</option></select></label>
+                  <div class="section-title"><span>02</span><div><h4>{{ t("notifications.sectionConditions") }}</h4><p>{{ t("notifications.sectionConditionsHint") }}</p></div></div>
+                  <label class="field"><span>{{ t("notifications.fieldEvent") }}</span><select :value="rule.eventType" @change="setEvent(($event.target as HTMLSelectElement).value)"><option v-for="item in catalog" :key="item.type" :value="item.type">{{ evName(item.type) }}</option></select></label>
                   <div class="field-grid">
-                    <label class="field"><span>触发阶段</span><select v-model="rule.phase"><option v-for="item in phases" :key="item" :value="item">{{ phaseName(item) }}</option></select></label>
-                    <label class="field"><span>执行结果</span><select v-model="rule.outcome"><option value="any">不限制结果</option><option v-for="item in outcomes" :key="item" :value="item">{{ outcomeName(item) }}</option></select></label>
+                    <label class="field"><span>{{ t("notifications.fieldPhase") }}</span><select v-model="rule.phase"><option v-for="item in phases" :key="item" :value="item">{{ phaseName(item) }}</option></select></label>
+                    <label class="field"><span>{{ t("notifications.fieldOutcome") }}</span><select v-model="rule.outcome"><option value="any">{{ t("notifications.outcomeAnyOption") }}</option><option v-for="item in outcomes" :key="item" :value="item">{{ outcomeName(item) }}</option></select></label>
                   </div>
                   <div class="condition-hint"><AppIcon name="info" :size="16" /><div><strong>{{ phaseName(rule.phase) }} · {{ outcomeName(rule.outcome) }}</strong><p>{{ phaseDescription }}</p></div></div>
-                  <label class="field"><span>业务对象类型 <em>可选条件</em></span><input v-model="rule.subjectType" placeholder="例如 task；留空表示匹配所有对象类型" /><small class="field-hint">例如 task、configuration 或 request。留空时不按对象类型过滤。</small></label>
+                  <label class="field"><span>{{ t("notifications.fieldSubjectType") }} <em>{{ t("notifications.optionalCondition") }}</em></span><input v-model="rule.subjectType" :placeholder="t('notifications.placeholderSubjectType')" /><small class="field-hint">{{ t("notifications.hintSubjectType") }}</small></label>
                 </section>
                 <section class="form-section">
-                  <div class="section-title"><span>03</span><div><h4>通知目标</h4><p>可同时选择多个已启用的渠道。</p></div></div>
-                  <div v-if="!channels.length" class="inline-empty"><AppIcon name="network" :size="18" /><div><strong>还没有可用渠道</strong><p>先创建通知渠道，再回来配置规则。</p></div><button type="button" class="button secondary" @click="tab = 'channels'">前往渠道设置</button></div>
+                  <div class="section-title"><span>03</span><div><h4>{{ t("notifications.sectionTargets") }}</h4><p>{{ t("notifications.sectionTargetsHint") }}</p></div></div>
+                  <div v-if="!channels.length" class="inline-empty"><AppIcon name="network" :size="18" /><div><strong>{{ t("notifications.noChannelsForRule") }}</strong><p>{{ t("notifications.noChannelsForRuleHint") }}</p></div><button type="button" class="button secondary" @click="tab = 'channels'">{{ t("notifications.goToChannels") }}</button></div>
                   <div v-else class="channel-options">
                     <label v-for="item in channels" :key="item.id" class="channel-option" :class="{ checked: rule.channelIds.includes(item.id), unavailable: !item.enabled }">
                       <input v-model="rule.channelIds" type="checkbox" :value="item.id" :disabled="!item.enabled && !rule.channelIds.includes(item.id)" />
                       <span class="option-icon"><AppIcon :name="item.provider === 'dingtalk' ? 'bell-ring' : 'globe'" :size="17" /></span>
-                      <span class="option-copy"><strong>{{ item.name }}</strong><small>{{ providerName(item.provider) }} · {{ item.enabled ? "已启用" : "已停用" }}</small></span>
+                      <span class="option-copy"><strong>{{ item.name }}</strong><small>{{ providerName(item.provider) }} · {{ item.enabled ? t("notifications.statusEnabled") : t("notifications.statusDisabled") }}</small></span>
                       <AppIcon v-if="rule.channelIds.includes(item.id)" name="circle-check" :size="17" class="option-check" />
                     </label>
                   </div>
-                  <small v-if="rule.channelIds.length" class="field-hint">将发送到 {{ rule.channelIds.length }} 个渠道：{{ rule.channelIds.map(channelName).join("、") }}。</small>
+                  <small v-if="rule.channelIds.length" class="field-hint">{{ t("notifications.hintTargetsSummary", { count: rule.channelIds.length, names: rule.channelIds.map(channelName).join(", ") }) }}</small>
                 </section>
                 <section class="form-section compact-section">
-                  <div class="section-title"><span>04</span><div><h4>规则状态</h4><p>停用后保留配置，但不再匹配新事件。</p></div></div>
-                  <label class="toggle-row"><span class="toggle-copy"><strong>启用此规则</strong><small>启用后，符合条件的新事件将创建通知投递。</small></span><input v-model="rule.enabled" type="checkbox" class="toggle-input" /><span class="toggle-track"></span></label>
+                  <div class="section-title"><span>04</span><div><h4>{{ t("notifications.sectionRuleStatus") }}</h4><p>{{ t("notifications.sectionRuleStatusHint") }}</p></div></div>
+                  <label class="toggle-row"><span class="toggle-copy"><strong>{{ t("notifications.toggleRule") }}</strong><small>{{ t("notifications.toggleRuleHint") }}</small></span><input v-model="rule.enabled" type="checkbox" class="toggle-input" /><span class="toggle-track"></span></label>
                 </section>
               </div></AppScrollArea>
               <footer class="editor-footer">
-                <button type="button" class="button secondary" @click="resetR">新建空白表单</button>
-                <button v-if="rid" type="button" class="button danger-ghost" @click="deleteR(rules.find(x => x.id === rid)!)"><AppIcon name="trash-2" :size="15" /> 删除</button>
+                <button type="button" class="button secondary" @click="resetR">{{ t("notifications.buttonNewBlank") }}</button>
+                <button v-if="rid" type="button" class="button danger-ghost" @click="deleteR(rules.find(x => x.id === rid))"><AppIcon name="trash-2" :size="15" /> {{ t("common.delete") }}</button>
                 <span class="footer-spacer"></span>
-                <button type="submit" class="button primary" :disabled="busy || !rule.name.trim() || !rule.channelIds.length"><AppIcon name="save" :size="15" /> {{ busy ? "正在保存…" : "保存规则" }}</button>
+                <button type="submit" class="button primary" :disabled="busy || !rule.name.trim() || !rule.channelIds.length"><AppIcon name="save" :size="15" /> {{ busy ? t("notifications.buttonSaving") : t("notifications.buttonSaveRule") }}</button>
               </footer>
             </form>
-            <section v-else class="editor-panel editor-placeholder" aria-live="polite"><div class="placeholder-icon"><AppIcon name="file-text" :size="22" /></div><p>暂无可查看信息,请选中一条再试吧</p></section>
+            <section v-else class="editor-panel editor-placeholder" aria-live="polite"><div class="placeholder-icon"><AppIcon name="file-text" :size="22" /></div><p>{{ t("notifications.selectHint") }}</p></section>
           </section>
 
           <section v-else class="history-workspace">
             <section class="history-panel">
               <header class="panel-heading">
                 <span class="panel-heading-icon"><AppIcon name="activity" :size="16" /></span>
-                <div class="panel-heading-copy"><h3>最近事件</h3><p>业务系统发布的标准化事件</p></div>
-                <span class="neutral-count">{{ events.length }} 条</span>
+                <div class="panel-heading-copy"><h3>{{ t("notifications.eventsTitle") }}</h3><p>{{ t("notifications.eventsHint") }}</p></div>
+                <span class="neutral-count">{{ t("notifications.eventsCount", { count: events.length }) }}</span>
               </header>
               <AppScrollArea root-class="panel-scroll" type="auto">
-                <div v-if="!events.length" class="empty-history"><span class="empty-icon"><AppIcon name="activity" :size="22" /></span><strong>暂时没有事件记录</strong><p>当任务或请求产生事件后，记录会显示在这里。</p></div>
+                <div v-if="!events.length" class="empty-history"><span class="empty-icon"><AppIcon name="activity" :size="22" /></span><strong>{{ t("notifications.emptyEvents") }}</strong><p>{{ t("notifications.emptyEventsHint") }}</p></div>
                 <article v-for="item in events" :key="item.id" class="event-row">
                   <span class="timeline-marker"><AppIcon :name="item.outcome === 'failure' ? 'circle-alert' : item.outcome === 'success' ? 'circle-check' : 'activity'" :size="16" /></span>
-                  <div class="history-row-content"><div class="history-row-title"><strong>{{ evName(item.type) }}</strong><span class="phase-tag">{{ phaseName(item.phase) }}</span><span v-if="item.outcome" class="outcome-tag" :class="'outcome-' + item.outcome">{{ outcomeName(item.outcome) }}</span></div><p>{{ item.summary || "该事件没有附加说明。" }}</p><small>{{ formatDate(item.occurredAt) }} · {{ item.subject?.name || item.subject?.type || "业务事件" }}</small></div>
+                  <div class="history-row-content"><div class="history-row-title"><strong>{{ evName(item.type) }}</strong><span class="phase-tag">{{ phaseName(item.phase) }}</span><span v-if="item.outcome" class="outcome-tag" :class="'outcome-' + item.outcome">{{ outcomeName(item.outcome) }}</span></div><p>{{ item.summary || t("notifications.selectHint") }}</p><small>{{ formatDate(item.occurredAt) }}</small></div>
                 </article>
               </AppScrollArea>
             </section>
             <section class="history-panel">
               <header class="panel-heading">
                 <span class="panel-heading-icon"><AppIcon name="bell-ring" :size="16" /></span>
-                <div class="panel-heading-copy"><h3>投递记录</h3><p>逐条查看渠道发送结果与重试状态</p></div>
-                <select v-model="deliveryFilter" class="filter-select" aria-label="按投递状态筛选"><option value="all">全部状态</option><option value="succeeded">已送达</option><option value="pending">等待发送</option><option value="sending">发送中</option><option value="failed">发送失败</option></select>
+                <div class="panel-heading-copy"><h3>{{ t("notifications.recordsTitle") }}</h3><p>{{ t("notifications.recordsHint") }}</p></div>
+                <select v-model="deliveryFilter" class="filter-select" :aria-label="t('notifications.recordsTitle')"><option value="all">{{ t("notifications.filterAll") }}</option><option value="succeeded">{{ t("notifications.deliverySucceeded") }}</option><option value="pending">{{ t("notifications.deliveryPending") }}</option><option value="sending">{{ t("notifications.deliverySending") }}</option><option value="failed">{{ t("notifications.deliveryFailed") }}</option></select>
               </header>
               <AppScrollArea root-class="panel-scroll" type="auto">
-                <div v-if="!filteredDeliveries.length" class="empty-history"><span class="empty-icon"><AppIcon name="activity" :size="22" /></span><strong>{{ deliveries.length ? "没有符合条件的记录" : "还没有投递记录" }}</strong><p>{{ deliveries.length ? "试试切换其他投递状态。" : "当事件匹配到启用的规则时，会在这里创建投递记录。" }}</p></div>
+                <div v-if="!filteredDeliveries.length" class="empty-history"><span class="empty-icon"><AppIcon name="activity" :size="22" /></span><strong>{{ deliveries.length ? t("notifications.recordsNoMatch") : t("notifications.emptyRecords") }}</strong><p>{{ deliveries.length ? t("notifications.recordsNoMatchHint") : t("notifications.emptyRecordsHint") }}</p></div>
                 <article v-for="item in filteredDeliveries" :key="item.id" class="delivery-row">
                   <span class="delivery-status-icon" :class="'delivery-' + item.status"><AppIcon :name="statusIcon(item.status)" :size="16" /></span>
-                  <div class="history-row-content"><div class="history-row-title"><strong>{{ channelName(item.channelId) }}</strong><span class="status-pill small-pill" :class="'delivery-pill-' + item.status">{{ statusName(item.status) }}</span></div><p>{{ events.find(event => event.id === item.eventId)?.summary || evName(events.find(event => event.id === item.eventId)?.type || "通知事件") }}</p><small>{{ formatDate(item.updatedAt) }} · 已尝试 {{ item.attemptCount }} 次</small><p v-if="item.lastError" class="delivery-error">{{ item.lastError }}</p></div>
-                  <button v-if="item.status === 'failed'" class="button retry-button" @click="retry(item.id)"><AppIcon name="refresh-cw" :size="14" /> 重试</button>
+                  <div class="history-row-content"><div class="history-row-title"><strong>{{ channelName(item.channelId) }}</strong><span class="status-pill small-pill" :class="'delivery-pill-' + item.status">{{ statusName(item.status) }}</span></div><p>{{ events.find(event => event.id === item.eventId)?.summary || evName(events.find(event => event.id === item.eventId)?.type || "") }}</p><small>{{ formatDate(item.updatedAt) }} · {{ t("notifications.attemptCount", { count: item.attemptCount }) }}</small><p v-if="item.lastError" class="delivery-error">{{ item.lastError }}</p></div>
+                  <button v-if="item.status === 'failed'" class="button retry-button" @click="retry(item.id)"><AppIcon name="refresh-cw" :size="14" /> {{ t("notifications.retry") }}</button>
                 </article>
               </AppScrollArea>
             </section>
