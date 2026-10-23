@@ -261,7 +261,7 @@ onMounted(() => {
         </nav>
 
         <section v-if="tab === 'channels'" class="workspace-layout">
-          <aside class="directory-panel">
+          <AppScrollArea root-class="directory-panel" type="always">
             <div class="panel-heading">
               <div><h3>通知渠道</h3><p>保存可复用的通知目标</p></div>
               <button class="icon-button" title="新建渠道" aria-label="新建渠道" @click="resetC">＋</button>
@@ -277,7 +277,7 @@ onMounted(() => {
               <span class="status-dot" :class="{ online: item.enabled }" :title="item.enabled ? '已启用' : '已停用'"></span>
             </button>
             <div v-if="channels.length" class="directory-bottom"><span class="status-dot online"></span> {{ enabledChannels.length }} 个渠道已启用</div>
-          </aside>
+          </AppScrollArea>
 
           <form class="editor-panel" @submit.prevent="saveC">
             <header class="editor-heading">
@@ -285,7 +285,7 @@ onMounted(() => {
               <div class="editor-heading-copy"><div class="editor-kicker">{{ cid ? "CHANNEL SETTINGS" : "NEW CHANNEL" }}</div><h3>{{ cid ? "编辑通知渠道" : "创建通知渠道" }}</h3><p>配置接收通知的目标地址和消息格式。</p></div>
               <div class="editor-heading-tools"><span class="status-pill" :class="ch.enabled ? 'pill-enabled' : 'pill-disabled'"><span class="status-dot" :class="{ online: ch.enabled }"></span>{{ ch.enabled ? "已启用" : "已停用" }}</span></div>
             </header>
-            <div class="editor-body">
+            <AppScrollArea root-class="editor-scroll" type="always"><div class="editor-body">
               <section class="form-section">
                 <div class="section-title"><span>01</span><div><h4>基本信息</h4><p>为渠道命名并选择接入类型。</p></div></div>
                 <div class="field-grid">
@@ -325,7 +325,7 @@ onMounted(() => {
                 <div class="section-title"><span>03</span><div><h4>渠道状态</h4><p>停用后规则仍保留，但不会向此渠道投递。</p></div></div>
                 <label class="toggle-row"><span class="toggle-copy"><strong>启用此渠道</strong><small>启用后，匹配的通知规则可以向该目标发送消息。</small></span><input v-model="ch.enabled" type="checkbox" class="toggle-input" /><span class="toggle-track"></span></label>
               </section>
-            </div>
+            </div></AppScrollArea>
             <footer class="editor-footer">
               <button type="button" class="button secondary" @click="resetC">新建空白表单</button>
               <button v-if="cid" type="button" class="button danger-ghost" @click="deleteC(channels.find(x => x.id === cid)!)"><AppIcon name="trash-2" :size="15" /> 删除</button>
@@ -489,10 +489,14 @@ onMounted(() => {
 .tab-count { display: inline-grid; place-items: center; min-width: 21px; height: 21px; padding: 0 5px; border-radius: 6px; background: var(--surface-2); color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
 .tab-alert { display: inline-grid; place-items: center; min-width: 19px; height: 19px; padding: 0 4px; border-radius: 6px; background: var(--red-soft); color: var(--red); font-size: 10px; }
 .workspace-layout { display: grid; flex: 0 0 auto; grid-template-columns: minmax(245px, .72fr) minmax(0, 1.8fr); align-items: stretch; gap: 16px; min-width: 0; min-height: 280px; height: clamp(280px, calc(100dvh - var(--admin-topbar-space, 104px) - 180px), 720px); max-height: none; }
-.editor-panel { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.editor-panel { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; overflow: hidden; }
 .editor-body { flex: 0 0 auto; align-content: start; }
 .directory-panel, .editor-panel, .history-panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
-.directory-panel { position: static; min-width: 0; min-height: 0; height: 100%; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.directory-panel { position: static; min-width: 0; min-height: 0; height: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface); box-shadow: var(--shadow); }
+.directory-panel :deep(.app-scroll-area-viewport) { overflow-x: hidden; overflow-y: scroll; scrollbar-gutter: stable; }
+.editor-scroll { flex: 1 1 auto; min-width: 0; min-height: 0; overflow: hidden; }
+.editor-scroll :deep(.app-scroll-area-viewport) { overflow-x: hidden; overflow-y: scroll; scrollbar-gutter: stable; }
+.editor-scroll .editor-body { min-height: min-content; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 19px 19px 16px; }
 .panel-heading h3 { margin: 0; font-size: 13px; font-weight: 780; }
 .panel-heading p { margin: 5px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
@@ -627,8 +631,11 @@ onMounted(() => {
 @media (max-width: 900px) {
   .webhook-page { min-height: 0; }
   .workspace-layout, .history-workspace { flex: 0 0 auto; align-items: start; height: auto; max-height: none; }
-  .editor-panel { display: block; overflow: visible; }
-  .directory-panel { overflow: visible; }
+  .editor-panel { display: flex; height: auto; overflow: visible; }
+  .directory-panel { height: auto; overflow: visible; }
+  .directory-panel :deep(.app-scroll-area-viewport) { overflow: visible; }
+  .editor-scroll { flex: 0 0 auto; min-height: auto; overflow: visible; }
+  .editor-scroll :deep(.app-scroll-area-viewport) { height: auto; overflow: visible; }
   .editor-body { flex: 0 0 auto; }
   .workspace-layout, .history-workspace { grid-template-columns: minmax(0, 1fr); }
   .directory-panel { position: static; }
