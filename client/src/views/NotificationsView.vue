@@ -5,6 +5,7 @@ import { useRouter } from "vue-router";
 import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AppFooter from "@/components/AppFooter.vue";
+import AppScrollArea from "@/components/AppScrollArea.vue";
 import CodeMirrorField from "@/components/CodeMirrorField.vue";
 import WebhookBodyEditor from "@/features/webhooks/components/WebhookBodyEditor.vue";
 import { api, type NotificationChannel, type NotificationRule, type WebhookConfig } from "@/api/client";
@@ -222,27 +223,35 @@ onMounted(() => {
 
       <section class="overview-grid" aria-label="通知概览">
         <article class="overview-card">
-          <span class="overview-icon channel-icon"><AppIcon name="network" :size="18" /></span>
+          <div class="overview-top">
+            <span class="overview-icon channel-icon"><AppIcon name="network" :size="18" /></span>
+            <div class="overview-value">{{ enabledChannels.length }}<span> / {{ channels.length }}</span></div>
+          </div>
           <div class="overview-label">通知渠道</div>
-          <div class="overview-value">{{ enabledChannels.length }}<span> / {{ channels.length }}</span></div>
           <div class="overview-foot">已启用渠道</div>
         </article>
         <article class="overview-card">
-          <span class="overview-icon rule-icon"><AppIcon name="route" :size="18" /></span>
+          <div class="overview-top">
+            <span class="overview-icon rule-icon"><AppIcon name="route" :size="18" /></span>
+            <div class="overview-value">{{ enabledRules.length }}<span> / {{ rules.length }}</span></div>
+          </div>
           <div class="overview-label">生效规则</div>
-          <div class="overview-value">{{ enabledRules.length }}<span> / {{ rules.length }}</span></div>
           <div class="overview-foot">按事件条件自动匹配</div>
         </article>
         <article class="overview-card">
-          <span class="overview-icon delivery-icon"><AppIcon name="activity" :size="18" /></span>
+          <div class="overview-top">
+            <span class="overview-icon delivery-icon"><AppIcon name="activity" :size="18" /></span>
+            <div class="overview-value">{{ pendingDeliveries.length }}</div>
+          </div>
           <div class="overview-label">等待投递</div>
-          <div class="overview-value">{{ pendingDeliveries.length }}</div>
           <div class="overview-foot">待发送或正在发送</div>
         </article>
         <article class="overview-card" :class="{ 'has-failures': failedDeliveries.length > 0 }">
-          <span class="overview-icon failure-icon"><AppIcon name="circle-alert" :size="18" /></span>
+          <div class="overview-top">
+            <span class="overview-icon failure-icon"><AppIcon name="circle-alert" :size="18" /></span>
+            <div class="overview-value">{{ failedDeliveries.length }}</div>
+          </div>
           <div class="overview-label">投递失败</div>
-          <div class="overview-value">{{ failedDeliveries.length }}</div>
           <div class="overview-foot">{{ failedDeliveries.length ? "需要检查或重新发送" : "当前没有失败投递" }}</div>
         </article>
       </section>
@@ -253,181 +262,181 @@ onMounted(() => {
       </section>
       <template v-else>
         <section class="workspace-region">
-        <nav class="workspace-tabs" aria-label="通知管理分类">
-          <button :class="{ active: tab === 'channels' }" @click="tab = 'channels'">
-            <AppIcon name="network" :size="16" /> 通知渠道 <span class="tab-count">{{ channels.length }}</span>
-          </button>
-          <button :class="{ active: tab === 'rules' }" @click="tab = 'rules'">
-            <AppIcon name="route" :size="16" /> 触发规则 <span class="tab-count">{{ rules.length }}</span>
-          </button>
-          <button :class="{ active: tab === 'history' }" @click="tab = 'history'">
-            <AppIcon name="activity" :size="16" /> 事件与投递 <span class="tab-count">{{ deliveries.length }}</span>
-            <span v-if="failedDeliveries.length" class="tab-alert">{{ failedDeliveries.length }}</span>
-          </button>
-        </nav>
-
-        <section v-if="tab === 'channels'" class="workspace-layout">
-          <AppScrollArea root-class="directory-panel" type="always">
-            <div class="panel-heading">
-              <div><h3>通知渠道</h3><p>保存可复用的通知目标</p></div>
-              <button class="icon-button" title="新建渠道" aria-label="新建渠道" @click="resetC">＋</button>
-            </div>
-            <div v-if="!channels.length" class="empty-directory">
-              <span class="empty-icon"><AppIcon name="network" :size="22" /></span>
-              <strong>还没有通知渠道</strong><p>添加钉钉机器人或 HTTP Webhook，供规则调用。</p>
-              <button class="button primary full" @click="resetC">创建第一个渠道</button>
-            </div>
-            <button v-for="item in channels" :key="item.id" class="directory-item" :class="{ selected: cid === item.id }" @click="editC(item)">
-              <span class="provider-icon"><AppIcon :name="item.provider === 'dingtalk' ? 'bell-ring' : 'globe'" :size="18" /></span>
-              <span class="directory-content"><strong>{{ item.name }}</strong><small>{{ providerName(item.provider) }}</small><small class="url-preview">{{ shortUrl(item.config.url) || "尚未配置 URL" }}</small></span>
-              <span class="status-dot" :class="{ online: item.enabled }" :title="item.enabled ? '已启用' : '已停用'"></span>
+          <nav class="workspace-tabs" aria-label="通知管理分类">
+            <button :class="{ active: tab === 'channels' }" @click="tab = 'channels'">
+              <AppIcon name="network" :size="16" /> 通知渠道 <span class="tab-count">{{ channels.length }}</span>
             </button>
-            <div v-if="channels.length" class="directory-bottom"><span class="status-dot online"></span> {{ enabledChannels.length }} 个渠道已启用</div>
-          </AppScrollArea>
+            <button :class="{ active: tab === 'rules' }" @click="tab = 'rules'">
+              <AppIcon name="route" :size="16" /> 触发规则 <span class="tab-count">{{ rules.length }}</span>
+            </button>
+            <button :class="{ active: tab === 'history' }" @click="tab = 'history'">
+              <AppIcon name="activity" :size="16" /> 事件与投递 <span class="tab-count">{{ deliveries.length }}</span>
+              <span v-if="failedDeliveries.length" class="tab-alert">{{ failedDeliveries.length }}</span>
+            </button>
+          </nav>
 
-          <form v-if="channelEditorOpen" class="editor-panel" @submit.prevent="saveC">
-            <header class="editor-heading">
-              <div class="editor-title-mark"><AppIcon name="network" :size="19" /></div>
-              <div class="editor-heading-copy"><div class="editor-kicker">{{ cid ? "CHANNEL SETTINGS" : "NEW CHANNEL" }}</div><h3>{{ cid ? "编辑通知渠道" : "创建通知渠道" }}</h3><p>配置接收通知的目标地址和消息格式。</p></div>
-              <div class="editor-heading-tools"><span class="status-pill" :class="ch.enabled ? 'pill-enabled' : 'pill-disabled'"><span class="status-dot" :class="{ online: ch.enabled }"></span>{{ ch.enabled ? "已启用" : "已停用" }}</span></div>
-            </header>
-            <AppScrollArea root-class="editor-scroll" type="always"><div class="editor-body">
-              <section class="form-section">
-                <div class="section-title"><span>01</span><div><h4>基本信息</h4><p>为渠道命名并选择接入类型。</p></div></div>
-                <div class="field-grid">
-                  <label class="field"><span>渠道名称 <i>*</i></span><input v-model="ch.name" required maxlength="80" placeholder="例如：生产环境钉钉群" /></label>
-                  <label class="field"><span>通知类型 <i>*</i></span><select v-model="ch.config.provider"><option value="dingtalk">钉钉机器人</option><option value="custom">通用 HTTP Webhook</option></select></label>
-                </div>
-              </section>
+          <section v-if="tab === 'channels'" class="workspace-layout">
+            <AppScrollArea root-class="directory-panel" type="always">
+              <div class="panel-heading">
+                <div><h3>通知渠道</h3><p>保存可复用的通知目标</p></div>
+                <button class="icon-button" title="新建渠道" aria-label="新建渠道" @click="resetC">＋</button>
+              </div>
+              <div v-if="!channels.length" class="empty-directory">
+                <span class="empty-icon"><AppIcon name="network" :size="22" /></span>
+                <strong>还没有通知渠道</strong><p>添加钉钉机器人或 HTTP Webhook，供规则调用。</p>
+                <button class="button primary full" @click="resetC">创建第一个渠道</button>
+              </div>
+              <button v-for="item in channels" :key="item.id" class="directory-item" :class="{ selected: cid === item.id }" @click="editC(item)">
+                <span class="provider-icon"><AppIcon :name="item.provider === 'dingtalk' ? 'bell-ring' : 'globe'" :size="18" /></span>
+                <span class="directory-content"><strong>{{ item.name }}</strong><small>{{ providerName(item.provider) }}</small><small class="url-preview">{{ shortUrl(item.config.url) || "尚未配置 URL" }}</small></span>
+                <span class="status-dot" :class="{ online: item.enabled }" :title="item.enabled ? '已启用' : '已停用'"></span>
+              </button>
+              <div v-if="channels.length" class="directory-bottom"><span class="status-dot online"></span> {{ enabledChannels.length }} 个渠道已启用</div>
+            </AppScrollArea>
 
-              <section class="form-section">
-                <div class="section-title"><span>02</span><div><h4>连接配置</h4><p>通知目标的地址和身份验证信息。</p></div></div>
-                <label class="field">
-                  <span>Webhook URL <i>*</i></span>
-                  <CodeMirrorField :model-value="ch.config.url" single-line :height="42" language="text" aria-label="Webhook URL" :placeholder="ch.config.provider === 'dingtalk' ? 'https://oapi.dingtalk.com/robot/send?access_token=…' : 'https://example.com/hooks/pacpilot'" @update:model-value="ch.config.url = $event" />
-                  <small class="field-hint"><AppIcon name="shield-check" :size="13" /> URL 中的敏感参数会在页面和日志中脱敏。</small>
-                </label>
-                <template v-if="ch.config.provider === 'dingtalk'">
-                  <label class="field">
-                    <span>加签密钥 <em>可选</em></span>
-                    <div class="secret-input"><input v-model="ch.config.dingTalkSecret" :type="showSecret ? 'text' : 'password'" autocomplete="new-password" :placeholder="cid && channels.find(x => x.id === cid)?.hasSecret ? '已保存密钥，留空则保持不变' : '如果启用了加签，请填写密钥'" /><button type="button" class="reveal-button" :aria-label="showSecret ? '隐藏密钥' : '显示密钥'" @click="showSecret = !showSecret"><AppIcon :name="showSecret ? 'eye-off' : 'eye'" :size="16" /></button></div>
-                    <small class="field-hint">出于安全考虑，已保存的密钥不会回显。</small>
-                  </label>
-                  <label class="field"><span>消息格式</span><select v-model="ch.config.dingTalkMessageType"><option value="text">纯文本</option><option value="markdown">Markdown</option></select></label>
-                  <label class="field"><span>通知消息模板</span><CodeMirrorField :model-value="ch.config.messageTemplate" language="text" :height="120" aria-label="通知消息模板" placeholder="事件：{{event}}&#10;状态：{{status}}&#10;说明：{{message}}" @update:model-value="ch.config.messageTemplate = $event" /><small class="field-hint">支持变量：<code v-pre>{{event}}</code>、<code v-pre>{{status}}</code>、<code v-pre>{{message}}</code>、<code v-pre>{{timestamp}}</code>、<code v-pre>{{ok}}</code>。</small></label>
-                  <label class="field"><span>测试消息内容</span><CodeMirrorField :model-value="ch.config.testMessageTemplate" language="text" :height="82" aria-label="测试消息内容" placeholder="PacPilot 测试通知" @update:model-value="ch.config.testMessageTemplate = $event" /></label>
-                </template>
-                <template v-else>
+            <form v-if="channelEditorOpen" class="editor-panel" @submit.prevent="saveC">
+              <header class="editor-heading">
+                <div class="editor-title-mark"><AppIcon name="network" :size="19" /></div>
+                <div class="editor-heading-copy"><div class="editor-kicker">{{ cid ? "CHANNEL SETTINGS" : "NEW CHANNEL" }}</div><h3>{{ cid ? "编辑通知渠道" : "创建通知渠道" }}</h3><p>配置接收通知的目标地址和消息格式。</p></div>
+                <div class="editor-heading-tools"><span class="status-pill" :class="ch.enabled ? 'pill-enabled' : 'pill-disabled'"><span class="status-dot" :class="{ online: ch.enabled }"></span>{{ ch.enabled ? "已启用" : "已停用" }}</span></div>
+              </header>
+              <AppScrollArea root-class="editor-scroll" type="always"><div class="editor-body">
+                <section class="form-section">
+                  <div class="section-title"><span>01</span><div><h4>基本信息</h4><p>为渠道命名并选择接入类型。</p></div></div>
                   <div class="field-grid">
-                    <label class="field"><span>HTTP 方法</span><select v-model="ch.config.method"><option value="POST">POST</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option></select></label>
-                    <label class="field"><span>内容类型</span><div class="field-static"><AppIcon name="file-text" :size="15" /> application/json</div></label>
+                    <label class="field"><span>渠道名称 <i>*</i></span><input v-model="ch.name" required maxlength="80" placeholder="例如：生产环境钉钉群" /></label>
+                    <label class="field"><span>通知类型 <i>*</i></span><select v-model="ch.config.provider"><option value="dingtalk">钉钉机器人</option><option value="custom">通用 HTTP Webhook</option></select></label>
                   </div>
-                  <label class="field"><span>自定义请求头 <em>JSON</em></span><WebhookBodyEditor :model-value="ch.config.headers" :height="126" placeholder='{"Authorization":"Bearer …"}' @update:model-value="ch.config.headers = $event" /><small class="field-hint">敏感请求头在重新编辑时会显示脱敏占位符。</small></label>
-                  <label class="field"><span>请求体模板 <em>JSON</em></span><WebhookBodyEditor :model-value="ch.config.body" :height="190" :sample="JSON.stringify({ event: '{{event}}', status: '{{status}}', ok: '{{ok}}', message: '{{message}}', timestamp: '{{timestamp}}' }, null, 2)" placeholder='{"event":"{{event}}","status":"{{status}}","message":"{{message}}"}' @update:model-value="ch.config.body = $event" /><small class="field-hint">请求体需要是有效 JSON，可使用事件变量自动填充通知内容。</small></label>
-                  <label class="field"><span>测试请求体 <em>JSON</em></span><WebhookBodyEditor :model-value="ch.config.testBody" :height="144" :sample='JSON.stringify({ event: "{{event}}", status: "{{status}}", ok: "{{ok}}", message: "{{message}}", timestamp: "{{timestamp}}" }, null, 2)' placeholder='{"event":"PacPilot test","status":"test"}' @update:model-value="ch.config.testBody = $event" /></label>
-                </template>
-              </section>
-              <section class="form-section compact-section">
-                <div class="section-title"><span>03</span><div><h4>渠道状态</h4><p>停用后规则仍保留，但不会向此渠道投递。</p></div></div>
-                <label class="toggle-row"><span class="toggle-copy"><strong>启用此渠道</strong><small>启用后，匹配的通知规则可以向该目标发送消息。</small></span><input v-model="ch.enabled" type="checkbox" class="toggle-input" /><span class="toggle-track"></span></label>
-              </section>
-            </div></AppScrollArea>
-            <footer class="editor-footer">
-              <button type="button" class="button secondary" @click="resetC">新建空白表单</button>
-              <button v-if="cid" type="button" class="button danger-ghost" @click="deleteC(channels.find(x => x.id === cid)!)"><AppIcon name="trash-2" :size="15" /> 删除</button>
-              <span class="footer-spacer"></span>
-              <button type="button" class="button secondary" :disabled="!cid || testingId === cid" @click="testC(channels.find(x => x.id === cid)!)"><AppIcon :name="testingId === cid ? 'loader-circle' : 'activity'" :size="15" :class="{ spin: testingId === cid }" /> {{ testingId === cid ? "正在测试…" : "测试发送" }}</button>
-              <button type="submit" class="button primary" :disabled="busy || !ch.name.trim() || !ch.config.url.trim()"><AppIcon name="save" :size="15" /> {{ busy ? "正在保存…" : "保存渠道" }}</button>
-            </footer>
-            <div v-if="cid && !channelReady" class="editor-note"><AppIcon name="info" :size="15" /> 请补齐 URL；钉钉渠道还需要有效的机器人配置后才能测试发送。</div>
-          </form>
-          <section v-if="!channelEditorOpen" class="editor-panel editor-placeholder" aria-live="polite"><div class="placeholder-icon"><AppIcon name="file-text" :size="22" /></div><p>暂无可查看信息,请选中一条再试吧</p></section>
-        </section>
+                </section>
 
-        <section v-else-if="tab === 'rules'" class="workspace-layout rule-layout">
-          <AppScrollArea root-class="directory-panel" type="always">
-            <div class="panel-heading"><div><h3>触发规则</h3><p>决定何时向哪些渠道发送</p></div><button class="icon-button" title="新建规则" aria-label="新建规则" @click="resetR">＋</button></div>
-            <div v-if="!rules.length" class="empty-directory"><span class="empty-icon"><AppIcon name="route" :size="22" /></span><strong>还没有通知规则</strong><p>创建规则，把业务事件路由到通知渠道。</p><button class="button primary full" @click="resetR">创建第一条规则</button></div>
-            <button v-for="item in rules" :key="item.id" class="directory-item rule-directory-item" :class="{ selected: rid === item.id }" @click="editR(item)">
-              <span class="provider-icon rule-provider"><AppIcon name="route" :size="18" /></span>
-              <span class="directory-content"><strong>{{ item.name }}</strong><small>{{ evName(item.eventType) }} · {{ phaseName(item.phase) }}</small><small>{{ outcomeName(item.outcome) }} · {{ item.channelIds.length }} 个通知渠道</small></span>
-              <span class="status-dot" :class="{ online: item.enabled }" :title="item.enabled ? '已启用' : '已停用'"></span>
-            </button>
-            <div v-if="rules.length" class="directory-bottom"><span class="status-dot online"></span> {{ enabledRules.length }} 条规则正在生效</div>
-          </AppScrollArea>
-
-          <form v-if="ruleEditorOpen" class="editor-panel" @submit.prevent="saveR">
-            <header class="editor-heading">
-              <div class="editor-title-mark rule-title-mark"><AppIcon name="route" :size="19" /></div>
-              <div class="editor-heading-copy"><div class="editor-kicker">{{ rid ? "RULE SETTINGS" : "NEW RULE" }}</div><h3>{{ rid ? "编辑触发规则" : "创建触发规则" }}</h3><p>用简单条件定义事件触发时机与通知目标。</p></div>
-              <span class="status-pill" :class="rule.enabled ? 'pill-enabled' : 'pill-disabled'"><span class="status-dot" :class="{ online: rule.enabled }"></span>{{ rule.enabled ? "已启用" : "已停用" }}</span>
-            </header>
-            <AppScrollArea root-class="editor-scroll" type="always"><div class="editor-body">
-              <section class="form-section">
-                <div class="section-title"><span>01</span><div><h4>规则信息</h4><p>给规则一个容易识别的名称。</p></div></div>
-                <label class="field"><span>规则名称 <i>*</i></span><input v-model="rule.name" required maxlength="80" placeholder="例如：任务失败时通知运维群" /></label>
-              </section>
-              <section class="form-section">
-                <div class="section-title"><span>02</span><div><h4>触发条件</h4><p>只有同时满足以下条件时，规则才会触发。</p></div></div>
-                <label class="field"><span>业务事件</span><select :value="rule.eventType" @change="setEvent(($event.target as HTMLSelectElement).value)"><option v-for="item in catalog" :key="item.type" :value="item.type">{{ item.label }}</option></select></label>
-                <div class="field-grid">
-                  <label class="field"><span>触发阶段</span><select v-model="rule.phase"><option v-for="item in phases" :key="item" :value="item">{{ phaseName(item) }}</option></select></label>
-                  <label class="field"><span>执行结果</span><select v-model="rule.outcome"><option value="any">不限制结果</option><option v-for="item in outcomes" :key="item" :value="item">{{ outcomeName(item) }}</option></select></label>
-                </div>
-                <div class="condition-hint"><AppIcon name="info" :size="16" /><div><strong>{{ phaseName(rule.phase) }} · {{ outcomeName(rule.outcome) }}</strong><p>{{ phaseDescription }}</p></div></div>
-                <label class="field"><span>业务对象类型 <em>可选条件</em></span><input v-model="rule.subjectType" placeholder="例如 task；留空表示匹配所有对象类型" /><small class="field-hint">例如 task、configuration 或 request。留空时不按对象类型过滤。</small></label>
-              </section>
-              <section class="form-section">
-                <div class="section-title"><span>03</span><div><h4>通知目标</h4><p>可同时选择多个已启用的渠道。</p></div></div>
-                <div v-if="!channels.length" class="inline-empty"><AppIcon name="network" :size="18" /><div><strong>还没有可用渠道</strong><p>先创建通知渠道，再回来配置规则。</p></div><button type="button" class="button secondary" @click="tab = 'channels'">前往渠道设置</button></div>
-                <div v-else class="channel-options">
-                  <label v-for="item in channels" :key="item.id" class="channel-option" :class="{ checked: rule.channelIds.includes(item.id), unavailable: !item.enabled }">
-                    <input v-model="rule.channelIds" type="checkbox" :value="item.id" :disabled="!item.enabled && !rule.channelIds.includes(item.id)" />
-                    <span class="option-icon"><AppIcon :name="item.provider === 'dingtalk' ? 'bell-ring' : 'globe'" :size="17" /></span>
-                    <span class="option-copy"><strong>{{ item.name }}</strong><small>{{ providerName(item.provider) }} · {{ item.enabled ? "已启用" : "已停用" }}</small></span>
-                    <AppIcon v-if="rule.channelIds.includes(item.id)" name="circle-check" :size="17" class="option-check" />
+                <section class="form-section">
+                  <div class="section-title"><span>02</span><div><h4>连接配置</h4><p>通知目标的地址和身份验证信息。</p></div></div>
+                  <label class="field">
+                    <span>Webhook URL <i>*</i></span>
+                    <CodeMirrorField :model-value="ch.config.url" single-line :height="42" language="text" aria-label="Webhook URL" :placeholder="ch.config.provider === 'dingtalk' ? 'https://oapi.dingtalk.com/robot/send?access_token=…' : 'https://example.com/hooks/pacpilot'" @update:model-value="ch.config.url = $event" />
+                    <small class="field-hint"><AppIcon name="shield-check" :size="13" /> URL 中的敏感参数会在页面和日志中脱敏。</small>
                   </label>
-                </div>
-                <small v-if="rule.channelIds.length" class="field-hint">将发送到 {{ rule.channelIds.length }} 个渠道：{{ rule.channelIds.map(channelName).join("、") }}。</small>
-              </section>
-              <section class="form-section compact-section">
-                <div class="section-title"><span>04</span><div><h4>规则状态</h4><p>停用后保留配置，但不再匹配新事件。</p></div></div>
-                <label class="toggle-row"><span class="toggle-copy"><strong>启用此规则</strong><small>启用后，符合条件的新事件将创建通知投递。</small></span><input v-model="rule.enabled" type="checkbox" class="toggle-input" /><span class="toggle-track"></span></label>
-              </section>
-            </div></AppScrollArea>
-            <footer class="editor-footer">
-              <button type="button" class="button secondary" @click="resetR">新建空白表单</button>
-              <button v-if="rid" type="button" class="button danger-ghost" @click="deleteR(rules.find(x => x.id === rid)!)"><AppIcon name="trash-2" :size="15" /> 删除</button>
-              <span class="footer-spacer"></span>
-              <button type="submit" class="button primary" :disabled="busy || !rule.name.trim() || !rule.channelIds.length"><AppIcon name="save" :size="15" /> {{ busy ? "正在保存…" : "保存规则" }}</button>
-            </footer>
-          </form>
-          <section v-if="!ruleEditorOpen" class="editor-panel editor-placeholder" aria-live="polite"><div class="placeholder-icon"><AppIcon name="file-text" :size="22" /></div><p>暂无可查看信息,请选中一条再试吧</p></section>
-        </section>
+                  <template v-if="ch.config.provider === 'dingtalk'">
+                    <label class="field">
+                      <span>加签密钥 <em>可选</em></span>
+                      <div class="secret-input"><input v-model="ch.config.dingTalkSecret" :type="showSecret ? 'text' : 'password'" autocomplete="new-password" :placeholder="cid && channels.find(x => x.id === cid)?.hasSecret ? '已保存密钥，留空则保持不变' : '如果启用了加签，请填写密钥'" /><button type="button" class="reveal-button" :aria-label="showSecret ? '隐藏密钥' : '显示密钥'" @click="showSecret = !showSecret"><AppIcon :name="showSecret ? 'eye-off' : 'eye'" :size="16" /></button></div>
+                      <small class="field-hint">出于安全考虑，已保存的密钥不会回显。</small>
+                    </label>
+                    <label class="field"><span>消息格式</span><select v-model="ch.config.dingTalkMessageType"><option value="text">纯文本</option><option value="markdown">Markdown</option></select></label>
+                    <label class="field"><span>通知消息模板</span><CodeMirrorField :model-value="ch.config.messageTemplate" language="text" :height="120" aria-label="通知消息模板" placeholder="事件：{{event}}&#10;状态：{{status}}&#10;说明：{{message}}" @update:model-value="ch.config.messageTemplate = $event" /><small class="field-hint">支持变量：<code v-pre>{{event}}</code>、<code v-pre>{{status}}</code>、<code v-pre>{{message}}</code>、<code v-pre>{{timestamp}}</code>、<code v-pre>{{ok}}</code>。</small></label>
+                    <label class="field"><span>测试消息内容</span><CodeMirrorField :model-value="ch.config.testMessageTemplate" language="text" :height="82" aria-label="测试消息内容" placeholder="PacPilot 测试通知" @update:model-value="ch.config.testMessageTemplate = $event" /></label>
+                  </template>
+                  <template v-else>
+                    <div class="field-grid">
+                      <label class="field"><span>HTTP 方法</span><select v-model="ch.config.method"><option value="POST">POST</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option></select></label>
+                      <label class="field"><span>内容类型</span><div class="field-static"><AppIcon name="file-text" :size="15" /> application/json</div></label>
+                    </div>
+                    <label class="field"><span>自定义请求头 <em>JSON</em></span><WebhookBodyEditor :model-value="ch.config.headers" :height="126" placeholder='{"Authorization":"Bearer …"}' @update:model-value="ch.config.headers = $event" /><small class="field-hint">敏感请求头在重新编辑时会显示脱敏占位符。</small></label>
+                    <label class="field"><span>请求体模板 <em>JSON</em></span><WebhookBodyEditor :model-value="ch.config.body" :height="190" :sample="JSON.stringify({ event: '{{event}}', status: '{{status}}', ok: '{{ok}}', message: '{{message}}', timestamp: '{{timestamp}}' }, null, 2)" placeholder='{"event":"{{event}}","status":"{{status}}","message":"{{message}}"}' @update:model-value="ch.config.body = $event" /><small class="field-hint">请求体需要是有效 JSON，可使用事件变量自动填充通知内容。</small></label>
+                    <label class="field"><span>测试请求体 <em>JSON</em></span><WebhookBodyEditor :model-value="ch.config.testBody" :height="144" :sample='JSON.stringify({ event: "{{event}}", status: "{{status}}", ok: "{{ok}}", message: "{{message}}", timestamp: "{{timestamp}}" }, null, 2)' placeholder='{"event":"PacPilot test","status":"test"}' @update:model-value="ch.config.testBody = $event" /></label>
+                  </template>
+                </section>
+                <section class="form-section compact-section">
+                  <div class="section-title"><span>03</span><div><h4>渠道状态</h4><p>停用后规则仍保留，但不会向此渠道投递。</p></div></div>
+                  <label class="toggle-row"><span class="toggle-copy"><strong>启用此渠道</strong><small>启用后，匹配的通知规则可以向该目标发送消息。</small></span><input v-model="ch.enabled" type="checkbox" class="toggle-input" /><span class="toggle-track"></span></label>
+                </section>
+              </div></AppScrollArea>
+              <footer class="editor-footer">
+                <button type="button" class="button secondary" @click="resetC">新建空白表单</button>
+                <button v-if="cid" type="button" class="button danger-ghost" @click="deleteC(channels.find(x => x.id === cid)!)"><AppIcon name="trash-2" :size="15" /> 删除</button>
+                <span class="footer-spacer"></span>
+                <button type="button" class="button secondary" :disabled="!cid || testingId === cid" @click="testC(channels.find(x => x.id === cid)!)"><AppIcon :name="testingId === cid ? 'loader-circle' : 'activity'" :size="15" :class="{ spin: testingId === cid }" /> {{ testingId === cid ? "正在测试…" : "测试发送" }}</button>
+                <button type="submit" class="button primary" :disabled="busy || !ch.name.trim() || !ch.config.url.trim()"><AppIcon name="save" :size="15" /> {{ busy ? "正在保存…" : "保存渠道" }}</button>
+              </footer>
+              <div v-if="cid && !channelReady" class="editor-note"><AppIcon name="info" :size="15" /> 请补齐 URL；钉钉渠道还需要有效的机器人配置后才能测试发送。</div>
+            </form>
+            <section v-else class="editor-panel editor-placeholder" aria-live="polite"><div class="placeholder-icon"><AppIcon name="file-text" :size="22" /></div><p>暂无可查看信息,请选中一条再试吧</p></section>
+          </section>
 
-        <section v-else class="history-workspace">
-          <div class="history-column">
-            <AppScrollArea root-class="history-panel" type="always">
-              <header class="panel-heading"><div><h3>最近事件</h3><p>业务系统发布的标准化事件</p></div><span class="neutral-count">{{ events.length }} 条</span></header>
-              <div v-if="!events.length" class="empty-history"><span class="empty-icon"><AppIcon name="activity" :size="22" /></span><strong>暂时没有事件记录</strong><p>当任务或请求产生事件后，记录会显示在这里。</p></div>
-              <article v-for="item in events" :key="item.id" class="event-row">
-                <span class="timeline-marker"><AppIcon :name="item.outcome === 'failure' ? 'circle-alert' : item.outcome === 'success' ? 'circle-check' : 'activity'" :size="16" /></span>
-                <div class="history-row-content"><div class="history-row-title"><strong>{{ evName(item.type) }}</strong><span class="phase-tag">{{ phaseName(item.phase) }}</span><span v-if="item.outcome" class="outcome-tag" :class="'outcome-' + item.outcome">{{ outcomeName(item.outcome) }}</span></div><p>{{ item.summary || "该事件没有附加说明。" }}</p><small>{{ formatDate(item.occurredAt) }} · {{ item.subject?.name || item.subject?.type || "业务事件" }}</small></div>
-              </article>
+          <section v-else-if="tab === 'rules'" class="workspace-layout rule-layout">
+            <AppScrollArea root-class="directory-panel" type="always">
+              <div class="panel-heading"><div><h3>触发规则</h3><p>决定何时向哪些渠道发送</p></div><button class="icon-button" title="新建规则" aria-label="新建规则" @click="resetR">＋</button></div>
+              <div v-if="!rules.length" class="empty-directory"><span class="empty-icon"><AppIcon name="route" :size="22" /></span><strong>还没有通知规则</strong><p>创建规则，把业务事件路由到通知渠道。</p><button class="button primary full" @click="resetR">创建第一条规则</button></div>
+              <button v-for="item in rules" :key="item.id" class="directory-item rule-directory-item" :class="{ selected: rid === item.id }" @click="editR(item)">
+                <span class="provider-icon rule-provider"><AppIcon name="route" :size="18" /></span>
+                <span class="directory-content"><strong>{{ item.name }}</strong><small>{{ evName(item.eventType) }} · {{ phaseName(item.phase) }}</small><small>{{ outcomeName(item.outcome) }} · {{ item.channelIds.length }} 个通知渠道</small></span>
+                <span class="status-dot" :class="{ online: item.enabled }" :title="item.enabled ? '已启用' : '已停用'"></span>
+              </button>
+              <div v-if="rules.length" class="directory-bottom"><span class="status-dot online"></span> {{ enabledRules.length }} 条规则正在生效</div>
             </AppScrollArea>
-          </div>
-          <div class="history-column delivery-column">
-            <AppScrollArea root-class="history-panel" type="always">
-              <header class="panel-heading delivery-heading"><div><h3>投递记录</h3><p>逐条查看渠道发送结果与重试状态</p></div><select v-model="deliveryFilter" class="filter-select" aria-label="按投递状态筛选"><option value="all">全部状态</option><option value="succeeded">已送达</option><option value="pending">等待发送</option><option value="sending">发送中</option><option value="failed">发送失败</option></select></header>
-              <div v-if="!filteredDeliveries.length" class="empty-history"><span class="empty-icon"><AppIcon name="activity" :size="22" /></span><strong>{{ deliveries.length ? "没有符合条件的记录" : "还没有投递记录" }}</strong><p>{{ deliveries.length ? "试试切换其他投递状态。" : "当事件匹配到启用的规则时，会在这里创建投递记录。" }}</p></div>
-              <article v-for="item in filteredDeliveries" :key="item.id" class="delivery-row">
-                <span class="delivery-status-icon" :class="'delivery-' + item.status"><AppIcon :name="statusIcon(item.status)" :size="16" /></span>
-                <div class="history-row-content"><div class="history-row-title"><strong>{{ channelName(item.channelId) }}</strong><span class="status-pill small-pill" :class="'delivery-pill-' + item.status">{{ statusName(item.status) }}</span></div><p>{{ events.find(event => event.id === item.eventId)?.summary || evName(events.find(event => event.id === item.eventId)?.type || "通知事件") }}</p><small>{{ formatDate(item.updatedAt) }} · 已尝试 {{ item.attemptCount }} 次</small><p v-if="item.lastError" class="delivery-error">{{ item.lastError }}</p></div>
-                <button v-if="item.status === 'failed'" class="button retry-button" @click="retry(item.id)"><AppIcon name="refresh-cw" :size="14" /> 重试</button>
-              </article>
-            </AppScrollArea>
-          </div>
-        </section>
+
+            <form v-if="ruleEditorOpen" class="editor-panel" @submit.prevent="saveR">
+              <header class="editor-heading">
+                <div class="editor-title-mark rule-title-mark"><AppIcon name="route" :size="19" /></div>
+                <div class="editor-heading-copy"><div class="editor-kicker">{{ rid ? "RULE SETTINGS" : "NEW RULE" }}</div><h3>{{ rid ? "编辑触发规则" : "创建触发规则" }}</h3><p>用简单条件定义事件触发时机与通知目标。</p></div>
+                <span class="status-pill" :class="rule.enabled ? 'pill-enabled' : 'pill-disabled'"><span class="status-dot" :class="{ online: rule.enabled }"></span>{{ rule.enabled ? "已启用" : "已停用" }}</span>
+              </header>
+              <AppScrollArea root-class="editor-scroll" type="always"><div class="editor-body">
+                <section class="form-section">
+                  <div class="section-title"><span>01</span><div><h4>规则信息</h4><p>给规则一个容易识别的名称。</p></div></div>
+                  <label class="field"><span>规则名称 <i>*</i></span><input v-model="rule.name" required maxlength="80" placeholder="例如：任务失败时通知运维群" /></label>
+                </section>
+                <section class="form-section">
+                  <div class="section-title"><span>02</span><div><h4>触发条件</h4><p>只有同时满足以下条件时，规则才会触发。</p></div></div>
+                  <label class="field"><span>业务事件</span><select :value="rule.eventType" @change="setEvent(($event.target as HTMLSelectElement).value)"><option v-for="item in catalog" :key="item.type" :value="item.type">{{ item.label }}</option></select></label>
+                  <div class="field-grid">
+                    <label class="field"><span>触发阶段</span><select v-model="rule.phase"><option v-for="item in phases" :key="item" :value="item">{{ phaseName(item) }}</option></select></label>
+                    <label class="field"><span>执行结果</span><select v-model="rule.outcome"><option value="any">不限制结果</option><option v-for="item in outcomes" :key="item" :value="item">{{ outcomeName(item) }}</option></select></label>
+                  </div>
+                  <div class="condition-hint"><AppIcon name="info" :size="16" /><div><strong>{{ phaseName(rule.phase) }} · {{ outcomeName(rule.outcome) }}</strong><p>{{ phaseDescription }}</p></div></div>
+                  <label class="field"><span>业务对象类型 <em>可选条件</em></span><input v-model="rule.subjectType" placeholder="例如 task；留空表示匹配所有对象类型" /><small class="field-hint">例如 task、configuration 或 request。留空时不按对象类型过滤。</small></label>
+                </section>
+                <section class="form-section">
+                  <div class="section-title"><span>03</span><div><h4>通知目标</h4><p>可同时选择多个已启用的渠道。</p></div></div>
+                  <div v-if="!channels.length" class="inline-empty"><AppIcon name="network" :size="18" /><div><strong>还没有可用渠道</strong><p>先创建通知渠道，再回来配置规则。</p></div><button type="button" class="button secondary" @click="tab = 'channels'">前往渠道设置</button></div>
+                  <div v-else class="channel-options">
+                    <label v-for="item in channels" :key="item.id" class="channel-option" :class="{ checked: rule.channelIds.includes(item.id), unavailable: !item.enabled }">
+                      <input v-model="rule.channelIds" type="checkbox" :value="item.id" :disabled="!item.enabled && !rule.channelIds.includes(item.id)" />
+                      <span class="option-icon"><AppIcon :name="item.provider === 'dingtalk' ? 'bell-ring' : 'globe'" :size="17" /></span>
+                      <span class="option-copy"><strong>{{ item.name }}</strong><small>{{ providerName(item.provider) }} · {{ item.enabled ? "已启用" : "已停用" }}</small></span>
+                      <AppIcon v-if="rule.channelIds.includes(item.id)" name="circle-check" :size="17" class="option-check" />
+                    </label>
+                  </div>
+                  <small v-if="rule.channelIds.length" class="field-hint">将发送到 {{ rule.channelIds.length }} 个渠道：{{ rule.channelIds.map(channelName).join("、") }}。</small>
+                </section>
+                <section class="form-section compact-section">
+                  <div class="section-title"><span>04</span><div><h4>规则状态</h4><p>停用后保留配置，但不再匹配新事件。</p></div></div>
+                  <label class="toggle-row"><span class="toggle-copy"><strong>启用此规则</strong><small>启用后，符合条件的新事件将创建通知投递。</small></span><input v-model="rule.enabled" type="checkbox" class="toggle-input" /><span class="toggle-track"></span></label>
+                </section>
+              </div></AppScrollArea>
+              <footer class="editor-footer">
+                <button type="button" class="button secondary" @click="resetR">新建空白表单</button>
+                <button v-if="rid" type="button" class="button danger-ghost" @click="deleteR(rules.find(x => x.id === rid)!)"><AppIcon name="trash-2" :size="15" /> 删除</button>
+                <span class="footer-spacer"></span>
+                <button type="submit" class="button primary" :disabled="busy || !rule.name.trim() || !rule.channelIds.length"><AppIcon name="save" :size="15" /> {{ busy ? "正在保存…" : "保存规则" }}</button>
+              </footer>
+            </form>
+            <section v-else class="editor-panel editor-placeholder" aria-live="polite"><div class="placeholder-icon"><AppIcon name="file-text" :size="22" /></div><p>暂无可查看信息,请选中一条再试吧</p></section>
+          </section>
+
+          <section v-else class="history-workspace">
+            <div class="history-column">
+              <AppScrollArea root-class="history-panel" type="always">
+                <header class="panel-heading"><div><h3>最近事件</h3><p>业务系统发布的标准化事件</p></div><span class="neutral-count">{{ events.length }} 条</span></header>
+                <div v-if="!events.length" class="empty-history"><span class="empty-icon"><AppIcon name="activity" :size="22" /></span><strong>暂时没有事件记录</strong><p>当任务或请求产生事件后，记录会显示在这里。</p></div>
+                <article v-for="item in events" :key="item.id" class="event-row">
+                  <span class="timeline-marker"><AppIcon :name="item.outcome === 'failure' ? 'circle-alert' : item.outcome === 'success' ? 'circle-check' : 'activity'" :size="16" /></span>
+                  <div class="history-row-content"><div class="history-row-title"><strong>{{ evName(item.type) }}</strong><span class="phase-tag">{{ phaseName(item.phase) }}</span><span v-if="item.outcome" class="outcome-tag" :class="'outcome-' + item.outcome">{{ outcomeName(item.outcome) }}</span></div><p>{{ item.summary || "该事件没有附加说明。" }}</p><small>{{ formatDate(item.occurredAt) }} · {{ item.subject?.name || item.subject?.type || "业务事件" }}</small></div>
+                </article>
+              </AppScrollArea>
+            </div>
+            <div class="history-column delivery-column">
+              <AppScrollArea root-class="history-panel" type="always">
+                <header class="panel-heading delivery-heading"><div><h3>投递记录</h3><p>逐条查看渠道发送结果与重试状态</p></div><select v-model="deliveryFilter" class="filter-select" aria-label="按投递状态筛选"><option value="all">全部状态</option><option value="succeeded">已送达</option><option value="pending">等待发送</option><option value="sending">发送中</option><option value="failed">发送失败</option></select></header>
+                <div v-if="!filteredDeliveries.length" class="empty-history"><span class="empty-icon"><AppIcon name="activity" :size="22" /></span><strong>{{ deliveries.length ? "没有符合条件的记录" : "还没有投递记录" }}</strong><p>{{ deliveries.length ? "试试切换其他投递状态。" : "当事件匹配到启用的规则时，会在这里创建投递记录。" }}</p></div>
+                <article v-for="item in filteredDeliveries" :key="item.id" class="delivery-row">
+                  <span class="delivery-status-icon" :class="'delivery-' + item.status"><AppIcon :name="statusIcon(item.status)" :size="16" /></span>
+                  <div class="history-row-content"><div class="history-row-title"><strong>{{ channelName(item.channelId) }}</strong><span class="status-pill small-pill" :class="'delivery-pill-' + item.status">{{ statusName(item.status) }}</span></div><p>{{ events.find(event => event.id === item.eventId)?.summary || evName(events.find(event => event.id === item.eventId)?.type || "通知事件") }}</p><small>{{ formatDate(item.updatedAt) }} · 已尝试 {{ item.attemptCount }} 次</small><p v-if="item.lastError" class="delivery-error">{{ item.lastError }}</p></div>
+                  <button v-if="item.status === 'failed'" class="button retry-button" @click="retry(item.id)"><AppIcon name="refresh-cw" :size="14" /> 重试</button>
+                </article>
+              </AppScrollArea>
+            </div>
+          </section>
         </section>
       </template>
       <AppFooter />
@@ -436,13 +445,49 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Page frame: the shared admin layout owns the viewport; this page only
-   distributes the available content height between its own regions. */
+/* ============================================================
+   Notification workspace — "quiet console" restyle.
+
+   Layout contract (single owner per scroll region):
+   - Desktop: the admin layout owns the viewport. This page is a
+     flex column; intro/overview/tabs/footer are fixed bands and the
+     workspace region takes exactly the remaining height. Panels are
+     bounded by max-height:100% and scroll only inside AppScrollArea.
+   - <=900px: the page returns to natural document flow and each panel
+     gets its own bounded height (clamp against the viewport), so no
+     region exceeds the size limits on small screens.
+   Scrollbars come exclusively from the shared AppScrollArea component
+   and are tuned through its public CSS variables (--scrollbar-size /
+   --scrollbar-thumb / --scrollbar-thumb-hover), never with bespoke
+   scrollbar markup or duplicated thumb styling.
+   ============================================================ */
+
 .webhook-page {
+  /* Radius scale: card / panel / item / control. */
+  --wh-radius-card: 16px;
+  --wh-radius-panel: 14px;
+  --wh-radius-item: 11px;
+  --wh-radius-control: 10px;
+
+  /* Surfaces. */
+  --wh-panel-bg: var(--surface);
+  --wh-heading-bg: var(--surface-2);
+  --wh-item-hover: color-mix(in srgb, var(--accent) 6%, var(--surface-2));
+
+  /* Shared scrollbar tuning (consumed by AppScrollArea.vue). */
+  --scrollbar-size: 10px;
+  --scrollbar-thumb: color-mix(in srgb, var(--text) 26%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--text) 46%, transparent);
+
+  /* Mobile-only bounded panel heights. */
+  --wh-directory-height: clamp(300px, 46dvh, 540px);
+  --wh-editor-height: clamp(360px, 56dvh, 680px);
+  --wh-history-height: clamp(320px, 50dvh, 620px);
+
   display: flex;
   flex: 1 1 0%;
   flex-direction: column;
-  gap: 18px;
+  gap: clamp(12px, 1.35vw, 18px);
   width: 100%;
   min-width: 0;
   min-height: 0;
@@ -450,25 +495,42 @@ onMounted(() => {
   color: var(--text);
 }
 
+.webhook-page > :deep(.app-footer) {
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+
+/* ---------- Page intro ---------- */
+
 .page-intro,
 .overview-grid {
   flex: 0 0 auto;
 }
 
 .page-intro {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 25px 27px;
-  border: 1px solid var(--line);
-  border-radius: var(--wh-radius);
-  background: linear-gradient(
-    112deg,
-    color-mix(in srgb, var(--accent-soft) 48%, var(--surface)),
-    var(--surface) 68%
-  );
+  padding: 23px 26px;
+  border: 1px solid color-mix(in srgb, var(--accent) 14%, var(--line));
+  border-radius: var(--wh-radius-card);
+  background:
+    radial-gradient(120% 160% at 0% 0%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 55%),
+    var(--wh-panel-bg);
   box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.page-intro::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 30%, transparent));
+  content: "";
 }
 
 .intro-copy {
@@ -507,8 +569,8 @@ onMounted(() => {
   gap: 11px;
   padding: 12px 15px;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border-radius: 12px;
+  background: var(--wh-heading-bg);
 }
 
 .intro-state strong,
@@ -540,6 +602,8 @@ onMounted(() => {
   box-shadow: 0 0 0 3px var(--green-soft);
 }
 
+/* ---------- Overview cards ---------- */
+
 .overview-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -547,13 +611,28 @@ onMounted(() => {
 }
 
 .overview-card {
-  position: relative;
   min-width: 0;
-  padding: 17px 18px 16px;
+  padding: 15px 17px 14px;
   border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
+  border-radius: var(--wh-radius-panel);
+  background: var(--wh-panel-bg);
   box-shadow: var(--shadow);
+  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.overview-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 26%, var(--line));
+  box-shadow:
+    0 2px 4px color-mix(in srgb, var(--text) 5%, transparent),
+    0 10px 22px color-mix(in srgb, var(--text) 5%, transparent);
+  transform: translateY(-1px);
+}
+
+.overview-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .overview-icon {
@@ -561,16 +640,24 @@ onMounted(() => {
   place-items: center;
   width: 34px;
   height: 34px;
-  margin-bottom: 13px;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface-2);
+  border-radius: var(--wh-radius-control);
+  background: color-mix(in srgb, var(--accent-soft) 62%, var(--surface));
   color: var(--accent);
 }
 
-.rule-icon { color: var(--purple, var(--accent)); }
-.delivery-icon { color: var(--blue, var(--accent)); }
-.failure-icon { color: var(--muted); }
+.rule-icon,
+.delivery-icon {
+  color: color-mix(in srgb, var(--accent) 78%, var(--green));
+}
+
+.failure-icon {
+  color: var(--muted);
+}
+
+.has-failures {
+  border-color: color-mix(in srgb, var(--red) 26%, var(--line));
+}
 
 .has-failures .failure-icon {
   border-color: color-mix(in srgb, var(--red) 24%, var(--line));
@@ -579,13 +666,13 @@ onMounted(() => {
 }
 
 .overview-label {
+  margin-top: 12px;
   color: var(--muted);
   font-size: 11px;
 }
 
 .overview-value {
-  margin-top: 4px;
-  font-size: 25px;
+  font-size: 24px;
   font-weight: 800;
   line-height: 1.25;
   letter-spacing: -0.04em;
@@ -600,43 +687,67 @@ onMounted(() => {
 }
 
 .overview-foot {
-  margin-top: 6px;
+  margin-top: 5px;
   color: var(--muted);
   font-size: 10px;
   line-height: 1.4;
 }
 
-/* Tabs and work area form one bounded vertical flex region. */
+/* ---------- Loading / error states ---------- */
+
+.state-panel {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  min-height: 120px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--wh-radius-panel);
+  background: var(--wh-panel-bg);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.state-error { justify-content: flex-start; color: var(--red); }
+.state-error div { flex: 1 1 auto; min-width: 0; }
+.state-error strong { font-size: 12px; }
+.state-error p { margin: 5px 0 0; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+
+/* ---------- Workspace frame (bounded height chain) ---------- */
+
 .workspace-region {
   display: flex;
   flex: 1 1 0%;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   min-width: 0;
   min-height: 0;
+  max-height: 100%;
 }
 
 .workspace-tabs {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: 5px;
-  padding: 5px;
+  gap: 4px;
+  padding: 4px;
   border: 1px solid var(--line);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--surface-2) 94%, transparent);
-  backdrop-filter: blur(14px);
+  border-radius: 13px;
+  background: var(--wh-heading-bg);
 }
 
 .workspace-tabs button {
+  position: relative;
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
+  min-height: 42px;
   padding: 0 15px;
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: var(--wh-radius-control);
   background: transparent;
   color: var(--muted);
   font: inherit;
@@ -647,15 +758,26 @@ onMounted(() => {
 }
 
 .workspace-tabs button:hover {
-  background: var(--surface);
+  background: var(--wh-item-hover);
   color: var(--text);
 }
 
 .workspace-tabs button.active {
-  border-color: var(--line);
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 1px 2px #00000008;
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--line));
+  background: var(--wh-panel-bg);
+  color: var(--accent);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+.workspace-tabs button.active::after {
+  position: absolute;
+  right: 12px;
+  bottom: -1px;
+  left: 12px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--accent);
+  content: "";
 }
 
 .tab-count,
@@ -671,8 +793,13 @@ onMounted(() => {
 }
 
 .tab-count {
-  background: var(--surface-2);
+  background: var(--wh-heading-bg);
   color: var(--muted);
+}
+
+.workspace-tabs button.active .tab-count {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .tab-alert {
@@ -680,55 +807,61 @@ onMounted(() => {
   color: var(--red);
 }
 
+/* The layout row is capped by the workspace height, so its panels can use
+   max-height:100% reliably on desktop. The 320px floor keeps panels usable
+   on very short viewports: beyond that the admin viewport scrolls instead
+   of crushing the editor. */
 .workspace-layout,
 .history-workspace {
   display: flex;
   flex: 1 1 0%;
   align-items: stretch;
-  gap: 16px;
+  gap: 14px;
   width: 100%;
   min-width: 0;
-  min-height: 0;
+  min-height: 320px;
+  max-height: 100%;
   overflow: hidden;
 }
+
+/* ---------- Panels (shared surface + radius baseline) ---------- */
 
 .directory-panel,
 .editor-panel,
 .history-panel {
   min-width: 0;
   min-height: 0;
+  max-height: 100%;
   border: 1px solid var(--line);
-  border-radius: var(--wh-radius);
-  background: var(--surface);
+  border-radius: var(--wh-radius-panel);
+  background: var(--wh-panel-bg);
   box-shadow: var(--shadow);
   overflow: hidden;
 }
 
+/* ---------- Directory panel (channels / rules list) ---------- */
+
 .directory-panel {
   display: flex;
-  flex: 0 0 min(32%, 360px);
+  flex: 0 0 min(32%, 340px);
   flex-direction: column;
-  width: min(32%, 360px);
+  width: min(32%, 340px);
   height: 100%;
+  max-height: 100%;
   border-color: color-mix(in srgb, var(--accent) 12%, var(--line));
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--accent-soft) 28%, var(--surface)),
-    var(--surface) 42%
-  );
 }
 
 .directory-panel :deep(.app-scroll-area-viewport) {
   display: flex;
   flex: 1 1 0%;
   flex-direction: column;
-  gap: 0;
   width: 100%;
   height: 100%;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-gutter: stable;
+  overscroll-behavior: contain;
   background: transparent;
 }
 
@@ -742,11 +875,12 @@ onMounted(() => {
 }
 
 .directory-panel .panel-heading {
-  margin: 0 10px 8px;
-  padding: 18px 10px 15px;
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  padding: 18px 17px 15px;
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 14%, var(--line));
-  border-radius: 0 0 10px 10px;
-  background: color-mix(in srgb, var(--accent-soft) 24%, transparent);
+  background: var(--wh-heading-bg);
 }
 
 .panel-heading h3 {
@@ -762,10 +896,6 @@ onMounted(() => {
   line-height: 1.5;
 }
 
-.directory-panel .panel-heading h3 {
-  letter-spacing: -0.01em;
-}
-
 .icon-button {
   display: grid;
   flex: 0 0 34px;
@@ -773,12 +903,13 @@ onMounted(() => {
   width: 34px;
   height: 34px;
   border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--surface-2);
+  border-radius: var(--wh-radius-control);
+  background: var(--wh-panel-bg);
   color: var(--text);
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1;
   cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
 }
 
 .icon-button:hover {
@@ -794,23 +925,31 @@ onMounted(() => {
   align-items: flex-start;
   gap: 11px;
   width: calc(100% - 16px);
-  margin: 0 8px 5px;
-  padding: 12px 11px;
+  margin: 4px 8px;
+  padding: 12px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: var(--wh-radius-item);
   background: transparent;
   color: var(--text);
   text-align: left;
   cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease;
+  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
 }
 
-.directory-item:hover { background: var(--surface-2); }
+.directory-item:hover {
+  background: var(--wh-item-hover);
+}
 
 .directory-item.selected {
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--line));
   background: var(--accent-soft);
   box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.directory-item.selected .provider-icon {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+  background: var(--wh-panel-bg);
+  color: var(--accent);
 }
 
 .provider-icon {
@@ -820,12 +959,10 @@ onMounted(() => {
   width: 36px;
   height: 36px;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
+  border-radius: var(--wh-radius-control);
+  background: var(--wh-heading-bg);
   color: var(--accent);
 }
-
-.rule-provider { color: var(--blue, var(--accent)); }
 
 .directory-content {
   display: grid;
@@ -864,11 +1001,10 @@ onMounted(() => {
   flex: 0 0 auto;
   align-items: center;
   gap: 8px;
-  margin: auto 10px 0;
-  padding: 13px 9px;
+  margin: auto 0 0;
+  padding: 13px 17px;
   border-top: 1px solid color-mix(in srgb, var(--accent) 14%, var(--line));
-  border-radius: 9px 9px 0 0;
-  background: color-mix(in srgb, var(--surface-2) 72%, transparent);
+  background: var(--wh-heading-bg);
   color: var(--muted);
   font-size: 10px;
 }
@@ -893,7 +1029,7 @@ onMounted(() => {
   margin-bottom: 3px;
   border: 1px solid var(--line);
   border-radius: 13px;
-  background: var(--surface-2);
+  background: var(--wh-heading-bg);
   color: var(--muted);
 }
 
@@ -909,31 +1045,7 @@ onMounted(() => {
   line-height: 1.6;
 }
 
-.button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 37px;
-  padding: 0 13px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  font: inherit;
-  font-size: 11px;
-  font-weight: 680;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
-}
-
-.button:disabled { opacity: 0.5; cursor: not-allowed; }
-.button.primary { border-color: var(--accent); background: var(--accent); color: var(--on-accent, white); }
-.button.primary:hover:not(:disabled) { filter: brightness(0.96); }
-.button.secondary { border-color: var(--line); background: var(--surface); color: var(--text); }
-.button.secondary:hover:not(:disabled) { border-color: var(--accent); background: var(--surface-2); color: var(--accent); }
-.button.danger-ghost { border-color: color-mix(in srgb, var(--red) 22%, var(--line)); background: transparent; color: var(--red); }
-.button.danger-ghost:hover { background: var(--red-soft); }
-.button.full { width: 100%; }
+/* ---------- Editor panel ---------- */
 
 .editor-panel {
   display: flex;
@@ -941,6 +1053,7 @@ onMounted(() => {
   flex-direction: column;
   width: 0;
   height: 100%;
+  max-height: 100%;
 }
 
 .editor-heading {
@@ -950,7 +1063,7 @@ onMounted(() => {
   gap: 13px;
   padding: 20px 23px;
   border-bottom: 1px solid var(--line);
-  background: linear-gradient(110deg, var(--surface-2), var(--surface) 70%);
+  background: var(--wh-heading-bg);
 }
 
 .editor-title-mark {
@@ -964,8 +1077,6 @@ onMounted(() => {
   background: var(--accent-soft);
   color: var(--accent);
 }
-
-.rule-title-mark { color: var(--blue, var(--accent)); }
 
 .editor-heading-copy {
   flex: 1 1 auto;
@@ -993,6 +1104,28 @@ onMounted(() => {
   line-height: 1.5;
 }
 
+.editor-scroll {
+  display: block;
+  flex: 1 1 0%;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.editor-scroll :deep(.app-scroll-area-viewport) {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+/* ---------- Forms ---------- */
+
 .status-pill {
   display: inline-flex;
   flex: 0 0 auto;
@@ -1001,7 +1134,7 @@ onMounted(() => {
   padding: 6px 9px;
   border: 1px solid var(--line);
   border-radius: 20px;
-  background: var(--surface);
+  background: var(--wh-panel-bg);
   color: var(--muted);
   font-size: 10px;
   font-weight: 650;
@@ -1013,51 +1146,8 @@ onMounted(() => {
   background: var(--green-soft);
   color: var(--green);
 }
+
 .pill-disabled { color: var(--muted); }
-
-.editor-scroll {
-  display: block;
-  flex: 1 1 0%;
-  width: 100%;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.editor-scroll :deep(.app-scroll-area-viewport) {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
-}
-
-.directory-panel :deep(.app-scrollbar[data-orientation="vertical"]),
-.editor-scroll :deep(.app-scrollbar[data-orientation="vertical"]),
-.history-panel :deep(.app-scrollbar[data-orientation="vertical"]) {
-  width: 10px;
-  background: color-mix(in srgb, var(--surface-2) 72%, transparent);
-  opacity: 1 !important;
-}
-
-.directory-panel :deep(.app-scrollbar[data-state="hidden"]),
-.editor-scroll :deep(.app-scrollbar[data-state="hidden"]),
-.history-panel :deep(.app-scrollbar[data-state="hidden"]) {
-  opacity: 1 !important;
-}
-
-.directory-panel :deep(.app-scrollbar-thumb),
-.editor-scroll :deep(.app-scrollbar-thumb),
-.history-panel :deep(.app-scrollbar-thumb) {
-  background: color-mix(in srgb, var(--text) 32%, transparent);
-}
-
-.directory-panel :deep(.app-scrollbar-thumb:hover),
-.editor-scroll :deep(.app-scrollbar-thumb:hover),
-.history-panel :deep(.app-scrollbar-thumb:hover) {
-  background: color-mix(in srgb, var(--text) 48%, transparent);
-}
 
 .editor-body {
   display: grid;
@@ -1089,7 +1179,7 @@ onMounted(() => {
   height: 27px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--surface-2);
+  background: var(--wh-heading-bg);
   color: var(--muted);
   font-size: 10px;
   font-weight: 800;
@@ -1132,7 +1222,7 @@ onMounted(() => {
   min-height: 41px;
   padding: 0 11px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--wh-radius-control);
   outline: none;
   background: var(--bg);
   color: var(--text);
@@ -1155,7 +1245,7 @@ onMounted(() => {
   min-width: 0;
 }
 
-.field :deep(.CodeMirror) { border-radius: 8px; }
+.field :deep(.CodeMirror) { border-radius: var(--wh-radius-control); }
 
 .field-hint {
   display: flex;
@@ -1171,7 +1261,7 @@ onMounted(() => {
 .field-hint code {
   padding: 1px 4px;
   border-radius: 4px;
-  background: var(--surface-2);
+  background: var(--wh-heading-bg);
   font-family: var(--font-mono);
   font-size: 9px;
 }
@@ -1185,8 +1275,8 @@ onMounted(() => {
   place-items: center;
   width: 41px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-2);
+  border-radius: var(--wh-radius-control);
+  background: var(--wh-heading-bg);
   color: var(--muted);
   cursor: pointer;
 }
@@ -1200,8 +1290,8 @@ onMounted(() => {
   min-height: 41px;
   padding: 0 11px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-2);
+  border-radius: var(--wh-radius-control);
+  background: var(--wh-heading-bg);
   color: var(--muted);
   font-family: var(--font-mono);
   font-size: 10px;
@@ -1216,8 +1306,8 @@ onMounted(() => {
   min-height: 62px;
   padding: 12px 14px;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface-2);
+  border-radius: var(--wh-radius-item);
+  background: var(--wh-heading-bg);
   cursor: pointer;
 }
 
@@ -1255,7 +1345,7 @@ onMounted(() => {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--surface);
+  background: var(--wh-panel-bg);
   box-shadow: 0 1px 3px #0002;
   content: "";
   transition: transform 160ms ease;
@@ -1266,9 +1356,6 @@ onMounted(() => {
 .toggle-input:focus-visible + .toggle-track { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
 
 .editor-footer {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
   display: flex;
   flex: 0 0 auto;
   align-items: center;
@@ -1276,8 +1363,7 @@ onMounted(() => {
   gap: 8px;
   padding: 14px 23px;
   border-top: 1px solid var(--line);
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--wh-heading-bg);
 }
 
 .footer-spacer { flex: 1 1 auto; }
@@ -1288,10 +1374,51 @@ onMounted(() => {
   align-items: flex-start;
   gap: 8px;
   padding: 11px 23px 15px;
+  border-top: 1px solid color-mix(in srgb, var(--red) 16%, var(--line));
+  background: color-mix(in srgb, var(--red-soft) 55%, var(--wh-panel-bg));
   color: var(--muted);
   font-size: 10px;
   line-height: 1.5;
 }
+
+.editor-note :deep(svg) { color: var(--red); }
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 37px;
+  padding: 0 13px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 680;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.button:disabled { opacity: 0.5; cursor: not-allowed; }
+.button.primary { border-color: var(--accent); background: var(--accent); color: var(--accent-contrast); }
+.button.primary:hover:not(:disabled) { filter: brightness(0.96); }
+.button.secondary { border-color: var(--line); background: var(--wh-panel-bg); color: var(--text); }
+.button.secondary:hover:not(:disabled) { border-color: var(--accent); background: var(--wh-item-hover); color: var(--accent); }
+.button.danger-ghost { border-color: color-mix(in srgb, var(--red) 22%, var(--line)); background: transparent; color: var(--red); }
+.button.danger-ghost:hover { background: var(--red-soft); }
+.button.full { width: 100%; }
+
+.button:focus-visible,
+.icon-button:focus-visible,
+.workspace-tabs button:focus-visible,
+.directory-item:focus-visible,
+.reveal-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Rules: channel multi-select ---------- */
 
 .condition-hint {
   display: flex;
@@ -1299,7 +1426,7 @@ onMounted(() => {
   gap: 10px;
   padding: 12px;
   border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--line));
-  border-radius: 9px;
+  border-radius: var(--wh-radius-item);
   background: var(--accent-soft);
   color: var(--accent);
 }
@@ -1309,20 +1436,27 @@ onMounted(() => {
 .channel-options { display: grid; gap: 8px; }
 
 .channel-option {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
   padding: 12px;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
+  border-radius: var(--wh-radius-item);
+  background: var(--wh-panel-bg);
   cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease;
+  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
 }
 
-.channel-option:hover { background: var(--surface-2); }
-.channel-option.checked { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: var(--accent-soft); }
+.channel-option:hover { background: var(--wh-item-hover); }
+
+.channel-option.checked {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
 .channel-option.unavailable { opacity: 0.55; cursor: not-allowed; }
 .channel-option input { width: 15px; height: 15px; accent-color: var(--accent); }
 
@@ -1334,7 +1468,7 @@ onMounted(() => {
   height: 33px;
   border: 1px solid var(--line);
   border-radius: 9px;
-  background: var(--surface);
+  background: var(--wh-panel-bg);
   color: var(--accent);
 }
 
@@ -1349,7 +1483,7 @@ onMounted(() => {
   gap: 10px;
   padding: 13px;
   border: 1px dashed var(--line);
-  border-radius: 10px;
+  border-radius: var(--wh-radius-item);
   color: var(--muted);
 }
 
@@ -1357,8 +1491,8 @@ onMounted(() => {
 .inline-empty strong { color: var(--text); font-size: 11px; }
 .inline-empty p { margin: 4px 0 0; font-size: 10px; line-height: 1.5; }
 
-/* History uses the shared scroll component, so each column has one owner for
-   scrolling and inherits the application's scrollbar design. */
+/* ---------- History ---------- */
+
 .history-workspace {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
@@ -1368,6 +1502,12 @@ onMounted(() => {
   display: flex;
   min-width: 0;
   min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--wh-radius-panel);
+  background: var(--wh-panel-bg);
+  box-shadow: var(--shadow);
 }
 
 .history-panel {
@@ -1376,6 +1516,9 @@ onMounted(() => {
   flex-direction: column;
   width: 100%;
   height: 100%;
+  border: 0;
+  border-radius: inherit;
+  box-shadow: none;
 }
 
 .history-panel :deep(.app-scroll-area-viewport) {
@@ -1385,9 +1528,19 @@ onMounted(() => {
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+.history-panel .panel-heading {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--wh-heading-bg);
 }
 
 .delivery-heading { gap: 14px; }
+
 .neutral-count {
   padding: 5px 8px;
   border: 1px solid var(--line);
@@ -1404,6 +1557,12 @@ onMounted(() => {
   gap: 11px;
   padding: 15px 19px;
   border-top: 1px solid var(--line);
+  transition: background 150ms ease;
+}
+
+.event-row:hover,
+.delivery-row:hover {
+  background: var(--wh-item-hover);
 }
 
 .timeline-marker,
@@ -1414,8 +1573,8 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--surface-2);
+  border-radius: var(--wh-radius-control);
+  background: var(--wh-heading-bg);
   color: var(--muted);
 }
 
@@ -1445,7 +1604,7 @@ onMounted(() => {
   align-items: center;
   padding: 3px 6px;
   border-radius: 5px;
-  background: var(--surface-2);
+  background: var(--wh-heading-bg);
   color: var(--muted);
   font-size: 9px;
   white-space: nowrap;
@@ -1453,9 +1612,11 @@ onMounted(() => {
 
 .outcome-success { background: var(--green-soft); color: var(--green); }
 .outcome-failure { background: var(--red-soft); color: var(--red); }
+
 .delivery-succeeded { border-color: color-mix(in srgb, var(--green) 22%, var(--line)); background: var(--green-soft); color: var(--green); }
 .delivery-failed { border-color: color-mix(in srgb, var(--red) 22%, var(--line)); background: var(--red-soft); color: var(--red); }
 .delivery-sending { background: var(--accent-soft); color: var(--accent); }
+
 .small-pill { padding: 4px 7px; font-size: 9px; }
 .delivery-pill-succeeded { border-color: color-mix(in srgb, var(--green) 22%, var(--line)); background: var(--green-soft); color: var(--green); }
 .delivery-pill-failed { border-color: color-mix(in srgb, var(--red) 22%, var(--line)); background: var(--red-soft); color: var(--red); }
@@ -1472,8 +1633,15 @@ onMounted(() => {
   font-size: 10px;
 }
 
+.filter-select:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  outline-offset: 1px;
+}
+
 .delivery-error { padding: 8px 9px; border-radius: 7px; background: var(--red-soft); color: var(--red) !important; }
 .retry-button { align-self: center; min-height: 32px; padding: 0 9px; }
+
+/* ---------- Editor placeholder ---------- */
 
 .editor-placeholder {
   align-items: center;
@@ -1486,33 +1654,10 @@ onMounted(() => {
 
 .editor-placeholder p { margin: 0; font-size: 13px; line-height: 1.7; }
 
-.state-panel {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  gap: 11px;
-  min-height: 120px;
-  padding: 24px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.state-error { justify-content: flex-start; color: var(--red); }
-.state-error div { flex: 1 1 auto; min-width: 0; }
-.state-error strong { font-size: 12px; }
-.state-error p { margin: 5px 0 0; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
-
-.webhook-page > :deep(.app-footer) {
-  flex: 0 0 auto;
-  margin-top: 0;
-}
-
 .spin { animation: webhook-spin 0.9s linear infinite; }
 @keyframes webhook-spin { to { transform: rotate(360deg); } }
+
+/* ---------- Responsive ---------- */
 
 @media (max-width: 1150px) {
   .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1523,52 +1668,72 @@ onMounted(() => {
 }
 
 @media (max-width: 900px) {
+  /* Natural document flow: the admin viewport owns page scrolling, and each
+     panel becomes its own height-bounded scroll owner. */
   .webhook-page {
     flex: 0 0 auto;
     min-height: 0;
   }
 
-  .workspace-region { flex: 0 0 auto; }
+  .workspace-region {
+    flex: 0 0 auto;
+    max-height: none;
+  }
+
   .workspace-layout,
   .history-workspace {
     flex: 0 0 auto;
     flex-direction: column;
     min-height: 0;
+    max-height: none;
     overflow: visible;
   }
 
   .directory-panel,
   .editor-panel,
+  .history-column,
   .history-panel {
-    flex: 0 0 auto;
+    max-height: none;
     width: 100%;
     min-width: 0;
-    height: auto;
   }
 
-  .directory-panel { max-height: 360px; }
-  .directory-panel :deep(.app-scroll-area-viewport) { height: 100%; }
-  .editor-panel { min-height: 0; }
-  .editor-scroll {
+  .directory-panel {
     flex: 0 0 auto;
-    height: auto;
-    min-height: 0;
-    overflow: visible;
+    height: var(--wh-directory-height);
   }
-  .editor-scroll :deep(.app-scroll-area-viewport) {
-    height: auto;
-    overflow: visible;
+
+  .directory-panel :deep(.app-scroll-area-viewport) {
+    height: 100%;
   }
+
+  .editor-panel {
+    height: var(--wh-editor-height);
+  }
+
   .history-workspace { display: flex; }
-  .history-column { min-height: 280px; }
-  .history-panel :deep(.app-scroll-area-viewport) { height: 100%; }
+
+  .history-column {
+    height: var(--wh-history-height);
+  }
+
+  .history-panel :deep(.app-scroll-area-viewport) {
+    height: 100%;
+  }
+
   .editor-heading { padding-right: 17px; padding-left: 17px; }
   .editor-body { padding-right: 17px; padding-left: 17px; }
   .editor-footer { padding-right: 17px; padding-left: 17px; }
 }
 
 @media (max-width: 640px) {
-  .webhook-page { gap: 14px; }
+  .webhook-page {
+    gap: 14px;
+    --wh-directory-height: clamp(260px, 42dvh, 440px);
+    --wh-editor-height: clamp(320px, 54dvh, 560px);
+    --wh-history-height: clamp(280px, 44dvh, 480px);
+  }
+
   .page-intro {
     align-items: flex-start;
     flex-direction: column;
@@ -1579,12 +1744,13 @@ onMounted(() => {
   .intro-state { width: 100%; box-sizing: border-box; }
   .overview-grid { gap: 9px; }
   .overview-card { padding: 13px; }
-  .overview-icon { width: 30px; height: 30px; margin-bottom: 10px; }
-  .overview-value { font-size: 22px; }
+  .overview-icon { width: 30px; height: 30px; }
+  .overview-label { margin-top: 10px; }
+  .overview-value { font-size: 21px; }
   .workspace-tabs { gap: 2px; overflow-x: auto; }
   .workspace-tabs button { min-height: 39px; padding: 0 9px; gap: 6px; font-size: 10px; }
   .workspace-tabs button > svg { display: none; }
-  .editor-panel { min-height: 480px; }
+  .workspace-tabs button.active::after { right: 8px; left: 8px; }
   .editor-heading { align-items: flex-start; flex-wrap: wrap; padding: 16px; }
   .editor-title-mark { flex-basis: 36px; width: 36px; height: 36px; }
   .editor-heading-tools { width: 100%; justify-content: space-between; margin-left: 0; }
@@ -1612,369 +1778,4 @@ onMounted(() => {
     animation-duration: 0.01ms !important;
   }
 }
-
-
-/* Visual refresh: quieter surfaces, consistent radii, and explicit scroll
-   ownership. The admin layout owns the viewport; inner panels never grow past
-   the height allocated by the workspace flex chain. */
-.webhook-page {
-  --webhook-radius-card: 16px;
-  --webhook-radius-panel: 14px;
-  --webhook-radius-control: 9px;
-  gap: clamp(12px, 1.35vw, 18px);
-}
-
-.page-intro {
-  border-color: color-mix(in srgb, var(--accent) 13%, var(--line));
-  border-radius: var(--webhook-radius-card);
-  background:
-    radial-gradient(ellipse at 0% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 58%),
-    var(--surface);
-  box-shadow: 0 4px 18px color-mix(in srgb, var(--text) 4%, transparent);
-}
-
-.intro-state {
-  border-radius: 12px;
-  background: var(--surface-2);
-}
-
-.overview-card {
-  border-radius: var(--webhook-radius-panel);
-  box-shadow: 0 2px 10px color-mix(in srgb, var(--text) 3%, transparent);
-  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
-}
-
-.overview-card:hover {
-  border-color: color-mix(in srgb, var(--accent) 22%, var(--line));
-  box-shadow: 0 5px 16px color-mix(in srgb, var(--text) 5%, transparent);
-  transform: translateY(-1px);
-}
-
-.overview-icon {
-  border-radius: 11px;
-  background: color-mix(in srgb, var(--accent-soft) 62%, var(--surface));
-}
-
-.workspace-region {
-  flex: 1 1 0%;
-  min-height: 0;
-  max-height: 100%;
-  gap: 12px;
-}
-
-.workspace-tabs {
-  gap: 4px;
-  padding: 4px;
-  border-color: var(--line);
-  border-radius: 13px;
-  background: var(--surface-2);
-  backdrop-filter: none;
-}
-
-.workspace-tabs button {
-  position: relative;
-  min-height: 42px;
-  border-radius: 10px;
-}
-
-.workspace-tabs button.active {
-  border-color: color-mix(in srgb, var(--accent) 24%, var(--line));
-  background: var(--surface);
-  color: var(--accent);
-  box-shadow: 0 1px 3px color-mix(in srgb, var(--text) 7%, transparent);
-}
-
-.workspace-tabs button.active::after {
-  position: absolute;
-  right: 12px;
-  bottom: -1px;
-  left: 12px;
-  height: 2px;
-  border-radius: 2px 2px 0 0;
-  background: var(--accent);
-  content: "";
-}
-
-.workspace-layout,
-.history-workspace {
-  flex: 1 1 0%;
-  min-height: 0;
-  max-height: 100%;
-  overflow: hidden;
-  gap: 14px;
-}
-
-.directory-panel,
-.editor-panel,
-.history-panel {
-  min-height: 0;
-  max-height: 100%;
-  border-color: var(--line);
-  border-radius: var(--webhook-radius-panel);
-  background: var(--surface);
-  box-shadow: 0 3px 14px color-mix(in srgb, var(--text) 4%, transparent);
-}
-
-.directory-panel {
-  flex: 0 1 320px;
-  width: min(32%, 320px);
-  max-width: 36%;
-  background: var(--surface);
-}
-
-.directory-panel :deep(.app-scroll-area-viewport),
-.editor-scroll :deep(.app-scroll-area-viewport),
-.history-panel :deep(.app-scroll-area-viewport) {
-  min-height: 0;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-}
-
-.directory-panel .panel-heading {
-  margin: 0;
-  padding: 19px 17px 15px;
-  border-bottom: 1px solid var(--line);
-  border-radius: 0;
-  background: var(--surface-2);
-}
-
-.directory-item {
-  width: calc(100% - 16px);
-  margin: 4px 8px;
-  padding: 12px;
-  border-color: transparent;
-  border-radius: 11px;
-}
-
-.directory-item:hover {
-  background: var(--surface-2);
-}
-
-.directory-item.selected {
-  border-color: color-mix(in srgb, var(--accent) 36%, var(--line));
-  background: var(--accent-soft);
-  box-shadow: inset 3px 0 0 var(--accent);
-}
-
-.directory-item.selected .provider-icon {
-  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
-  background: var(--surface);
-  color: var(--accent);
-}
-
-.directory-bottom {
-  border-top-color: var(--line);
-  border-radius: 0;
-  background: var(--surface-2);
-}
-
-.editor-heading {
-  background: var(--surface-2);
-}
-
-.editor-title-mark,
-.rule-title-mark {
-  border-radius: 12px;
-}
-
-.editor-scroll {
-  max-height: 100%;
-  overscroll-behavior: contain;
-}
-
-.form-section {
-  border-color: var(--line);
-}
-
-.field input:focus,
-.field select:focus,
-.secret-input:focus-within,
-.filter-select:focus {
-  outline: 2px solid color-mix(in srgb, var(--accent) 28%, transparent);
-  outline-offset: 1px;
-}
-
-.button,
-.icon-button,
-.filter-select,
-.field input,
-.field select,
-.secret-input {
-  border-radius: var(--webhook-radius-control);
-}
-
-.button:focus-visible,
-.icon-button:focus-visible,
-.workspace-tabs button:focus-visible,
-.directory-item:focus-visible,
-.reveal-button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.channel-option {
-  border-radius: 11px;
-}
-
-.channel-option.checked {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
-  background: var(--accent-soft);
-  box-shadow: inset 3px 0 0 var(--accent);
-}
-
-.history-column {
-  min-width: 0;
-  min-height: 0;
-  max-height: 100%;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: var(--webhook-radius-panel);
-  background: var(--surface);
-}
-
-.history-panel {
-  width: 100%;
-  height: 100%;
-  border: 0;
-  border-radius: inherit;
-  box-shadow: none;
-}
-
-.history-panel .panel-heading {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
-}
-
-.event-row,
-.delivery-row {
-  border-top-color: var(--line);
-}
-
-.event-row:hover,
-.delivery-row:hover {
-  background: color-mix(in srgb, var(--surface-2) 62%, transparent);
-}
-
-.timeline-marker,
-.delivery-status-icon {
-  border-radius: 10px;
-}
-
-.directory-panel :deep(.app-scrollbar),
-.editor-scroll :deep(.app-scrollbar),
-.history-panel :deep(.app-scrollbar) {
-  --scrollbar-size: 9px;
-  padding: 2px;
-}
-
-.directory-panel :deep(.app-scrollbar-thumb),
-.editor-scroll :deep(.app-scrollbar-thumb),
-.history-panel :deep(.app-scrollbar-thumb) {
-  background: color-mix(in srgb, var(--text) 30%, transparent);
-}
-
-.directory-panel :deep(.app-scrollbar-thumb:hover),
-.editor-scroll :deep(.app-scrollbar-thumb:hover),
-.history-panel :deep(.app-scrollbar-thumb:hover) {
-  background: color-mix(in srgb, var(--accent) 62%, var(--text));
-}
-
-@media (max-width: 1150px) {
-  .directory-panel {
-    flex-basis: 34%;
-    width: 34%;
-    max-width: 34%;
-  }
-}
-
-@media (max-width: 900px) {
-  .workspace-region {
-    flex: 0 0 auto;
-    max-height: none;
-  }
-
-  .workspace-layout,
-  .history-workspace {
-    flex: 0 0 auto;
-    max-height: none;
-    overflow: visible;
-  }
-
-  .directory-panel,
-  .editor-panel,
-  .history-panel {
-    max-height: none;
-  }
-
-  .directory-panel {
-    flex: 0 0 auto;
-    width: 100%;
-    max-width: none;
-    max-height: min(360px, 48dvh);
-  }
-
-  .directory-panel :deep(.app-scroll-area-viewport) {
-    height: 100%;
-    overflow-y: auto;
-  }
-
-  .editor-panel {
-    height: auto;
-    max-height: none;
-  }
-
-  .editor-scroll {
-    max-height: none;
-    overflow: visible;
-  }
-
-  .editor-scroll :deep(.app-scroll-area-viewport) {
-    height: auto;
-    max-height: none;
-    overflow: visible;
-  }
-
-  .history-column {
-    min-height: 0;
-    max-height: min(440px, 62dvh);
-  }
-
-  .history-panel {
-    height: 100%;
-    max-height: 100%;
-  }
-
-  .history-panel :deep(.app-scroll-area-viewport) {
-    height: 100%;
-    overflow-y: auto;
-  }
-}
-
-@media (max-width: 640px) {
-  .page-intro,
-  .overview-card,
-  .workspace-tabs,
-  .directory-panel,
-  .editor-panel,
-  .history-column {
-    border-radius: 12px;
-  }
-
-  .workspace-tabs button.active::after {
-    right: 8px;
-    left: 8px;
-  }
-
-  .directory-panel {
-    max-height: min(320px, 44dvh);
-  }
-
-  .history-column {
-    max-height: min(400px, 58dvh);
-  }
-}
-
 </style>
