@@ -37,7 +37,7 @@ for (const file of collectSourceFiles(sourceRoot)) {
       // Check static names and every literal candidate in conditional expressions.
       const names = new Set<string>();
       if (/^[a-z][a-z0-9-]*$/.test(expression)) names.add(expression);
-      for (const literal of expression.matchAll(/(?:\\?|:)\\s*["']([a-z][a-z0-9-]*)["']/g)) {
+      for (const literal of expression.matchAll(/(?:\?|:)\s*["']([a-z][a-z0-9-]*)["']/g)) {
         names.add(literal[1]);
       }
       for (const name of names) {
