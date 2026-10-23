@@ -176,14 +176,16 @@ function onValueChange(value: string): void {
 }
 .app-select-scroll-area {
   width: 100%;
-  height: 100%;
-  max-height: var(--reka-select-content-available-height);
+  height: fit-content;
+  max-height: min(360px, var(--reka-select-content-available-height, 360px));
+  min-height: 0;
   overflow: hidden;
 }
 .app-select-viewport {
   width: 100%;
-  height: 100%;
-  max-height: var(--reka-select-content-available-height);
+  height: fit-content;
+  max-height: min(360px, var(--reka-select-content-available-height, 360px));
+  min-height: 0;
   padding: 4px;
 }
 .app-select-item {
