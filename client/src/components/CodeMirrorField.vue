@@ -90,7 +90,7 @@ function buildExtensions() {
     EditorView.theme({
       "&": {
         ...(props.singleLine
-          ? { height: props.height + "px", maxHeight: props.height + "px" }
+          ? { height: "100%", maxHeight: "100%" }
           : { minHeight: Math.max(0, props.height - 2) + "px" }),
         background: "transparent",
         color: "var(--text)",
@@ -232,6 +232,9 @@ watch(
 }
 .cm-field-host-scrollable {
   min-height: 100%;
+}
+.cm-field-frame.single-line .cm-field-host {
+  height: 100%;
 }
 .cm-field-host {
   width: 100%;
