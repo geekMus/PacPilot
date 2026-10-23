@@ -14,18 +14,18 @@ function requestLocale(req: import("express").Request): "zh_CN" | "en_US" {
 
 export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): Router {
   const router = Router();
-  router.get("/api/admin/storage", requireAdmin(storage.credentials), (_req, res) => {
+  router.get("/api/admin/storage", requireAdmin(storage.credentials), async (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
-    const dataBytes = storage.artifacts.totalBytes();
-    const dbBytes = storage.maintenance.databaseBytes();
+    const dataBytes = await storage.artifacts.totalBytes();
+    const dbBytes = await storage.maintenance.databaseBytes();
     const counts = {
-      generationLogs: storage.generationLogs.count(),
-      accessEvents: storage.monitoring.count(),
-      workflows: storage.workflows.count(),
-      activeWorkflows: storage.workflows.listActive().length,
+      generationLogs: await storage.generationLogs.count(),
+      accessEvents: await storage.monitoring.count(),
+      workflows: await storage.workflows.count(),
+      activeWorkflows: (await storage.workflows.listActive()).length,
     };
-    const pacFileInfo = (name: string) => {
-      const stat = storage.artifacts.stat(name);
+    const pacFileInfo = async (name: string) => {
+      const stat = await storage.artifacts.stat(name);
       return stat
         ? { exists: true, sizeBytes: stat.size, modifiedAt: stat.modifiedAt }
         : { exists: false, sizeBytes: 0, modifiedAt: null };
@@ -33,8 +33,9 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
     res.json({
       dataBytes,
       dbBytes,
-      logBytes: storage.generationLogs.storageBytes() + storage.monitoring.storageBytes(),
-      retentionDays: storage.settings.get().logRetentionDays,
+      logBytes:
+        (await storage.generationLogs.storageBytes()) + (await storage.monitoring.storageBytes()),
+      retentionDays: (await storage.settings.get()).logRetentionDays,
       counts,
       pacFiles: {
         proxyPac: pacFileInfo("proxy.pac"),
@@ -42,8 +43,8 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
       },
     });
   });
-  router.delete("/api/admin/pac-files", requireAdmin(storage.credentials), (req, res) => {
-    if (hasActivePacWorkflow(storage)) {
+  router.delete("/api/admin/pac-files", requireAdmin(storage.credentials), async (req, res) => {
+    if (await hasActivePacWorkflow(storage)) {
       res.status(409).json({
         error: serverT(requestLocale(req), "serverErrors.activeWorkflowPacDelete"),
       });
@@ -52,10 +53,10 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
     const deleted: string[] = [];
     try {
       for (const name of ["proxy.pac", "proxy.source.pac"]) {
-        if (storage.artifacts.delete(name)) deleted.push(name);
+        if (await storage.artifacts.delete(name)) deleted.push(name);
       }
-      const fileInfo = (name: string) => {
-        const stat = storage.artifacts.stat(name);
+      const fileInfo = async (name: string) => {
+        const stat = await storage.artifacts.stat(name);
         return stat
           ? { exists: true, sizeBytes: stat.size, modifiedAt: stat.modifiedAt }
           : { exists: false, sizeBytes: 0, modifiedAt: null };
@@ -69,46 +70,46 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
       res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
     }
   });
-  router.post("/api/admin/logs/cleanup", requireAdmin(storage.credentials), (_req, res) => {
-    const retentionDays = storage.settings.get().logRetentionDays;
+  router.post("/api/admin/logs/cleanup", requireAdmin(storage.credentials), async (_req, res) => {
+    const retentionDays = (await storage.settings.get()).logRetentionDays;
     const deleted = {
-      generationLogs: storage.generationLogs.cleanup(retentionDays),
-      accessEvents: storage.monitoring.cleanup(retentionDays),
+      generationLogs: await storage.generationLogs.cleanup(retentionDays),
+      accessEvents: await storage.monitoring.cleanup(retentionDays),
     };
     if (deleted.generationLogs + deleted.accessEvents > 0) {
-      if (env.storageDriver === "sqlite") storage.maintenance.compact();
+      if (env.storageDriver === "sqlite") await storage.maintenance.compact();
     }
-    res.json({ deleted, retentionDays: storage.settings.get().logRetentionDays });
+    res.json({ deleted, retentionDays: (await storage.settings.get()).logRetentionDays });
   });
-  router.post("/api/admin/logs/clear", requireAdmin(storage.credentials), (_req, res) => {
+  router.post("/api/admin/logs/clear", requireAdmin(storage.credentials), async (_req, res) => {
     try {
       const deleted = {
-        generationLogs: storage.generationLogs.clear(),
-        accessEvents: storage.monitoring.clear(),
+        generationLogs: await storage.generationLogs.clear(),
+        accessEvents: await storage.monitoring.clear(),
       };
-      if (env.storageDriver === "sqlite") storage.maintenance.compact();
-      res.json({ deleted, retentionDays: storage.settings.get().logRetentionDays });
+      if (env.storageDriver === "sqlite") await storage.maintenance.compact();
+      res.json({ deleted, retentionDays: (await storage.settings.get()).logRetentionDays });
     } catch (error) {
       res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
     }
   });
-  router.post("/api/admin/factory-reset", requireAdmin(storage.credentials), (req, res) => {
+  router.post("/api/admin/factory-reset", requireAdmin(storage.credentials), async (req, res) => {
     if (req.body?.confirm !== "RESET") {
       res.status(400).json({
         error: serverT(requestLocale(req), "serverErrors.invalidFactoryResetConfirmation"),
       });
       return;
     }
-    if (hasActivePacWorkflow(storage)) {
+    if (await hasActivePacWorkflow(storage)) {
       res.status(409).json({
         error: serverT(requestLocale(req), "serverErrors.activeWorkflowFactoryReset"),
       });
       return;
     }
     try {
-      storage.maintenance.resetOperationalData(DEFAULT_SETTINGS);
-      if (env.storageDriver === "sqlite") storage.maintenance.compact();
-      for (const name of ["proxy.pac", "proxy.source.pac"]) storage.artifacts.delete(name);
+      await storage.maintenance.resetOperationalData(DEFAULT_SETTINGS);
+      if (env.storageDriver === "sqlite") await storage.maintenance.compact();
+      for (const name of ["proxy.pac", "proxy.source.pac"]) await storage.artifacts.delete(name);
       reschedule(storage, env.dataDir);
       res.json({
         ok: true,
@@ -118,18 +119,18 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
       res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
     }
   });
-  router.get("/api/admin/logs", requireAdmin(storage.credentials), (_req, res) => {
-    res.json(storage.generationLogs.list(50));
+  router.get("/api/admin/logs", requireAdmin(storage.credentials), async (_req, res) => {
+    res.json(await storage.generationLogs.list(50));
   });
-  router.get("/api/admin/logs/page", requireAdmin(storage.credentials), (req, res) => {
+  router.get("/api/admin/logs/page", requireAdmin(storage.credentials), async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     const limit = Math.min(
       100,
       Math.max(1, Number.parseInt(String(req.query.limit ?? "50"), 10) || 50)
     );
     const beforeId = Math.max(0, Number.parseInt(String(req.query.beforeId ?? "0"), 10) || 0);
-    const rows = storage.generationLogs.list(limit + 1, 0, beforeId);
-    const total = storage.generationLogs.count();
+    const rows = await storage.generationLogs.list(limit + 1, 0, beforeId);
+    const total = await storage.generationLogs.count();
     const hasMore = rows.length > limit;
     res.json({
       items: rows.slice(0, limit),

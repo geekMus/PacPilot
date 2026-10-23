@@ -4,7 +4,11 @@ import { parsePacStatus } from "../services/pac-parser";
 import type { ApplicationStorage } from "../storage/repositories";
 import { APP_VERSION, PROJECT_URL } from "../version";
 
-function sendPac(req: import("express").Request, res: import("express").Response, storage: ApplicationStorage) {
+function sendPac(
+  req: import("express").Request,
+  res: import("express").Response,
+  storage: ApplicationStorage
+) {
   const fallback =
     "// 尚未生成 PAC；临时回退策略为所有请求直连\nfunction FindProxyForURL(url, host){return 'DIRECT';}\n";
   const pac = readPacFile(storage) || fallback;
@@ -37,9 +41,15 @@ export function publicRoutes(storage: ApplicationStorage): Router {
     });
   });
 
-  router.get("/api/status", (_req, res) => {
-    const pacSource = readPacSourceFile(storage);
-    res.json(parsePacStatus(pacSource, storage.settings.get().timezone, pacFileMtime(storage)));
+  router.get("/api/status", async (_req, res) => {
+    const pacSource = await readPacSourceFile(storage);
+    res.json(
+      parsePacStatus(
+        pacSource,
+        (await storage.settings.get()).timezone,
+        await pacFileMtime(storage)
+      )
+    );
   });
 
   return router;

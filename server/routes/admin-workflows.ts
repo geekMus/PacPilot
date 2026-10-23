@@ -10,19 +10,19 @@ export function adminWorkflowRoutes(storage: ApplicationStorage): Router {
   const parseWorkflowId = (value: string | string[] | undefined): number =>
     typeof value === "string" ? Number.parseInt(value, 10) : Number.NaN;
 
-  router.get("/api/admin/workflows", requireAdmin(storage.credentials), (req, res) => {
+  router.get("/api/admin/workflows", requireAdmin(storage.credentials), async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     const limit = Math.min(
       100,
       Math.max(1, Number.parseInt(String(req.query.limit ?? "50"), 10) || 50)
     );
     const beforeId = Math.max(0, Number.parseInt(String(req.query.beforeId ?? "0"), 10) || 0);
-    const page = storage.workflows.list(limit + 1, beforeId);
-    const total = storage.workflows.count();
+    const page = await storage.workflows.list(limit + 1, beforeId);
+    const total = await storage.workflows.count();
     const hasMore = page.length > limit;
     res.json({
-      current: storage.workflows.current(),
-      active: storage.workflows.listActive(),
+      current: await storage.workflows.current(),
+      active: await storage.workflows.listActive(),
       runs: page.slice(0, limit),
       beforeId,
       nextCursor:
@@ -32,9 +32,9 @@ export function adminWorkflowRoutes(storage: ApplicationStorage): Router {
     });
   });
 
-  router.delete("/api/admin/workflows", requireAdmin(storage.credentials), (req, res) => {
+  router.delete("/api/admin/workflows", requireAdmin(storage.credentials), async (req, res) => {
     try {
-      const result = storage.workflows.clearHistory();
+      const result = await storage.workflows.clearHistory();
       if (result.activeRuns > 0) {
         res.status(409).json({
           error: errorText(req, "serverErrors.activeWorkflowHistory"),
@@ -48,48 +48,52 @@ export function adminWorkflowRoutes(storage: ApplicationStorage): Router {
     }
   });
 
-  router.get("/api/admin/workflows/:id", requireAdmin(storage.credentials), (req, res) => {
+  router.get("/api/admin/workflows/:id", requireAdmin(storage.credentials), async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     const id = parseWorkflowId(req.params.id);
     if (!Number.isSafeInteger(id) || id < 1) {
       res.status(400).json({ error: errorText(req, "serverErrors.invalidWorkflowId") });
       return;
     }
-    const run = storage.workflows.get(id);
+    const run = await storage.workflows.get(id);
     if (!run) {
       res.status(404).json({ error: errorText(req, "serverErrors.workflowNotFound") });
       return;
     }
-    res.json({ run, stages: storage.workflows.stages(id) });
+    res.json({ run, stages: await storage.workflows.stages(id) });
   });
 
-  router.post("/api/admin/workflows/:id/cancel", requireAdmin(storage.credentials), (req, res) => {
+  router.post(
+    "/api/admin/workflows/:id/cancel",
+    requireAdmin(storage.credentials),
+    async (req, res) => {
+      res.setHeader("Cache-Control", "no-store");
+      const id = parseWorkflowId(req.params.id);
+      if (!Number.isSafeInteger(id) || id < 1) {
+        res.status(400).json({ error: errorText(req, "serverErrors.invalidWorkflowId") });
+        return;
+      }
+      const result = await storage.workflows.cancelPending(id);
+      if (result === "not-found") {
+        res.status(404).json({ error: errorText(req, "serverErrors.workflowNotFound") });
+        return;
+      }
+      if (result === "not-pending") {
+        res.status(409).json({ error: errorText(req, "serverErrors.workflowCannotCancel") });
+        return;
+      }
+      res.json({ ok: true, id, status: "cancelled" });
+    }
+  );
+
+  router.delete("/api/admin/workflows/:id", requireAdmin(storage.credentials), async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     const id = parseWorkflowId(req.params.id);
     if (!Number.isSafeInteger(id) || id < 1) {
       res.status(400).json({ error: errorText(req, "serverErrors.invalidWorkflowId") });
       return;
     }
-    const result = storage.workflows.cancelPending(id);
-    if (result === "not-found") {
-      res.status(404).json({ error: errorText(req, "serverErrors.workflowNotFound") });
-      return;
-    }
-    if (result === "not-pending") {
-      res.status(409).json({ error: errorText(req, "serverErrors.workflowCannotCancel") });
-      return;
-    }
-    res.json({ ok: true, id, status: "cancelled" });
-  });
-
-  router.delete("/api/admin/workflows/:id", requireAdmin(storage.credentials), (req, res) => {
-    res.setHeader("Cache-Control", "no-store");
-    const id = parseWorkflowId(req.params.id);
-    if (!Number.isSafeInteger(id) || id < 1) {
-      res.status(400).json({ error: errorText(req, "serverErrors.invalidWorkflowId") });
-      return;
-    }
-    const result = storage.workflows.delete(id);
+    const result = await storage.workflows.delete(id);
     if (result === "not-found") {
       res.status(404).json({ error: errorText(req, "serverErrors.workflowNotFound") });
       return;
