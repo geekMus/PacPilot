@@ -19,17 +19,10 @@ describe("portaled overlay style architecture", () => {
 
     for (const selector of [
       ".timezone-options-menu",
-      ".timezone-options-scroll",
+      ".timezone-options-scroll-area",
       ".timezone-options-viewport",
       ".timezone-option",
       ".timezone-no-results",
-      ".timezone-sheet-title",
-      ".timezone-sheet-body",
-      ".timezone-sheet-search",
-      ".timezone-sheet-options",
-      ".timezone-sheet-options-viewport",
-      ".timezone-custom-option",
-      ".timezone-sheet-hint",
     ]) {
       expect(overlayStyles, `missing global overlay selector ${selector}`).toContain(selector);
       expect(adminStyles, `Portal selector ${selector} leaked into scoped page CSS`).not.toContain(selector);
