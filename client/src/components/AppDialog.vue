@@ -97,7 +97,7 @@ function onCloseAutoFocus(event: Event): void {
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: transparent;
+  background: var(--dialog-overlay-bg);
   -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
 }

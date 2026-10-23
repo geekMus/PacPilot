@@ -4,12 +4,45 @@
   --scrollbar-thumb-hover: color-mix(in srgb, var(--text) 44%, transparent);
   --scrollbar-track: transparent;
 }
-.cm-scroller { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
-.cm-scroller::-webkit-scrollbar { width: var(--scrollbar-size); height: var(--scrollbar-size); }
-.cm-scroller::-webkit-scrollbar-track { background: transparent; }
-.cm-scroller::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 999px; background: var(--scrollbar-thumb); background-clip: padding-box; }
-.cm-scroller::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); background-clip: padding-box; }
+
+/*
+ * 原生滚动容器（包括 CodeMirror 编辑器、文本控件和第三方组件内部滚动区）
+ * 统一使用与 AppScrollArea 相同的细滚动条配色。AppScrollArea 与 AppSelect
+ * 使用 Reka UI 自绘滚动条，并复用相同的颜色变量。
+ */
+:where(*) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+:where(*)::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+:where(*)::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+:where(*)::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--scrollbar-thumb);
+  background-clip: padding-box;
+}
+
+:where(*)::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
+
 @media (forced-colors: active) {
-  .cm-scroller { scrollbar-color: auto; }
-  .cm-scroller::-webkit-scrollbar-thumb { background: CanvasText; background-clip: padding-box; }
+  :where(*) {
+    scrollbar-color: auto;
+  }
+
+  :where(*)::-webkit-scrollbar-thumb {
+    background: CanvasText;
+    background-clip: padding-box;
+  }
 }
