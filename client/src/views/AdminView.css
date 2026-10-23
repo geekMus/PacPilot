@@ -467,7 +467,7 @@ textarea {
 .admin-logout-button:active:not(:disabled),
 .chip:active:not(:disabled),
 .webhook-test-button:active:not(:disabled),
-:global(.timezone-option):active:not(:disabled) {
+:global(.timezone-option:active:not(:disabled)) {
   background: var(--accent-soft);
   color: var(--accent);
 }
@@ -1045,18 +1045,18 @@ textarea.body-area {
   text-align: left;
   cursor: pointer;
 }
-:global(.timezone-option)[data-highlighted],
-:global(.timezone-option)[aria-selected="true"],
-:global(.timezone-option)[data-state="checked"] {
+:global(.timezone-option[data-highlighted]),
+:global(.timezone-option[aria-selected="true"]),
+:global(.timezone-option[data-state="checked"]) {
   background: var(--accent-soft);
   color: var(--accent);
 }
-:global(.timezone-option) span {
+:global(.timezone-option span) {
   min-width: 0;
   font-size: 12px;
   overflow-wrap: anywhere;
 }
-:global(.timezone-option) code {
+:global(.timezone-option code) {
   flex: 0 0 auto;
   color: var(--muted);
   font-size: 11px;
@@ -1141,7 +1141,7 @@ textarea.body-area {
   :global(.timezone-option) {
     min-height: 48px;
   }
-  :global(.timezone-option) code {
+  :global(.timezone-option code) {
     max-width: 50%;
     overflow-wrap: anywhere;
     white-space: normal;
