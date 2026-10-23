@@ -365,15 +365,5 @@ onMounted(() => void refreshGenerationLogs());
 
 <style scoped src="@/views/MonitoringView.css">.generation-log-row { cursor: pointer; }
 .generation-log-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.detail-kicker { margin: 0 0 5px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .08em; }
-.generation-log-detail { display: grid; gap: 18px; min-width: 0; }
-.generation-log-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.generation-log-detail-grid > div { display: grid; gap: 6px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); }
-.generation-log-detail-grid span { color: var(--muted); font-size: 11px; }
-.generation-log-detail-grid strong { overflow-wrap: anywhere; font-size: 13px; }
-.generation-log-detail-block { display: grid; gap: 8px; min-width: 0; }
-.generation-log-detail-block h3 { margin: 0; font-size: 12px; }
-.generation-log-detail-block pre { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.6 var(--font-mono); }
-.generation-log-detail-block.is-error pre { color: var(--red); background: var(--red-soft); }
-@media (max-width: 520px) { .generation-log-detail-grid { grid-template-columns: 1fr; } }
+
 </style>
