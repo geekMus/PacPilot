@@ -1,8 +1,9 @@
 import { defineConfig, loadEnv } from "vite";
 import vue from "@vitejs/plugin-vue";
+import vueDevTools from "vite-plugin-vue-devtools";
 import path from "path";
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   // 读取项目根目录 .env，与后端 PORT 对齐
   const rootEnv = loadEnv(mode, path.resolve(import.meta.dirname, ".."), "");
   const apiPort = rootEnv.PORT || process.env.PORT || "17321";
@@ -10,7 +11,8 @@ export default defineConfig(({ mode }) => {
 
   return {
     root: path.resolve(import.meta.dirname),
-    plugins: [vue()],
+    // Vue DevTools is registered only for the Vite dev server; production builds never include it.
+    plugins: command === "serve" ? [vueDevTools(), vue()] : [vue()],
     base: "/",
     resolve: {
       alias: {

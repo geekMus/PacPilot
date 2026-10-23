@@ -136,18 +136,20 @@ function onCloseAutoFocus(event: Event): void {
   background: var(--surface);
 }
 .app-dialog-heading {
-  flex: 1 1 240px;
+  flex: 1 1 180px;
   min-width: 0;
   overflow-wrap: anywhere;
 }
 .app-dialog-header-actions {
   display: inline-flex;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   align-items: center;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
   margin-left: auto;
   max-width: 100%;
+  min-width: 0;
 }
 .app-dialog-close {
   display: inline-grid;
@@ -177,6 +179,7 @@ function onCloseAutoFocus(event: Event): void {
 .app-dialog-body {
   flex: 1 1 auto;
   width: 100%;
+  max-height: calc(100dvh - 160px);
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -189,6 +192,7 @@ function onCloseAutoFocus(event: Event): void {
   min-height: 0;
   padding: 18px;
   overflow-x: hidden;
+  overscroll-behavior: contain;
 }
 .app-dialog-footer {
   display: flex;
@@ -238,6 +242,9 @@ function onCloseAutoFocus(event: Event): void {
   }
   .app-dialog-header {
     padding: 14px;
+  }
+  .app-dialog-body {
+    max-height: calc(100dvh - 140px);
   }
   .app-dialog-body .app-scroll-area-viewport {
     padding: 14px;

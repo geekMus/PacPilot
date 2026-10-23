@@ -214,10 +214,7 @@ const {
                 class="timezone-combobox desktop-timezone-picker"
                 @update:open="timezoneMenuOpen = $event"
                 @update:model-value="selectTimeZone($event)"
-                @update:search-term="
-                  timezoneQuery = $event;
-                  form.timezone = $event;
-                "
+                @update:search-term="timezoneQuery = $event"
               >
                 <ComboboxAnchor as-child>
                   <div class="timezone-picker">
@@ -231,6 +228,7 @@ const {
                       :aria-invalid="Boolean(timezoneError)"
                       @focus="timezoneMenuOpen = true; timezoneQuery = ''"
                     />
+                    <AppIcon class="timezone-picker-icon" name="chevron-down" :size="15" aria-hidden="true" />
                   </div>
                 </ComboboxAnchor>
                 <ComboboxPortal>
@@ -241,7 +239,11 @@ const {
                     :side-offset="5"
                     :collision-padding="10"
                   >
-                    <ScrollAreaRoot class="timezone-options-scroll" type="auto">
+                    <ScrollAreaRoot
+                      class="timezone-options-scroll"
+                      type="auto"
+                      :style="{ '--timezone-list-height': Math.max(44, filteredTimeZones.length * 44 + 8) + 'px' }"
+                    >
                       <ComboboxViewport as-child>
                         <ScrollAreaViewport class="timezone-options-viewport">
                           <ComboboxItem
@@ -289,14 +291,14 @@ const {
               @update:open="mobileTimezoneOpen = $event"
             >
               <template #header>
-                  <DialogTitle id="mobile-timezone-title" class="timezone-sheet-title">{{ t("settings.selectTimezone") }}</DialogTitle>
-                  <DialogDescription class="app-dialog-visually-hidden">
-                    {{ t("settings.timezoneHintFull") }}
-                  </DialogDescription>
+                <DialogTitle id="mobile-timezone-title" class="timezone-sheet-title">{{ t("settings.selectTimezone") }}</DialogTitle>
+                <DialogDescription class="app-dialog-visually-hidden">
+                  {{ t("settings.timezoneHintFull") }}
+                </DialogDescription>
               </template>
               <template #body>
                 <div class="timezone-sheet-body">
-                <input
+                  <input
                   v-model="timezoneQuery"
                   class="timezone-sheet-search"
                   type="search"
@@ -304,7 +306,7 @@ const {
                   :placeholder="t('settings.timezoneSearchShort')"
                   @keydown.enter.prevent
                 />
-                <AppScrollArea
+                  <AppScrollArea
                   root-class="timezone-sheet-options"
                   viewport-class="timezone-sheet-options-viewport"
                   role="listbox"
@@ -345,10 +347,10 @@ const {
                   >
                     {{ t("settings.timezoneNoMatchStrict") }}
                   </p>
-                </AppScrollArea>
-                <p class="timezone-sheet-hint">
-                  {{ t("settings.timezoneSelectHint") }}
-                </p>
+                  </AppScrollArea>
+                  <p class="timezone-sheet-hint">
+                    {{ t("settings.timezoneSelectHint") }}
+                  </p>
                 </div>
               </template>
             </AppDialog>

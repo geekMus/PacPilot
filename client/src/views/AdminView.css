@@ -959,18 +959,51 @@ textarea.body-area {
   min-width: 0;
 }
 .timezone-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
   width: 100%;
   min-width: 0;
 }
 .timezone-combobox-input {
   display: block;
+  box-sizing: border-box;
   width: 100%;
   min-width: 0;
+  min-height: 42px;
+  padding: 10px 38px 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.timezone-combobox-input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+.timezone-combobox:focus-within .timezone-combobox-input {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.timezone-combobox-input[aria-invalid="true"] {
+  border-color: var(--red);
+}
+.timezone-picker-icon {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+  color: var(--muted);
 }
 .timezone-options-menu {
   z-index: 1200;
   box-sizing: border-box;
   width: min(var(--reka-combobox-trigger-width, 100%), calc(100vw - 16px));
+  min-width: min(var(--reka-combobox-trigger-width, 100%), calc(100vw - 16px));
   max-width: calc(100vw - 16px);
   max-height: var(--reka-combobox-content-available-height, calc(100dvh - 24px));
   overflow: hidden;
@@ -983,16 +1016,16 @@ textarea.body-area {
 }
 .timezone-options-scroll {
   width: 100%;
-  height: auto;
-  max-height: min(var(--reka-combobox-content-available-height, 420px), 420px);
+  height: min(var(--timezone-list-height, 420px), var(--reka-combobox-content-available-height, 420px));
+  max-height: min(var(--timezone-list-height, 420px), var(--reka-combobox-content-available-height, 420px));
   min-height: 0;
   overflow: hidden;
 }
 .timezone-options-viewport {
   width: 100%;
-  height: auto;
+  height: 100%;
   min-height: 0;
-  max-height: min(var(--reka-combobox-content-available-height, 420px), 420px);
+  max-height: 100%;
   overflow-x: hidden;
 }
 .timezone-option {
@@ -1000,7 +1033,9 @@ textarea.body-area {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  box-sizing: border-box;
   width: 100%;
+  min-width: 0;
   min-height: 44px;
   padding: 9px 10px;
   border: 0;
@@ -1017,9 +1052,12 @@ textarea.body-area {
   color: var(--accent);
 }
 .timezone-option span {
+  min-width: 0;
   font-size: 12px;
+  overflow-wrap: anywhere;
 }
 .timezone-option code {
+  flex: 0 0 auto;
   color: var(--muted);
   font-size: 11px;
   white-space: nowrap;
@@ -1058,13 +1096,27 @@ textarea.body-area {
   .mobile-timezone-trigger-icon {
     display: grid;
     place-items: center;
+    flex: 0 0 auto;
     color: var(--muted);
+  }
+  .timezone-sheet-title {
+    margin: 0;
+    font-size: 16px;
+  }
+  .timezone-sheet-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
   }
   .timezone-sheet-search {
     flex: 0 0 auto;
+    box-sizing: border-box;
     width: 100%;
     min-height: 44px;
-    margin-bottom: 10px;
+    margin: 0;
     padding: 10px 12px;
     border: 1px solid var(--line);
     border-radius: 8px;
@@ -1074,13 +1126,24 @@ textarea.body-area {
     font-size: 16px;
   }
   .timezone-sheet-options {
+    flex: 1 1 0%;
+    width: 100%;
+    height: 0;
     min-height: 0;
+    max-height: min(48dvh, 420px);
+    margin: 0;
     overscroll-behavior: contain;
+  }
+  .timezone-sheet-options-viewport {
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
   }
   .timezone-option {
     min-height: 48px;
   }
   .timezone-option code {
+    max-width: 50%;
     overflow-wrap: anywhere;
     white-space: normal;
     text-align: right;
@@ -1090,7 +1153,8 @@ textarea.body-area {
     margin-top: 4px;
   }
   .timezone-sheet-hint {
-    margin: 10px 0 0;
+    flex: 0 0 auto;
+    margin: 0;
     color: var(--muted);
     font-size: 12px;
     line-height: 1.45;
@@ -1223,69 +1287,3 @@ textarea.body-area {
   }
 }
 
-
-/* Keep the timezone picker aligned with the shared centered dialog surface. */
-
-
-.timezone-sheet-search {
-  flex: 0 0 auto;
-  width: calc(100% - 36px);
-  margin: 16px 18px 10px;
-}
-.timezone-sheet-options {
-  min-height: 0;
-  margin: 0 18px;
-  overscroll-behavior: contain;
-}
-.timezone-sheet-hint {
-  margin: 10px 18px 18px;
-}
-@media (max-width: 720px) {
-  
-  .timezone-sheet-search {
-    width: calc(100% - 28px);
-    margin: 16px 14px 10px;
-  }
-  .timezone-sheet-options {
-    margin: 0 14px;
-  }
-  .timezone-sheet-hint {
-    margin: 10px 14px max(14px, env(safe-area-inset-bottom));
-  }
-}
-
-
-/* The shared dialog owns the shell; only the timezone picker's content is customized here. */
-.timezone-sheet-title {
-  margin: 0;
-  font-size: 16px;
-}
-.timezone-sheet-body {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-height: 0;
-}
-.timezone-sheet-search {
-  flex: 0 0 auto;
-  width: 100%;
-  min-height: 44px;
-  margin: 0;
-}
-.timezone-sheet-options {
-  flex: 1 1 auto;
-  width: 100%;
-  height: auto;
-  min-height: 0;
-  max-height: min(48dvh, 420px);
-  margin: 0;
-  overscroll-behavior: contain;
-}
-.timezone-sheet-options-viewport {
-  height: auto;
-  min-height: 0;
-  max-height: min(48dvh, 420px);
-}
-.timezone-sheet-hint {
-  margin: 0;
-}
