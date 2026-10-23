@@ -1,6 +1,5 @@
 import cron, { type ScheduledTask } from "node-cron";
-import type { AppDatabase } from "../db/sqlite";
-import { getSettings } from "../db/sqlite";
+import type { ApplicationStorage } from "../storage/repositories";
 import { hasActivePacWorkflow, runPacWorkflow } from "./workflow";
 import { runtimeLog } from "../utils/runtime-log";
 
@@ -9,8 +8,8 @@ let currentKey = "";
 let scheduledRunInFlight = false;
 let overlapWarningLogged = false;
 
-export function reschedule(database: AppDatabase, dataDir: string): void {
-  const settings = getSettings(database);
+export function reschedule(storage: ApplicationStorage, dataDir: string): void {
+  const settings = storage.settings.get();
   const expression = settings.cronSchedule.trim();
   const key = expression + "\n" + settings.timezone;
 
@@ -34,7 +33,7 @@ export function reschedule(database: AppDatabase, dataDir: string): void {
   currentTask = cron.schedule(
     expression,
     () => {
-      if (scheduledRunInFlight || hasActivePacWorkflow(database)) {
+      if (scheduledRunInFlight || hasActivePacWorkflow(storage)) {
         if (!overlapWarningLogged) {
           runtimeLog(
             "warn",
@@ -48,7 +47,7 @@ export function reschedule(database: AppDatabase, dataDir: string): void {
       overlapWarningLogged = false;
       scheduledRunInFlight = true;
 
-      void runPacWorkflow(database, dataDir, "scheduled")
+      void runPacWorkflow(storage, dataDir, "scheduled")
         .catch((error) => runtimeLog("error", "Scheduled workflow failed: ", error))
         .finally(() => {
           scheduledRunInFlight = false;
