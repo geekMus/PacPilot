@@ -9,7 +9,7 @@ import { computed, ref } from "vue";
 import TableFrame from "@/components/TableFrame.vue";
 import VirtualTable from "@/components/VirtualTable.vue";
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   items: GenerationLog[];
   compact?: boolean;
   height?: number | string;
