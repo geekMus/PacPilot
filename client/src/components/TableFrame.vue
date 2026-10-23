@@ -5,12 +5,13 @@ import AppScrollArea from "@/components/AppScrollArea.vue";
 const props = withDefaults(
   defineProps<{
     height?: number | string;
+    empty?: boolean;
     minWidth?: string;
     tableClass?: string;
     rowHeight?: number;
   }>(),
   {
-    height: 480,
+    empty: false,
     minWidth: "760px",
     tableClass: "",
     rowHeight: 56,
@@ -26,7 +27,10 @@ const scroller = ref<HTMLElement | null>(null);
 const headerViewportWidth = ref("100%");
 const headerOffset = ref(0);
 const frameStyle = computed(() => ({
-  height: typeof props.height === "number" ? props.height + "px" : props.height,
+  // 144px keeps the 44px header and empty row comfortable without leaving a large blank panel.
+  height: typeof (props.height ?? (props.empty ? 144 : 480)) === "number"
+    ? (props.height ?? (props.empty ? 144 : 480)) + "px"
+    : (props.height ?? (props.empty ? 144 : 480)),
   "--virtual-row-height": props.rowHeight + "px",
   "--table-min-width": props.minWidth,
 }));
