@@ -1,9 +1,8 @@
 import { Router } from "express";
-import type { AppDatabase } from "../db/sqlite";
 import type { ApplicationStorage } from "../storage/repositories";
 import { requireAdmin } from "../middleware/auth";
 import { getActiveRequestCount, getTcpConnectionCount } from "../services/request-monitor";
-export function adminMonitorRoutes(database: AppDatabase, storage: ApplicationStorage): Router {
+export function adminMonitorRoutes(storage: ApplicationStorage): Router {
   const router = Router();
   router.get("/api/admin/monitor/summary", requireAdmin(storage.credentials), (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
