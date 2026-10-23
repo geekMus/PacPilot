@@ -17,6 +17,7 @@ import {
   cleanupOperationalLogs,
   countAccessEvents,
   countGenerationLogs,
+  countWorkflowRuns,
   getSettings,
   operationalLogStorageBytes,
   recentLogs,
@@ -65,7 +66,6 @@ export function createSqliteGenerationLogRepository(database: Database): Generat
 
 export function createSqliteMonitoringRepository(
   database: Database,
-  getLiveStats: () => { activeRequests: number; tcpConnections: number } = () => ({ activeRequests: 0, tcpConnections: 0 }),
 ): MonitoringRepository {
   return {
     record: (event: AccessEventInput) => recordAccessEvent(database, event),
@@ -91,6 +91,7 @@ export function createSqliteWorkflowRepository(database: Database): WorkflowRepo
     claim: (id, startedAt) => claimWorkflowRun(database as never, id, startedAt),
     update: (id, patch) => updateWorkflowRun(database as never, id, patch),
     list: (limit = 50, beforeId = 0) => listWorkflowRuns(database as never, limit, beforeId),
+    count: () => countWorkflowRuns(database),
     listActive: () => listActiveWorkflowRuns(database as never),
     current: () => getCurrentWorkflow(database as never),
     markInterrupted: () => markInterruptedWorkflows(database as never),
