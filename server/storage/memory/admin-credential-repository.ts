@@ -1,4 +1,4 @@
-import type { AdminCredentialRecord, AdminCredentialRepository } from "./repositories";
+import type { AdminCredentialRecord, AdminCredentialRepository } from "../repositories";
 
 /** Process-local credential adapter; state disappears when this instance is discarded. */
 export class MemoryAdminCredentialRepository implements AdminCredentialRepository {
