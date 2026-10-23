@@ -2,9 +2,7 @@
   "buildCommand": "bun run build:client",
   "outputDirectory": "dist/client",
   "git": {
-    "deploymentEnabled": {
-      "dev": false
-    }
+    "deploymentEnabled": false
   },
   "rewrites": [
     { "source": "/proxy.pac", "destination": "/api/proxy-pac" },
