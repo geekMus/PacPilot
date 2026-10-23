@@ -10,11 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
   SelectViewport,
-  ScrollAreaRoot,
-  ScrollAreaViewport,
-  ScrollAreaScrollbar,
-  ScrollAreaThumb,
 } from "reka-ui";
+import AppScrollArea from "@/components/AppScrollArea.vue";
 import AppIcon from "@/components/AppIcon.vue";
 
 export interface AppSelectOption {
@@ -72,9 +69,15 @@ function onValueChange(value: string): void {
           :side-offset="4"
           :collision-padding="8"
         >
-          <ScrollAreaRoot class="app-select-scroll-area" type="always">
-            <SelectViewport as-child>
-              <ScrollAreaViewport class="app-select-viewport">
+          <AppScrollArea
+            root-class="app-select-scroll-area"
+            viewport-class="app-select-viewport"
+            orientation="vertical"
+            type="always"
+          >
+            <template #viewport="{ viewportComponent, viewportClass, onScroll }">
+              <SelectViewport as-child>
+                <component :is="viewportComponent" :class="viewportClass" @scroll.passive="onScroll">
                 <SelectItem
                   v-for="option in props.options"
                   :key="String(option.value)"
@@ -87,12 +90,10 @@ function onValueChange(value: string): void {
                     <AppIcon name="check" :size="14" aria-hidden="true" />
                   </SelectItemIndicator>
                 </SelectItem>
-              </ScrollAreaViewport>
-            </SelectViewport>
-            <ScrollAreaScrollbar class="app-scrollbar" orientation="vertical">
-              <ScrollAreaThumb class="app-scrollbar-thumb" />
-            </ScrollAreaScrollbar>
-          </ScrollAreaRoot>
+                </component>
+              </SelectViewport>
+            </template>
+          </AppScrollArea>
         </SelectContent>
       </SelectPortal>
     </SelectRoot>
