@@ -371,7 +371,7 @@ watch(
           >
         </div>
       </div>
-      <div class="rule-diagnostic-list">
+      <AppScrollArea root-class="rule-diagnostic-list" viewport-class="rule-diagnostic-viewport" orientation="vertical">
         <button
           v-for="(item, index) in diagnostics"
           :key="item.line + '-' + item.severity + '-' + item.message + '-' + index"
@@ -385,7 +385,7 @@ watch(
           <span class="rule-diagnostic-message">{{ item.message }}</span>
           <span class="rule-diagnostic-jump" aria-hidden="true">{{ t("domainList.locate") }}</span>
         </button>
-      </div>
+      </AppScrollArea>
       <p class="rule-diagnostic-footer">{{ t("domainList.clickToJump") }}</p>
     </section>
   </div>
@@ -515,9 +515,11 @@ watch(
   flex-direction: column;
   gap: 1px;
   max-height: 220px;
-  overflow: auto;
-  padding: 4px;
+  padding: 0;
   overscroll-behavior: contain;
+}
+.rule-diagnostic-list :deep(.rule-diagnostic-viewport) {
+  padding: 4px;
 }
 .rule-diagnostic-item {
   display: grid;
