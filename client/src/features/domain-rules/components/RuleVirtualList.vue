@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import { computed, ref, watch } from "vue";
+import { computed, onUnmounted, ref, watch } from "vue";
 import TextDetail from "@/components/TextDetail.vue";
 import AppScrollArea from "@/components/AppScrollArea.vue";
 const { t } = useI18n();
@@ -27,9 +27,8 @@ const props = withDefaults(
 
 const scrollTop = ref(0);
 const viewport = ref<HTMLElement | null>(null);
-const viewportHeight = computed(() =>
-  Math.min(props.height, Math.max(props.rowHeight * 3, props.items.length * props.rowHeight))
-);
+const viewportHeight = ref(props.height);
+let resizeObserver: ResizeObserver | undefined;
 const startIndex = computed(() =>
   Math.max(0, Math.floor(scrollTop.value / props.rowHeight) - props.overscan)
 );
@@ -68,7 +67,17 @@ function sourceClass(source?: string): string {
 
 function onReady(element: HTMLElement): void {
   viewport.value = element;
+  viewportHeight.value = element.clientHeight;
+  if (typeof ResizeObserver !== "undefined") {
+    resizeObserver?.disconnect();
+    resizeObserver = new ResizeObserver(() => {
+      viewportHeight.value = element.clientHeight;
+    });
+    resizeObserver.observe(element);
+  }
 }
+
+onUnmounted(() => resizeObserver?.disconnect());
 
 function onScroll(element: HTMLElement): void {
   scrollTop.value = element.scrollTop;
@@ -87,7 +96,7 @@ watch(
   <AppScrollArea
     root-class="virtual-list"
     viewport-class="virtual-list-viewport"
-    :style="{ height: viewportHeight + 'px' }"
+    :style="{ '--rule-list-max-height': props.height + 'px' }"
     role="list"
     :aria-label="t('common.domainRules')"
     @ready="onReady"
@@ -118,13 +127,17 @@ watch(
 <style scoped>
 .virtual-list {
   position: relative;
-  max-height: 300px;
+  height: fit-content;
+  min-height: 108px;
+  max-height: var(--rule-list-max-height, 300px);
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--bg);
 }
 .virtual-list :deep(.virtual-list-viewport) {
   position: relative;
+  height: auto;
+  max-height: var(--rule-list-max-height, 300px);
 }
 .virtual-canvas {
   position: relative;
