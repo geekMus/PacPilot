@@ -1,7 +1,7 @@
 import type { AppDatabase } from "./sqlite";
 
 import type { AccessEvent, AccessEventInput, MonitorSummary } from "../repositories";
-export type { AccessEvent, AccessEventInput, MonitorSummary } from "../storage/repositories";
+export type { AccessEvent, AccessEventInput, MonitorSummary } from "../repositories";
 
 let lastPruneAt = 0;
 
