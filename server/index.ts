@@ -1,8 +1,8 @@
 import { loadEnv } from "./config/env";
-import { getDb, closeDb } from "./db/sqlite";
+import { getDb } from "./db/sqlite";
 import { createApp } from "./app";
 import { runPacWorkflow } from "./services/workflow";
-import { cleanupOperationalLogs, markInterruptedWorkflows } from "./db/sqlite";
+
 import { reschedule, stopScheduler } from "./services/scheduler";
 import {
   createInitialAdminCredentials,
@@ -21,11 +21,13 @@ async function main(): Promise<void> {
   const firstStart = isAdminCredentialsMissing(storage.credentials);
   const initialAdminPassword = createInitialAdminCredentials(storage.credentials);
   const adminCredentialsMissing = isAdminCredentialsMissing(database);
-  markInterruptedWorkflows(database);
+  storage.workflows.markInterrupted();
   const cleanupLogs = (): void => {
-    const deleted = cleanupOperationalLogs(database);
-    if (deleted.generationLogs + deleted.accessEvents > 0) {
-      if (env.storageDriver === "sqlite") database.run("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
+    const retentionDays = storage.settings.get().logRetentionDays;
+    const deletedGenerationLogs = storage.generationLogs.cleanup(retentionDays);
+    const deletedAccessEvents = storage.monitoring.cleanup(retentionDays);
+    if (deletedGenerationLogs + deletedAccessEvents > 0 && env.storageDriver === "sqlite") {
+      storage.maintenance.compact();
     }
   };
   cleanupLogs();
@@ -69,7 +71,7 @@ async function main(): Promise<void> {
     }
     stopScheduler();
     clearInterval(logCleanupTimer);
-    closeDb();
+    storage.close();
     if (env.storageDriver === "memory") clearEphemeralFiles();
     process.exit(1);
   });
@@ -78,7 +80,7 @@ async function main(): Promise<void> {
     stopScheduler();
     clearInterval(logCleanupTimer);
     server.close(() => {
-      closeDb();
+      storage.close();
       if (env.storageDriver === "memory") clearEphemeralFiles();
       process.exit(0);
     });
