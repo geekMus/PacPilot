@@ -1,5 +1,4 @@
 import { loadEnv } from "./config/env";
-import { getDb } from "./db/sqlite";
 import { createApp } from "./app";
 import { runPacWorkflow } from "./services/workflow";
 
@@ -11,13 +10,12 @@ import {
 import { trackTcpConnection } from "./services/request-monitor";
 import { runtimeLog } from "./utils/runtime-log";
 import { clearEphemeralFiles } from "./storage/ephemeral-files";
-import { createSqliteApplicationStorage } from "./storage/sqlite-repositories";
+import { createApplicationStorage } from "./storage";
 
 async function main(): Promise<void> {
   const env = loadEnv();
   process.env.PACPILOT_RUNTIME_PROFILE = env.runtimeProfile;
-  const database = getDb(env.dataDir);
-  const storage = createSqliteApplicationStorage(database, env.dataDir);
+  const storage = createApplicationStorage(env);
   const firstStart = isAdminCredentialsMissing(storage.credentials);
   const initialAdminPassword = createInitialAdminCredentials(storage.credentials);
   const adminCredentialsMissing = isAdminCredentialsMissing(storage.credentials);
