@@ -93,7 +93,9 @@ export interface ArtifactRepository {
   write(key: string, contents: Uint8Array | string): void;
   delete(key: string): boolean;
   exists(key: string): boolean;
+  stat(key: string): { size: number; modifiedAt: string } | undefined;
   list(prefix?: string): string[];
+  totalBytes(): number;
 }
 
 export interface StorageMaintenance {
