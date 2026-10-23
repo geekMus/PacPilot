@@ -15,12 +15,14 @@ import {
   appendGenerationLog,
   clearOperationalLogs,
   cleanupOperationalLogs,
+  checkpointDatabase,
   countAccessEvents,
   countGenerationLogs,
   countWorkflowRuns,
   getSettings,
-  operationalLogStorageBytes,
   recentLogs,
+  resetOperationalData,
+  vacuumDatabase,
   setSettings,
   updateSettings,
 } from "../db/sqlite";
@@ -58,9 +60,16 @@ export function createSqliteGenerationLogRepository(database: Database): Generat
       appendGenerationLog(database, success, mode, resultCode, detail, error),
     list: (limit = 20, offset = 0, beforeId = 0) => recentLogs(database, limit, offset, beforeId),
     count: () => countGenerationLogs(database),
-    storageBytes: () => operationalLogStorageBytes(database),
-    cleanup: (retentionDays) => cleanupOperationalLogs(database, retentionDays).generationLogs,
-    clear: () => clearOperationalLogs(database).generationLogs,
+    storageBytes: () => {
+      const row = database.query("SELECT COALESCE(SUM(length(result_code) + length(detail) + length(error) + length(mode) + 48), 0) AS bytes FROM generation_log").get() as { bytes: number };
+      return Number(row.bytes || 0);
+    },
+    cleanup: (retentionDays = getSettings(database).logRetentionDays) => {
+      if (retentionDays <= 0) return 0;
+      const cutoff = new Date(Date.now() - retentionDays * 86400000).toISOString().slice(0, 19).replace("T", " ");
+      return Number(database.query("DELETE FROM generation_log WHERE created_at < ?").run(cutoff).changes);
+    },
+    clear: () => Number(database.query("DELETE FROM generation_log").run().changes),
   };
 }
 
@@ -71,11 +80,15 @@ export function createSqliteMonitoringRepository(
     record: (event: AccessEventInput) => recordAccessEvent(database, event),
     list: (limit = 50, beforeId = 0) => listAccessEvents(database, limit, beforeId),
     count: () => countAccessEvents(database),
+    storageBytes: () => {
+      const row = database.query("SELECT COALESCE(SUM(length(path) + length(category) + length(source_ip) + length(user_agent) + 96), 0) AS bytes FROM access_events").get() as { bytes: number };
+      return Number(row.bytes || 0);
+    },
     summarize: (activeRequests, tcpConnections) => getMonitorSummary(database, activeRequests, tcpConnections),
-    cleanup: () => {
-      const before = countAccessEvents(database);
-      listAccessEvents(database, 1);
-      return Math.max(0, before - countAccessEvents(database));
+    cleanup: (retentionDays = getSettings(database).logRetentionDays) => {
+      if (retentionDays <= 0) return 0;
+      const cutoff = new Date(Date.now() - retentionDays * 86400000).toISOString();
+      return Number(database.query("DELETE FROM access_events WHERE created_at < ?").run(cutoff).changes);
     },
     clear: () => {
       const count = countAccessEvents(database);
@@ -174,6 +187,17 @@ export function createSqliteApplicationStorage(database: Database, dataDir: stri
     monitoring: createSqliteMonitoringRepository(database),
     workflows: createSqliteWorkflowRepository(database),
     artifacts: createSqliteArtifactRepository(dataDir),
+    maintenance: {
+      databaseBytes: () => {
+        if (dataDir === ":memory:") return 0;
+        return ["database.db", "database.db-wal", "database.db-shm"].reduce((sum, name) => {
+          try { return sum + fs.statSync(path.join(dataDir, name)).size; } catch { return sum; }
+        }, 0);
+      },
+      compact: () => vacuumDatabase(database, true),
+      checkpoint: () => checkpointDatabase(database),
+      resetOperationalData: (settings) => { resetOperationalData(database, settings); },
+    },
     close: () => database.close(),
   };
 }
