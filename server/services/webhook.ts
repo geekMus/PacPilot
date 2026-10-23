@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
-import type { AppSettings, WebhookConfig } from "../db/settings";
-import { createDefaultWebhookConfig, normalizeWebhookConfig } from "../db/settings";
+import type { AppSettings, WebhookConfig } from "../domain/settings";
+import { createDefaultWebhookConfig, normalizeWebhookConfig } from "../domain/settings";
 import { assertSafeHttpUrl } from "../utils/url-safety";
 import { runtimeLog } from "../utils/runtime-log";
 
