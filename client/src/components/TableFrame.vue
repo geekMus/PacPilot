@@ -136,7 +136,7 @@ onUnmounted(() => resizeObserver?.disconnect());
   max-height: calc(var(--table-max-height, 480px) - 44px);
   height: auto;
 }
- .app-table-body-scroll :deep(.app-scroll-area-viewport) {
+.app-table-body-scroll :deep(.app-scroll-area-viewport) {
   height: auto;
   max-height: calc(var(--table-max-height, 480px) - 44px);
   overflow-anchor: none;
