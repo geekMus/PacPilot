@@ -6,6 +6,8 @@ import { EditorState, type Extension } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
 import { json } from "@codemirror/lang-json";
+import { javascript } from "@codemirror/lang-javascript";
+import { java } from "@codemirror/lang-java";
 import { oneDark } from "@codemirror/theme-one-dark";
 import AppScrollArea from "@/components/AppScrollArea.vue";
 import { attachCodeMirrorScrollArea } from "@/utils/codemirror-scroll-area";
@@ -17,7 +19,7 @@ const props = withDefaults(
     placeholder?: string;
     height?: number;
     singleLine?: boolean;
-    language?: "json" | "text";
+    language?: "json" | "javascript" | "java" | "text";
     ariaLabel?: string;
     invalid?: boolean;
     extensions?: Extension[];
@@ -69,7 +71,13 @@ function buildExtensions() {
     keymap.of(bindings),
     syntaxHighlighting(defaultHighlightStyle),
     ...(props.theme === "one-dark" && isDark() ? [oneDark] : []),
-    ...(props.language === "json" ? [json()] : []),
+    ...(props.language === "json"
+      ? [json()]
+      : props.language === "javascript"
+        ? [javascript()]
+        : props.language === "java"
+          ? [java()]
+          : []),
     ...(props.placeholder ? [cmPlaceholder(props.placeholder)] : []),
     ...(!props.singleLine ? [EditorView.lineWrapping] : []),
     EditorView.contentAttributes.of({
@@ -217,6 +225,11 @@ watch(
 .cm-field-frame.invalid:focus-within {
   border-color: var(--red);
   box-shadow: 0 0 0 3px var(--red-soft);
+}
+.cm-field-frame.embedded.invalid,
+.cm-field-frame.embedded.invalid:focus-within {
+  border: 0;
+  box-shadow: none;
 }
 .cm-field-frame.single-line {
   height: 40px;
