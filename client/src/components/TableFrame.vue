@@ -24,8 +24,7 @@ const emit = defineEmits<{
 }>();
 
 const scroller = ref<HTMLElement | null>(null);
-const bodyTable = ref<HTMLTableElement | null>(null);
-const contentHeight = ref<number | null>(null);
+
 const maxHeight = computed(() => {
   const value = props.height ?? 480;
   const parsed = typeof value === "number" ? value : Number.parseFloat(value);
@@ -33,18 +32,11 @@ const maxHeight = computed(() => {
 });
 const headerViewportWidth = ref("100%");
 const headerOffset = ref(0);
-const frameStyle = computed(() => {
-  // Height is a maximum. Add only 8px of breathing room to avoid a false vertical scrollbar
-  // caused by table borders and fractional row layout; keep the empty state comfortably usable.
-  const bodyHeight = contentHeight.value ?? Math.max(0, maxHeight.value - 44);
-  const contentFitHeight = 44 + bodyHeight + 8;
-  const height = Math.min(maxHeight.value, Math.max(144, contentFitHeight));
-  return {
-    height: height + "px",
-    "--virtual-row-height": props.rowHeight + "px",
-    "--table-min-width": props.minWidth,
-  };
-});
+const frameStyle = computed(() => ({
+  "--table-max-height": maxHeight.value + "px",
+  "--virtual-row-height": props.rowHeight + "px",
+  "--table-min-width": props.minWidth,
+}));
 let resizeObserver: ResizeObserver | undefined;
 
 function syncHeader(): void {
@@ -53,8 +45,6 @@ function syncHeader(): void {
     headerViewportWidth.value = element.clientWidth + "px";
     headerOffset.value = element.scrollLeft;
   }
-  const table = bodyTable.value;
-  if (table) contentHeight.value = table.tBodies[0]?.scrollHeight ?? table.getBoundingClientRect().height;
 }
 
 function onScroll(): void {
@@ -71,8 +61,6 @@ function onReady(element: HTMLElement): void {
     resizeObserver = new ResizeObserver(syncHeader);
     resizeObserver.observe(element);
     if (element.parentElement) resizeObserver.observe(element.parentElement);
-    if (bodyTable.value) resizeObserver.observe(bodyTable.value);
-    if (bodyTable.value?.tBodies[0]) resizeObserver.observe(bodyTable.value.tBodies[0]);
   }
 }
 
@@ -80,7 +68,7 @@ onUnmounted(() => resizeObserver?.disconnect());
 </script>
 
 <template>
-  <div class="app-table-frame" :style="frameStyle">
+  <div class="app-table-frame" :class="{ 'is-empty': props.empty }" :style="frameStyle">
     <div class="app-table-header-viewport" :style="{ width: headerViewportWidth }">
       <table class="app-table virtual-table" :class="props.tableClass" :style="{ transform: `translateX(-${headerOffset}px)` }">
         <colgroup><slot name="columns" /></colgroup>
@@ -88,7 +76,7 @@ onUnmounted(() => resizeObserver?.disconnect());
       </table>
     </div>
     <AppScrollArea root-class="app-table-body-scroll" orientation="both" @ready="onReady" @scroll="onScroll">
-      <table ref="bodyTable" class="app-table virtual-table" :class="props.tableClass">
+      <table class="app-table virtual-table" :class="props.tableClass">
         <colgroup><slot name="columns" /></colgroup>
         <tbody><slot name="body" /></tbody>
       </table>
@@ -105,6 +93,8 @@ onUnmounted(() => resizeObserver?.disconnect());
   max-width: 100%;
   border: 1px solid var(--line);
   border-radius: 10px;
+  max-height: var(--table-max-height, 480px);
+  height: fit-content;
   overflow: hidden;
   background: var(--surface);
   /* Do not trap wheel/touch gestures at this non-scrolling frame. */
@@ -139,12 +129,15 @@ onUnmounted(() => resizeObserver?.disconnect());
   text-overflow: ellipsis;
 }
 .app-table-body-scroll {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   min-height: 0;
-  height: 0;
+  max-height: calc(var(--table-max-height, 480px) - 44px);
+  height: auto;
 }
 .app-table-body-scroll :deep(.app-scroll-area-viewport) {
+  height: auto;
+  max-height: calc(var(--table-max-height, 480px) - 44px);
   overflow-anchor: none;
   /* Let vertical wheel/touch gestures chain to the page when the table cannot scroll. */
   overscroll-behavior-y: auto;
