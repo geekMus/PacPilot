@@ -87,7 +87,8 @@ onUnmounted(() => resizeObserver?.disconnect());
   border-radius: 10px;
   overflow: hidden;
   background: var(--surface);
-  overscroll-behavior: contain;
+  /* Do not trap wheel/touch gestures at this non-scrolling frame. */
+  overscroll-behavior: auto;
 }
 .app-table-header-viewport {
   flex: 0 0 44px;
