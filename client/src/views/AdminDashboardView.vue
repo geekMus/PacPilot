@@ -18,6 +18,8 @@ import AppIcon from "@/components/AppIcon.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import ResponsiveTrendChart from "@/components/ResponsiveTrendChart.vue";
 import TextDetail from "@/components/TextDetail.vue";
+import AppDialog from "@/components/AppDialog.vue";
+import { DialogDescription, DialogTitle } from "reka-ui";
 import TableFrame from "@/components/TableFrame.vue";
 
 const { t, locale } = useI18n();
@@ -36,6 +38,10 @@ const noticeOkay = ref(true);
 const settings = ref<AppSettings | null>(null);
 const status = ref<PacStatus | null>(null);
 const logs = ref<GenerationLog[]>([]);
+const selectedLog = ref<GenerationLog | null>(null);
+const logDetailOpen = ref(false);
+function openLogDetail(entry: GenerationLog): void { selectedLog.value = entry; logDetailOpen.value = true; }
+function logDetailJson(entry: GenerationLog): string { return JSON.stringify(entry.detail ?? {}, null, 2); }
 const monitor = ref<MonitorSummary | null>(null);
 const engine = ref<PacPilotProbe | null>(null);
 const currentWorkflow = ref<WorkflowRun | null>(null);
@@ -384,7 +390,7 @@ onMounted(() => {
                   <th>{{ t("dashboard.colMode") }}</th>
                   <th>{{ t("dashboard.colMessage") }}</th>
                 </tr></template>
-            <template #body><tr v-for="entry in logs" :key="entry.id">
+            <template #body><tr v-for="entry in logs" :key="entry.id" class="recent-log-row" tabindex="0" role="button" @click="openLogDetail(entry)" @keydown.enter.prevent="openLogDetail(entry)" @keydown.space.prevent="openLogDetail(entry)">
                   <td class="nowrap">{{ formatStatusDate(entry.created_at) }}</td>
                   <td>
                     <span class="result-pill" :class="entry.success ? 'good' : 'bad'"
@@ -396,6 +402,7 @@ onMounted(() => {
                   <td>{{ modeForLog(entry.mode) }}</td>
                   <td class="log-message">
                     <TextDetail
+                      @click.stop
                       :text="generationLogText(entry)"
                       :label="t('dashboard.genLogLabel')"
                     />
@@ -436,6 +443,28 @@ onMounted(() => {
         </div>
       </section>
 
+      <AppDialog :open="logDetailOpen && !!selectedLog" :label="t('dashboard.genLogLabel')" width="min(680px, calc(100vw - 16px))" @update:open="logDetailOpen = $event">
+        <template #header>
+          <div>
+            <p class="detail-kicker">GENERATION LOG #{{ selectedLog?.id }}</p>
+            <DialogTitle>{{ t("dashboard.genLogLabel") }}</DialogTitle>
+            <DialogDescription>{{ selectedLog ? formatStatusDate(selectedLog.created_at) : "" }}</DialogDescription>
+          </div>
+        </template>
+        <template #body>
+          <div v-if="selectedLog" class="recent-log-detail">
+            <div class="recent-log-detail-grid">
+              <div><span>{{ t("dashboard.colTime") }}</span><strong>{{ formatStatusDate(selectedLog.created_at) }}</strong></div>
+              <div><span>{{ t("dashboard.colResult") }}</span><strong>{{ selectedLog.success ? t("common.success") : t("common.failed") }}</strong></div>
+              <div><span>{{ t("dashboard.colMode") }}</span><strong>{{ modeForLog(selectedLog.mode) }}</strong></div>
+              <div><span>ID</span><strong>#{{ selectedLog.id }}</strong></div>
+            </div>
+            <section class="recent-log-detail-block"><h3>{{ t("dashboard.colMessage") }}</h3><pre>{{ generationLogText(selectedLog) }}</pre></section>
+            <section class="recent-log-detail-block"><h3>{{ t("common.details") }}</h3><pre>{{ logDetailJson(selectedLog) }}</pre></section>
+            <section v-if="selectedLog.error" class="recent-log-detail-block is-error"><h3>{{ t("common.failed") }}</h3><pre>{{ selectedLog.error }}</pre></section>
+          </div>
+        </template>
+      </AppDialog>
       <AppFooter />
     </div>
   </AdminLayout>
@@ -958,4 +987,18 @@ onMounted(() => {
     transform: none;
   }
 }
+
+.recent-log-row { cursor: pointer; }
+.recent-log-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.detail-kicker { margin: 0 0 5px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .08em; }
+.recent-log-detail { display: grid; gap: 18px; min-width: 0; }
+.recent-log-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.recent-log-detail-grid > div { display: grid; gap: 6px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); }
+.recent-log-detail-grid span { color: var(--muted); font-size: 11px; }
+.recent-log-detail-grid strong { overflow-wrap: anywhere; font-size: 13px; }
+.recent-log-detail-block { display: grid; gap: 8px; min-width: 0; }
+.recent-log-detail-block h3 { margin: 0; font-size: 12px; }
+.recent-log-detail-block pre { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.6 var(--font-mono); }
+.recent-log-detail-block.is-error pre { color: var(--red); background: var(--red-soft); }
+@media (max-width: 520px) { .recent-log-detail-grid { grid-template-columns: 1fr; } }
 </style>
