@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { loadEnv } from "./config/env";
 import { createApp } from "./app";
-import { createMemoryApplicationStorage } from "./storage/memory-application";
+import { createMemoryApplicationStorage } from "./storage/memory/application-storage";
 import {
   createInitialAdminCredentials,
   isAdminCredentialsMissing,
