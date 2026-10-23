@@ -69,8 +69,8 @@ describe("assertSafeHttpUrl", () => {
     expect(isBlockedIpAddress("FE80::1")).toBe(true);
     expect(isBlockedIpAddress("FDCF::1")).toBe(true);
     expect(isBlockedIpAddress("::ffff:8.8.8.8")).toBe(false);
-    // URL parsers normalize dotted IPv4-mapped IPv6 to hexadecimal groups;
-    // both compressed and fully expanded forms must still honor IPv4 SSRF rules.
+    // URL 解析器会将点分 IPv4 映射 IPv6 规范化为十六进制分组；
+    // 压缩和完整展开形式都必须遵守 IPv4 的 SSRF 限制。
     expect(isBlockedIpAddress("::ffff:7f00:1")).toBe(true);
     expect(isBlockedIpAddress("0:0:0:0:0:ffff:7f00:1")).toBe(true);
     expect(isBlockedIpAddress("[::ffff:ac10:1]")).toBe(true);
