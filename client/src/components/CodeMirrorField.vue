@@ -8,7 +8,7 @@ import { syntaxHighlighting as addSyntaxHighlighting, defaultHighlightStyle } fr
 import { json } from "@codemirror/lang-json";
 import { javascript } from "@codemirror/lang-javascript";
 import { java } from "@codemirror/lang-java";
-import { oneDark } from "@codemirror/theme-one-dark";
+import { oneDarkHighlightStyle, oneDarkTheme } from "@codemirror/theme-one-dark";
 import AppScrollArea from "@/components/AppScrollArea.vue";
 import { attachCodeMirrorScrollArea } from "@/utils/codemirror-scroll-area";
 const { t } = useI18n();
@@ -76,7 +76,9 @@ function buildExtensions() {
     ...(!props.singleLine && props.lineNumbers ? [lineNumbers()] : []),
     keymap.of(bindings),
     ...(props.syntaxHighlighting ? [addSyntaxHighlighting(defaultHighlightStyle)] : []),
-    ...(props.theme === "one-dark" && isDark() ? [oneDark] : []),
+    ...(props.theme === "one-dark" && isDark()
+      ? [oneDarkTheme, ...(props.syntaxHighlighting ? [addSyntaxHighlighting(oneDarkHighlightStyle)] : [])]
+      : []),
     ...(props.language === "json"
       ? [json()]
       : props.language === "javascript"
