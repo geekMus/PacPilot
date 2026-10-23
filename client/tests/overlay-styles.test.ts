@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import adminStyles from "../src/views/AdminView.css?raw";
-import overlayStyles from "../src/styles/overlays.css?raw";
+import adminStyles from "../src/views/AdminView.css?inline";
+import overlayStyles from "../src/styles/overlays.css?inline";
 import appEntry from "../src/main.ts?raw";
 import appDialog from "../src/components/AppDialog.vue?raw";
 import appSelect from "../src/components/AppSelect.vue?raw";
