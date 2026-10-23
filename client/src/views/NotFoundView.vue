@@ -14,8 +14,8 @@ const { t } = useI18n();
       <h1 class="page-title">{{ t("notFound.title") }}</h1>
       <p>{{ t("notFound.desc") }}</p>
       <div class="not-found-actions">
-        <RouterLink class="action-button primary" to="/">{{ t("notFound.backStatus") }}</RouterLink>
-        <RouterLink class="action-button" to="/admin/dashboard">{{
+        <RouterLink class="app-button app-button--primary" to="/">{{ t("notFound.backStatus") }}</RouterLink>
+        <RouterLink class="app-button app-button--secondary" to="/admin/dashboard">{{
           t("notFound.admin")
         }}</RouterLink>
       </div>
@@ -60,45 +60,6 @@ const { t } = useI18n();
   flex-wrap: wrap;
   gap: 9px;
   margin-top: 24px;
-}
-.action-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 40px;
-  padding: 0 14px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--surface-2);
-  color: var(--text);
-  text-decoration: none;
-  font-size: 12px;
-  font-weight: 650;
-}
-.action-button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast);
-}
-.action-button:not(.primary):hover {
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
-  color: var(--text);
-  background: var(--surface);
-}
-.action-button.primary:hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  color: var(--accent-contrast);
-}
-.action-button.primary:active {
-  background: var(--accent-active);
-  border-color: var(--accent-active);
-  color: var(--accent-contrast);
-}
-.action-button:not(.primary):active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-soft);
 }
 @media (max-width: 520px) {
   .not-found-actions {

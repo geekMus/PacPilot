@@ -109,7 +109,7 @@ const {
       <div class="state-copy">
         <strong>{{ t("statusPage.k14") }}</strong>
         <p>{{ error }}</p>
-        <button class="action-button" type="button" @click="loadStatus">
+        <button class="app-button app-button--secondary" type="button" @click="loadStatus">
           {{ t("statusPage.k15") }}
         </button>
       </div>
@@ -128,7 +128,7 @@ const {
           {{ t("statusPage.k17") }}<code>/proxy.pac</code>
           {{ t("statusPage.k18") }}
         </p>
-        <RouterLink class="action-button primary" :to="adminEntry">{{ t("nav.admin") }}</RouterLink>
+        <RouterLink class="app-button app-button--primary" :to="adminEntry">{{ t("nav.admin") }}</RouterLink>
       </section>
 
       <template v-else-if="hasRuleSummary">
@@ -189,7 +189,7 @@ const {
             />
             <button
               type="submit"
-              class="action-button primary"
+              class="app-button app-button--primary"
               :disabled="!domainInput.trim()"
               :title="
                 !domainInput.trim()
@@ -949,53 +949,6 @@ const {
   font-size: 11px;
   line-height: 1.6;
 }
-.action-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 38px;
-  padding: 0 14px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--surface);
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 650;
-  text-decoration: none;
-  cursor: pointer;
-}
-.action-button.primary {
-  color: var(--accent-contrast);
-  background: var(--accent);
-  border-color: var(--accent);
-}
-.action-button:not(.primary):hover:not(:disabled) {
-  background: var(--surface-2);
-  border-color: color-mix(in srgb, var(--accent) 32%, var(--line));
-  color: var(--text);
-}
-.action-button.primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  color: var(--accent-contrast);
-}
-.action-button.primary:active:not(:disabled) {
-  background: var(--accent-active);
-  border-color: var(--accent-active);
-  color: var(--accent-contrast);
-}
-.action-button:not(.primary):active:not(:disabled) {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.action-button:disabled {
-  opacity: 1;
-  color: var(--control-disabled-text);
-  background: var(--control-disabled-bg);
-  border-color: var(--control-disabled-border);
-  cursor: not-allowed;
-}
 .spinner {
   width: 18px;
   height: 18px;
@@ -1109,7 +1062,7 @@ const {
     width: 100%;
     min-height: 44px;
   }
-  .action-button {
+  .app-button {
     min-height: 42px;
   }
   .source-actions a,

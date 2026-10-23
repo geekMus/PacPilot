@@ -132,7 +132,7 @@ onMounted(() => {
         <div class="quick-actions">
           <button
             type="button"
-            class="dash-button secondary"
+            class="app-button app-button--secondary"
             :class="{ 'is-loading': refreshing }"
             :disabled="refreshing"
             :title="refreshing ? t('dashboard.refreshingTitle') : t('dashboard.refreshTitle')"
@@ -145,21 +145,21 @@ onMounted(() => {
             />
             {{ refreshing ? t("common.refreshing") : t("common.refresh") }}
           </button>
-          <RouterLink to="/admin/settings" class="dash-button secondary"
+          <RouterLink to="/admin/settings" class="app-button app-button--secondary"
             ><AppIcon name="settings" :size="16" />{{ t("dashboard.openSettings") }}</RouterLink
           >
-          <RouterLink to="/admin/monitor#overall-stats" class="dash-button secondary"
+          <RouterLink to="/admin/monitor#overall-stats" class="app-button app-button--secondary"
             ><AppIcon name="activity" :size="16" />{{ t("dashboard.viewMonitor") }}</RouterLink
           >
-          <RouterLink to="/admin/workflows" class="dash-button secondary"
+          <RouterLink to="/admin/workflows" class="app-button app-button--secondary"
             ><AppIcon name="workflow" :size="16" />{{ t("dashboard.viewWorkflow") }}</RouterLink
           >
-          <RouterLink to="/admin/notifications" class="dash-button secondary"
+          <RouterLink to="/admin/notifications" class="app-button app-button--secondary"
             ><AppIcon name="bell-ring" :size="16" />{{ t("dashboard.viewNotifications") }}</RouterLink
           >
           <button
             type="button"
-            class="dash-button primary"
+            class="app-button app-button--primary"
             :class="{ 'is-loading': generating || loading }"
             :disabled="generating || loading"
             :title="
@@ -460,75 +460,6 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-}
-.dash-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  font: inherit;
-  font-size: 11px;
-  font-weight: 700;
-  text-decoration: none;
-  cursor: pointer;
-  white-space: nowrap;
-  transition:
-    filter 0.15s,
-    background 0.15s;
-}
-.dash-button.secondary,
-.dash-button.logout-button {
-  color: var(--text);
-  background: var(--surface);
-}
-.dash-button.primary {
-  color: var(--accent-contrast);
-  background: var(--accent);
-  border-color: var(--accent);
-}
-.dash-button:disabled {
-  opacity: 1;
-  color: var(--control-disabled-text);
-  background: var(--control-disabled-bg);
-  border-color: var(--control-disabled-border);
-  cursor: not-allowed;
-  filter: none;
-}
-.dash-button.secondary.is-loading:disabled,
-.dash-button.logout-button.is-loading:disabled {
-  color: var(--text);
-  -webkit-text-fill-color: var(--text);
-  background: var(--surface);
-  border-color: var(--line);
-  cursor: progress;
-}
-.dash-button.secondary:hover:not(:disabled),
-.dash-button.logout-button:hover:not(:disabled) {
-  color: var(--text);
-  background: var(--surface-2);
-  border-color: color-mix(in srgb, var(--accent) 36%, var(--line));
-  filter: none;
-}
-.dash-button.primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  color: var(--accent-contrast);
-  filter: none;
-}
-.dash-button.primary:active:not(:disabled) {
-  background: var(--accent-active);
-  border-color: var(--accent-active);
-  color: var(--accent-contrast);
-}
-.dash-button.secondary:active:not(:disabled),
-.dash-button.logout-button:active:not(:disabled) {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
 }
 .dashboard-alert {
   display: flex;
@@ -837,7 +768,7 @@ onMounted(() => {
   .quick-actions {
     width: 100%;
   }
-  .quick-actions .dash-button {
+  .quick-actions .app-button {
     flex: 1;
   }
   .config-details {
@@ -865,14 +796,14 @@ onMounted(() => {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 7px;
   }
-  .quick-actions .dash-button {
+  .quick-actions .app-button {
     min-width: 0;
     width: 100%;
     padding: 0 7px;
     white-space: normal;
     line-height: 1.25;
   }
-  .quick-actions .dash-button:last-child {
+  .quick-actions .app-button:last-child {
     grid-column: 1 / -1;
   }
   .trend-note {

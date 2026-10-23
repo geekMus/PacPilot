@@ -141,8 +141,8 @@ watch(
   flex: 0 0 auto;
   min-width: 0;
 }
-.admin-topbar :deep(.dash-button.dash-button),
-.admin-topbar :deep(.monitor-button.monitor-button) {
+
+.admin-topbar :deep(.app-button.app-button) {
   min-height: 38px;
   padding-right: 13px;
   padding-left: 13px;
@@ -260,24 +260,16 @@ watch(
 .admin-content :deep(.table-wrap td) {
   padding: 10px 12px;
 }
-.admin-content :deep(.dash-button.dash-button),
-.admin-content :deep(.monitor-button.monitor-button) {
+
+.admin-content :deep(.app-button.app-button) {
   min-height: 40px;
   padding-right: 14px;
   padding-left: 14px;
   font-size: 12px;
 }
-.admin-content :deep(.btn.btn) {
-  min-height: 40px;
-  font-size: 13px;
-}
 .admin-content :deep(.chip.chip) {
   min-height: 36px;
 }
-.admin-content :deep(.webhook-test-button.webhook-test-button) {
-  min-height: 34px;
-}
-
 .mobile-menu-toggle {
   display: none;
 }
@@ -390,8 +382,8 @@ watch(
   .topbar-actions :deep(.monitor-top-updated) {
     display: none;
   }
-  .topbar-actions :deep(.dash-button.dash-button),
-  .topbar-actions :deep(.monitor-button.monitor-button) {
+  .topbar-actions :deep(.app-button.app-button),
+  .topbar-actions :deep(.app-button.app-button) {
     min-height: 36px;
     padding: 0 9px;
     border-radius: 8px;
@@ -428,8 +420,8 @@ watch(
     padding-right: 10px;
     padding-left: 10px;
   }
-  .topbar-actions :deep(.dash-button),
-  .topbar-actions :deep(.monitor-button) {
+  .topbar-actions :deep(.app-button),
+  .topbar-actions :deep(.app-button) {
     padding: 0 7px;
     font-size: 9px;
   }

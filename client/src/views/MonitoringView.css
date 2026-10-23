@@ -250,69 +250,6 @@
   color: var(--muted);
   background: var(--surface-2);
 }
-.monitor-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 38px;
-  padding: 0 14px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-  transition:
-    filter 0.15s,
-    opacity 0.15s;
-}
-.monitor-button:disabled {
-  opacity: 1;
-  color: var(--control-disabled-text);
-  background: var(--control-disabled-bg);
-  border-color: var(--control-disabled-border);
-  cursor: not-allowed;
-  filter: none;
-}
-.monitor-button.secondary.is-loading:disabled {
-  color: var(--text);
-  -webkit-text-fill-color: var(--text);
-  background: var(--surface);
-  border-color: var(--line);
-  cursor: progress;
-}
-.monitor-button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast);
-}
-.monitor-button.secondary {
-  color: var(--text);
-  background: var(--surface);
-}
-.monitor-button.secondary:hover:not(:disabled) {
-  background: var(--surface-2);
-  border-color: color-mix(in srgb, var(--accent) 36%, var(--line));
-  color: var(--text);
-  filter: none;
-}
-.monitor-button.primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  color: var(--accent-contrast);
-  filter: none;
-}
-.monitor-button.primary:active:not(:disabled) {
-  background: var(--accent-active);
-  border-color: var(--accent-active);
-  color: var(--accent-contrast);
-}
-.monitor-button.secondary:active:not(:disabled) {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
-}
 .icon-spinning {
   animation: icon-spin 0.9s linear infinite;
 }
@@ -713,7 +650,7 @@
   .monitor-title-row {
     flex-direction: column;
   }
-  .monitor-title-row .monitor-button {
+  .monitor-title-row .app-button {
     align-self: flex-start;
   }
   .panel-heading {
@@ -725,7 +662,7 @@
   .panel-actions {
     align-self: flex-start;
   }
-  .panel-heading > .monitor-button {
+  .panel-heading > .app-button {
     align-self: flex-start;
   }
   .metric-grid {
@@ -838,12 +775,12 @@
 }
 
 
-.monitor-button.is-copy-success {
+.app-button.is-copy-success {
   border-color: color-mix(in srgb, var(--green) 55%, var(--line));
   color: var(--green);
 }
 
-.monitor-button.is-copy-error {
+.app-button.is-copy-error {
   border-color: color-mix(in srgb, var(--red, #dc2626) 55%, var(--line));
   color: var(--red, #dc2626);
 }

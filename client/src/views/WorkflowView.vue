@@ -84,7 +84,7 @@ const {
       <div v-if="error" class="workflow-alert error" role="alert">
         <strong>{{ t("workflow.loadFailed") }}</strong>
         <span>{{ error }}</span>
-        <button type="button" @click="load()">{{ t("common.retry") }}</button>
+        <button type="button" class="app-button app-button--secondary" @click="load()">{{ t("common.retry") }}</button>
       </div>
 
       <section class="workflow-current panel">
@@ -168,7 +168,7 @@ const {
             </div>
           </div>
           <div class="current-actions">
-            <RouterLink class="workflow-button secondary" :to="`/admin/workflows/${current.id}`"
+            <RouterLink class="app-button app-button--secondary" :to="`/admin/workflows/${current.id}`"
               ><AppIcon name="external-link" :size="14" /> {{ t("workflowPage.k53") }}</RouterLink
             >
             <ConfirmPopover
@@ -186,7 +186,7 @@ const {
             >
               <template #trigger="{ toggle, open }">
                 <button
-                  class="workflow-button cancel-button"
+                  class="app-button app-button--danger-ghost"
                   type="button"
                   :disabled="cancellingId === current.id"
                   :title="
@@ -244,7 +244,7 @@ const {
                 {{ stageLabel(run.stage) || t("workflowPage.k0") }}
               </p>
             </div>
-            <RouterLink class="workflow-button secondary" :to="`/admin/workflows/${run.id}`">{{
+            <RouterLink class="app-button app-button--secondary" :to="`/admin/workflows/${run.id}`">{{
               t("workflowPage.k53")
             }}</RouterLink>
             <ConfirmPopover
@@ -262,7 +262,7 @@ const {
             >
               <template #trigger="{ toggle, open }">
                 <button
-                  class="workflow-button cancel-button"
+                  class="app-button app-button--danger-ghost"
                   type="button"
                   :disabled="cancellingId === run.id"
                   :title="
@@ -291,7 +291,7 @@ const {
           </div>
           <div class="history-heading-actions">
             <button
-              class="workflow-button secondary"
+              class="app-button app-button--secondary"
               type="button"
               :disabled="refreshing"
               :title="refreshing ? t('workflow.refreshingTitle') : t('workflow.refreshTitle')"
@@ -329,7 +329,7 @@ const {
             >
               <template #trigger="{ toggle, open }"
                 ><button
-                  class="workflow-button history-clear-button"
+                  class="app-button app-button--danger-ghost"
                   type="button"
                   :aria-expanded="open"
                   :disabled="
@@ -469,7 +469,7 @@ const {
                 >
                   <template #trigger="{ toggle, open }">
                     <button
-                      class="row-action-button cancel-button"
+                      class="app-button app-button--sm app-button--danger-ghost"
                       type="button"
                       :disabled="cancellingId !== null"
                       :aria-label="t('workflowPage.k39')"
@@ -501,7 +501,7 @@ const {
                   <template #trigger="{ toggle, open }">
                     <button
                       type="button"
-                      class="row-action-button delete-run-button"
+                      class="app-button app-button--sm app-button--danger-ghost"
                       :disabled="deletingId !== null"
                       :aria-label="t('workflowPage.k42')"
                       :title="
@@ -557,7 +557,7 @@ const {
             </section>
             <div v-if="selectedRun.error" class="run-detail-error"><strong>{{ t("workflowPage.k57") }}</strong><pre>{{ selectedRun.error }}</pre></div>
             <div v-if="selectedRun.error" class="run-detail-error"><strong>{{ t("workflowPage.k57") }}</strong><pre>{{ selectedRun.error }}</pre></div>
-            <div class="run-detail-actions"><RouterLink class="workflow-button secondary" :to="`/admin/workflows/${selectedRun.id}`" @click="runDetailOpen = false"><AppIcon name="external-link" :size="14" />{{ t("workflowPage.k53") }}</RouterLink></div>
+            <div class="run-detail-actions"><RouterLink class="app-button app-button--secondary" :to="`/admin/workflows/${selectedRun.id}`" @click="runDetailOpen = false"><AppIcon name="external-link" :size="14" />{{ t("workflowPage.k53") }}</RouterLink></div>
           </div>
         </template>
       </AppDialog>
@@ -649,35 +649,6 @@ const {
 .id-trigger {
   max-width: 65px;
 }
-.row-action-button {
-  display: inline-grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
-  cursor: pointer;
-}
-.delete-run-button {
-  color: var(--red);
-  background: var(--red-soft, var(--surface));
-  border-color: color-mix(in srgb, var(--red) 30%, var(--line));
-}
-.cancel-button {
-  color: var(--amber, #b45309);
-  background: var(--amber-soft, #fff3dc);
-  border-color: color-mix(in srgb, var(--amber, #d97706) 35%, var(--line));
-}
-.row-action-button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.workflow-button.cancel-button {
-  background: var(--amber-soft, #fff3dc);
-  border-color: color-mix(in srgb, var(--amber, #d97706) 35%, var(--line));
-  color: var(--amber, #b45309);
-}
 .current-actions {
   display: flex;
   flex-wrap: wrap;
@@ -703,17 +674,6 @@ const {
   overflow-wrap: anywhere;
 }
 
-.workflow-button.history-clear-button {
-  color: var(--red);
-  background: var(--red-soft, var(--surface));
-  border-color: color-mix(in srgb, var(--red) 30%, var(--line));
-}
-.workflow-button.history-clear-button:hover:not(:disabled) {
-  background: var(--red-soft, var(--surface-2));
-}
-.workflow-button.history-clear-button:disabled {
-  opacity: 0.45;
-}
 .queue-list {
   display: grid;
   gap: 8px;
@@ -769,8 +729,7 @@ const {
     flex-basis: calc(100% - 50px);
   }
 }
-.delete-run-button:focus-visible,
-.workflow-button:focus-visible {
+.delete-run-button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -863,34 +822,6 @@ const {
   margin: 7px 0 0;
   color: var(--muted);
   font-size: 12px;
-}
-.workflow-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--text);
-  text-decoration: none;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.workflow-button.secondary {
-  background: var(--surface);
-}
-.workflow-button.primary {
-  background: var(--accent);
-  color: var(--accent-contrast, white);
-  border-color: var(--accent);
-}
-.workflow-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 .status-pill,
 .count-pill {

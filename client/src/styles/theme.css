@@ -191,17 +191,16 @@ select {
   filter: none;
 }
 
-:root
-  button.is-loading:disabled:not(.primary):not(.btn-save):not(.login-submit):not(.dash-button):not(
-    .monitor-button
-  ):not(.action-button) {
+:root button.is-loading:disabled:not(.login-submit) {
   color: var(--text);
   -webkit-text-fill-color: var(--text);
   background-color: var(--surface);
   border-color: var(--line);
+  opacity: 1;
+  cursor: progress;
 }
 
-:root button.is-loading:disabled:is(.primary, .login-submit) {
+:root button.is-loading:disabled:is(.app-button--primary, .login-submit) {
   color: var(--accent-contrast);
   -webkit-text-fill-color: var(--accent-contrast);
   background-color: var(--accent);

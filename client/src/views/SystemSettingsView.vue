@@ -197,7 +197,7 @@ onMounted(() => void load());
           <label><span>{{ t("settings.confirmPassword") }}</span><AppInput v-model="passwordForm.confirmPassword" type="password" autocomplete="new-password" required :placeholder="t('settings.confirmPassword')" @input="passwordError = ''" /></label>
           <p v-if="passwordError" class="system-password-error" role="alert">{{ passwordError }}</p>
           <p class="system-password-help">{{ t("settings.resetHelpFull") }} <a :href="PROJECT_LINKS.adminPasswordReset" target="_blank" rel="noopener noreferrer">{{ t("settings.resetHelpLink") }}</a></p>
-          <div class="password-settings-actions"><button class="primary" type="submit" :disabled="passwordSaving"><AppIcon :name="passwordSaving ? 'loader-circle' : 'key-round'" :size="15" />{{ passwordSaving ? t("settings.changingPassword") : t("settings.changePassword") }}</button></div>
+          <div class="password-settings-actions"><AppButton variant="primary" type="submit" :disabled="passwordSaving"><AppIcon :name="passwordSaving ? 'loader-circle' : 'key-round'" :size="15" />{{ passwordSaving ? t("settings.changingPassword") : t("settings.changePassword") }}</AppButton></div>
         </form>
       </section>
       <p v-if="maintenanceBusy()" class="maintenance-status" role="status" aria-live="polite">
@@ -211,7 +211,7 @@ onMounted(() => void load());
             <p>{{ t("system.storageDesc") }}</p>
           </div>
           <button
-            class="secondary"
+            class="app-button app-button--secondary"
             type="button"
             :disabled="loading"
             :title="loading ? t('system.readingStorage') : t('system.refreshStorage')"
@@ -228,7 +228,7 @@ onMounted(() => void load());
           </div>
         </div>
         <div v-else-if="error" class="state error" role="alert">
-          {{ error }} <button class="secondary" @click="load">{{ t("common.retry") }}</button>
+          {{ error }} <AppButton variant="secondary" @click="load">{{ t("common.retry") }}</AppButton>
         </div>
         <div v-else-if="storage" class="metrics">
           <div class="metric">
@@ -276,7 +276,7 @@ onMounted(() => void load());
               { value: 365, label: t('systemPage.k51') },
             ]"
           /><button
-            class="primary"
+            class="app-button app-button--primary"
             :disabled="
               loading || savingRetention || !settings || retention === settings.logRetentionDays
             "
@@ -306,7 +306,7 @@ onMounted(() => void load());
             </p>
           </div>
           <button
-            class="secondary"
+            class="app-button app-button--secondary"
             type="button"
             :disabled="loading"
             :title="loading ? t('system.readingStorage') : t('system.refreshStorage')"
@@ -387,7 +387,7 @@ onMounted(() => void load());
           @confirm="deletePacFiles"
           ><template #trigger="{ toggle, open }"
             ><button
-              class="danger"
+              class="app-button app-button--danger"
               type="button"
               :aria-expanded="open"
               :disabled="
@@ -418,7 +418,7 @@ onMounted(() => void load());
         </div>
         <div class="maintenance-actions">
           <button
-            class="secondary"
+            class="app-button app-button--secondary"
             :disabled="loading || maintenanceBusy()"
             :title="
               loading
@@ -444,7 +444,7 @@ onMounted(() => void load());
             @confirm="clearAllLogs"
             ><template #trigger="{ toggle, open }"
               ><button
-                class="danger"
+                class="app-button app-button--danger"
                 type="button"
                 :aria-expanded="open"
                 :disabled="loading || maintenanceBusy()"
@@ -489,7 +489,7 @@ onMounted(() => void load());
           @confirm="factoryReset"
           ><template #trigger="{ toggle, open }"
             ><button
-              class="danger"
+              class="app-button app-button--danger"
               type="button"
               :aria-expanded="open"
               :disabled="loading || maintenanceBusy()"
@@ -701,40 +701,6 @@ onMounted(() => void load());
   width: 145px;
   min-width: 145px;
   flex: 0 0 145px;
-}
-.primary,
-.secondary,
-.danger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 38px;
-  padding: 0 13px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: white;
-}
-.secondary {
-  background: var(--surface);
-  color: var(--text);
-}
-.danger {
-  background: var(--red-soft);
-  border-color: color-mix(in srgb, var(--red) 35%, var(--line));
-  color: var(--red);
-}
-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 .retention-status {
   margin: 12px 0 0;

@@ -69,7 +69,7 @@ onMounted(() => void refreshGenerationLogs());
         <div class="panel-heading">
           <div><h2><AppIcon name="file-check" :size="17" />{{ t("logs.generationTitle") }}</h2>
           <p>{{ t("settings.loadedLogs", { loaded: logs.length, total: logTotal }) }}</p></div>
-          <button class="monitor-button secondary" type="button" :disabled="logsLoading" @click="refreshGenerationLogs">
+          <button class="app-button app-button--secondary" type="button" :disabled="logsLoading" @click="refreshGenerationLogs">
             <AppIcon name="refresh-cw" :size="14" />{{ t("common.refresh") }}
           </button>
         </div>
@@ -141,7 +141,7 @@ onMounted(() => void refreshGenerationLogs());
               :title="hasAccessFilters ? t('monitor.k35') : t('monitor.k36')"
             >
               <button
-                class="monitor-button secondary access-filter-reset"
+                class="app-button app-button--secondary access-filter-reset"
                 type="button"
                 :disabled="!hasAccessFilters"
                 @click="resetAccessFilters"
@@ -247,7 +247,7 @@ onMounted(() => void refreshGenerationLogs());
           </template>
           <template #header-actions>
             <button
-              class="monitor-button secondary access-detail-copy"
+              class="app-button app-button--secondary access-detail-copy"
               :class="{
                 'is-copy-success': accessCopyState === 'success',
                 'is-copy-error': accessCopyState === 'error',

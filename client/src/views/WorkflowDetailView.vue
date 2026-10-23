@@ -281,7 +281,7 @@ onUnmounted(() => {
       <div v-if="error" class="error-panel" role="alert">
         <strong>{{ t("workflow.loadDetailFailed") }}</strong>
         <span>{{ error }}</span>
-        <button type="button" @click="load()">{{ t("common.retry") }}</button>
+        <button type="button" class="app-button app-button--secondary" @click="load()">{{ t("common.retry") }}</button>
       </div>
 
       <section v-if="detail" class="detail-panel">
@@ -438,7 +438,7 @@ onUnmounted(() => {
         </template>
         <template #header-actions>
           <button
-                class="stage-detail-btn"
+                class="app-button app-button--sm app-button--secondary"
                 :class="{ 'is-copy-success': stageCopyState === 'success', 'is-copy-error': stageCopyState === 'error' }"
                 type="button"
                 aria-live="polite"
@@ -519,7 +519,7 @@ onUnmounted(() => {
           >
             <template #trigger="{ toggle }">
               <button
-                class="cancel-button"
+                class="app-button app-button--danger-ghost"
                 type="button"
                 :disabled="cancelling"
                 :title="
@@ -549,7 +549,7 @@ onUnmounted(() => {
           >
             <template #trigger="{ toggle }">
               <button
-                class="delete-button"
+                class="app-button app-button--danger"
                 type="button"
                 :disabled="
                   deleting || detail.run.status === 'running' || detail.run.status === 'pending'
@@ -855,9 +855,7 @@ onUnmounted(() => {
   gap: 9px;
   flex-wrap: wrap;
 }
-.back-link,
-.delete-button,
-.cancel-button {
+.back-link {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -871,17 +869,6 @@ onUnmounted(() => {
   font-weight: 700;
   background: var(--surface);
   cursor: pointer;
-}
-.delete-button {
-  color: var(--red);
-}
-.cancel-button {
-  color: var(--muted);
-}
-.delete-button:disabled,
-.cancel-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 .spinning {
   animation: spin 0.9s linear infinite;
@@ -918,40 +905,11 @@ onUnmounted(() => {
   font-weight: 800;
   letter-spacing: 0.12em;
 }
-.stage-detail-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 38px;
-  min-width: 38px;
-  padding: 0 14px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    filter 0.15s,
-    opacity 0.15s,
-    border-color 0.15s,
-    color 0.15s,
-    background 0.15s;
-}
-.stage-detail-btn:hover {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.stage-detail-btn.is-copy-success {
+.app-button.is-copy-success {
   border-color: color-mix(in srgb, var(--green) 55%, var(--line));
   color: var(--green);
 }
-.stage-detail-btn.is-copy-error {
+.app-button.is-copy-error {
   border-color: color-mix(in srgb, var(--red, #dc2626) 55%, var(--line));
   color: var(--red, #dc2626);
 }
@@ -1060,11 +1018,6 @@ onUnmounted(() => {
   }
   .detail-action-group {
     flex: 0 0 auto;
-  }
-  .stage-detail-btn {
-    min-height: 36px;
-    min-width: 36px;
-    padding: 0 12px;
   }
   .stage-detail-body {
     gap: 14px;
