@@ -20,7 +20,7 @@ import ResponsiveTrendChart from "@/components/ResponsiveTrendChart.vue";
 import TextDetail from "@/components/TextDetail.vue";
 import AppDialog from "@/components/AppDialog.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
-import TableFrame from "@/components/TableFrame.vue";
+import GenerationLogTable from "@/components/GenerationLogTable.vue";
 
 const { t, locale } = useI18n();
 const router = useRouter();
@@ -377,38 +377,7 @@ onMounted(() => {
               >{{ t("dashboard.viewLogs") }} <AppIcon name="arrow-up-right" :size="13"
             /></RouterLink>
           </header>
-          <TableFrame v-if="logs.length" height="1246px" min-width="600px" table-class="recent-table" :row-height="40">
-            <template #columns>
-              <col style="width: 118px" />
-              <col style="width: 92px" />
-              <col style="width: 100px" />
-              <col style="width: 290px" />
-            </template>
-            <template #header><tr>
-                  <th>{{ t("dashboard.colTime") }}</th>
-                  <th>{{ t("dashboard.colResult") }}</th>
-                  <th>{{ t("dashboard.colMode") }}</th>
-                  <th>{{ t("dashboard.colMessage") }}</th>
-                </tr></template>
-            <template #body><tr v-for="entry in logs" :key="entry.id" class="recent-log-row" tabindex="0" role="button" @click="openLogDetail(entry)" @keydown.enter.prevent="openLogDetail(entry)" @keydown.space.prevent="openLogDetail(entry)">
-                  <td class="nowrap">{{ formatStatusDate(entry.created_at) }}</td>
-                  <td>
-                    <span class="result-pill" :class="entry.success ? 'good' : 'bad'"
-                      ><AppIcon :name="entry.success ? 'circle-check' : 'circle-x'" :size="13" />{{
-                        entry.success ? t("common.success") : t("common.failed")
-                      }}</span
-                    >
-                  </td>
-                  <td>{{ modeForLog(entry.mode) }}</td>
-                  <td class="log-message">
-                    <TextDetail
-                      @click.stop
-                      :text="generationLogText(entry)"
-                      :label="t('dashboard.genLogLabel')"
-                    />
-                  </td>
-                </tr></template>
-          </TableFrame>
+          <GenerationLogTable v-if="logs.length" :items="logs" compact height="1246px" @row-click="openLogDetail" />
           <div v-else class="panel-empty">
             {{ loading ? t("dashboard.readingGenLogs") : t("dashboard.noGenLogs") }}
           </div>
