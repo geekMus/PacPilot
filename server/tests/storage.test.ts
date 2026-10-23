@@ -80,8 +80,11 @@ describe("SQLite storage adapter", () => {
     temporaryDirectories.push(dataDir);
     const database = createDatabase(":memory:");
     const storage = createSqliteApplicationStorage(database, dataDir);
+    const memoryStorage = createMemoryApplicationStorage();
 
     storage.settings.update({ timezone: "UTC" });
+    memoryStorage.settings.update({ timezone: "UTC" });
+    expect(storage.settings.get()).toEqual(memoryStorage.settings.get());
     storage.credentials.set({ passwordHash: "hash", salt: "salt", sessionSecret: "secret" });
     storage.generationLogs.append(true, "custom", "custom.uncompressed", { compressed: false });
     const workflowId = storage.workflows.create("manual", "custom");
@@ -98,5 +101,6 @@ describe("SQLite storage adapter", () => {
     expect(Array.from(storage.artifacts.read("binary.bin") ?? [])).toEqual([0, 255, 1]);
 
     storage.close();
+    memoryStorage.close();
   });
 });

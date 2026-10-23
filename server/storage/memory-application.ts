@@ -51,7 +51,7 @@ function createMemoryArtifacts() {
 
 /** Full in-process implementation. It does not import or initialize a database driver. */
 export function createMemoryApplicationStorage(): ApplicationStorage {
-  let settings = clone(DEFAULT_SETTINGS);
+  let settings = normalizeAppSettings(DEFAULT_SETTINGS);
   const credentials = new MemoryAdminCredentialRepository();
   const artifacts = createMemoryArtifacts();
   const logs = new Map<number, GenerationLog>();
@@ -252,7 +252,7 @@ export function createMemoryApplicationStorage(): ApplicationStorage {
     close() {
       if (closed) return;
       closed = true;
-      settings = clone(DEFAULT_SETTINGS);
+      settings = normalizeAppSettings(DEFAULT_SETTINGS);
       credentials.clear(); artifacts.clear(); logs.clear(); events.clear(); runs.clear(); stages.clear();
     },
   };
