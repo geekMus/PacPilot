@@ -20,7 +20,6 @@ const props = withDefaults(
   }>(),
   {
     rowHeight: 56,
-    height: 480,
     minWidth: "760px",
     tableClass: "",
     hasMore: false,
@@ -133,6 +132,7 @@ onUnmounted(() => resizeObserver?.disconnect());
 <template>
   <TableFrame
     :height="props.height"
+    :empty="!props.items.length && !props.loading && !props.error"
     :min-width="props.minWidth"
     :table-class="props.tableClass"
     :row-height="props.rowHeight"
