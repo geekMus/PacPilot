@@ -144,7 +144,6 @@ const {
                       viewport-class="timezone-options-viewport"
                       orientation="vertical"
                       type="auto"
-                      :style="{ '--timezone-list-height': Math.max(44, filteredTimeZones.length * 44 + 8) + 'px' }"
                     >
                       <template #viewport="{ viewportComponent, viewportClass, onScroll }">
                         <ComboboxViewport as-child>
