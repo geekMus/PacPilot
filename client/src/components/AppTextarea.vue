@@ -44,45 +44,45 @@ function onInput(event: Event): void {
 </template>
 
 <style>
+@reference "../styles/tailwind.css";
+
 .app-textarea {
-  box-sizing: border-box;
-  display: block;
-  width: 100%;
-  min-width: 0;
-  min-height: 88px;
-  padding: 9px 12px;
-  border: 1px solid var(--control-border, var(--line));
-  border-radius: 8px;
+  @apply block w-full min-w-0 min-h-[88px] rounded-lg border px-3 py-2 text-xs leading-normal transition-colors;
+  border-color: var(--control-border, var(--line));
   color: var(--text);
   background: var(--surface);
-  font: inherit;
-  font-size: 12px;
-  line-height: 1.5;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
 }
+
 .app-textarea::placeholder {
+  @apply opacity-80;
   color: var(--muted);
-  opacity: 0.8;
 }
+
 .app-textarea:hover:not(:disabled):not(:focus) {
   border-color: color-mix(in srgb, var(--accent) 48%, var(--line));
 }
+
 .app-textarea:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  @apply outline-2 outline-offset-1;
+  outline-color: var(--accent);
   border-color: var(--accent);
 }
+
 .app-textarea.is-invalid,
 .app-textarea.is-invalid:focus-visible {
   border-color: var(--red);
 }
+
 .app-textarea:disabled {
   color: var(--control-disabled-text);
   background: var(--control-disabled-bg);
   border-color: var(--control-disabled-border);
-  cursor: not-allowed;
+  @apply cursor-not-allowed;
 }
+
 @media (prefers-reduced-motion: reduce) {
-  .app-textarea { transition: none; }
+  .app-textarea {
+    transition: none;
+  }
 }
 </style>
