@@ -1,5 +1,5 @@
 import type { AppSettings, WorkflowRun, WorkflowStage } from "../../shared/contracts";
-import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../domain/settings";
+import { DEFAULT_SETTINGS, normalizeAppSettings } from "../domain/settings";
 import type {
   AccessEvent,
   AccessEventInput,
@@ -11,29 +11,6 @@ import { MemoryAdminCredentialRepository } from "./memory-credentials";
 
 function clone<T>(value: T): T {
   return structuredClone(value);
-}
-
-function normalizedSettings(settings: AppSettings): AppSettings {
-  const merged = { ...DEFAULT_SETTINGS, ...clone(settings) };
-  return {
-    ...merged,
-    mode: merged.mode === "remote" ? "remote" : "custom",
-    pacProxy: String(merged.pacProxy || DEFAULT_SETTINGS.pacProxy).trim(),
-    pacCompress: Boolean(merged.pacCompress),
-    listUrl: String(merged.listUrl || "").trim(),
-    blockList: Array.isArray(merged.blockList) ? merged.blockList.map(String).map((x) => x.trim()).filter(Boolean) : [],
-    directList: Array.isArray(merged.directList) ? merged.directList.map(String).map((x) => x.trim()).filter(Boolean) : [],
-    cronSchedule: String(merged.cronSchedule || "").trim(),
-    timezone: validTimezone(merged.timezone) ? merged.timezone.trim() : DEFAULT_SETTINGS.timezone,
-    logRetentionDays: Math.max(0, Math.min(3650, Math.floor(Number(merged.logRetentionDays) || 0))),
-    webhookSuccessConfig: normalizeWebhookConfig(merged.webhookSuccessConfig),
-    webhookFailureConfig: normalizeWebhookConfig(merged.webhookFailureConfig),
-  };
-}
-
-function validTimezone(value: string): boolean {
-  try { new Intl.DateTimeFormat("en-US", { timeZone: value }).format(new Date()); return true; }
-  catch { return false; }
 }
 
 function safeLimit(value: number | undefined, fallback: number, max = 101): number {
@@ -252,8 +229,8 @@ export function createMemoryApplicationStorage(): ApplicationStorage {
 
   const settingsRepository = {
     get: () => clone(settings),
-    set(value: AppSettings) { settings = normalizedSettings(value); },
-    update(patch: Partial<AppSettings>) { settings = normalizedSettings({ ...settings, ...clone(patch) }); return clone(settings); },
+    set(value: AppSettings) { settings = normalizeAppSettings(value); },
+    update(patch: Partial<AppSettings>) { settings = normalizeAppSettings({ ...settings, ...clone(patch) }); return clone(settings); },
   };
 
   return {

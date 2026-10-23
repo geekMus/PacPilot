@@ -76,3 +76,46 @@ export const DEFAULT_SETTINGS: AppSettings = {
   webhookSuccessConfig: { ...DEFAULT_WEBHOOK },
   webhookFailureConfig: { ...DEFAULT_WEBHOOK },
 };
+
+function normalizeTimeZone(value: unknown): string {
+  const timezone = String(value ?? DEFAULT_SETTINGS.timezone).trim();
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format(new Date());
+    return timezone;
+  } catch {
+    return DEFAULT_SETTINGS.timezone;
+  }
+}
+
+/** Normalizes persisted and incoming settings identically for every storage adapter. */
+export function normalizeAppSettings(input: unknown): AppSettings {
+  const raw =
+    input && typeof input === "object" && !Array.isArray(input)
+      ? (input as Partial<AppSettings>)
+      : {};
+  const merged = { ...DEFAULT_SETTINGS, ...raw };
+  return {
+    ...merged,
+    mode: merged.mode === "remote" ? "remote" : "custom",
+    pacProxy: String(merged.pacProxy || DEFAULT_SETTINGS.pacProxy).trim(),
+    pacCompress: Boolean(merged.pacCompress),
+    listUrl: String(merged.listUrl || "").trim(),
+    blockList: Array.isArray(merged.blockList)
+      ? merged.blockList.map(String).map((item) => item.trim()).filter(Boolean)
+      : [],
+    directList: Array.isArray(merged.directList)
+      ? merged.directList.map(String).map((item) => item.trim()).filter(Boolean)
+      : [],
+    cronSchedule: String(merged.cronSchedule || "").trim(),
+    timezone: normalizeTimeZone(merged.timezone || DEFAULT_SETTINGS.timezone),
+    logRetentionDays: Math.max(
+      0,
+      Math.min(
+        3650,
+        Math.floor(Number(merged.logRetentionDays ?? DEFAULT_SETTINGS.logRetentionDays) || 0)
+      )
+    ),
+    webhookSuccessConfig: normalizeWebhookConfig(merged.webhookSuccessConfig),
+    webhookFailureConfig: normalizeWebhookConfig(merged.webhookFailureConfig),
+  };
+}

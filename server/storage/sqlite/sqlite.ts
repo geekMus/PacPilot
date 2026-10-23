@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 import fs from "fs";
 import path from "path";
 import type { AppSettings, GenerationMode } from "../../domain/settings";
-import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../../domain/settings";
+import { DEFAULT_SETTINGS, normalizeAppSettings } from "../../domain/settings";
 import { initializeSchema } from "./schema";
 
 /** Bun 内置 SQLite 连接类型 */
@@ -48,7 +48,7 @@ export function getSettings(database: AppDatabase = db!): AppSettings {
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       throw new Error("Stored application settings must be a JSON object.");
     }
-    return normalizeSettings({ ...DEFAULT_SETTINGS, ...parsed });
+    return normalizeAppSettings({ ...DEFAULT_SETTINGS, ...parsed });
   } catch (error) {
     throw new Error(
       `Failed to read application settings: ${error instanceof Error ? error.message : String(error)}`
@@ -57,7 +57,7 @@ export function getSettings(database: AppDatabase = db!): AppSettings {
 }
 
 export function setSettings(database: AppDatabase, settings: AppSettings): void {
-  const normalized = normalizeSettings(settings);
+  const normalized = normalizeAppSettings(settings);
   database
     .query(
       `INSERT INTO settings (key, value) VALUES ('config', ?)
@@ -68,7 +68,7 @@ export function setSettings(database: AppDatabase, settings: AppSettings): void 
 
 export function updateSettings(database: AppDatabase, patch: Partial<AppSettings>): AppSettings {
   const current = getSettings(database);
-  const next = normalizeSettings({ ...current, ...patch });
+  const next = normalizeAppSettings({ ...current, ...patch });
   setSettings(database, next);
   return next;
 }
@@ -149,40 +149,6 @@ export function recentLogs(
     error: r.error,
     created_at: r.created_at.replace(" ", "T") + "Z",
   }));
-}
-
-function normalizeTimeZone(value: string): string {
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone: value.trim() }).format(new Date());
-    return value.trim();
-  } catch {
-    return DEFAULT_SETTINGS.timezone;
-  }
-}
-function normalizeSettings(s: AppSettings): AppSettings {
-  return {
-    mode: s.mode === "remote" ? "remote" : "custom",
-    pacProxy: String(s.pacProxy || DEFAULT_SETTINGS.pacProxy).trim(),
-    pacCompress: Boolean(s.pacCompress),
-    listUrl: String(s.listUrl || "").trim(),
-    blockList: Array.isArray(s.blockList)
-      ? s.blockList.map((x) => String(x).trim()).filter(Boolean)
-      : [],
-    directList: Array.isArray(s.directList)
-      ? s.directList.map((x) => String(x).trim()).filter(Boolean)
-      : [],
-    cronSchedule: String(s.cronSchedule || "").trim(),
-    timezone: normalizeTimeZone(String(s.timezone || DEFAULT_SETTINGS.timezone)),
-    logRetentionDays: Math.max(
-      0,
-      Math.min(
-        3650,
-        Math.floor(Number(s.logRetentionDays ?? DEFAULT_SETTINGS.logRetentionDays) || 0)
-      )
-    ),
-    webhookSuccessConfig: normalizeWebhookConfig(s.webhookSuccessConfig),
-    webhookFailureConfig: normalizeWebhookConfig(s.webhookFailureConfig),
-  };
 }
 
 export function cleanupOperationalLogs(
