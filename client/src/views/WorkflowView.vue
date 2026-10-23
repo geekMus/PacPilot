@@ -545,6 +545,13 @@ const {
   font-size: 11px;
   white-space: nowrap;
 }
+.panel-footnote {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
 .workflow-run-row {
   cursor: pointer;
   outline-offset: -2px;
