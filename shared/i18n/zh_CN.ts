@@ -63,7 +63,7 @@ export default {
   notifications: {
     subtitle: "集中管理生成成功与失败时发送的 Webhook 通知。",
     channelsTitle: "通知渠道",
-    channelsDescription: "分别配置生成成功和失败时的通知目标。修改后单独保存，也可以先发送测试通知验证配置。",
+    channelsDescription: "使用事件、规则与通知渠道分离的配置方式。规则按事件类型、阶段和结果匹配，可复用并组合多个通知渠道。",
     saved: "通知配置已保存。",
   },
   logs: {

@@ -70,7 +70,7 @@ export default {
   notifications: {
     subtitle: "Manage webhook notifications for successful and failed generation runs.",
     channelsTitle: "Notification channels",
-    channelsDescription: "Configure separate destinations for successful and failed runs. Save changes here or send a test notification to verify a channel.",
+    channelsDescription: "Configure reusable channels and rules separately. Rules match event type, lifecycle phase, and outcome, and can target multiple channels.",
     saved: "Notification settings saved.",
   },
   logs: {
