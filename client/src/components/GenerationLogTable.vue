@@ -86,8 +86,6 @@ function message(entry: GenerationLog): string {
       </tr>
     </template>
   </VirtualTable>
-</template>
-
 <AppDialog :open="detailOpen && !!selectedLog" :label="t('settings.genLogInfo')" width="min(720px, calc(100vw - 16px))" @update:open="detailOpen = $event">
   <template #header>
     <div class="generation-detail-heading">
@@ -119,6 +117,7 @@ function message(entry: GenerationLog): string {
     </div>
   </template>
 </AppDialog>
+</template>
 
 <style scoped>
 .generation-log-row { cursor: pointer; outline-offset: -2px; }
