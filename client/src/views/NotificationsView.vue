@@ -285,7 +285,7 @@ onMounted(() => {
               <div class="editor-heading-copy"><div class="editor-kicker">{{ cid ? "CHANNEL SETTINGS" : "NEW CHANNEL" }}</div><h3>{{ cid ? "编辑通知渠道" : "创建通知渠道" }}</h3><p>配置接收通知的目标地址和消息格式。</p></div>
               <div class="editor-heading-tools"><span class="status-pill" :class="ch.enabled ? 'pill-enabled' : 'pill-disabled'"><span class="status-dot" :class="{ online: ch.enabled }"></span>{{ ch.enabled ? "已启用" : "已停用" }}</span></div>
             </header>
-            <AppScrollArea root-class="editor-scroll" type="always"><div class="editor-body">
+            <AppScrollArea root-class="editor-scroll" type="always"><AppScrollArea root-class="editor-scroll" type="always"><div class="editor-body">
               <section class="form-section">
                 <div class="section-title"><span>01</span><div><h4>基本信息</h4><p>为渠道命名并选择接入类型。</p></div></div>
                 <div class="field-grid">
@@ -338,7 +338,7 @@ onMounted(() => {
         </section>
 
         <section v-else-if="tab === 'rules'" class="workspace-layout rule-layout">
-          <aside class="directory-panel">
+          <AppScrollArea root-class="directory-panel" type="always">
             <div class="panel-heading"><div><h3>触发规则</h3><p>决定何时向哪些渠道发送</p></div><button class="icon-button" title="新建规则" aria-label="新建规则" @click="resetR">＋</button></div>
             <div v-if="!rules.length" class="empty-directory"><span class="empty-icon"><AppIcon name="route" :size="22" /></span><strong>还没有通知规则</strong><p>创建规则，把业务事件路由到通知渠道。</p><button class="button primary full" @click="resetR">创建第一条规则</button></div>
             <button v-for="item in rules" :key="item.id" class="directory-item rule-directory-item" :class="{ selected: rid === item.id }" @click="editR(item)">
@@ -347,7 +347,7 @@ onMounted(() => {
               <span class="status-dot" :class="{ online: item.enabled }" :title="item.enabled ? '已启用' : '已停用'"></span>
             </button>
             <div v-if="rules.length" class="directory-bottom"><span class="status-dot online"></span> {{ enabledRules.length }} 条规则正在生效</div>
-          </aside>
+          </AppScrollArea>
 
           <form class="editor-panel" @submit.prevent="saveR">
             <header class="editor-heading">
@@ -387,7 +387,7 @@ onMounted(() => {
                 <div class="section-title"><span>04</span><div><h4>规则状态</h4><p>停用后保留配置，但不再匹配新事件。</p></div></div>
                 <label class="toggle-row"><span class="toggle-copy"><strong>启用此规则</strong><small>启用后，符合条件的新事件将创建通知投递。</small></span><input v-model="rule.enabled" type="checkbox" class="toggle-input" /><span class="toggle-track"></span></label>
               </section>
-            </div>
+            </div></AppScrollArea>
             <footer class="editor-footer">
               <button type="button" class="button secondary" @click="resetR">新建空白表单</button>
               <button v-if="rid" type="button" class="button danger-ghost" @click="deleteR(rules.find(x => x.id === rid)!)"><AppIcon name="trash-2" :size="15" /> 删除</button>
