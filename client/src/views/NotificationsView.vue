@@ -443,7 +443,7 @@ onMounted(() => {
   gap: 18px;
   width: 100%;
   min-width: 0;
-  min-height: 100%;
+  min-height: 0;
   box-sizing: border-box;
   color: var(--text);
 }
