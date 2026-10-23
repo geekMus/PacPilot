@@ -30,11 +30,11 @@ import { useAdminSettings } from "@/composables/useAdminSettings";
 import { PROJECT_LINKS } from "@shared/project-links";
 
 const WebhookChannelEditor = defineAsyncComponent(
-  () => import("@/components/WebhookChannelEditor.vue")
+  () => import("@/features/webhooks/components/WebhookChannelEditor.vue")
 );
 
 const DomainListEditor = defineAsyncComponent(
-  () => import("@/components/DomainListEditor.vue")
+  () => import("@/features/domain-rules/components/DomainListEditor.vue")
 );
 const {
   t,

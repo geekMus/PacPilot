@@ -4,7 +4,7 @@ import { useI18n } from "vue-i18n";
 import type { WebhookConfig, WebhookProvider } from "@/api/client";
 import AppIcon from "@/components/AppIcon.vue";
 import AppSelect from "@/components/AppSelect.vue";
-import WebhookBodyEditor from "@/components/WebhookBodyEditor.vue";
+import WebhookBodyEditor from "./WebhookBodyEditor.vue";
 import CodeMirrorField from "@/components/CodeMirrorField.vue";
 const { t, tm } = useI18n();
 
