@@ -55,6 +55,7 @@
 - 新增滚动区域前，先判断滚动应该由哪一层负责。页面级滚动交给页面布局，弹窗内容滚动交给 `AppDialog`，表格和独立列表由对应组件管理；避免父子容器同时滚动导致滚动条嵌套、滚动穿透或滚动区域边界不清晰。
 - **嵌套滚动区必须允许滚动链（scroll chaining）。** 内层滚动到上/下边界后，滚轮应继续传递给外层，最终由页面接管，不允许出现"内层滚到底、外层纹丝不动"的死区。`AppScrollArea.vue` 的 `overscroll` 属性默认值即 `"auto"`（允许链式滚动）；只有会阻断页面交互的浮层（弹窗、抽屉、下拉菜单等）才显式传 `overscroll="contain"`。
 - 不要在业务页面里自行书写 `overscroll-behavior` 覆盖共享组件的默认行为；确需阻断时必须通过 `AppScrollArea` 的 `overscroll` 属性表达意图，保持全局行为一致。
+- **滚动条只在内容真正溢出时出现。** 使用 `AppScrollArea` 的 `type="auto"`（内部按 `scrollHeight > offsetHeight` 判断），不要使用 `type="always"`：该模式会无条件渲染滚动条，导致空状态或内容不足时出现一根滚不动的滚动条。
 - 所有页面和组件的滚动条视觉必须统一，包括普通页面、表格、弹窗、下拉框、CodeMirror 等编辑器、文本输入控件及第三方组件内部滚动区。优先复用 `AppScrollArea.vue` 的交互/结构；确实必须保留原生或第三方内部滚动机制时，也必须通过 `scrollbars.css` 使用相同的尺寸、轨道、滑块和悬停配色。
 - 只有在组件的交互行为确实需要、且共享组件无法满足时，才新增原生 `overflow: auto` / `overflow: scroll` 滚动容器；应在代码结构或注释中清晰表达其用途，并确保不会与外层滚动区域产生不必要的嵌套。
 - 共享滚动容器的底层实现统一维护在 `AppScrollArea.vue`。业务组件不要直接拼装 Reka UI 的 ScrollArea primitives，也不要为单个页面另写一套滚动条外观；如共享组件缺少必要能力，应先扩展共享组件再由业务层使用。对于 Reka UI `SelectViewport`、`ComboboxViewport` 等需要 `as-child` 的特殊列表，使用 `AppScrollArea` 的 `viewport` 插槽组合对应视口；只有共享组件内部（例如 `AppSelect.vue`）才允许直接维护 ScrollArea primitives，并且必须复用 `scrollbars.css` 的统一样式。
