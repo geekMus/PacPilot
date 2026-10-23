@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { AppDatabase } from "../db/sqlite";
-import { getSettings } from "../db/sqlite";
+import { countAccessEvents, getSettings } from "../db/sqlite";
 import { getMonitorSummary, listAccessEvents } from "../db/monitoring";
 import { requireAdmin } from "../middleware/auth";
 import { getActiveRequestCount, getTcpConnectionCount } from "../services/request-monitor";
@@ -26,10 +26,7 @@ export function adminMonitorRoutes(database: AppDatabase): Router {
       return;
     }
     const hasMore = rows.length > limit;
-    const total = Number(
-      (database.query("SELECT COUNT(*) AS total FROM access_events").get() as { total: number })
-        .total
-    );
+    const total = countAccessEvents(database);
     res.json({
       items: rows.slice(0, limit),
       nextCursor:
