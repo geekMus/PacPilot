@@ -7,7 +7,7 @@ import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { oneDark } from "@codemirror/theme-one-dark";
 import type { RuleDiagnostic } from "@/utils/domain-rules";
 import AppScrollArea from "@/components/AppScrollArea.vue";
-import { attachCodeMirrorOverlayScrollbars } from "@/utils/codemirror-overlay-scrollbar";
+import { attachCodeMirrorScrollArea } from "@/utils/codemirror-scroll-area";
 const { t } = useI18n();
 
 const props = withDefaults(
@@ -120,9 +120,20 @@ const ruleDecorationField = StateField.define({
 });
 
 const host = ref<HTMLDivElement | null>(null);
+const spacer = ref<HTMLDivElement | null>(null);
 let view: EditorView | null = null;
-let disposeOverlayScrollbars: (() => void) | null = null;
+let scrollViewport: HTMLElement | null = null;
+let disposeScrollSync: (() => void) | null = null;
 let themeObs: MutationObserver | null = null;
+
+function connectScrollArea(element?: HTMLElement) {
+  if (element) scrollViewport = element;
+  disposeScrollSync?.();
+  disposeScrollSync = null;
+  if (view && scrollViewport && spacer.value) {
+    disposeScrollSync = attachCodeMirrorScrollArea(view, scrollViewport, spacer.value);
+  }
+}
 
 let jumpHighlightTimer: number | null = null;
 function handleDiagnosticClick(event: MouseEvent, lineNumber: number) {
@@ -271,8 +282,8 @@ function mountEditor() {
   if (!host.value) return;
   const doc = view ? view.state.doc.toString() : props.modelValue || "";
   const sel = view ? view.state.selection.main.head : 0;
-  disposeOverlayScrollbars?.();
-  disposeOverlayScrollbars = null;
+  disposeScrollSync?.();
+  disposeScrollSync = null;
   view?.destroy();
   view = new EditorView({
     parent: host.value,
@@ -281,7 +292,7 @@ function mountEditor() {
       extensions: buildExtensions(isDark()),
     }),
   });
-  disposeOverlayScrollbars = attachCodeMirrorOverlayScrollbars(view);
+  connectScrollArea();
   view.dispatch({
     selection: { anchor: Math.min(sel, view.state.doc.length) },
     effects: setRuleDiagnostics.of(props.diagnostics),
@@ -301,8 +312,8 @@ onBeforeUnmount(() => {
   themeObs?.disconnect();
   if (jumpHighlightTimer !== null) window.clearTimeout(jumpHighlightTimer);
   jumpHighlightTimer = null;
-  disposeOverlayScrollbars?.();
-  disposeOverlayScrollbars = null;
+  disposeScrollSync?.();
+  disposeScrollSync = null;
   view?.destroy();
   view = null;
 });
@@ -332,7 +343,20 @@ watch(
 <template>
   <div class="domain-editor">
     <div class="editor-shell" :class="{ 'is-invalid': invalid }" :style="{ height: height + 'px' }">
-      <div ref="host" class="cm-host" />
+      <AppScrollArea
+        root-class="domain-editor-scroll-area"
+        viewport-class="domain-editor-scroll-viewport"
+        orientation="both"
+        type="hover"
+        @ready="connectScrollArea"
+      >
+        <div
+          ref="host"
+          class="cm-host cm-host-scrollable"
+          :style="{ '--cm-editor-height': `${height}px` }"
+        />
+        <div ref="spacer" class="cm-scroll-spacer" aria-hidden="true"></div>
+      </AppScrollArea>
       <div v-if="!modelValue && placeholder" class="ph">{{ placeholder }}</div>
     </div>
     <section
@@ -422,17 +446,42 @@ watch(
   box-shadow: 0 0 0 3px var(--red-soft);
 }
 
+.domain-editor-scroll-area {
+  width: 100%;
+  height: 100%;
+}
+.domain-editor-scroll-viewport {
+  position: relative;
+  overflow: auto;
+}
+.cm-host-scrollable {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  margin-bottom: calc(-1 * var(--cm-editor-height));
+}
+.cm-scroll-spacer {
+  min-width: 100%;
+  min-height: 100%;
+  pointer-events: none;
+}
 .cm-host {
   height: 100%;
 }
-
 .cm-host :deep(.cm-editor) {
   height: 100%;
   background: transparent;
 }
-
 .cm-host :deep(.cm-scroller) {
   overflow: auto !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.cm-host :deep(.cm-scroller::-webkit-scrollbar) {
+  display: none;
+  width: 0;
+  height: 0;
 }
 .cm-host :deep(.cm-gutters) {
   background: var(--surface-2);
@@ -690,6 +739,7 @@ watch(
 }
 .ph {
   position: absolute;
+  z-index: 2;
   top: 12px;
   left: 48px;
   color: var(--muted);
