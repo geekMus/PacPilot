@@ -40,8 +40,6 @@ A fresh database does not generate a PAC file automatically. Sign in to the admi
 
 ## Documentation
 
-> **Vercel deployment is for testing only and is not recommended for production.** Use Docker for production; see the [Vercel test deployment guide](docs/vercel-test-deployment.md).
-
 The documentation index is available in English and Chinese. The detailed deployment, configuration, development, operations, and troubleshooting guides are currently maintained in Chinese.
 
 - [Documentation index](docs/README.md) · [中文文档目录](docs/README.zh-CN.md)
