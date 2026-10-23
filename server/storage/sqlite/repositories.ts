@@ -197,6 +197,9 @@ export function createSqliteArtifactRepository(dataDir: string): ArtifactReposit
 
 /** SQLite composition root. Business layers consume repository ports, not SQL. */
 export function createSqliteApplicationStorage(database: Database, dataDir: string): ApplicationStorage {
+  if (dataDir === ":memory:") {
+    throw new Error('SQLite storage requires a filesystem data directory; use the memory adapter for memory mode.');
+  }
   return {
     driver: "sqlite",
     settings: createSqliteSettingsRepository(database),
@@ -207,7 +210,6 @@ export function createSqliteApplicationStorage(database: Database, dataDir: stri
     artifacts: createSqliteArtifactRepository(dataDir),
     maintenance: {
       databaseBytes: () => {
-        if (dataDir === ":memory:") return 0;
         return ["database.db", "database.db-wal", "database.db-shm"].reduce((sum, name) => {
           try { return sum + fs.statSync(path.join(dataDir, name)).size; } catch { return sum; }
         }, 0);
