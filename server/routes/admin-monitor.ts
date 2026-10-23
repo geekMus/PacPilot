@@ -5,13 +5,13 @@ import { requireAdmin } from "../middleware/auth";
 import { getActiveRequestCount, getTcpConnectionCount } from "../services/request-monitor";
 export function adminMonitorRoutes(database: AppDatabase, storage: ApplicationStorage): Router {
   const router = Router();
-  router.get("/api/admin/monitor/summary", requireAdmin(database), (_req, res) => {
+  router.get("/api/admin/monitor/summary", requireAdmin(storage.credentials), (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     const summary = storage.monitoring.summarize(getActiveRequestCount(), getTcpConnectionCount());
     res.json({ ...summary, timezone: storage.settings.get().timezone });
   });
 
-  router.get("/api/admin/monitor/access", requireAdmin(database), (req, res) => {
+  router.get("/api/admin/monitor/access", requireAdmin(storage.credentials), (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     const paged = String(req.query.paged ?? "") === "1";
     const limit = Math.min(
