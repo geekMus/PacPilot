@@ -108,14 +108,7 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
     try {
       storage.maintenance.resetOperationalData(DEFAULT_SETTINGS);
       if (env.storageDriver === "sqlite") storage.maintenance.compact();
-      for (const name of ["proxy.pac", "proxy.source.pac"]) {
-        try {
-          if (isMemoryPath(env.dataDir)) unlinkEphemeralFile(path.join(env.dataDir, name));
-          else fs.unlinkSync(path.join(env.dataDir, name));
-        } catch {
-          /* already absent */
-        }
-      }
+      for (const name of ["proxy.pac", "proxy.source.pac"]) storage.artifacts.delete(name);
       reschedule(storage, env.dataDir);
       res.json({
         ok: true,
