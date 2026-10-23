@@ -30,7 +30,6 @@ const maxHeight = computed(() => {
   const parsed = typeof value === "number" ? value : Number.parseFloat(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 480;
 });
-const headerViewportWidth = ref("100%");
 const headerOffset = ref(0);
 const frameStyle = computed(() => ({
   "--table-max-height": maxHeight.value + "px",
@@ -42,7 +41,6 @@ let resizeObserver: ResizeObserver | undefined;
 function syncHeader(): void {
   const element = scroller.value;
   if (element) {
-    headerViewportWidth.value = element.clientWidth + "px";
     headerOffset.value = element.scrollLeft;
   }
 }
@@ -69,7 +67,7 @@ onUnmounted(() => resizeObserver?.disconnect());
 
 <template>
   <div class="app-table-frame" :class="{ 'is-empty': props.empty }" :style="frameStyle">
-    <div class="app-table-header-viewport" :style="{ width: headerViewportWidth }">
+    <div class="app-table-header-viewport">
       <table class="app-table virtual-table" :class="props.tableClass" :style="{ transform: `translateX(-${headerOffset}px)` }">
         <colgroup><slot name="columns" /></colgroup>
         <thead><slot name="header" /></thead>
@@ -102,6 +100,7 @@ onUnmounted(() => resizeObserver?.disconnect());
 }
 .app-table-header-viewport {
   flex: 0 0 44px;
+  width: 100%;
   height: 44px;
   max-width: 100%;
   overflow: hidden;
@@ -135,7 +134,7 @@ onUnmounted(() => resizeObserver?.disconnect());
   max-height: calc(var(--table-max-height, 480px) - 44px);
   height: auto;
 }
-.app-table-body-scroll :deep(.app-scroll-area-viewport) {
+ .app-table-body-scroll :deep(.app-scroll-area-viewport) {
   height: auto;
   max-height: calc(var(--table-max-height, 480px) - 44px);
   overflow-anchor: none;
