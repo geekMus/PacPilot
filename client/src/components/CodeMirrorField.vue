@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { EditorView, keymap, placeholder as cmPlaceholder } from "@codemirror/view";
+import { EditorView, keymap, lineNumbers, placeholder as cmPlaceholder } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
@@ -53,6 +53,7 @@ function buildExtensions() {
   ];
   return [
     history(),
+    ...(!props.singleLine ? [lineNumbers()] : []),
     keymap.of(bindings),
     syntaxHighlighting(defaultHighlightStyle),
     ...(props.language === "json" ? [json()] : []),
@@ -91,7 +92,7 @@ function buildExtensions() {
       },
       ".cm-content": { padding: "10px 12px" },
       ".cm-line": { padding: "0" },
-      ".cm-gutters": { display: "none" },
+      ".cm-gutters": { background: "var(--surface-2)", borderRight: "1px solid var(--line)", color: "var(--muted)" },
       ".cm-cursor": { borderLeftColor: "var(--text)" },
       ".cm-selectionBackground": { background: "var(--accent-soft)" },
       "&.cm-focused": { outline: "none" },
@@ -205,6 +206,11 @@ watch(
 .cm-field-host :deep(.cm-editor) {
   width: 100%;
   background: transparent;
+}
+.cm-field-host :deep(.cm-gutters) {
+  background: var(--surface-2);
+  border-right: 1px solid var(--line);
+  color: var(--muted);
 }
 .cm-field-host :deep(.cm-scroller) {
   scrollbar-width: none;
