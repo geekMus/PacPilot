@@ -64,6 +64,7 @@ export interface MonitoringRepository {
   record(event: AccessEventInput): void;
   list(limit?: number, beforeId?: number): AccessEvent[];
   count(): number;
+  storageBytes(): number;
   summarize(activeRequests: number, tcpConnections: number): MonitorSummary;
   cleanup(retentionDays?: number): number;
   clear(): number;
@@ -95,6 +96,13 @@ export interface ArtifactRepository {
   list(prefix?: string): string[];
 }
 
+export interface StorageMaintenance {
+  databaseBytes(): number;
+  compact(): void;
+  checkpoint(): void;
+  resetOperationalData(settings: AppSettings): void;
+}
+
 export interface ApplicationStorage {
   readonly driver: "sqlite" | "memory";
   readonly settings: SettingsRepository;
@@ -103,5 +111,6 @@ export interface ApplicationStorage {
   readonly monitoring: MonitoringRepository;
   readonly workflows: WorkflowRepository;
   readonly artifacts: ArtifactRepository;
+  readonly maintenance: StorageMaintenance;
   close(): void;
 }
