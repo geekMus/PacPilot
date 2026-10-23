@@ -229,3 +229,10 @@ function onValueChange(value: string): void {
   }
 }
 </style>
+/* On touch screens, scrolling across an option must not look like changing selection. */
+@media (hover: none) and (pointer: coarse) {
+  .app-select-item[data-highlighted]:not([data-state="checked"]) {
+    background: transparent;
+    color: var(--text);
+  }
+}

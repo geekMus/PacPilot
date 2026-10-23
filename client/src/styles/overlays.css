@@ -154,3 +154,13 @@
     text-align: right;
   }
 }
+
+/* Touch scrolling can move Reka's transient highlight between options.
+   Keep real selection styling, but suppress hover/press paint on unselected rows. */
+@media (hover: none) and (pointer: coarse) {
+  .timezone-option[data-highlighted]:not([aria-selected="true"]):not([data-state="checked"]),
+  .timezone-option:active:not(:disabled):not([aria-selected="true"]):not([data-state="checked"]) {
+    background: transparent;
+    color: var(--text);
+  }
+}
