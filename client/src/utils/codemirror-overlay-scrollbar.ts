@@ -12,6 +12,7 @@ export function attachCodeMirrorOverlayScrollbars(view: EditorView): () => void 
   const bars: Bar[] = [];
   const cleanup: Array<() => void> = [];
   let frame = 0;
+  let disposed = false;
   const read = (axis: Axis) => ({
     viewport: axis === "vertical" ? scroller.clientHeight : scroller.clientWidth,
     content: axis === "vertical" ? scroller.scrollHeight : scroller.scrollWidth,
@@ -40,6 +41,7 @@ export function attachCodeMirrorOverlayScrollbars(view: EditorView): () => void 
   };
   const syncAll = () => { frame = 0; bars.forEach(sync); };
   const schedule = () => {
+    if (disposed) return;
     if (frame) cancelAnimationFrame(frame);
     frame = requestAnimationFrame(syncAll);
   };
@@ -111,16 +113,23 @@ export function attachCodeMirrorOverlayScrollbars(view: EditorView): () => void 
   scroller.addEventListener("scroll", schedule, { passive: true });
   cleanup.push(() => scroller.removeEventListener("scroll", schedule));
   const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
-  resize?.observe(editor); resize?.observe(scroller); resize?.observe(view.contentDOM); cleanup.push(() => resize?.disconnect());
+  resize?.observe(editor); resize?.observe(editor.parentElement ?? editor); resize?.observe(scroller); resize?.observe(view.contentDOM); cleanup.push(() => resize?.disconnect());
   const mutation = typeof MutationObserver === "undefined" ? null : new MutationObserver(schedule);
   mutation?.observe(scroller, { subtree: true, childList: true, characterData: true, attributes: true });
   cleanup.push(() => mutation?.disconnect());
   const onWindowResize = () => schedule();
   window.addEventListener("resize", onWindowResize, { passive: true });
+  window.addEventListener("pageshow", onWindowResize);
+  document.addEventListener("visibilitychange", onWindowResize);
   cleanup.push(() => window.removeEventListener("resize", onWindowResize));
-  // CodeMirror measures virtualized content asynchronously; measure again after first layout.
+  cleanup.push(() => window.removeEventListener("pageshow", onWindowResize));
+  cleanup.push(() => document.removeEventListener("visibilitychange", onWindowResize));
+  // CodeMirror can finish measuring after the host has mounted (especially in
+  // dialogs, tabs, and responsive layouts). Re-measure across the first frames
+  // and once web fonts settle so the scrollbar is correct without user input.
   schedule();
-  const initialFrame = requestAnimationFrame(schedule);
-  cleanup.push(() => cancelAnimationFrame(initialFrame));
-  return () => { if (frame) cancelAnimationFrame(frame); cleanup.forEach(fn => fn()); if (!oldId) scroller.removeAttribute("id"); };
+  const initialFrames = [1, 2, 3, 4].map(() => requestAnimationFrame(schedule));
+  cleanup.push(() => initialFrames.forEach(cancelAnimationFrame));
+  if (document.fonts?.ready) void document.fonts.ready.then(schedule);
+  return () => { disposed = true; if (frame) cancelAnimationFrame(frame); cleanup.forEach(fn => fn()); if (!oldId) scroller.removeAttribute("id"); };
 }
