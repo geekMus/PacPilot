@@ -210,7 +210,8 @@ export async function probePacPilot(): Promise<EngineProbe> {
 
 async function runRemoteMode(
   settings: AppSettings,
-  outFile: string
+  outFile: string,
+  artifacts: ApplicationStorage["artifacts"]
 ): Promise<{
   message: string;
   resultCode: string;
