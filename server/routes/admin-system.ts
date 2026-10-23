@@ -4,18 +4,7 @@ import path from "node:path";
 import type { AppDatabase } from "../db/sqlite";
 import type { EnvConfig } from "../config/env";
 import type { ApplicationStorage } from "../storage/repositories";
-import {
-  cleanupOperationalLogs,
-  checkpointDatabase,
-  countGenerationLogs,
-  getOperationalCounts,
-  clearOperationalLogs,
-  getSettings,
-  operationalLogStorageBytes,
-  recentLogs,
-  resetOperationalData,
-  vacuumDatabase,
-} from "../db/sqlite";
+
 import { DEFAULT_SETTINGS } from "../db/settings";
 import { requireAdmin } from "../middleware/auth";
 import { hasActivePacWorkflow } from "../services/workflow";
@@ -50,14 +39,13 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase, storage
         try { dataBytes += statEphemeralFile(path.join(env.dataDir, name)).size; } catch { /* absent */ }
       }
     }
-    const dbBytes = env.storageDriver === "memory" ? 0 : ["database.db", "database.db-wal", "database.db-shm"].reduce((sum, name) => {
-      try {
-        return sum + fs.statSync(path.join(env.dataDir, name)).size;
-      } catch {
-        return sum;
-      }
-    }, 0);
-    const counts = getOperationalCounts(database);
+    const dbBytes = storage.maintenance.databaseBytes();
+    const counts = {
+      generationLogs: storage.generationLogs.count(),
+      accessEvents: storage.monitoring.count(),
+      workflows: storage.workflows.count(),
+      activeWorkflows: storage.workflows.listActive().length,
+    };
     const pacFileInfo = (name: string) => {
       try {
         const filePath = path.join(env.dataDir, name);
@@ -71,8 +59,8 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase, storage
     res.json({
       dataBytes,
       dbBytes,
-      logBytes: operationalLogStorageBytes(database),
-      retentionDays: getSettings(database).logRetentionDays,
+      logBytes: storage.generationLogs.storageBytes() + storage.monitoring.storageBytes(),
+      retentionDays: storage.settings.get().logRetentionDays,
       counts,
       pacFiles: {
         proxyPac: pacFileInfo("proxy.pac"),
@@ -121,15 +109,22 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase, storage
     }
   });
   router.post("/api/admin/logs/cleanup", requireAdmin(database), (_req, res) => {
-    const deleted = cleanupOperationalLogs(database);
+    const retentionDays = storage.settings.get().logRetentionDays;
+    const deleted = {
+      generationLogs: storage.generationLogs.cleanup(retentionDays),
+      accessEvents: storage.monitoring.cleanup(retentionDays),
+    };
     if (deleted.generationLogs + deleted.accessEvents > 0) {
-      if (env.storageDriver === "sqlite") vacuumDatabase(database, true);
+      if (env.storageDriver === "sqlite") storage.maintenance.compact();
     }
-    res.json({ deleted, retentionDays: getSettings(database).logRetentionDays });
+    res.json({ deleted, retentionDays: storage.settings.get().logRetentionDays });
   });
   router.post("/api/admin/logs/clear", requireAdmin(database), (_req, res) => {
     try {
-      const deleted = clearOperationalLogs(database);
+      const deleted = {
+        generationLogs: storage.generationLogs.clear(),
+        accessEvents: storage.monitoring.clear(),
+      };
       if (env.storageDriver === "sqlite") vacuumDatabase(database, true);
       res.json({ deleted, retentionDays: getSettings(database).logRetentionDays });
     } catch (error) {
@@ -150,7 +145,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase, storage
       return;
     }
     try {
-      resetOperationalData(database, DEFAULT_SETTINGS);
+      storage.maintenance.resetOperationalData(DEFAULT_SETTINGS);
       if (env.storageDriver === "sqlite") vacuumDatabase(database, true);
       for (const name of ["proxy.pac", "proxy.source.pac"]) {
         try {
@@ -170,7 +165,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase, storage
     }
   });
   router.get("/api/admin/logs", requireAdmin(database), (_req, res) => {
-    res.json(recentLogs(database, 50));
+    res.json(storage.generationLogs.list(50));
   });
   router.get("/api/admin/logs/page", requireAdmin(database), (req, res) => {
     res.setHeader("Cache-Control", "no-store");
@@ -179,8 +174,8 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase, storage
       Math.max(1, Number.parseInt(String(req.query.limit ?? "50"), 10) || 50)
     );
     const beforeId = Math.max(0, Number.parseInt(String(req.query.beforeId ?? "0"), 10) || 0);
-    const rows = recentLogs(database, limit + 1, 0, beforeId);
-    const total = countGenerationLogs(database);
+    const rows = storage.generationLogs.list(limit + 1, 0, beforeId);
+    const total = storage.generationLogs.count();
     const hasMore = rows.length > limit;
     res.json({
       items: rows.slice(0, limit),
