@@ -36,6 +36,7 @@ const pageSize = 50;
 function generationLogText(entry: GenerationLog): string {
   return entry.success ? t(`gen.success.${entry.result_code}`, entry.detail) : entry.error || t("common.failed");
 }
+function generationLogDetailJson(entry: GenerationLog): string { return JSON.stringify(entry.detail ?? {}, null, 2); }
 function generationLogDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -95,7 +96,7 @@ onMounted(() => void refreshGenerationLogs());
             <td class="nowrap">{{ generationLogDate(entry.created_at) }}</td>
             <td><span class="pill" :class="entry.success ? 'ok' : 'bad'">{{ entry.success ? t("common.success") : t("common.failed") }}</span></td>
             <td>{{ generationModeLabel(entry.mode) }}</td>
-            <td class="msg"><TextDetail :text="generationLogText(entry)" :label="t('settings.genLogInfo')" /></td>
+            <td class="msg"><span @click.stop><TextDetail :text="generationLogText(entry)" :label="t('settings.genLogInfo')" /></span></td>
           </tr></template>
         </VirtualTable>
       </section>
@@ -215,7 +216,7 @@ onMounted(() => void refreshGenerationLogs());
               </tr>
             </template>
             <template #row="{ item: event }">
-              <tr class="access-row" :title="t('monitor.k38')" @click="openAccessDetail(event)">
+              <tr class="access-row" tabindex="0" role="button" :title="t('monitor.k38')" @click="openAccessDetail(event)" @keydown.enter.prevent="openAccessDetail(event)" @keydown.space.prevent="openAccessDetail(event)">
                 <td class="nowrap">{{ formatDate(event.created_at) }}</td>
                 <td>
                   <code>{{ event.source_ip || "unknown" }}</code>
@@ -271,7 +272,7 @@ onMounted(() => void refreshGenerationLogs());
                 <div><span>ID</span><strong>#{{ selectedGenerationLog.id }}</strong></div>
               </div>
               <section class="generation-log-detail-block"><h3>{{ t("settings.colMessage") }}</h3><pre>{{ generationLogText(selectedGenerationLog) }}</pre></section>
-              <section v-if="selectedGenerationLog.detail" class="generation-log-detail-block"><h3>{{ t("settings.colMessage") }}</h3><pre>{{ selectedGenerationLog.detail }}</pre></section>
+              <section class="generation-log-detail-block"><h3>{{ t("common.details") }}</h3><pre>{{ generationLogDetailJson(selectedGenerationLog) }}</pre></section>
               <section v-if="selectedGenerationLog.error" class="generation-log-detail-block is-error"><h3>{{ t("common.failed") }}</h3><pre>{{ selectedGenerationLog.error }}</pre></section>
             </div>
           </template>
