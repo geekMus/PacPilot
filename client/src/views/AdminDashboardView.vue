@@ -18,8 +18,6 @@ import AppIcon from "@/components/AppIcon.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import ResponsiveTrendChart from "@/components/ResponsiveTrendChart.vue";
 import TextDetail from "@/components/TextDetail.vue";
-import AppDialog from "@/components/AppDialog.vue";
-import { DialogDescription, DialogTitle } from "reka-ui";
 import GenerationLogTable from "@/components/GenerationLogTable.vue";
 
 const { t, locale } = useI18n();
@@ -38,10 +36,6 @@ const noticeOkay = ref(true);
 const settings = ref<AppSettings | null>(null);
 const status = ref<PacStatus | null>(null);
 const logs = ref<GenerationLog[]>([]);
-const selectedLog = ref<GenerationLog | null>(null);
-const logDetailOpen = ref(false);
-function openLogDetail(entry: GenerationLog): void { selectedLog.value = entry; logDetailOpen.value = true; }
-function logDetailJson(entry: GenerationLog): string { return JSON.stringify(entry.detail ?? {}, null, 2); }
 const monitor = ref<MonitorSummary | null>(null);
 const engine = ref<PacPilotProbe | null>(null);
 const currentWorkflow = ref<WorkflowRun | null>(null);
@@ -377,7 +371,7 @@ onMounted(() => {
               >{{ t("dashboard.viewLogs") }} <AppIcon name="arrow-up-right" :size="13"
             /></RouterLink>
           </header>
-          <GenerationLogTable v-if="logs.length" :items="logs" compact height="1246px" @row-click="openLogDetail" />
+          <GenerationLogTable v-if="logs.length" :items="logs" compact height="1246px" />
           <div v-else class="panel-empty">
             {{ loading ? t("dashboard.readingGenLogs") : t("dashboard.noGenLogs") }}
           </div>
@@ -412,28 +406,7 @@ onMounted(() => {
         </div>
       </section>
 
-      <AppDialog :open="logDetailOpen && !!selectedLog" :label="t('dashboard.genLogLabel')" width="min(680px, calc(100vw - 16px))" @update:open="logDetailOpen = $event">
-        <template #header>
-          <div>
-            <p class="detail-kicker">GENERATION LOG #{{ selectedLog?.id }}</p>
-            <DialogTitle>{{ t("dashboard.genLogLabel") }}</DialogTitle>
-            <DialogDescription>{{ selectedLog ? formatStatusDate(selectedLog.created_at) : "" }}</DialogDescription>
-          </div>
-        </template>
-        <template #body>
-          <div v-if="selectedLog" class="recent-log-detail">
-            <div class="recent-log-detail-grid">
-              <div><span>{{ t("dashboard.colTime") }}</span><strong>{{ formatStatusDate(selectedLog.created_at) }}</strong></div>
-              <div><span>{{ t("dashboard.colResult") }}</span><strong>{{ selectedLog.success ? t("common.success") : t("common.failed") }}</strong></div>
-              <div><span>{{ t("dashboard.colMode") }}</span><strong>{{ modeForLog(selectedLog.mode) }}</strong></div>
-              <div><span>ID</span><strong>#{{ selectedLog.id }}</strong></div>
-            </div>
-            <section class="recent-log-detail-block"><h3>{{ t("dashboard.colMessage") }}</h3><pre>{{ generationLogText(selectedLog) }}</pre></section>
-            <section class="recent-log-detail-block"><h3>{{ t("common.details") }}</h3><pre>{{ logDetailJson(selectedLog) }}</pre></section>
-            <section v-if="selectedLog.error" class="recent-log-detail-block is-error"><h3>{{ t("common.failed") }}</h3><pre>{{ selectedLog.error }}</pre></section>
-          </div>
-        </template>
-      </AppDialog>
+      
       <AppFooter />
     </div>
   </AdminLayout>
