@@ -149,11 +149,7 @@ onMounted(() => void refreshGenerationLogs());
             </div>
           </div>
 
-          <div v-if="accesses.length === 0" class="monitor-empty">
-            {{ t("monitor.k126") }}
-          </div>
           <VirtualTable
-            v-else
             :items="filteredAccesses"
             item-key="id"
             :col-span="8"
