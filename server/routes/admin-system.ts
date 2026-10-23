@@ -16,7 +16,7 @@ import { requireAdmin } from "../middleware/auth";
 import { hasActivePacWorkflow } from "../services/workflow";
 import { reschedule } from "../services/scheduler";
 import { resolveLocale, t as serverT } from "../../shared/i18n";
-import { clearEphemeralFiles, isMemoryPath, statEphemeralFile, unlinkEphemeralFile } from "../storage/ephemeral-files";
+import { isMemoryPath, statEphemeralFile, unlinkEphemeralFile } from "../storage/ephemeral-files";
 
 function requestLocale(req: import("express").Request): "zh_CN" | "en_US" {
   return resolveLocale(req.get("accept-language"));
@@ -88,7 +88,6 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
     }
     const deleted: string[] = [];
     try {
-      if (isMemoryPath(env.dataDir)) clearEphemeralFiles();
       for (const name of ["proxy.pac", "proxy.source.pac"]) {
         try {
           if (isMemoryPath(env.dataDir)) unlinkEphemeralFile(path.join(env.dataDir, name));
