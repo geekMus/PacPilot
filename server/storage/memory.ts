@@ -53,6 +53,10 @@ export class MemoryKeyValueStorage implements KeyValueStorage {
     this.namespaces.delete(namespace);
     return size;
   }
+
+  clearAll(): void {
+    this.namespaces.clear();
+  }
 }
 
 export class MemoryArtifactStorage implements ArtifactStorage {
@@ -82,16 +86,26 @@ export class MemoryArtifactStorage implements ArtifactStorage {
       .filter((key) => key.startsWith(normalizedPrefix))
       .sort();
   }
+
+  clearAll(): void {
+    this.artifacts.clear();
+  }
 }
 
 /** Creates isolated, process-local storage. Nothing is persisted on close. */
 export function createMemoryStorage(): StorageContext {
+  const values = new MemoryKeyValueStorage();
+  const artifacts = new MemoryArtifactStorage();
+  let closed = false;
   return {
     driver: "memory",
-    values: new MemoryKeyValueStorage(),
-    artifacts: new MemoryArtifactStorage(),
+    values,
+    artifacts,
     async close() {
-      // Releasing the context drops all references; process memory is the store.
+      if (closed) return;
+      closed = true;
+      values.clearAll();
+      artifacts.clearAll();
     },
   };
 }

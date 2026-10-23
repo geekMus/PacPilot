@@ -47,7 +47,7 @@ describe("MemoryArtifactStorage", () => {
     const bytes = await store.read("bin/data");
     bytes?.fill(0);
     expect(Array.from((await store.read("bin/data")) ?? [])).toEqual([1, 2, 3]);
-    expect(new TextDecoder().decode((await store.read("pac/output.pac")))).toBe("DIRECT");
+    expect(new TextDecoder().decode((await store.read("pac/output.pac"))!)).toBe("DIRECT");
   });
 
   it("lists by prefix and rejects path traversal", async () => {
@@ -58,6 +58,16 @@ describe("MemoryArtifactStorage", () => {
 
     expect(await store.list("pac")).toEqual(["pac/a.pac", "pac/b.pac"]);
     await expect(store.write("../secret", "no")).rejects.toThrow(/relative path/);
+  });
+
+  it("clears process-local data when the storage context closes", async () => {
+    const storage = createMemoryStorage();
+    await storage.values.set("settings", "config", { mode: "custom" });
+    await storage.artifacts.write("pac/output.pac", "DIRECT");
+
+    await storage.close();
+    expect(await storage.values.get("settings", "config")).toBeUndefined();
+    expect(await storage.artifacts.exists("pac/output.pac")).toBe(false);
   });
 
   it("starts empty for each new storage context", async () => {
