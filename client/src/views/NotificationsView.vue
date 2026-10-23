@@ -435,18 +435,13 @@ onMounted(() => {
 
 <style scoped>
 .webhook-page {
-  --wh-radius: 13px;
-  /*
-   * This page has a multi-section editor and a footer inside the shared admin
-   * scroll viewport. Give the page a viewport-derived minimum height so the
-   * editor doesn't stop at its intrinsic content height and leave a large
-   * dead area below it on short forms.
-   */
   display: flex;
   flex-direction: column;
   gap: 18px;
+  width: 100%;
   min-width: 0;
-  min-height: calc(100dvh - var(--admin-topbar-space) - 65px);
+  min-height: 0;
+  height: calc(100dvh - var(--admin-topbar-space, 104px) - 48px);
   color: var(--text);
 }
 .page-intro {
@@ -495,14 +490,14 @@ onMounted(() => {
 .workspace-tabs button.active { color: var(--text); border-color: var(--line); background: var(--surface); box-shadow: 0 1px 2px #00000008; }
 .tab-count { display: inline-grid; place-items: center; min-width: 21px; height: 21px; padding: 0 5px; border-radius: 6px; background: var(--surface-2); color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
 .tab-alert { display: inline-grid; place-items: center; min-width: 19px; height: 19px; padding: 0 4px; border-radius: 6px; background: var(--red-soft); color: var(--red); font-size: 10px; }
-.workspace-layout { display: grid; flex: 0 0 auto; grid-template-columns: minmax(245px, .72fr) minmax(0, 1.8fr); align-items: stretch; gap: 16px; min-width: 0; min-height: 280px; height: clamp(280px, calc(100dvh - var(--admin-topbar-space, 104px) - 180px), 720px); max-height: none; }
+.workspace-layout { display: grid; flex: 1 1 0%; grid-template-columns: minmax(245px, .72fr) minmax(0, 1.8fr); align-items: stretch; gap: 16px; min-width: 0; min-height: 0; height: 0; max-height: none; }
 .editor-panel { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; overflow: hidden; }
 .editor-placeholder { align-items: center; justify-content: center; gap: 14px; padding: 28px; text-align: center; color: var(--muted); }
 .placeholder-icon { display: grid; place-items: center; width: 52px; height: 52px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface-2); color: var(--muted); }
 .editor-placeholder p { margin: 0; font-size: 13px; line-height: 1.7; }
 .editor-body { flex: 0 0 auto; align-content: start; }
 .directory-panel, .editor-panel, .history-panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
-.directory-panel { position: relative; display: flex !important; flex: 0 0 auto; flex-direction: column; box-sizing: border-box; min-width: 0; min-height: 0; height: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface, #fff) !important; box-shadow: var(--shadow); }
+.directory-panel { position: relative; display: flex !important; flex: 1 1 0%; flex-direction: column; box-sizing: border-box; width: 100%; min-width: 0; min-height: 0; height: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface, #fff) !important; box-shadow: var(--shadow); }
 .directory-panel :deep(.app-scroll-area-viewport) { display: flex; flex: 1 1 0%; flex-direction: column; width: 100%; height: 100%; min-height: 0; gap: 0; overflow-x: hidden; overflow-y: auto; scrollbar-gutter: stable; }
 .directory-panel .panel-heading { flex: 0 0 auto; }
 .directory-panel .directory-item { flex: 0 0 auto; }
@@ -648,7 +643,7 @@ onMounted(() => {
   .editor-footer { padding-right: 17px; padding-left: 17px; }
 }
 @media (max-width: 900px) {
-  .webhook-page { min-height: 0; }
+  .webhook-page { height: auto; min-height: 0; }
   .workspace-layout, .history-workspace { flex: 0 0 auto; align-items: start; height: auto; max-height: none; }
   .editor-panel { display: flex; height: auto; overflow: visible; }
   .directory-panel { height: auto; overflow: visible; }
