@@ -186,7 +186,7 @@ watch(
       root-class="cm-field-scroll-area"
       viewport-class="cm-field-scroll-viewport"
       orientation="both"
-      type="hover"
+      type="auto"
       @ready="connectScrollArea"
     >
       <div ref="host" class="cm-field-host cm-field-host-scrollable"></div>
@@ -245,6 +245,9 @@ watch(
 :deep(.cm-field-scroll-viewport) {
   position: relative;
   overflow: auto;
+  /* Chain vertical gestures to the page when the editor has no remaining scroll. */
+  overscroll-behavior-y: auto;
+  overscroll-behavior-x: contain;
 }
 .cm-field-host-scrollable {
   position: sticky;
