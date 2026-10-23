@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AdminLayout from "@/components/layout/AdminLayout.vue";
+import { api, type WorkflowStage } from "@/api/client";
 import AppIcon from "@/components/AppIcon.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import ConfirmPopover from "@/components/ConfirmPopover.vue";
@@ -11,8 +12,24 @@ import AppDialog from "@/components/AppDialog.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 
 const selectedRun = ref<any>(null);
+const selectedRunStages = ref<WorkflowStage[]>([]);
+const runDetailLoading = ref(false);
+const runDetailError = ref("");
 const runDetailOpen = ref(false);
-function openRunDetail(run: any): void { selectedRun.value = run; runDetailOpen.value = true; }
+async function openRunDetail(run: any): Promise<void> {
+  selectedRun.value = run;
+  selectedRunStages.value = [];
+  runDetailError.value = "";
+  runDetailOpen.value = true;
+  runDetailLoading.value = true;
+  try {
+    const detail = await api.workflowDetail(run.id);
+    selectedRun.value = detail.run;
+    selectedRunStages.value = detail.stages;
+  } catch (error) {
+    runDetailError.value = error instanceof Error ? error.message : String(error);
+  } finally { runDetailLoading.value = false; }
+}
 
 const {
   t,
@@ -527,6 +544,18 @@ const {
               <div><span>{{ t("workflowPage.k61") }}</span><strong>{{ stageLabel(selectedRun.stage) || "—" }}</strong></div>
               <div><span>{{ t("workflowPage.k75") }}</span><strong>{{ selectedRun.finished_at ? dateLabel(selectedRun.finished_at) : "—" }}</strong></div>
             </div>
+            <p v-if="runDetailLoading" class="run-detail-state">{{ t("common.loading") }}</p>
+            <p v-if="runDetailError" class="run-detail-error-message" role="alert">{{ runDetailError }}</p>
+            <section v-if="selectedRunStages.length" class="run-detail-stages">
+              <h3>{{ t("workflowPage.k61") }}</h3>
+              <article v-for="stage in selectedRunStages" :key="stage.id" class="run-detail-stage">
+                <div class="run-detail-stage-heading"><strong>{{ stageLabel(stage.stage_key) }}</strong><span class="status-pill" :class="stage.status">{{ statusLabel(stage.status) }}</span></div>
+                <div class="run-detail-stage-meta"><span>{{ stage.started_at ? dateLabel(stage.started_at) : "—" }}</span><span>{{ stage.finished_at ? dateLabel(stage.finished_at) : "—" }}</span><span>{{ stage.duration_ms == null ? "—" : stage.duration_ms + " ms" }}</span></div>
+                <pre v-if="stage.error" class="run-detail-error">{{ stage.error }}</pre>
+                <pre v-if="stage.detail" class="run-detail-stage-detail">{{ JSON.stringify(stage.detail, null, 2) }}</pre>
+              </article>
+            </section>
+            <div v-if="selectedRun.error" class="run-detail-error"><strong>{{ t("workflowPage.k57") }}</strong><pre>{{ selectedRun.error }}</pre></div>
             <div v-if="selectedRun.error" class="run-detail-error"><strong>{{ t("workflowPage.k57") }}</strong><pre>{{ selectedRun.error }}</pre></div>
             <div class="run-detail-actions"><RouterLink class="workflow-button secondary" :to="`/admin/workflows/${selectedRun.id}`" @click="runDetailOpen = false"><AppIcon name="external-link" :size="14" />{{ t("workflowPage.k53") }}</RouterLink></div>
           </div>
@@ -1133,4 +1162,12 @@ td {
 .run-detail-error pre { margin: 0; padding: 12px; border: 1px solid color-mix(in srgb, var(--red) 25%, var(--line)); border-radius: 8px; background: var(--red-soft); color: var(--red); white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.6 var(--font-mono); }
 .run-detail-actions { display: flex; justify-content: flex-end; }
 @media (max-width: 520px) { .run-detail-grid { grid-template-columns: 1fr; } }
+.run-detail-stages { display: grid; gap: 10px; }
+.run-detail-stages h3 { margin: 0; font-size: 13px; }
+.run-detail-stage { display: grid; gap: 8px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 9px; }
+.run-detail-stage-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.run-detail-stage-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; color: var(--muted); font-size: 11px; }
+.run-detail-stage-detail { margin: 0; padding: 10px; background: var(--surface-2); border-radius: 7px; white-space: pre-wrap; overflow-wrap: anywhere; font: 11px/1.6 var(--font-mono); }
+.run-detail-state, .run-detail-error-message { margin: 0; color: var(--muted); font-size: 12px; }
+.run-detail-error-message { color: var(--red); }
 </style>
