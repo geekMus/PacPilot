@@ -371,7 +371,7 @@ onMounted(() => {
               >{{ t("dashboard.viewLogs") }} <AppIcon name="arrow-up-right" :size="13"
             /></RouterLink>
           </header>
-          <TableFrame v-if="logs.length" height="260px" min-width="600px" table-class="recent-table" :row-height="40">
+          <TableFrame v-if="logs.length" height="286px" min-width="600px" table-class="recent-table" :row-height="40">
             <template #columns>
               <col style="width: 118px" />
               <col style="width: 92px" />
