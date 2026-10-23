@@ -69,6 +69,13 @@ describe("assertSafeHttpUrl", () => {
     expect(isBlockedIpAddress("FE80::1")).toBe(true);
     expect(isBlockedIpAddress("FDCF::1")).toBe(true);
     expect(isBlockedIpAddress("::ffff:8.8.8.8")).toBe(false);
+    // URL parsers normalize dotted IPv4-mapped IPv6 to hexadecimal groups;
+    // both compressed and fully expanded forms must still honor IPv4 SSRF rules.
+    expect(isBlockedIpAddress("::ffff:7f00:1")).toBe(true);
+    expect(isBlockedIpAddress("0:0:0:0:0:ffff:7f00:1")).toBe(true);
+    expect(isBlockedIpAddress("[::ffff:ac10:1]")).toBe(true);
+    expect(isBlockedIpAddress("::ffff:808:808")).toBe(false);
+    expect(assertSafeHttpUrl("http://[::ffff:7f00:1]", "rules")).toContain("SSRF protection");
   });
 
   it("normalizes local host aliases and validates URL options", () => {
