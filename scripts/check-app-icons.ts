@@ -30,9 +30,13 @@ for (const file of collectSourceFiles(sourceRoot)) {
     const iconProps = /(?:^|\s):?name\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
     for (const match of tag[1].matchAll(iconProps)) {
       const expression = match[1] ?? match[2] ?? "";
-      // Check literal names even when they occur inside a conditional expression.
+      // Check static names and every literal candidate in conditional expressions.
+      const names = new Set<string>();
+      if (/^[a-z][a-z0-9-]*$/.test(expression)) names.add(expression);
       for (const literal of expression.matchAll(/["']([a-z][a-z0-9-]*)["']/g)) {
-        const name = literal[1];
+        names.add(literal[1]);
+      }
+      for (const name of names) {
         if (!usedIcons.has(name)) usedIcons.set(name, new Set());
         usedIcons.get(name)!.add(path.relative(process.cwd(), file));
       }
