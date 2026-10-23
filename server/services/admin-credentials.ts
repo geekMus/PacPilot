@@ -36,12 +36,12 @@ function hashPassword(password: string, salt: string): string {
   }).toString("hex");
 }
 
-function passwordRecord(password: string): AdminAuthRecord {
+function passwordRecord(password: string, sessionSecret?: string): AdminAuthRecord {
   const salt = randomBytes(16).toString("hex");
   return {
     passwordHash: hashPassword(password, salt),
     salt,
-    sessionSecret: randomBytes(32).toString("base64url"),
+    sessionSecret: sessionSecret || randomBytes(32).toString("base64url"),
   };
 }
 
@@ -49,10 +49,14 @@ export function isAdminCredentialsMissing(repository: AdminCredentialRepository)
   return readRecord(repository) === null;
 }
 
-export function createInitialAdminCredentials(repository: AdminCredentialRepository): string | null {
+export function createInitialAdminCredentials(
+  repository: AdminCredentialRepository,
+  configuredPassword?: string,
+  configuredSessionSecret?: string
+): string | null {
   if (readRecord(repository)) return null;
-  const initialPassword = randomBytes(18).toString("base64url");
-  writeRecord(repository, passwordRecord(initialPassword));
+  const initialPassword = configuredPassword || randomBytes(18).toString("base64url");
+  writeRecord(repository, passwordRecord(initialPassword, configuredSessionSecret));
   return initialPassword;
 }
 
