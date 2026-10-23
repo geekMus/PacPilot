@@ -11,7 +11,7 @@
 .cm-editor { position: relative; }
 .cm-overlay-scrollbar {
   position: absolute; z-index: 20; display: block; padding: 2px; border-radius: 999px;
-  background: transparent; opacity: .78; transition: opacity 120ms ease, background-color 120ms ease;
+  background: transparent; opacity: .92; transition: opacity 120ms ease, background-color 120ms ease;
   touch-action: none; user-select: none;
 }
 .cm-overlay-scrollbar[hidden] { display: none !important; }
@@ -23,7 +23,7 @@
 .cm-overlay-scrollbar-thumb {
   position: absolute; top: 2px; left: 2px; display: block; box-sizing: border-box;
   min-width: 4px; min-height: 4px; margin: 0; padding: 0; border: 0; border-radius: 999px;
-  background: var(--scrollbar-thumb); cursor: grab; touch-action: none;
+  background: var(--scrollbar-thumb); cursor: grab; touch-action: none; pointer-events: auto;
 }
 .cm-overlay-scrollbar-thumb:hover, .cm-overlay-scrollbar-thumb:focus-visible {
   background: var(--scrollbar-thumb-hover); outline: none;

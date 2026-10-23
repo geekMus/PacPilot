@@ -421,6 +421,7 @@ onUnmounted(() => {
         :open="stageDetailOpen && !!selectedStage"
         :label="t('workflowDetailPage.k19')"
         width="min(640px, calc(100vw - 16px))"
+        body-class="stage-detail-dialog-body"
         :close-label="t('workflowDetailPage.k20')"
         @update:open="onStageDetailOpenChange"
       >
@@ -1059,7 +1060,6 @@ onUnmounted(() => {
     padding: 0 12px;
   }
   .stage-detail-body {
-    padding: 12px 14px 16px;
     gap: 14px;
   }
   .stage-detail-meta {
@@ -1071,9 +1071,15 @@ onUnmounted(() => {
     font-size: 11px;
   }
 }
-</style>
-
-/* The shared dialog owns the shell, fixed header and content scrolling. */
 .stage-detail-body {
   padding: 0;
 }
+:deep(.stage-detail-dialog-body .app-scroll-area-viewport) {
+  padding: 16px 18px;
+}
+@media (max-width: 560px) {
+  :deep(.stage-detail-dialog-body .app-scroll-area-viewport) {
+    padding: 14px;
+  }
+}
+</style>

@@ -970,9 +970,9 @@ textarea.body-area {
 .timezone-options-menu {
   z-index: 1200;
   box-sizing: border-box;
-  width: min(var(--reka-combobox-trigger-width), calc(100vw - 16px));
+  width: min(var(--reka-combobox-trigger-width, 100%), calc(100vw - 16px));
   max-width: calc(100vw - 16px);
-  max-height: var(--reka-combobox-content-available-height);
+  max-height: var(--reka-combobox-content-available-height, calc(100dvh - 24px));
   overflow: hidden;
   padding: 4px;
   border: 1px solid var(--line);
@@ -983,12 +983,17 @@ textarea.body-area {
 }
 .timezone-options-scroll {
   width: 100%;
-  max-height: var(--reka-combobox-content-available-height);
+  height: min(var(--reka-combobox-content-available-height, 420px), 420px);
+  max-height: min(var(--reka-combobox-content-available-height, 420px), 420px);
+  min-height: 0;
   overflow: hidden;
 }
 .timezone-options-viewport {
   width: 100%;
-  max-height: var(--reka-combobox-content-available-height);
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow-x: hidden;
 }
 .timezone-option {
   display: flex;
@@ -1269,6 +1274,8 @@ textarea.body-area {
 }
 .timezone-sheet-options {
   flex: 1 1 auto;
+  width: 100%;
+  height: min(48dvh, 420px);
   min-height: 0;
   max-height: min(48dvh, 420px);
   margin: 0;

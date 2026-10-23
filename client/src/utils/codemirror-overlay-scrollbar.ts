@@ -25,7 +25,7 @@ export function attachCodeMirrorOverlayScrollbars(view: EditorView): () => void 
   const sync = (bar: Bar) => {
     const { viewport, content, offset } = read(bar.axis);
     const rect = bar.track.getBoundingClientRect();
-    const size = bar.axis === "vertical" ? rect.height : rect.width;
+    const size = Math.max(0, (bar.axis === "vertical" ? rect.height : rect.width) - 4);
     const max = Math.max(0, content - viewport);
     bar.trackSize = size;
     bar.thumbSize = content > 0 && size > 0 ? Math.min(size, Math.max(22, size * viewport / content)) : size;
@@ -110,7 +110,7 @@ export function attachCodeMirrorOverlayScrollbars(view: EditorView): () => void 
   scroller.addEventListener("scroll", schedule, { passive: true });
   cleanup.push(() => scroller.removeEventListener("scroll", schedule));
   const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
-  resize?.observe(scroller); resize?.observe(view.contentDOM); cleanup.push(() => resize?.disconnect());
+  resize?.observe(editor); resize?.observe(scroller); resize?.observe(view.contentDOM); cleanup.push(() => resize?.disconnect());
   const mutation = typeof MutationObserver === "undefined" ? null : new MutationObserver(schedule);
   mutation?.observe(view.contentDOM, { subtree: true, childList: true, characterData: true, attributes: true });
   cleanup.push(() => mutation?.disconnect());

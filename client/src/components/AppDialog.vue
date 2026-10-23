@@ -127,22 +127,27 @@ function onCloseAutoFocus(event: Event): void {
   display: flex;
   flex: 0 0 auto;
   align-items: flex-start;
-  gap: 12px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 12px;
   min-width: 0;
   padding: 16px 18px;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
 }
 .app-dialog-heading {
-  flex: 1 1 auto;
+  flex: 1 1 240px;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 .app-dialog-header-actions {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   margin-left: auto;
+  max-width: 100%;
 }
 .app-dialog-close {
   display: inline-grid;
@@ -171,14 +176,19 @@ function onCloseAutoFocus(event: Event): void {
 }
 .app-dialog-body {
   flex: 1 1 auto;
+  width: 100%;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
 .app-dialog-body .app-scroll-area-viewport {
   box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
   min-height: 0;
   padding: 18px;
+  overflow-x: hidden;
 }
 .app-dialog-footer {
   display: flex;
