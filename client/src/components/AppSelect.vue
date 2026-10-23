@@ -77,19 +77,23 @@ function onValueChange(value: string): void {
           >
             <template #viewport="{ viewportComponent, viewportClass, onScroll }">
               <SelectViewport as-child>
-                <component :is="viewportComponent" :class="viewportClass" @scroll.passive="onScroll">
-                <SelectItem
-                  v-for="option in props.options"
-                  :key="String(option.value)"
-                  :value="String(option.value)"
-                  :disabled="option.disabled"
-                  class="app-select-item"
+                <component
+                  :is="viewportComponent"
+                  :class="viewportClass"
+                  @scroll.passive="onScroll"
                 >
-                  <SelectItemText>{{ option.label }}</SelectItemText>
-                  <SelectItemIndicator class="app-select-item-indicator">
-                    <AppIcon name="check" :size="14" aria-hidden="true" />
-                  </SelectItemIndicator>
-                </SelectItem>
+                  <SelectItem
+                    v-for="option in props.options"
+                    :key="String(option.value)"
+                    :value="String(option.value)"
+                    :disabled="option.disabled"
+                    class="app-select-item"
+                  >
+                    <SelectItemText>{{ option.label }}</SelectItemText>
+                    <SelectItemIndicator class="app-select-item-indicator">
+                      <AppIcon name="check" :size="14" aria-hidden="true" />
+                    </SelectItemIndicator>
+                  </SelectItem>
                 </component>
               </SelectViewport>
             </template>
