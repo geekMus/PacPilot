@@ -328,7 +328,7 @@ const { style: timezonePanelStyle } = useViewportPanel(
                   >
                     {{ t("settings.timezoneNoMatchStrict") }}
                   </p>
-                </div>
+                </AppScrollArea>
                 <p class="timezone-sheet-hint">
                   {{ t("settings.timezoneSelectHint") }}
                 </p>
