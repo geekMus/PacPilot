@@ -12,7 +12,7 @@ import { adminGenerationRoutes } from "./admin-generation";
 export function adminRoutes(env: EnvConfig, database: AppDatabase, storage: ApplicationStorage): Router {
   const router = Router();
   router.use(adminWorkflowRoutes(database, storage));
-  router.use(adminMonitorRoutes(database));
+  router.use(adminMonitorRoutes(database, storage));
   router.use(adminSystemRoutes(env, database, storage));
   router.use(adminAuthRoutes(database));
   router.use(adminSettingsRoutes(env, database, storage));
