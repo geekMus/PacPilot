@@ -1,10 +1,9 @@
 import { Router } from "express";
-import type { AppDatabase } from "../db/sqlite";
 import type { ApplicationStorage } from "../storage/repositories";
 import { requireAdmin } from "../middleware/auth";
 import { resolveLocale, t } from "../../shared/i18n";
 
-export function adminWorkflowRoutes(database: AppDatabase, storage: ApplicationStorage): Router {
+export function adminWorkflowRoutes(storage: ApplicationStorage): Router {
   const router = Router();
   const errorText = (req: import("express").Request, key: string) =>
     t(resolveLocale(req.get("accept-language")), key);
