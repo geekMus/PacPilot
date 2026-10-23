@@ -92,7 +92,7 @@ async function loadOverview(): Promise<void> {
       await Promise.all([
         api.settings(),
         api.status(),
-        api.logsPage(6, 0),
+        api.logsPage(30, 0),
         api.monitorSummary().catch(() => null),
         api.pacpilotStatus().catch(() => null),
         api.workflows(6).catch(() => null),
@@ -377,7 +377,7 @@ onMounted(() => {
               >{{ t("dashboard.viewLogs") }} <AppIcon name="arrow-up-right" :size="13"
             /></RouterLink>
           </header>
-          <TableFrame v-if="logs.length" height="286px" min-width="600px" table-class="recent-table" :row-height="40">
+          <TableFrame v-if="logs.length" height="1246px" min-width="600px" table-class="recent-table" :row-height="40">
             <template #columns>
               <col style="width: 118px" />
               <col style="width: 92px" />
@@ -765,32 +765,45 @@ onMounted(() => {
 .config-details {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 15px;
+  column-gap: 24px;
+  align-content: start;
 }
 .config-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  display: grid;
+  grid-template-columns: minmax(86px, 0.78fr) minmax(0, 1.22fr);
+  align-items: baseline;
+  gap: 12px;
   min-width: 0;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--line);
+  padding: 13px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+  background: transparent;
 }
 .config-detail > span {
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 650;
+  font-size: 11px;
+  font-weight: 550;
+  line-height: 1.5;
 }
 .config-detail strong,
 .config-detail code {
+  display: block;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--text);
-  font-size: 11px;
-  font-weight: 750;
+  font-size: 12px;
+  font-weight: 650;
   overflow-wrap: anywhere;
-  line-height: 1.5;
+  line-height: 1.6;
+  box-shadow: none;
 }
 .config-detail code {
   font-family: var(--font-mono);
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 500;
 }
 .panel-footer-links {
   display: flex;
