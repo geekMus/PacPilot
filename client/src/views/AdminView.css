@@ -953,17 +953,42 @@ textarea.body-area {
 .timezone-presets {
   margin: 8px 0 0;
 }
+.timezone-combobox {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
 .timezone-picker {
-  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+.timezone-combobox-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
 }
 .timezone-options-menu {
-  z-index: 30;
+  z-index: 1200;
   box-sizing: border-box;
-  padding: 5px;
+  width: min(var(--reka-combobox-trigger-width), calc(100vw - 16px));
+  max-width: calc(100vw - 16px);
+  max-height: var(--reka-combobox-content-available-height);
+  overflow: hidden;
+  padding: 4px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--surface);
+  color: var(--text);
   box-shadow: var(--shadow);
+}
+.timezone-options-scroll {
+  width: 100%;
+  max-height: var(--reka-combobox-content-available-height);
+  overflow: hidden;
+}
+.timezone-options-viewport {
+  width: 100%;
+  max-height: var(--reka-combobox-content-available-height);
 }
 .timezone-option {
   display: flex;
@@ -980,8 +1005,9 @@ textarea.body-area {
   text-align: left;
   cursor: pointer;
 }
-.timezone-option:hover,
-.timezone-option[aria-selected="true"] {
+.timezone-option[data-highlighted],
+.timezone-option[aria-selected="true"],
+.timezone-option[data-state="checked"] {
   background: var(--accent-soft);
   color: var(--accent);
 }
@@ -1029,10 +1055,6 @@ textarea.body-area {
     place-items: center;
     color: var(--muted);
   }
-  .app-dialog-content
-  
-  
-  
   .timezone-sheet-search {
     flex: 0 0 auto;
     width: 100%;

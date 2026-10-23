@@ -5,6 +5,18 @@ import {
   CheckboxRoot,
   RadioGroupItem,
   RadioGroupRoot,
+  ComboboxAnchor,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxPortal,
+  ComboboxRoot,
+  ComboboxViewport,
+  ScrollAreaRoot,
+  ScrollAreaViewport,
+  ScrollAreaScrollbar,
+  ScrollAreaThumb,
 } from "reka-ui";
 import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppIcon from "@/components/AppIcon.vue";
@@ -15,7 +27,6 @@ import AppFooter from "@/components/AppFooter.vue";
 import TextDetail from "@/components/TextDetail.vue";
 import VirtualTable from "@/components/VirtualTable.vue";
 import { useAdminSettings } from "@/composables/useAdminSettings";
-import { useViewportPanel } from "@/composables/useViewportPanel";
 import { PROJECT_LINKS } from "@shared/project-links";
 
 const WebhookChannelEditor = defineAsyncComponent(
@@ -79,14 +90,6 @@ const {
   changeAdminPassword,
 } = useAdminSettings();
 
-const timezoneAnchor = ref<HTMLElement | null>(null);
-const timezonePanel = ref<HTMLElement | null>(null);
-const { style: timezonePanelStyle } = useViewportPanel(
-  timezoneAnchor,
-  timezonePanel,
-  timezoneMenuOpen,
-  { matchAnchorWidth: true, maxHeight: 270, gap: 5 }
-);
 </script>
 
 <template>
@@ -205,49 +208,64 @@ const { style: timezonePanelStyle } = useViewportPanel(
             </div>
             <div class="field" data-validation-target="timezone">
               <label for="timezone">{{ t("settings.timezone") }}</label>
-              <div ref="timezoneAnchor" class="timezone-picker desktop-timezone-picker">
-                <input
-                  id="timezone"
-                  v-model="form.timezone"
-                  autocomplete="off"
-                  spellcheck="false"
-                  :placeholder="t('settings.timezoneSearch')"
-                  :aria-invalid="Boolean(timezoneError)"
-                  @focus="
-                    timezoneMenuOpen = true;
-                    timezoneQuery = '';
-                  "
-                  @input="timezoneQuery = form.timezone"
-                  @blur="closeTimezoneMenu"
-                  @keydown.esc="timezoneMenuOpen = false"
-                />
-                <Teleport to="body">
-                  <div
-                    v-if="timezoneMenuOpen"
-                    ref="timezonePanel"
-                    class="timezone-options-menu"
-                    :style="timezonePanelStyle"
-                    role="listbox"
-                    :aria-label="t('settings.timezoneSuggest')"
-                  >
-                    <button
-                      v-for="zone in filteredTimeZones"
-                      :key="zone.value"
-                      type="button"
-                      role="option"
-                      :aria-selected="form.timezone === zone.value"
-                      class="timezone-option"
-                      @pointerdown.prevent="selectTimeZone(zone.value)"
-                    >
-                      <span>{{ t(zone.labelKey) }}</span
-                      ><code>{{ zone.value }}</code>
-                    </button>
-                    <p v-if="filteredTimeZones.length === 0" class="timezone-no-results">
-                      {{ t("settings.timezoneNoMatch") }}
-                    </p>
+              <ComboboxRoot
+                :model-value="form.timezone"
+                :open="timezoneMenuOpen"
+                :search-term="timezoneQuery"
+                class="timezone-combobox desktop-timezone-picker"
+                @update:open="timezoneMenuOpen = $event"
+                @update:model-value="selectTimeZone($event)"
+                @update:search-term="
+                  timezoneQuery = $event;
+                  form.timezone = $event;
+                "
+              >
+                <ComboboxAnchor as-child>
+                  <div class="timezone-picker">
+                    <ComboboxInput
+                      id="timezone"
+                      class="timezone-combobox-input"
+                      autocomplete="off"
+                      spellcheck="false"
+                      :display-value="(value) => String(value ?? '')"
+                      :placeholder="t('settings.timezoneSearch')"
+                      :aria-invalid="Boolean(timezoneError)"
+                      @focus="timezoneQuery = ''"
+                    />
                   </div>
-                </Teleport>
-              </div>
+                </ComboboxAnchor>
+                <ComboboxPortal>
+                  <ComboboxContent
+                    class="timezone-options-menu"
+                    position="popper"
+                    align="start"
+                    :side-offset="5"
+                    :collision-padding="10"
+                  >
+                    <ScrollAreaRoot class="timezone-options-scroll" type="auto">
+                      <ComboboxViewport as-child>
+                        <ScrollAreaViewport class="timezone-options-viewport">
+                          <ComboboxItem
+                            v-for="zone in filteredTimeZones"
+                            :key="zone.value"
+                            :value="zone.value"
+                            class="timezone-option"
+                          >
+                            <span>{{ t(zone.labelKey) }}</span>
+                            <code>{{ zone.value }}</code>
+                          </ComboboxItem>
+                          <ComboboxEmpty class="timezone-no-results">
+                            {{ t("settings.timezoneNoMatch") }}
+                          </ComboboxEmpty>
+                        </ScrollAreaViewport>
+                      </ComboboxViewport>
+                      <ScrollAreaScrollbar class="app-scrollbar" orientation="vertical">
+                        <ScrollAreaThumb class="app-scrollbar-thumb" />
+                      </ScrollAreaScrollbar>
+                    </ScrollAreaRoot>
+                  </ComboboxContent>
+                </ComboboxPortal>
+              </ComboboxRoot>
               <button
                 type="button"
                 class="mobile-timezone-trigger"
