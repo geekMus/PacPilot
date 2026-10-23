@@ -9,7 +9,6 @@ import type { AppSettings } from "../../shared/contracts";
 import { buildRemoteListPac, fetchAndParseRemoteList } from "./remote-list";
 import { runtimeLog } from "../utils/runtime-log";
 
-
 export interface GenerateResult {
   success: boolean;
   mode: string;
@@ -288,7 +287,7 @@ export async function generatePac(
   storage: Pick<ApplicationStorage, "settings" | "generationLogs" | "artifacts">,
   dataDir: string
 ): Promise<GenerateResult> {
-  const settings = storage.settings.get();
+  const settings = await storage.settings.get();
   const pacPath = path.join(dataDir, "proxy.pac");
 
   try {
@@ -313,8 +312,8 @@ export async function generatePac(
         ? withPacVersionHeader(await compressPac(customPac), generatedAt, settings.timezone)
         : source;
       const sourcePath = path.join(dataDir, "proxy.source.pac");
-      storage.artifacts.write("proxy.source.pac", source);
-      storage.artifacts.write("proxy.pac", output);
+      await storage.artifacts.write("proxy.source.pac", source);
+      await storage.artifacts.write("proxy.pac", output);
       resultCode = settings.pacCompress ? "custom.compressed" : "custom.uncompressed";
       resultData = { compressed: Boolean(settings.pacCompress) };
       message = t("zh_CN", `gen.success.${resultCode}`);
@@ -336,7 +335,7 @@ export async function generatePac(
       };
     }
 
-    storage.generationLogs.append( true, settings.mode, resultCode, resultData);
+    await storage.generationLogs.append(true, settings.mode, resultCode, resultData);
     const webhook = await notifySuccess(settings);
     if (webhook) detail = { ...detail, webhook };
     return {
@@ -354,7 +353,7 @@ export async function generatePac(
       err && typeof err === "object" && "fetchMeta" in err
         ? (err as { fetchMeta?: unknown }).fetchMeta
         : undefined;
-    storage.generationLogs.append( false, settings.mode, "failed", {}, message);
+    await storage.generationLogs.append(false, settings.mode, "failed", {}, message);
     const webhook = await notifyFailure(settings, message);
     runtimeLog("error", `PAC generation failed: ${message}`);
     return {
@@ -375,14 +374,18 @@ export async function generatePac(
   }
 }
 
-export function readPacFile(storage: Pick<ApplicationStorage, "artifacts">): string {
+export async function readPacFile(storage: Pick<ApplicationStorage, "artifacts">): Promise<string> {
   try {
-    const bytes = storage.artifacts.read("proxy.pac");
+    const bytes = await storage.artifacts.read("proxy.pac");
     if (!bytes) return "";
     const original = new TextDecoder().decode(bytes);
     const versioned = withPacVersionHeader(original);
     if (versioned !== original) {
-      try { storage.artifacts.write("proxy.pac", versioned); } catch { /* read-only adapter */ }
+      try {
+        await storage.artifacts.write("proxy.pac", versioned);
+      } catch {
+        /* read-only adapter */
+      }
     }
     return versioned;
   } catch {
@@ -394,20 +397,24 @@ export function readPacFile(storage: Pick<ApplicationStorage, "artifacts">): str
  * 读取始终未压缩的内部 PAC 源文件供状态页解析。
  * 兼容升级前的数据目录：源文件尚不存在时回退到现有 proxy.pac。
  */
-export function readPacSourceFile(storage: Pick<ApplicationStorage, "artifacts">): string {
-  const clientBytes = storage.artifacts.read("proxy.pac");
+export async function readPacSourceFile(
+  storage: Pick<ApplicationStorage, "artifacts">
+): Promise<string> {
+  const clientBytes = await storage.artifacts.read("proxy.pac");
   if (!clientBytes) return "";
   const clientPac = new TextDecoder().decode(clientBytes);
   if (!clientPac.trim()) return "";
-  const sourceBytes = storage.artifacts.read("proxy.source.pac");
+  const sourceBytes = await storage.artifacts.read("proxy.source.pac");
   if (!sourceBytes) return clientPac;
   const sourcePac = new TextDecoder().decode(sourceBytes);
   return sourcePac.trim() ? sourcePac : clientPac;
 }
 
-export function pacFileMtime(storage: Pick<ApplicationStorage, "artifacts">): Date | null {
-  const pac = storage.artifacts.stat("proxy.pac");
+export async function pacFileMtime(
+  storage: Pick<ApplicationStorage, "artifacts">
+): Promise<Date | null> {
+  const pac = await storage.artifacts.stat("proxy.pac");
   if (!pac || pac.size === 0) return null;
-  const source = storage.artifacts.stat("proxy.source.pac");
+  const source = await storage.artifacts.stat("proxy.source.pac");
   return source && source.size > 0 ? new Date(source.modifiedAt) : new Date(pac.modifiedAt);
 }
