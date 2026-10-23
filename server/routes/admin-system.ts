@@ -13,7 +13,6 @@ import {
   operationalLogStorageBytes,
   recentLogs,
   resetOperationalData,
-  setSettings,
   vacuumDatabase,
 } from "../db/sqlite";
 import { DEFAULT_SETTINGS } from "../db/settings";
@@ -130,7 +129,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
   router.post("/api/admin/logs/clear", requireAdmin(database), (_req, res) => {
     try {
       const deleted = clearOperationalLogs(database);
-      if (env.storageDriver === "sqlite") database.run("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
+      if (env.storageDriver === "sqlite") vacuumDatabase(database, true);
       res.json({ deleted, retentionDays: getSettings(database).logRetentionDays });
     } catch (error) {
       res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
@@ -166,11 +165,6 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
         message: serverT(requestLocale(req), "serverErrors.factoryResetCompleted"),
       });
     } catch (e) {
-      try {
-        database.run("ROLLBACK");
-      } catch {
-        /* transaction already closed */
-      }
       res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
     }
   });
