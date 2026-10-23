@@ -1,7 +1,6 @@
 import { Router } from "express";
 import type { AppDatabase } from "../db/sqlite";
 import type { ApplicationStorage } from "../storage/repositories";
-import { countWorkflowRuns, vacuumDatabase } from "../db/sqlite";
 import { requireAdmin } from "../middleware/auth";
 import { resolveLocale, t } from "../../shared/i18n";
 
@@ -20,7 +19,7 @@ export function adminWorkflowRoutes(database: AppDatabase, storage: ApplicationS
     );
     const beforeId = Math.max(0, Number.parseInt(String(req.query.beforeId ?? "0"), 10) || 0);
     const page = storage.workflows.list(limit + 1, beforeId);
-    const total = countWorkflowRuns(database);
+    const total = storage.workflows.count();
     const hasMore = page.length > limit;
     res.json({
       current: storage.workflows.current(),
