@@ -32,35 +32,20 @@ const emit = defineEmits<{
 </template>
 
 <style>
+@reference "../styles/tailwind.css";
+
 .app-checkbox {
-  position: relative;
-  display: inline-grid;
-  flex: 0 0 auto;
-  place-items: center;
-  width: 16px;
-  height: 16px;
+  @apply relative inline-grid h-4 w-4 shrink-0 place-items-center;
 }
 
 .app-checkbox-input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
+  @apply absolute inset-0 m-0 h-full w-full cursor-pointer opacity-0;
 }
 
 .app-checkbox-box {
-  display: grid;
-  place-items: center;
-  width: 16px;
-  height: 16px;
-  border: 1px solid var(--line);
-  border-radius: 5px;
+  @apply grid h-4 w-4 place-items-center rounded-[5px] border text-transparent transition-colors;
+  border-color: var(--line);
   background: var(--surface);
-  color: transparent;
-  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
 }
 
 .app-checkbox:hover:not(.is-disabled) .app-checkbox-box {
@@ -79,12 +64,11 @@ const emit = defineEmits<{
 }
 
 .app-checkbox.is-disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+  @apply cursor-not-allowed opacity-55;
 }
 
 .app-checkbox.is-disabled .app-checkbox-input {
-  cursor: not-allowed;
+  @apply cursor-not-allowed;
 }
 
 @media (prefers-reduced-motion: reduce) {

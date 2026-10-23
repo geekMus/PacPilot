@@ -6,7 +6,7 @@ import { initThemeEarly } from "@/composables/useTheme";
 import "@/styles/theme.css";
 import "@/styles/scrollbars.css";
 import "@/styles/overlays.css";
-import "@/styles/controls.css";
+import "@/styles/tailwind.css";
 
 initThemeEarly();
 persistLocale(readStoredLocale());

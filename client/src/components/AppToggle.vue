@@ -43,18 +43,12 @@ const fieldId = useId();
 </template>
 
 <style>
+@reference "../styles/tailwind.css";
+
 .app-toggle {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  min-height: 60px;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
+  @apply relative flex items-center gap-[13px] min-h-[60px] rounded-[11px] border px-[14px] py-3 cursor-pointer transition-colors;
+  border-color: var(--line);
   background: var(--surface-2);
-  cursor: pointer;
-  transition: border-color 150ms ease, background 150ms ease;
 }
 
 .app-toggle:hover:not(.is-disabled) {
@@ -62,58 +56,34 @@ const fieldId = useId();
 }
 
 .app-toggle-copy {
-  display: grid;
-  flex: 1 1 auto;
-  gap: 4px;
-  min-width: 0;
+  @apply grid flex-1 gap-1 min-w-0;
 }
 
 .app-toggle-copy strong {
+  @apply text-[11px] font-semibold;
   color: var(--text);
-  font-size: 11px;
-  font-weight: 680;
 }
 
 .app-toggle-copy small {
+  @apply text-[10px] leading-normal;
   color: var(--muted);
-  font-size: 10px;
-  line-height: 1.5;
 }
 
 .app-toggle-input {
-  position: absolute;
-  z-index: 1;
-  top: 50%;
-  right: 14px;
-  width: 38px;
-  height: 22px;
-  margin: 0;
-  opacity: 0;
+  @apply absolute z-[1] top-1/2 right-[14px] w-[38px] h-[22px] m-0 opacity-0 cursor-pointer;
   transform: translateY(-50%);
-  cursor: pointer;
 }
 
 .app-toggle-track {
-  position: relative;
-  flex: 0 0 38px;
-  width: 38px;
-  height: 22px;
-  border-radius: 99px;
+  @apply relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors;
   background: var(--line);
-  transition: background 160ms ease;
 }
 
 .app-toggle-track::after {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
+  @apply absolute top-[3px] left-[3px] h-4 w-4 rounded-full transition-transform;
   background: var(--surface);
   box-shadow: 0 1px 3px #0002;
   content: "";
-  transition: transform 160ms ease;
 }
 
 .app-toggle-input:checked + .app-toggle-track {
@@ -130,8 +100,7 @@ const fieldId = useId();
 }
 
 .app-toggle.is-disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  @apply opacity-60 cursor-not-allowed;
 }
 
 @media (prefers-reduced-motion: reduce) {

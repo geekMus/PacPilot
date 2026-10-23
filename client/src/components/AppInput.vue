@@ -58,45 +58,45 @@ function onInput(event: Event): void {
 </template>
 
 <style>
+@reference "../styles/tailwind.css";
+
 .app-input {
-  box-sizing: border-box;
-  display: block;
-  width: 100%;
-  min-width: 0;
-  min-height: 40px;
-  padding: 9px 12px;
-  border: 1px solid var(--control-border, var(--line));
-  border-radius: 8px;
+  @apply block w-full min-w-0 min-h-10 rounded-lg border px-3 py-2 text-xs leading-snug transition-colors;
+  border-color: var(--control-border, var(--line));
   color: var(--text);
   background: var(--surface);
-  font: inherit;
-  font-size: 12px;
-  line-height: 1.4;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
 }
+
 .app-input::placeholder {
+  @apply opacity-80;
   color: var(--muted);
-  opacity: 0.8;
 }
+
 .app-input:hover:not(:disabled):not(:focus) {
   border-color: color-mix(in srgb, var(--accent) 48%, var(--line));
 }
+
 .app-input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  @apply outline-2 outline-offset-1;
+  outline-color: var(--accent);
   border-color: var(--accent);
 }
+
 .app-input.is-invalid,
 .app-input.is-invalid:focus-visible {
   border-color: var(--red);
 }
+
 .app-input:disabled {
   color: var(--control-disabled-text);
   background: var(--control-disabled-bg);
   border-color: var(--control-disabled-border);
-  cursor: not-allowed;
+  @apply cursor-not-allowed;
 }
+
 @media (prefers-reduced-motion: reduce) {
-  .app-input { transition: none; }
+  .app-input {
+    transition: none;
+  }
 }
 </style>

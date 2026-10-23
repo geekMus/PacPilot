@@ -1,0 +1,176 @@
+/* ============================================================
+   Tailwind CSS entry.
+
+   Design tokens stay in theme.css (runtime, theme-switchable); this
+   file maps them into Tailwind's theme so utilities such as
+   `bg-surface`, `text-muted`, `border-line`, `rounded-panel` resolve
+   to the same values the rest of the app already uses.
+
+   Preflight is intentionally NOT imported: the project still ships a
+   large amount of hand-written CSS, and a global reset would change
+   existing pages before they are migrated. Utilities + the component
+   layer are imported instead.
+   ============================================================ */
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-active: var(--accent-active);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-accent-soft: var(--accent-soft);
+  --color-green: var(--green);
+  --color-green-soft: var(--green-soft);
+  --color-red: var(--red);
+  --color-red-soft: var(--red-soft);
+  --color-control-disabled-bg: var(--control-disabled-bg);
+  --color-control-disabled-text: var(--control-disabled-text);
+  --color-control-disabled-border: var(--control-disabled-border);
+
+  --radius-panel: 14px;
+  --radius-control: 10px;
+  --radius-card: 16px;
+  --radius-item: 11px;
+
+  --shadow-app: var(--shadow);
+  --font-sans: var(--font);
+  --font-mono: var(--font-mono);
+}
+
+/* ---------- Component layer: shared primitives ----------
+   These replace the previous hand-written rules in controls.css.
+   Page markup keeps the semantic class names; new markup should
+   prefer utilities directly. */
+
+@layer components {
+  .app-button {
+    @apply inline-flex items-center justify-center gap-[7px] min-h-[38px] px-[13px] rounded-[9px] border font-semibold text-[12px] leading-tight no-underline whitespace-nowrap cursor-pointer transition-colors;
+    border-color: var(--line);
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  .app-button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .app-button:disabled,
+  .app-button[aria-disabled="true"] {
+    @apply opacity-55 cursor-not-allowed;
+  }
+
+  .app-button--primary {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--accent-contrast);
+  }
+
+  .app-button--primary:hover:not(:disabled):not([aria-disabled="true"]) {
+    border-color: var(--accent-hover);
+    background: var(--accent-hover);
+  }
+
+  .app-button--primary:active:not(:disabled):not([aria-disabled="true"]) {
+    border-color: var(--accent-active);
+    background: var(--accent-active);
+  }
+
+  .app-button--secondary:hover:not(:disabled):not([aria-disabled="true"]) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .app-button--secondary:active:not(:disabled):not([aria-disabled="true"]) {
+    background: var(--accent-soft);
+  }
+
+  .app-button--ghost {
+    @apply border-transparent bg-transparent;
+    color: var(--muted);
+  }
+
+  .app-button--ghost:hover:not(:disabled):not([aria-disabled="true"]) {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+
+  .app-button--danger {
+    border-color: color-mix(in srgb, var(--red) 35%, var(--line));
+    background: var(--red-soft);
+    color: var(--red);
+  }
+
+  .app-button--danger:hover:not(:disabled):not([aria-disabled="true"]) {
+    border-color: var(--red);
+  }
+
+  .app-button--danger-ghost {
+    @apply bg-transparent;
+    border-color: color-mix(in srgb, var(--red) 22%, var(--line));
+    color: var(--red);
+  }
+
+  .app-button--danger-ghost:hover:not(:disabled):not([aria-disabled="true"]) {
+    background: var(--red-soft);
+  }
+
+  .app-button--sm {
+    @apply min-h-[32px] px-[10px] text-[11px];
+  }
+
+  .app-button--lg {
+    @apply min-h-[42px] px-[16px];
+  }
+
+  .app-button--block {
+    @apply w-full;
+  }
+
+  .app-icon-button {
+    @apply grid shrink-0 place-items-center w-[34px] h-[34px] p-0 rounded-[9px] border text-[18px] leading-none cursor-pointer transition-colors;
+    border-color: var(--line);
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  .app-icon-button:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .app-icon-button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .app-icon-button:disabled {
+    @apply opacity-55 cursor-not-allowed;
+  }
+
+  .app-icon-button--sm {
+    @apply w-[28px] h-[28px] rounded-[8px] text-[15px];
+  }
+
+  .app-icon-button--danger:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--red) 40%, var(--line));
+    background: var(--red-soft);
+    color: var(--red);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-button,
+  .app-icon-button {
+    transition: none;
+  }
+}
