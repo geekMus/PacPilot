@@ -158,7 +158,7 @@ export function createMemoryApplicationStorage(): ApplicationStorage {
             hour: slot.toISOString(),
             requests: values.length,
             errors: failed.length,
-            ...(category === "pac" ? { averageResponseMs: values.length ? Math.round(values.reduce((sum, e) => sum + e.duration_ms, 0) / values.length * 10) / 10 : 0 } : {}),
+            averageResponseMs: values.length ? Math.round(values.reduce((sum, e) => sum + e.duration_ms, 0) / values.length * 10) / 10 : 0,
           };
         });
       };
