@@ -14,7 +14,7 @@ import { createApplicationStorage } from "./storage";
 async function main(): Promise<void> {
   const env = loadEnv();
   process.env.PACPILOT_RUNTIME_PROFILE = env.runtimeProfile;
-  const storage = createApplicationStorage(env);
+  const storage = await createApplicationStorage(env);
   const firstStart = isAdminCredentialsMissing(storage.credentials);
   const initialAdminPassword = createInitialAdminCredentials(storage.credentials);
   const adminCredentialsMissing = isAdminCredentialsMissing(storage.credentials);
