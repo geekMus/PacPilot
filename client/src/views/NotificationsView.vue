@@ -282,7 +282,7 @@ onMounted(() => {
                 <div class="panel-heading-copy"><h3>通知渠道</h3><p>保存可复用的通知目标</p></div>
                 <button class="icon-button" title="新建渠道" aria-label="新建渠道" @click="resetC">＋</button>
               </header>
-              <AppScrollArea root-class="panel-scroll" type="always">
+              <AppScrollArea root-class="panel-scroll" type="auto">
                 <div v-if="!channels.length" class="empty-directory">
                   <span class="empty-icon"><AppIcon name="network" :size="22" /></span>
                   <strong>还没有通知渠道</strong><p>添加钉钉机器人或 HTTP Webhook，供规则调用。</p>
@@ -314,7 +314,7 @@ onMounted(() => {
                 <div class="editor-heading-copy"><div class="editor-kicker">{{ cid ? "CHANNEL SETTINGS" : "NEW CHANNEL" }}</div><h3>{{ cid ? "编辑通知渠道" : "创建通知渠道" }}</h3><p>配置接收通知的目标地址和消息格式。</p></div>
                 <div class="editor-heading-tools"><span class="status-pill" :class="ch.enabled ? 'pill-enabled' : 'pill-disabled'"><span class="status-dot" :class="{ online: ch.enabled }"></span>{{ ch.enabled ? "已启用" : "已停用" }}</span></div>
               </header>
-              <AppScrollArea root-class="editor-scroll" type="always"><div class="editor-body">
+              <AppScrollArea root-class="editor-scroll" type="auto"><div class="editor-body">
                 <section class="form-section">
                   <div class="section-title"><span>01</span><div><h4>基本信息</h4><p>为渠道命名并选择接入类型。</p></div></div>
                   <div class="field-grid">
@@ -374,7 +374,7 @@ onMounted(() => {
                 <div class="panel-heading-copy"><h3>触发规则</h3><p>决定何时向哪些渠道发送</p></div>
                 <button class="icon-button" title="新建规则" aria-label="新建规则" @click="resetR">＋</button>
               </header>
-              <AppScrollArea root-class="panel-scroll" type="always">
+              <AppScrollArea root-class="panel-scroll" type="auto">
                 <div v-if="!rules.length" class="empty-directory"><span class="empty-icon"><AppIcon name="route" :size="22" /></span><strong>还没有通知规则</strong><p>创建规则，把业务事件路由到通知渠道。</p><button class="button primary full" @click="resetR">创建第一条规则</button></div>
                 <div
                   v-for="item in rules"
@@ -402,7 +402,7 @@ onMounted(() => {
                 <div class="editor-heading-copy"><div class="editor-kicker">{{ rid ? "RULE SETTINGS" : "NEW RULE" }}</div><h3>{{ rid ? "编辑触发规则" : "创建触发规则" }}</h3><p>用简单条件定义事件触发时机与通知目标。</p></div>
                 <span class="status-pill" :class="rule.enabled ? 'pill-enabled' : 'pill-disabled'"><span class="status-dot" :class="{ online: rule.enabled }"></span>{{ rule.enabled ? "已启用" : "已停用" }}</span>
               </header>
-              <AppScrollArea root-class="editor-scroll" type="always"><div class="editor-body">
+              <AppScrollArea root-class="editor-scroll" type="auto"><div class="editor-body">
                 <section class="form-section">
                   <div class="section-title"><span>01</span><div><h4>规则信息</h4><p>给规则一个容易识别的名称。</p></div></div>
                   <label class="field"><span>规则名称 <i>*</i></span><input v-model="rule.name" required maxlength="80" placeholder="例如：任务失败时通知运维群" /></label>
@@ -452,7 +452,7 @@ onMounted(() => {
                 <div class="panel-heading-copy"><h3>最近事件</h3><p>业务系统发布的标准化事件</p></div>
                 <span class="neutral-count">{{ events.length }} 条</span>
               </header>
-              <AppScrollArea root-class="panel-scroll" type="always">
+              <AppScrollArea root-class="panel-scroll" type="auto">
                 <div v-if="!events.length" class="empty-history"><span class="empty-icon"><AppIcon name="activity" :size="22" /></span><strong>暂时没有事件记录</strong><p>当任务或请求产生事件后，记录会显示在这里。</p></div>
                 <article v-for="item in events" :key="item.id" class="event-row">
                   <span class="timeline-marker"><AppIcon :name="item.outcome === 'failure' ? 'circle-alert' : item.outcome === 'success' ? 'circle-check' : 'activity'" :size="16" /></span>
@@ -466,7 +466,7 @@ onMounted(() => {
                 <div class="panel-heading-copy"><h3>投递记录</h3><p>逐条查看渠道发送结果与重试状态</p></div>
                 <select v-model="deliveryFilter" class="filter-select" aria-label="按投递状态筛选"><option value="all">全部状态</option><option value="succeeded">已送达</option><option value="pending">等待发送</option><option value="sending">发送中</option><option value="failed">发送失败</option></select>
               </header>
-              <AppScrollArea root-class="panel-scroll" type="always">
+              <AppScrollArea root-class="panel-scroll" type="auto">
                 <div v-if="!filteredDeliveries.length" class="empty-history"><span class="empty-icon"><AppIcon name="activity" :size="22" /></span><strong>{{ deliveries.length ? "没有符合条件的记录" : "还没有投递记录" }}</strong><p>{{ deliveries.length ? "试试切换其他投递状态。" : "当事件匹配到启用的规则时，会在这里创建投递记录。" }}</p></div>
                 <article v-for="item in filteredDeliveries" :key="item.id" class="delivery-row">
                   <span class="delivery-status-icon" :class="'delivery-' + item.status"><AppIcon :name="statusIcon(item.status)" :size="16" /></span>
