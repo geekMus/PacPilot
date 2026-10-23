@@ -92,6 +92,7 @@ watch(
 .admin-topbar {
   position: relative;
   z-index: 30;
+  isolation: isolate;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -99,9 +100,10 @@ watch(
   gap: 24px;
   min-height: 88px;
   padding: 15px clamp(20px, 3vw, 42px);
-  border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--bg) 91%, transparent);
-  backdrop-filter: blur(16px);
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(22px);
+  backdrop-filter: saturate(180%) blur(22px);
 }
 .topbar-title {
   min-width: 0;
