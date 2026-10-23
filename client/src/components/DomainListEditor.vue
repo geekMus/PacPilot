@@ -637,6 +637,8 @@ watch(
   .rule-diagnostic-list {
     max-height: 150px;
     gap: 1px;
+  }
+  .rule-diagnostic-list :deep(.rule-diagnostic-viewport) {
     padding: 3px;
   }
   .rule-diagnostic-item {
