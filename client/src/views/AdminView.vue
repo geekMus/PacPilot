@@ -16,6 +16,7 @@ import {
 } from "reka-ui";
 import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppIcon from "@/components/AppIcon.vue";
+import AppScrollArea from "@/components/AppScrollArea.vue";
 import AppDialog from "@/components/AppDialog.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 import AppFooter from "@/components/AppFooter.vue";
@@ -138,20 +139,35 @@ const {
                     :side-offset="5"
                     :collision-padding="10"
                   >
-                    <ComboboxViewport class="timezone-options-viewport">
-                      <ComboboxItem
-                        v-for="zone in filteredTimeZones"
-                        :key="zone.value"
-                        :value="zone.value"
-                        class="timezone-option"
-                      >
-                        <span>{{ t(zone.labelKey) }}</span>
-                        <code>{{ zone.value }}</code>
-                      </ComboboxItem>
-                      <ComboboxEmpty class="timezone-no-results">
-                        {{ t("settings.timezoneNoMatch") }}
-                      </ComboboxEmpty>
-                    </ComboboxViewport>
+                    <AppScrollArea
+                      root-class="timezone-options-scroll-area"
+                      viewport-class="timezone-options-viewport"
+                      orientation="vertical"
+                      type="hover"
+                    >
+                      <template #viewport="{ viewportComponent, viewportClass, onScroll }">
+                        <ComboboxViewport as-child>
+                          <component
+                            :is="viewportComponent"
+                            :class="viewportClass"
+                            @scroll.passive="onScroll"
+                          >
+                            <ComboboxItem
+                              v-for="zone in filteredTimeZones"
+                              :key="zone.value"
+                              :value="zone.value"
+                              class="timezone-option"
+                            >
+                              <span>{{ t(zone.labelKey) }}</span>
+                              <code>{{ zone.value }}</code>
+                            </ComboboxItem>
+                            <ComboboxEmpty class="timezone-no-results">
+                              {{ t("settings.timezoneNoMatch") }}
+                            </ComboboxEmpty>
+                          </component>
+                        </ComboboxViewport>
+                      </template>
+                    </AppScrollArea>
                   </ComboboxContent>
                 </ComboboxPortal>
               </ComboboxRoot>
