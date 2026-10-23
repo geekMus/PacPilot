@@ -24,23 +24,35 @@ const emit = defineEmits<{
 }>();
 
 const scroller = ref<HTMLElement | null>(null);
+const bodyTable = ref<HTMLTableElement | null>(null);
+const contentHeight = ref(0);
+const maxHeight = computed(() => {
+  const value = props.height ?? 480;
+  const parsed = typeof value === "number" ? value : Number.parseFloat(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 480;
+});
 const headerViewportWidth = ref("100%");
 const headerOffset = ref(0);
-const frameStyle = computed(() => ({
-  // 144px keeps the 44px header and empty row comfortable without leaving a large blank panel.
-  height: typeof (props.height ?? (props.empty ? 144 : 480)) === "number"
-    ? (props.height ?? (props.empty ? 144 : 480)) + "px"
-    : (props.height ?? (props.empty ? 144 : 480)),
-  "--virtual-row-height": props.rowHeight + "px",
-  "--table-min-width": props.minWidth,
-}));
+const frameStyle = computed(() => {
+  // Treat height as a cap: short tables shrink to their content, but keep a comfortable 144px minimum.
+  const measuredContent = contentHeight.value > 0 ? 44 + contentHeight.value + 2 : maxHeight.value;
+  const height = Math.min(maxHeight.value, Math.max(144, measuredContent));
+  return {
+    height: height + "px",
+    "--virtual-row-height": props.rowHeight + "px",
+    "--table-min-width": props.minWidth,
+  };
+});
 let resizeObserver: ResizeObserver | undefined;
 
 function syncHeader(): void {
   const element = scroller.value;
-  if (!element) return;
-  headerViewportWidth.value = element.clientWidth + "px";
-  headerOffset.value = element.scrollLeft;
+  if (element) {
+    headerViewportWidth.value = element.clientWidth + "px";
+    headerOffset.value = element.scrollLeft;
+  }
+  const table = bodyTable.value;
+  if (table) contentHeight.value = table.tBodies[0]?.scrollHeight ?? table.getBoundingClientRect().height;
 }
 
 function onScroll(): void {
@@ -57,6 +69,8 @@ function onReady(element: HTMLElement): void {
     resizeObserver = new ResizeObserver(syncHeader);
     resizeObserver.observe(element);
     if (element.parentElement) resizeObserver.observe(element.parentElement);
+    if (bodyTable.value) resizeObserver.observe(bodyTable.value);
+    if (bodyTable.value?.tBodies[0]) resizeObserver.observe(bodyTable.value.tBodies[0]);
   }
 }
 
@@ -72,7 +86,7 @@ onUnmounted(() => resizeObserver?.disconnect());
       </table>
     </div>
     <AppScrollArea root-class="app-table-body-scroll" orientation="both" @ready="onReady" @scroll="onScroll">
-      <table class="app-table virtual-table" :class="props.tableClass">
+      <table ref="bodyTable" class="app-table virtual-table" :class="props.tableClass">
         <colgroup><slot name="columns" /></colgroup>
         <tbody><slot name="body" /></tbody>
       </table>
