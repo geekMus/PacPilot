@@ -394,6 +394,7 @@ export function useAdminSettings() {
       const latestSettings = await api.settings();
       form.webhookSuccessConfig = normalizedWebhookConfig(latestSettings.webhookSuccessConfig);
       form.webhookFailureConfig = normalizedWebhookConfig(latestSettings.webhookFailureConfig);
+      form.logRetentionDays = latestSettings.logRetentionDays;
       const payload = toPayload();
       const submittedSnapshot = JSON.stringify(payload);
       // 服务端先持久化配置，再启动独立工作流并立即返回任务 ID。

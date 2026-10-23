@@ -89,7 +89,8 @@ async function saveRetention() {
   if (!settings.value || savingRetention.value) return;
   savingRetention.value = true;
   try {
-    const saved = await api.saveSettings({ ...settings.value, logRetentionDays: retention.value });
+    const latest = await api.settings();
+    const saved = await api.saveSettings({ ...latest, logRetentionDays: retention.value });
     settings.value = saved;
     retention.value = saved.logRetentionDays;
     notify(t("systemPage.k15"), "success");
