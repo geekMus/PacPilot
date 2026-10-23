@@ -52,18 +52,6 @@ import {
   Zap,
 } from "@lucide/vue";
 
-const props = withDefaults(
-  defineProps<{
-    name: string;
-    size?: number;
-    strokeWidth?: number;
-  }>(),
-  {
-    size: 18,
-    strokeWidth: 1.9,
-  }
-);
-
 const iconMap = {
   activity: Activity,
   "alert-triangle": AlertTriangle,
@@ -121,8 +109,20 @@ const iconMap = {
   zap: Zap,
 } as const;
 
+const props = withDefaults(
+  defineProps<{
+    name: keyof typeof iconMap;
+    size?: number;
+    strokeWidth?: number;
+  }>(),
+  {
+    size: 18,
+    strokeWidth: 1.9,
+  }
+);
+
 const selectedIcon = computed(() => {
-  const icon = iconMap[props.name as keyof typeof iconMap];
+  const icon = iconMap[props.name];
   if (!icon) {
     console.warn(`[AppIcon] 未注册的图标名称："${props.name}"`);
   }
