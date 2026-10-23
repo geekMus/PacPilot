@@ -1,6 +1,6 @@
 import type { WorkflowRun, WorkflowStage } from "../../../shared/contracts";
 import type { WorkflowRepository } from "../repositories";
-import { clone } from "./utils";
+import { clone, safeLimit } from "./utils";
 
 export type MemoryWorkflowRepository = WorkflowRepository & { reset(): void };
 
