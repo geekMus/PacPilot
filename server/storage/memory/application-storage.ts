@@ -1,5 +1,5 @@
-import type { AppSettings, WorkflowRun, WorkflowStage } from "../../shared/contracts";
-import { DEFAULT_SETTINGS, normalizeAppSettings } from "../domain/settings";
+import type { AppSettings, WorkflowRun, WorkflowStage } from "../../../shared/contracts";
+import { DEFAULT_SETTINGS, normalizeAppSettings } from "../../domain/settings";
 import type {
   AccessEvent,
   AccessEventInput,
