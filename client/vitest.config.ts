@@ -11,7 +11,6 @@ export default defineConfig({
       "@shared": fileURLToPath(new URL("../shared", import.meta.url)),
     },
   },
-  css: { include: /(?:overlays|AdminView)\.css$/ },
   test: {
     environment: "jsdom",
     environmentOptions: {
