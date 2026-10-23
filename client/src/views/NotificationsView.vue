@@ -1612,4 +1612,369 @@ onMounted(() => {
     animation-duration: 0.01ms !important;
   }
 }
+
+
+/* Visual refresh: quieter surfaces, consistent radii, and explicit scroll
+   ownership. The admin layout owns the viewport; inner panels never grow past
+   the height allocated by the workspace flex chain. */
+.webhook-page {
+  --webhook-radius-card: 16px;
+  --webhook-radius-panel: 14px;
+  --webhook-radius-control: 9px;
+  gap: clamp(12px, 1.35vw, 18px);
+}
+
+.page-intro {
+  border-color: color-mix(in srgb, var(--accent) 13%, var(--line));
+  border-radius: var(--webhook-radius-card);
+  background:
+    radial-gradient(ellipse at 0% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 58%),
+    var(--surface);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+.intro-state {
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.overview-card {
+  border-radius: var(--webhook-radius-panel);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--text) 3%, transparent);
+  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.overview-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--line));
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--text) 5%, transparent);
+  transform: translateY(-1px);
+}
+
+.overview-icon {
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--accent-soft) 62%, var(--surface));
+}
+
+.workspace-region {
+  flex: 1 1 0%;
+  min-height: 0;
+  max-height: 100%;
+  gap: 12px;
+}
+
+.workspace-tabs {
+  gap: 4px;
+  padding: 4px;
+  border-color: var(--line);
+  border-radius: 13px;
+  background: var(--surface-2);
+  backdrop-filter: none;
+}
+
+.workspace-tabs button {
+  position: relative;
+  min-height: 42px;
+  border-radius: 10px;
+}
+
+.workspace-tabs button.active {
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--line));
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+.workspace-tabs button.active::after {
+  position: absolute;
+  right: 12px;
+  bottom: -1px;
+  left: 12px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--accent);
+  content: "";
+}
+
+.workspace-layout,
+.history-workspace {
+  flex: 1 1 0%;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  gap: 14px;
+}
+
+.directory-panel,
+.editor-panel,
+.history-panel {
+  min-height: 0;
+  max-height: 100%;
+  border-color: var(--line);
+  border-radius: var(--webhook-radius-panel);
+  background: var(--surface);
+  box-shadow: 0 3px 14px color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+.directory-panel {
+  flex: 0 1 320px;
+  width: min(32%, 320px);
+  max-width: 36%;
+  background: var(--surface);
+}
+
+.directory-panel :deep(.app-scroll-area-viewport),
+.editor-scroll :deep(.app-scroll-area-viewport),
+.history-panel :deep(.app-scroll-area-viewport) {
+  min-height: 0;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.directory-panel .panel-heading {
+  margin: 0;
+  padding: 19px 17px 15px;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--surface-2);
+}
+
+.directory-item {
+  width: calc(100% - 16px);
+  margin: 4px 8px;
+  padding: 12px;
+  border-color: transparent;
+  border-radius: 11px;
+}
+
+.directory-item:hover {
+  background: var(--surface-2);
+}
+
+.directory-item.selected {
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--line));
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.directory-item.selected .provider-icon {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.directory-bottom {
+  border-top-color: var(--line);
+  border-radius: 0;
+  background: var(--surface-2);
+}
+
+.editor-heading {
+  background: var(--surface-2);
+}
+
+.editor-title-mark,
+.rule-title-mark {
+  border-radius: 12px;
+}
+
+.editor-scroll {
+  max-height: 100%;
+  overscroll-behavior: contain;
+}
+
+.form-section {
+  border-color: var(--line);
+}
+
+.field input:focus,
+.field select:focus,
+.secret-input:focus-within,
+.filter-select:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  outline-offset: 1px;
+}
+
+.button,
+.icon-button,
+.filter-select,
+.field input,
+.field select,
+.secret-input {
+  border-radius: var(--webhook-radius-control);
+}
+
+.button:focus-visible,
+.icon-button:focus-visible,
+.workspace-tabs button:focus-visible,
+.directory-item:focus-visible,
+.reveal-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.channel-option {
+  border-radius: 11px;
+}
+
+.channel-option.checked {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.history-column {
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--webhook-radius-panel);
+  background: var(--surface);
+}
+
+.history-panel {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: inherit;
+  box-shadow: none;
+}
+
+.history-panel .panel-heading {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.event-row,
+.delivery-row {
+  border-top-color: var(--line);
+}
+
+.event-row:hover,
+.delivery-row:hover {
+  background: color-mix(in srgb, var(--surface-2) 62%, transparent);
+}
+
+.timeline-marker,
+.delivery-status-icon {
+  border-radius: 10px;
+}
+
+.directory-panel :deep(.app-scrollbar),
+.editor-scroll :deep(.app-scrollbar),
+.history-panel :deep(.app-scrollbar) {
+  --scrollbar-size: 9px;
+  padding: 2px;
+}
+
+.directory-panel :deep(.app-scrollbar-thumb),
+.editor-scroll :deep(.app-scrollbar-thumb),
+.history-panel :deep(.app-scrollbar-thumb) {
+  background: color-mix(in srgb, var(--text) 30%, transparent);
+}
+
+.directory-panel :deep(.app-scrollbar-thumb:hover),
+.editor-scroll :deep(.app-scrollbar-thumb:hover),
+.history-panel :deep(.app-scrollbar-thumb:hover) {
+  background: color-mix(in srgb, var(--accent) 62%, var(--text));
+}
+
+@media (max-width: 1150px) {
+  .directory-panel {
+    flex-basis: 34%;
+    width: 34%;
+    max-width: 34%;
+  }
+}
+
+@media (max-width: 900px) {
+  .workspace-region {
+    flex: 0 0 auto;
+    max-height: none;
+  }
+
+  .workspace-layout,
+  .history-workspace {
+    flex: 0 0 auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .directory-panel,
+  .editor-panel,
+  .history-panel {
+    max-height: none;
+  }
+
+  .directory-panel {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: none;
+    max-height: min(360px, 48dvh);
+  }
+
+  .directory-panel :deep(.app-scroll-area-viewport) {
+    height: 100%;
+    overflow-y: auto;
+  }
+
+  .editor-panel {
+    height: auto;
+    max-height: none;
+  }
+
+  .editor-scroll {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .editor-scroll :deep(.app-scroll-area-viewport) {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .history-column {
+    min-height: 0;
+    max-height: min(440px, 62dvh);
+  }
+
+  .history-panel {
+    height: 100%;
+    max-height: 100%;
+  }
+
+  .history-panel :deep(.app-scroll-area-viewport) {
+    height: 100%;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-intro,
+  .overview-card,
+  .workspace-tabs,
+  .directory-panel,
+  .editor-panel,
+  .history-column {
+    border-radius: 12px;
+  }
+
+  .workspace-tabs button.active::after {
+    right: 8px;
+    left: 8px;
+  }
+
+  .directory-panel {
+    max-height: min(320px, 44dvh);
+  }
+
+  .history-column {
+    max-height: min(400px, 58dvh);
+  }
+}
+
 </style>
