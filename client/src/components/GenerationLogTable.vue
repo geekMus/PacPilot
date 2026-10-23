@@ -70,7 +70,7 @@ function message(entry: GenerationLog): string {
         <td class="nowrap">{{ dateLabel(entry.created_at) }}</td>
         <td><span class="result-pill" :class="entry.success ? 'good' : 'bad'"><AppIcon :name="entry.success ? 'circle-check' : 'circle-x'" :size="13" />{{ entry.success ? t("common.success") : t("common.failed") }}</span></td>
         <td>{{ modeLabel(entry.mode) }}</td>
-        <td class="log-message"><span @click.stop><TextDetail :text="message(entry)" :label="t("dashboard.genLogLabel")" /></span></td>
+        <td class="log-message"><span @click.stop><TextDetail :text="message(entry)" :label="t('dashboard.genLogLabel')" /></span></td>
       </tr>
     </template>
   </TableFrame>
@@ -82,7 +82,7 @@ function message(entry: GenerationLog): string {
         <td class="nowrap">{{ dateLabel(entry.created_at) }}</td>
         <td><span class="pill" :class="entry.success ? 'ok' : 'bad'">{{ entry.success ? t("common.success") : t("common.failed") }}</span></td>
         <td>{{ modeLabel(entry.mode) }}</td>
-        <td class="msg"><span @click.stop><TextDetail :text="message(entry)" :label="t("settings.genLogInfo")" /></span></td>
+        <td class="msg"><span @click.stop><TextDetail :text="message(entry)" :label="t('settings.genLogInfo')" /></span></td>
       </tr>
     </template>
   </VirtualTable>
