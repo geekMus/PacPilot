@@ -388,10 +388,14 @@ export function useAdminSettings() {
       await jumpToFirstError();
       return;
     }
-    const payload = toPayload();
-    const submittedSnapshot = JSON.stringify(payload);
     saving.value = true;
     try {
+      // Webhook now has its own service; merge the latest channel settings to avoid overwriting changes from another page.
+      const latestSettings = await api.settings();
+      form.webhookSuccessConfig = normalizedWebhookConfig(latestSettings.webhookSuccessConfig);
+      form.webhookFailureConfig = normalizedWebhookConfig(latestSettings.webhookFailureConfig);
+      const payload = toPayload();
+      const submittedSnapshot = JSON.stringify(payload);
       // 服务端先持久化配置，再启动独立工作流并立即返回任务 ID。
       const workflow = await api.saveAndGenerate(payload);
       savedSettingsSnapshot.value = submittedSnapshot;

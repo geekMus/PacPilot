@@ -14,7 +14,7 @@ const router = useRouter();
 const { t, locale } = useI18n();
 const {
   accesses, accessHasMore, accessLoadingMore, accessLoadError, accessTotal,
-  loading: monitorLoading, error: monitorError, accessKeyword, accessCategory, accessStatus,
+  accessKeyword, accessCategory, accessStatus,
   selectedAccess, accessDetailOpen, accessCopyState, openAccessDetail, onAccessDetailOpenChange,
   formatAccessHeaders, copyAccessDetail, filteredAccesses, hasAccessFilters, resetAccessFilters,
   loadMoreAccesses, formatDate, formatDuration, formatBytes, categoryLabel, statusLabel, statusTone,
@@ -71,6 +71,7 @@ onMounted(() => void refreshGenerationLogs());
 <template>
   <AdminLayout active="logs" :title="t('nav.logs')" :subtitle="t('logs.subtitle')">
     <div class="logs-page">
+      <div v-if="monitorError" class="monitor-alert is-error" role="alert">{{ monitorError }}</div>
       <section class="monitor-panel generation-log-panel">
         <div class="panel-heading">
           <div><h2><AppIcon name="file-clock" :size="17" />{{ t("logs.generationTitle") }}</h2>
@@ -96,7 +97,7 @@ onMounted(() => void refreshGenerationLogs());
 <section class="monitor-panel">
           <div class="panel-heading">
             <div>
-              <h2><AppIcon name="list-checks" :size="17" />{{ t("monitor.k112") }}</h2>
+              <h2><AppIcon name="list-checks" :size="17" />{{ t("logs.accessTitle") }}</h2>
               <p>{{ t("monitor.k113") }}</p>
             </div>
             <div class="panel-actions">
@@ -368,7 +369,6 @@ onMounted(() => void refreshGenerationLogs());
             </div>
           </template>
         </AppDialog>
-      </template>
       <AppFooter />
     </div>
   </AdminLayout>

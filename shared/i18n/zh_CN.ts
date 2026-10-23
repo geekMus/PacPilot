@@ -620,6 +620,8 @@ export default {
       "忘记密码时，可根据部署方式重置：本机开发运行对应脚本；非容器生产部署运行 bun run reset:admin-password:production；Docker 部署仍可在容器内运行原重置命令。脚本会显示实际数据库路径，且不会在数据库不存在时创建空库。",
     resetHelpLink: "查看完整重置说明 ↗",
     newPasswordPlaceholder: "输入新密码（不限制长度或复杂度）",
+    scheduleOnly: "定时任务",
+    scheduleOnlyDesc: "配置 PAC 定时生成计划与时区。通知渠道请前往通知服务单独管理。",
     scheduleWebhook: "定时与 Webhook",
     scheduleWebhookDesc:
       "均可选。定时任务按计划生成 PAC；Webhook 在生成成功或失败时发送通知，HTTP 方法按渠道配置（钉钉固定使用 POST）。",

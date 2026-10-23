@@ -653,6 +653,8 @@ export default {
       "If you forget the password, reset it according to your deployment: run the matching script for local development; run bun run reset:admin-password:production for a non-container production deployment; or run the existing reset command inside the Docker container. The script displays the actual database path and will not create an empty database if it does not exist.",
     resetHelpLink: "View complete reset instructions ↗",
     newPasswordPlaceholder: "Enter a new password (no length or complexity requirements)",
+    scheduleOnly: "Scheduled tasks",
+    scheduleOnlyDesc: "Configure the PAC generation schedule and time zone. Manage notification channels separately in Notifications.",
     scheduleWebhook: "Schedule and Webhook",
     scheduleWebhookDesc:
       "Both are optional. Scheduled tasks generate PAC files on a schedule; Webhooks notify you of success or failure. HTTP methods are configurable per channel (DingTalk always uses POST).",
