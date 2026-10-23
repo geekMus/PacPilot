@@ -35,6 +35,25 @@ const viewportHeight = ref(436);
 const overscan = 6;
 const resolvedEmptyText = computed(() => props.emptyText || t("common.noRecords"));
 
+// Treat height as the maximum viewport height. Small result sets shrink to their
+// content instead of leaving a mostly empty fixed-height frame.
+const resolvedHeight = computed(() => {
+  const configured = props.height ?? 480;
+  const maxHeight =
+    typeof configured === "number"
+      ? configured
+      : /^\d+(?:\.\d+)?px$/.test(configured)
+        ? Number.parseFloat(configured)
+        : 480;
+  const stateRowHeight = 42;
+  const emptyBodyHeight = 98;
+  const contentHeight =
+    !props.items.length && !props.loading && !props.error
+      ? 44 + emptyBodyHeight
+      : 44 + props.items.length * props.rowHeight + stateRowHeight;
+  return `${Math.min(maxHeight, contentHeight)}px`;
+});
+
 const startIndex = computed(() =>
   Math.max(0, Math.floor(scrollTop.value / props.rowHeight) - overscan)
 );
@@ -131,7 +150,7 @@ onUnmounted(() => resizeObserver?.disconnect());
 
 <template>
   <TableFrame
-    :height="props.height"
+    :height="resolvedHeight"
     :empty="!props.items.length && !props.loading && !props.error"
     :min-width="props.minWidth"
     :table-class="props.tableClass"
