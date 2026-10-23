@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import crypto from "crypto";
 import type { AppDatabase } from "../db/sqlite";
 import { getAdminSessionSecret, isAdminCredentialsMissing } from "../services/admin-credentials";
+import { SqliteAdminCredentialRepository } from "../storage/sqlite-credentials";
 
 const COOKIE_NAME = "pacpilot_admin_session";
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -50,12 +51,12 @@ export function clearSessionCookie(res: Response): void {
 
 export function requireAdmin(database: AppDatabase) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    if (isAdminCredentialsMissing(database)) {
+    if (isAdminCredentialsMissing(new SqliteAdminCredentialRepository(database))) {
       res.status(401).json({ error: "unauthorized" });
       return;
     }
     const token = req.cookies?.[COOKIE_NAME] as string | undefined;
-    if (!verifySessionToken(token, getAdminSessionSecret(database))) {
+    if (!verifySessionToken(token, getAdminSessionSecret(new SqliteAdminCredentialRepository(database)))) {
       res.status(401).json({ error: "unauthorized" });
       return;
     }
@@ -64,9 +65,9 @@ export function requireAdmin(database: AppDatabase) {
 }
 
 export function isLoggedIn(req: Request, database: AppDatabase): boolean {
-  if (isAdminCredentialsMissing(database)) return false;
+  if (isAdminCredentialsMissing(new SqliteAdminCredentialRepository(database))) return false;
   const token = req.cookies?.[COOKIE_NAME] as string | undefined;
-  return verifySessionToken(token, getAdminSessionSecret(database));
+  return verifySessionToken(token, getAdminSessionSecret(new SqliteAdminCredentialRepository(database)));
 }
 
 export function clientKey(req: Request): string {
