@@ -196,8 +196,8 @@ watch(
       v-if="!singleLine"
       root-class="cm-field-scroll-area"
       viewport-class="cm-field-scroll-viewport"
-      orientation="both"
-      type="always"
+      orientation="vertical"
+      type="auto"
     >
       <div ref="host" class="cm-field-host cm-field-host-scrollable"></div>
     </AppScrollArea>
