@@ -132,8 +132,8 @@ export function useStatusDashboard() {
   }
 
   function matchesCustomRule(host: string, rule: string): boolean {
-    const normalizedHost = host.toLowerCase().replace(/\\.$/, "");
-    const pattern = rule.trim().toLowerCase().replace(/\\.$/, "");
+    const normalizedHost = host.toLowerCase().replace(/\.$/, "");
+    const pattern = rule.trim().toLowerCase().replace(/\.$/, "");
     if (!pattern) return false;
 
     // 必须与 server/services/pac-generator.ts 中的 isMatch 保持一致：
