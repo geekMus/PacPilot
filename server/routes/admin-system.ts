@@ -5,11 +5,16 @@ import type { AppDatabase } from "../db/sqlite";
 import type { EnvConfig } from "../config/env";
 import {
   cleanupOperationalLogs,
+  checkpointDatabase,
+  countGenerationLogs,
+  getOperationalCounts,
   clearOperationalLogs,
   getSettings,
   operationalLogStorageBytes,
   recentLogs,
+  resetOperationalData,
   setSettings,
+  vacuumDatabase,
 } from "../db/sqlite";
 import { DEFAULT_SETTINGS } from "../db/settings";
 import { requireAdmin } from "../middleware/auth";
@@ -52,11 +57,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
         return sum;
       }
     }, 0);
-    const counts = database
-      .query(
-        "SELECT (SELECT COUNT(*) FROM generation_log) AS generationLogs,(SELECT COUNT(*) FROM access_events) AS accessEvents,(SELECT COUNT(*) FROM workflow_runs) AS workflows,(SELECT COUNT(*) FROM workflow_runs WHERE status IN ('pending','running')) AS activeWorkflows"
-      )
-      .get();
+    const counts = getOperationalCounts(database);
     const pacFileInfo = (name: string) => {
       try {
         const filePath = path.join(env.dataDir, name);
@@ -122,7 +123,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
   router.post("/api/admin/logs/cleanup", requireAdmin(database), (_req, res) => {
     const deleted = cleanupOperationalLogs(database);
     if (deleted.generationLogs + deleted.accessEvents > 0) {
-      if (env.storageDriver === "sqlite") database.run("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
+      if (env.storageDriver === "sqlite") vacuumDatabase(database, true);
     }
     res.json({ deleted, retentionDays: getSettings(database).logRetentionDays });
   });
@@ -149,14 +150,8 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
       return;
     }
     try {
-      database.run("BEGIN IMMEDIATE");
-      database.run(
-        "DELETE FROM generation_log; DELETE FROM access_events; DELETE FROM workflow_runs;"
-      );
-      setSettings(database, DEFAULT_SETTINGS);
-      database.run("COMMIT");
-      if (env.storageDriver === "sqlite") database.run("PRAGMA wal_checkpoint(TRUNCATE);");
-      database.run("VACUUM;");
+      resetOperationalData(database, DEFAULT_SETTINGS);
+      if (env.storageDriver === "sqlite") vacuumDatabase(database, true);
       for (const name of ["proxy.pac", "proxy.source.pac"]) {
         try {
           if (isMemoryPath(env.dataDir)) unlinkEphemeralFile(path.join(env.dataDir, name));
@@ -190,10 +185,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
     );
     const beforeId = Math.max(0, Number.parseInt(String(req.query.beforeId ?? "0"), 10) || 0);
     const rows = recentLogs(database, limit + 1, 0, beforeId);
-    const total = Number(
-      (database.query("SELECT COUNT(*) AS total FROM generation_log").get() as { total: number })
-        .total
-    );
+    const total = countGenerationLogs(database);
     const hasMore = rows.length > limit;
     res.json({
       items: rows.slice(0, limit),
