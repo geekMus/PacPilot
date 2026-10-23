@@ -499,7 +499,13 @@ onMounted(() => {
 .editor-placeholder p { margin: 0; font-size: 13px; line-height: 1.7; }
 .editor-body { flex: 0 0 auto; align-content: start; }
 .directory-panel, .editor-panel, .history-panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
-.directory-panel { position: relative; display: flex !important; flex: 0 0 min(32%, 360px); flex-direction: column; box-sizing: border-box; width: min(32%, 360px); min-width: 245px; min-height: 0; height: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface, #fff) !important; box-shadow: var(--shadow); }
+.directory-panel { position: relative; display: flex !important; flex: 0 0 min(32%, 360px); flex-direction: column; box-sizing: border-box; width: min(32%, 360px); min-width: 245px; min-height: 0; height: 100%; overflow: hidden; border: 1px solid color-mix(in srgb, var(--accent) 12%, var(--line)); border-radius: var(--wh-radius); background: linear-gradient(160deg, color-mix(in srgb, var(--accent-soft) 28%, var(--surface)) 0%, var(--surface) 42%, var(--surface) 100%) !important; box-shadow: var(--shadow); }
+.directory-panel :deep(.app-scroll-area-viewport) { background: transparent; }
+.directory-panel .panel-heading { margin: 0 10px 8px; padding: 18px 10px 15px; border-bottom: 1px solid color-mix(in srgb, var(--accent) 14%, var(--line)); background: color-mix(in srgb, var(--accent-soft) 24%, transparent); border-radius: 0 0 10px 10px; }
+.directory-panel .panel-heading h3 { font-size: 13px; letter-spacing: -.01em; }
+.directory-panel .directory-item { position: relative; }
+.directory-panel .directory-item.selected { box-shadow: inset 3px 0 0 var(--accent); }
+.directory-panel .directory-bottom { margin: auto 10px 0; padding: 13px 9px; border-top: 1px solid color-mix(in srgb, var(--accent) 14%, var(--line)); background: color-mix(in srgb, var(--surface-2) 72%, transparent); border-radius: 9px 9px 0 0; }
 .directory-panel :deep(.app-scroll-area-viewport) { display: flex; flex: 1 1 0%; flex-direction: column; width: 100%; height: 100%; min-height: 0; gap: 0; overflow-x: hidden; overflow-y: auto; scrollbar-gutter: stable; }
 .directory-panel .panel-heading { flex: 0 0 auto; }
 .directory-panel .directory-item { flex: 0 0 auto; }
