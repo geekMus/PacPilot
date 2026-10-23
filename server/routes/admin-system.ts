@@ -2,7 +2,7 @@ import { Router } from "express";
 import type { EnvConfig } from "../config/env";
 import type { ApplicationStorage } from "../storage/repositories";
 
-import { DEFAULT_SETTINGS } from "../db/settings";
+import { DEFAULT_SETTINGS } from "../domain/settings";
 import { requireAdmin } from "../middleware/auth";
 import { hasActivePacWorkflow } from "../services/workflow";
 import { reschedule } from "../services/scheduler";
