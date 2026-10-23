@@ -149,7 +149,6 @@ const {
                         <ComboboxViewport as-child>
                           <component
                             :is="viewportComponent"
-                            class="app-scroll-area-viewport"
                             :class="viewportClass"
                             @scroll.passive="onScroll"
                           >
