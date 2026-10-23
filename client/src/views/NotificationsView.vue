@@ -549,11 +549,11 @@ onMounted(() => void load());
 .reveal-button { display: grid; place-items: center; flex: 0 0 41px; width: 41px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--muted); cursor: pointer; }
 .reveal-button:hover { color: var(--accent); border-color: var(--accent); }
 .field-static { display: flex; align-items: center; gap: 8px; min-height: 41px; padding: 0 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--muted); font-family: var(--font-mono); font-size: 10px; font-weight: 500; }
-.toggle-row { display: flex; align-items: center; gap: 13px; min-height: 62px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); cursor: pointer; }
+.toggle-row { position: relative; display: flex; align-items: center; gap: 13px; min-height: 62px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); cursor: pointer; }
 .toggle-copy { display: grid; flex: 1; gap: 4px; }
 .toggle-copy strong { font-size: 11px; }
 .toggle-copy small { color: var(--muted); font-size: 10px; line-height: 1.5; }
-.toggle-input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.toggle-input { position: absolute; z-index: 1; top: 50%; right: 14px; width: 38px; height: 22px; margin: 0; opacity: 0; transform: translateY(-50%); cursor: pointer; }
 .toggle-track { position: relative; flex: 0 0 38px; width: 38px; height: 22px; border-radius: 99px; background: var(--line); transition: background .16s; }
 .toggle-track::after { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 3px #0002; content: ""; transition: transform .16s; }
 .toggle-input:checked + .toggle-track { background: var(--accent); }
