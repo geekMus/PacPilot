@@ -6,6 +6,7 @@ import { EditorState, StateEffect, StateField } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { oneDark } from "@codemirror/theme-one-dark";
 import type { RuleDiagnostic } from "@/utils/domain-rules";
+import AppScrollArea from "@/components/AppScrollArea.vue";
 const { t } = useI18n();
 
 const props = withDefaults(
