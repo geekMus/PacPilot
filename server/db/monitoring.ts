@@ -1,62 +1,7 @@
 import type { AppDatabase } from "./sqlite";
 
-export interface AccessEventInput {
-  created_at: string;
-  method: string;
-  path: string;
-  category: string;
-  source_ip: string;
-  user_agent: string;
-  status_code: number;
-  duration_ms: number;
-  response_bytes: number;
-  /** Raw query string without leading `?`, length-capped. */
-  query_string: string;
-  host: string;
-  referer: string;
-  accept: string;
-  accept_language: string;
-  content_type: string;
-  /** JSON object of sanitized request headers (no cookies/credentials). */
-  request_headers: string;
-  response_content_type: string;
-}
-
-export interface AccessEvent extends AccessEventInput {
-  id: number;
-}
-
-export interface MonitorSummary {
-  generatedAt: string;
-  activeRequests: number;
-  tcpConnections: number;
-  requestsLastHour: number;
-  requestsLast24h: number;
-  uniqueSourcesLast24h: number;
-  errorRequestsLast24h: number;
-  serverErrorsLast24h: number;
-  averageResponseMs: number;
-  p95ResponseMs: number;
-  errorRate: number;
-  requestTrend: Array<{ hour: string; requests: number; errors: number }>;
-  pacRequestsLastHour: number;
-  pacRequestsLast24h: number;
-  pacSuccessRate: number;
-  pacFailureRequestsLast24h: number;
-  pacAverageResponseMs: number;
-  latestPacRequest: {
-    created_at: string;
-    source_ip: string;
-    status_code: number;
-    duration_ms: number;
-  } | null;
-  pacRequestTrend: Array<{
-    hour: string;
-    requests: number;
-    errors: number;
-    averageResponseMs: number;
-  }>;
-}
+import type { AccessEvent, AccessEventInput, MonitorSummary } from "../storage/repositories";
+export type { AccessEvent, AccessEventInput, MonitorSummary } from "../storage/repositories";
 
 let lastPruneAt = 0;
 
