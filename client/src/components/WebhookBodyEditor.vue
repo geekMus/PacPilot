@@ -305,6 +305,7 @@ watch(
 }
 .json-placeholder {
   position: absolute;
+  z-index: 2;
   top: 10px;
   left: 48px;
   right: 12px;
