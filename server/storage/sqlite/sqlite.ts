@@ -36,7 +36,7 @@ export function getDb(dataDir: string): AppDatabase {
   return db;
 }
 
-export function getSettings(database: AppDatabase = db!): AppSettings {
+export function getSettings(database: AppDatabase): AppSettings {
   const row = database.query("SELECT value FROM settings WHERE key = ?").get("config") as {
     value: string;
   } | null;
@@ -149,81 +149,6 @@ export function recentLogs(
     error: r.error,
     created_at: r.created_at.replace(" ", "T") + "Z",
   }));
-}
-
-export function cleanupOperationalLogs(
-  database: AppDatabase,
-  retentionDays = getSettings(database).logRetentionDays
-): { generationLogs: number; accessEvents: number } {
-  if (retentionDays <= 0) return { generationLogs: 0, accessEvents: 0 };
-  const cutoffDate = new Date(Date.now() - retentionDays * 86400000);
-  // generation_log.created_at uses SQLite's UTC "YYYY-MM-DD HH:mm:ss" format;
-  // Access-event timestamps use ISO 8601.
-  const cutoffIso = cutoffDate.toISOString();
-  const cutoffSql = cutoffIso.slice(0, 19).replace("T", " ");
-  const generationLogs = Number(
-    database.query("DELETE FROM generation_log WHERE created_at < ?").run(cutoffSql).changes
-  );
-  const accessEvents = Number(
-    database.query("DELETE FROM access_events WHERE created_at < ?").run(cutoffIso).changes
-  );
-  return { generationLogs, accessEvents };
-}
-/** Delete operational logs without touching workflow execution history. */
-export function clearOperationalLogs(database: AppDatabase): {
-  generationLogs: number;
-  accessEvents: number;
-} {
-  database.run("BEGIN IMMEDIATE");
-  try {
-    const generationLogs = Number(database.query("DELETE FROM generation_log").run().changes);
-    const accessEvents = Number(database.query("DELETE FROM access_events").run().changes);
-    database.run("COMMIT");
-    return { generationLogs, accessEvents };
-  } catch (error) {
-    try {
-      database.run("ROLLBACK");
-    } catch {
-      /* transaction may already be closed */
-    }
-    throw error;
-  }
-}
-
-export function operationalLogStorageBytes(database: AppDatabase): number {
-  const row = database
-    .query(
-      `
-    SELECT
-      COALESCE((SELECT SUM(length(result_code) + length(detail) + length(error) + length(mode) + 48) FROM generation_log),0) +
-      COALESCE((SELECT SUM(length(path) + length(category) + length(source_ip) + length(user_agent) + 96) FROM access_events),0)
-      AS bytes
-  `
-    )
-    .get() as { bytes: number };
-  return Number(row.bytes || 0);
-}
-
-
-/** Storage queries used by HTTP handlers; SQL remains confined to the persistence module. */
-export function getOperationalCounts(database: AppDatabase): {
-  generationLogs: number;
-  accessEvents: number;
-  workflows: number;
-  activeWorkflows: number;
-} {
-  const row = database.query(
-    "SELECT (SELECT COUNT(*) FROM generation_log) AS generationLogs, " +
-      "(SELECT COUNT(*) FROM access_events) AS accessEvents, " +
-      "(SELECT COUNT(*) FROM workflow_runs) AS workflows, " +
-      "(SELECT COUNT(*) FROM workflow_runs WHERE status IN ('pending','running')) AS activeWorkflows"
-  ).get() as { generationLogs: number; accessEvents: number; workflows: number; activeWorkflows: number };
-  return {
-    generationLogs: Number(row.generationLogs),
-    accessEvents: Number(row.accessEvents),
-    workflows: Number(row.workflows),
-    activeWorkflows: Number(row.activeWorkflows),
-  };
 }
 
 export function countGenerationLogs(database: AppDatabase): number {
