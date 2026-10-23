@@ -63,7 +63,8 @@ function resolveDataDir(): { dataDir: string; runtimeProfile: EnvConfig["runtime
 export function loadEnv(): EnvConfig {
   loadDevelopmentDotEnv();
   const resolved = resolveDataDir();
-  const portRaw = isContainer() ? "17321" : str("PORT", "17321")!;
+  // Respect the hosting platform’s injected PORT even inside containers; fall back to PacPilot’s default locally.
+  const portRaw = str("PORT", "17321")!;
   const port = Number(portRaw);
   if (!Number.isFinite(port) || port <= 0 || port > 65535)
     throw new Error("Invalid PORT: " + portRaw);
