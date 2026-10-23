@@ -25,14 +25,17 @@ function collectSourceFiles(directory: string): string[] {
 
 for (const file of collectSourceFiles(sourceRoot)) {
   const source = fs.readFileSync(file, "utf8");
-  const iconProps = /(?:^|\s):?name\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
-  for (const match of source.matchAll(iconProps)) {
-    const expression = match[1] ?? match[2] ?? "";
-    // Dynamic icon expressions are also checked for each literal string candidate.
-    for (const literal of expression.matchAll(/["']([a-z][a-z0-9-]*)["']/g)) {
-      const name = literal[1];
-      if (!usedIcons.has(name)) usedIcons.set(name, new Set());
-      usedIcons.get(name)!.add(path.relative(process.cwd(), file));
+  const appIconTags = /<AppIcon\b([^>]*)>/g;
+  for (const tag of source.matchAll(appIconTags)) {
+    const iconProps = /(?:^|\s):?name\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+    for (const match of tag[1].matchAll(iconProps)) {
+      const expression = match[1] ?? match[2] ?? "";
+      // Check literal names even when they occur inside a conditional expression.
+      for (const literal of expression.matchAll(/["']([a-z][a-z0-9-]*)["']/g)) {
+        const name = literal[1];
+        if (!usedIcons.has(name)) usedIcons.set(name, new Set());
+        usedIcons.get(name)!.add(path.relative(process.cwd(), file));
+      }
     }
   }
 }
@@ -44,8 +47,8 @@ const missing = [...usedIcons.entries()]
 if (missing.length) {
   const details = missing
     .map(([name, files]) => `  - ${name}: ${[...files].join(", ")}`)
-    .join("\\n");
-  throw new Error(`发现未注册的 AppIcon 图标名称：\\n${details}`);
+    .join("\n");
+  throw new Error(`发现未注册的 AppIcon 图标名称：\n${details}`);
 }
 
 console.log(`AppIcon 检查通过：已验证 ${usedIcons.size} 个静态图标名称。`);
