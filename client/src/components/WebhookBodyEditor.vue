@@ -1,16 +1,11 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { EditorView, highlightActiveLine, keymap, lineNumbers } from "@codemirror/view";
-import { EditorState } from "@codemirror/state";
-import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { oneDark } from "@codemirror/theme-one-dark";
-import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
-import { json } from "@codemirror/lang-json";
-import AppScrollArea from "@/components/AppScrollArea.vue";
-import { attachCodeMirrorScrollArea } from "@/utils/codemirror-scroll-area";
-const { t } = useI18n();
+import { EditorView, highlightActiveLine } from "@codemirror/view";
+import type { Extension } from "@codemirror/state";
+import CodeMirrorField from "@/components/CodeMirrorField.vue";
 
+const { t } = useI18n();
 const props = withDefaults(
   defineProps<{
     modelValue: string;
@@ -20,29 +15,9 @@ const props = withDefaults(
     emptyHint?: string;
     invalid?: boolean;
   }>(),
-  {
-    placeholder: "",
-    sample: "",
-    height: 220,
-    invalid: false,
-  }
+  { placeholder: "", sample: "", height: 220, invalid: false }
 );
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
-const host = ref<HTMLDivElement | null>(null);
-const spacer = ref<HTMLDivElement | null>(null);
-let view: EditorView | null = null;
-let scrollViewport: HTMLElement | null = null;
-let disposeScrollSync: (() => void) | null = null;
-let themeObserver: MutationObserver | null = null;
-
-function connectScrollArea(element?: HTMLElement) {
-  if (element) scrollViewport = element;
-  disposeScrollSync?.();
-  disposeScrollSync = null;
-  if (view && scrollViewport && spacer.value) {
-    disposeScrollSync = attachCodeMirrorScrollArea(view, scrollViewport, spacer.value);
-  }
-}
 
 const jsonStatus = computed(() => {
   const raw = props.modelValue.trim();
@@ -57,94 +32,33 @@ const jsonStatus = computed(() => {
   }
 });
 const canFormat = computed(() => jsonStatus.value.kind === "valid");
+const editorExtensions = computed<Extension[]>(() => [
+  highlightActiveLine(),
+  EditorView.theme({
+    "&": { fontSize: "13px" },
+    ".cm-scroller": {
+      lineHeight: "1.55",
+      fontFamily: 'ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace',
+    },
+    ".cm-content": { padding: "10px 12px" },
+  }),
+]);
 
-function isDark(): boolean {
-  return document.documentElement.classList.contains("theme-dark");
-}
-function buildExtensions(dark: boolean) {
-  const base = [
-    lineNumbers(),
-    highlightActiveLine(),
-    history(),
-    keymap.of([...defaultKeymap, ...historyKeymap]),
-    syntaxHighlighting(defaultHighlightStyle),
-    json(),
-    EditorView.lineWrapping,
-    EditorView.updateListener.of((update) => {
-      if (update.docChanged) emit("update:modelValue", update.state.doc.toString());
-    }),
-    EditorView.theme({
-      "&": { height: `${props.height}px`, maxHeight: `${props.height}px`, fontSize: "13px" },
-      ".cm-scroller": {
-        overflow: "auto",
-        fontFamily: 'ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace',
-        lineHeight: "1.55",
-      },
-      ".cm-content": { padding: "10px 0" },
-      "&.cm-focused": { outline: "none" },
-    }),
-  ];
-  if (dark) base.push(oneDark);
-  return base;
-}
-function mountEditor() {
-  if (!host.value) return;
-  const doc = view ? view.state.doc.toString() : props.modelValue || "";
-  const selection = view ? view.state.selection.main.head : 0;
-  disposeScrollSync?.();
-  disposeScrollSync = null;
-  view?.destroy();
-  view = new EditorView({
-    parent: host.value,
-    state: EditorState.create({ doc, extensions: buildExtensions(isDark()) }),
-  });
-  view.dispatch({ selection: { anchor: Math.min(selection, view.state.doc.length) } });
-  connectScrollArea();
-}
-function replaceDocument(value: string) {
-  if (!view) {
-    emit("update:modelValue", value);
-    return;
-  }
-  const current = view.state.doc.toString();
-  if (current !== value) view.dispatch({ changes: { from: 0, to: current.length, insert: value } });
-}
 function formatJson() {
   if (!canFormat.value) return;
   try {
-    replaceDocument(JSON.stringify(JSON.parse(props.modelValue), null, 2));
+    emit("update:modelValue", JSON.stringify(JSON.parse(props.modelValue), null, 2));
   } catch {
     // The status bar already reports invalid JSON; formatting leaves the source unchanged.
   }
 }
 function insertSample() {
-  if (props.sample) replaceDocument(props.sample);
+  if (props.sample) emit("update:modelValue", props.sample);
 }
-onMounted(() => {
-  mountEditor();
-  themeObserver = new MutationObserver(() => mountEditor());
-  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-});
-onBeforeUnmount(() => {
-  themeObserver?.disconnect();
-  disposeScrollSync?.();
-  disposeScrollSync = null;
-  view?.destroy();
-  view = null;
-});
-watch(
-  () => props.modelValue,
-  (value) => {
-    if (!view) return;
-    const current = view.state.doc.toString();
-    if (value !== current)
-      view.dispatch({ changes: { from: 0, to: current.length, insert: value || "" } });
-  }
-);
 </script>
 
 <template>
-  <div class="json-editor" :class="{ invalid: invalid || jsonStatus.kind === 'invalid' }">
+  <div class="json-editor" :class="{ invalid: props.invalid || jsonStatus.kind === 'invalid' }">
     <div class="json-editor-toolbar">
       <div class="json-editor-language">
         <span class="language-dot" aria-hidden="true"></span><span>JSON</span>
@@ -159,28 +73,22 @@ watch(
         >
           {{ t("webhookBody.k5") }}
         </button>
-        <button v-if="sample" type="button" class="editor-action" @click="insertSample">
+        <button v-if="props.sample" type="button" class="editor-action" @click="insertSample">
           {{ t("webhookBody.k6") }}
         </button>
       </div>
     </div>
-    <div class="json-editor-frame" :style="{ height: height + 'px' }">
-      <AppScrollArea
-        root-class="json-editor-scroll-area"
-        viewport-class="json-editor-scroll-viewport"
-        orientation="both"
-        type="hover"
-        @ready="connectScrollArea"
-      >
-        <div
-          ref="host"
-          class="cm-host cm-host-scrollable"
-          :style="{ '--cm-editor-height': `${height}px` }"
-        ></div>
-        <div ref="spacer" class="cm-scroll-spacer" aria-hidden="true"></div>
-      </AppScrollArea>
-      <div v-if="!modelValue && placeholder" class="json-placeholder">{{ placeholder }}</div>
-    </div>
+    <CodeMirrorField
+      :model-value="props.modelValue"
+      :placeholder="props.placeholder"
+      :height="props.height"
+      language="json"
+      theme="one-dark"
+      embedded
+      :invalid="props.invalid || jsonStatus.kind === 'invalid'"
+      :extensions="editorExtensions"
+      @update:model-value="emit('update:modelValue', $event)"
+    />
     <div class="json-editor-status" :class="jsonStatus.kind" role="status" aria-live="polite">
       <span class="status-indicator" aria-hidden="true"></span>{{ jsonStatus.text }}
     </div>
@@ -196,6 +104,10 @@ watch(
   transition:
     border-color 0.15s,
     box-shadow 0.15s;
+}
+.json-editor:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .json-editor.invalid {
   border-color: var(--red);
@@ -256,65 +168,6 @@ watch(
   background: var(--control-disabled-bg);
   border-color: var(--control-disabled-border);
   cursor: not-allowed;
-}
-.json-editor-frame {
-  position: relative;
-  overflow: hidden;
-}
-.json-editor-scroll-area {
-  width: 100%;
-  height: 100%;
-}
-:deep(.json-editor-scroll-viewport) {
-  position: relative;
-  overflow: auto;
-}
-.cm-host-scrollable {
-  position: sticky;
-  top: 0;
-  left: 0;
-  z-index: 1;
-  margin-bottom: calc(-1 * var(--cm-editor-height));
-}
-.cm-scroll-spacer {
-  min-width: 100%;
-  min-height: 100%;
-  pointer-events: none;
-}
-.cm-host,
-.cm-host :deep(.cm-editor) {
-  height: 100%;
-  background: transparent;
-}
-.cm-host :deep(.cm-scroller) {
-  overflow: auto !important;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.cm-host :deep(.cm-scroller::-webkit-scrollbar) {
-  display: none;
-  width: 0;
-  height: 0;
-}
-.cm-host :deep(.cm-gutters) {
-  background: var(--surface-2);
-  border-right: 1px solid var(--line);
-  color: var(--muted);
-}
-.cm-host :deep(.cm-content) {
-  min-height: 100%;
-  padding: 10px 12px;
-}
-.json-placeholder {
-  position: absolute;
-  z-index: 2;
-  top: 10px;
-  left: 48px;
-  right: 12px;
-  color: var(--muted);
-  opacity: 0.72;
-  pointer-events: none;
-  font: 13px/1.55 var(--font-mono);
 }
 .json-editor-status {
   min-height: 30px;

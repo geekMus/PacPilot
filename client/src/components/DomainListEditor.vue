@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import { onMounted, onBeforeUnmount, ref, watch } from "vue";
-import { EditorView, keymap, lineNumbers, highlightActiveLine, Decoration } from "@codemirror/view";
-import { EditorState, StateEffect, StateField } from "@codemirror/state";
-import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { oneDark } from "@codemirror/theme-one-dark";
+import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
+import { EditorView, highlightActiveLine, Decoration } from "@codemirror/view";
+import { StateEffect, StateField, type Extension } from "@codemirror/state";
 import type { RuleDiagnostic } from "@/utils/domain-rules";
 import AppScrollArea from "@/components/AppScrollArea.vue";
-import { attachCodeMirrorScrollArea } from "@/utils/codemirror-scroll-area";
+import CodeMirrorField from "@/components/CodeMirrorField.vue";
 const { t } = useI18n();
 
 const props = withDefaults(
@@ -45,7 +43,7 @@ const jumpHighlightField = StateField.define<{ line: number; token: number } | n
   },
 });
 const ruleDiagnosticsField = StateField.define<RuleDiagnostic[]>({
-  create: () => [],
+  create: () => props.diagnostics,
   update(value, transaction) {
     for (const effect of transaction.effects)
       if (effect.is(setRuleDiagnostics)) value = effect.value;
@@ -119,21 +117,7 @@ const ruleDecorationField = StateField.define({
   provide: (field) => EditorView.decorations.from(field),
 });
 
-const host = ref<HTMLDivElement | null>(null);
-const spacer = ref<HTMLDivElement | null>(null);
-let view: EditorView | null = null;
-let scrollViewport: HTMLElement | null = null;
-let disposeScrollSync: (() => void) | null = null;
-let themeObs: MutationObserver | null = null;
-
-function connectScrollArea(element?: HTMLElement) {
-  if (element) scrollViewport = element;
-  disposeScrollSync?.();
-  disposeScrollSync = null;
-  if (view && scrollViewport && spacer.value) {
-    disposeScrollSync = attachCodeMirrorScrollArea(view, scrollViewport, spacer.value);
-  }
-}
+const editorField = ref<InstanceType<typeof CodeMirrorField> | null>(null);
 
 let jumpHighlightTimer: number | null = null;
 function handleDiagnosticClick(event: MouseEvent, lineNumber: number) {
@@ -145,8 +129,8 @@ function handleDiagnosticClick(event: MouseEvent, lineNumber: number) {
 }
 
 function jumpToLine(lineNumber: number) {
-  if (!view || lineNumber < 1 || lineNumber > view.state.doc.lines) return;
-  const editor = view;
+  const editor = editorField.value?.getEditorView();
+  if (!editor || lineNumber < 1 || lineNumber > editor.state.doc.lines) return;
   const line = editor.state.doc.line(lineNumber);
   const scroller = editor.scrollDOM;
   if (jumpHighlightTimer !== null) window.clearTimeout(jumpHighlightTimer);
@@ -161,7 +145,7 @@ function jumpToLine(lineNumber: number) {
   editor.contentDOM.focus({ preventScroll: true });
 
   const ensureLineVisible = () => {
-    if (view !== editor || lineNumber > editor.state.doc.lines) return;
+    if (editorField.value?.getEditorView() !== editor || lineNumber > editor.state.doc.lines) return;
     const block = editor.lineBlockAt(editor.state.doc.line(lineNumber).from);
     const rect = scroller.getBoundingClientRect();
     const top = rect.top + scroller.clientTop;
@@ -181,7 +165,8 @@ function jumpToLine(lineNumber: number) {
     requestAnimationFrame(ensureLineVisible);
   });
   jumpHighlightTimer = window.setTimeout(() => {
-    if (view) view.dispatch({ effects: setJumpHighlight.of(null) });
+    const currentEditor = editorField.value?.getEditorView();
+    if (currentEditor) currentEditor.dispatch({ effects: setJumpHighlight.of(null) });
     jumpHighlightTimer = null;
   }, 1500);
 }
@@ -190,17 +175,13 @@ function isDark(): boolean {
   return document.documentElement.classList.contains("theme-dark");
 }
 
-function buildExtensions(dark: boolean) {
+function buildExtensions(): Extension[] {
   const h = props.height;
-  const base = [
-    lineNumbers(),
+  const base: Extension[] = [
     highlightActiveLine(),
     ruleDiagnosticsField,
     jumpHighlightField,
     ruleDecorationField,
-    history(),
-    keymap.of([...defaultKeymap, ...historyKeymap]),
-    EditorView.lineWrapping,
     EditorView.domEventHandlers({
       click(event, editor) {
         // 空白处点击或手机触摸时，显式将当前行同步到实际点击位置。
@@ -214,9 +195,7 @@ function buildExtensions(dark: boolean) {
         return false;
       },
     }),
-    EditorView.updateListener.of((u) => {
-      if (u.docChanged) emit("update:modelValue", u.state.doc.toString());
-    }),
+
     EditorView.theme({
       "&": {
         height: `${h}px`,
@@ -274,91 +253,44 @@ function buildExtensions(dark: boolean) {
       },
     }),
   ];
-  if (dark) base.push(oneDark);
   return base;
 }
 
-function mountEditor() {
-  if (!host.value) return;
-  const doc = view ? view.state.doc.toString() : props.modelValue || "";
-  const sel = view ? view.state.selection.main.head : 0;
-  disposeScrollSync?.();
-  disposeScrollSync = null;
-  view?.destroy();
-  view = new EditorView({
-    parent: host.value,
-    state: EditorState.create({
-      doc,
-      extensions: buildExtensions(isDark()),
-    }),
-  });
-  connectScrollArea();
-  view.dispatch({
-    selection: { anchor: Math.min(sel, view.state.doc.length) },
-    effects: setRuleDiagnostics.of(props.diagnostics),
-  });
-}
+const editorExtensions = computed(() => buildExtensions());
 
 onMounted(() => {
-  mountEditor();
-  themeObs = new MutationObserver(() => mountEditor());
-  themeObs.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ["class"],
-  });
+  const editor = editorField.value?.getEditorView();
+  if (editor) editor.dispatch({ effects: setRuleDiagnostics.of(props.diagnostics) });
 });
 
 onBeforeUnmount(() => {
-  themeObs?.disconnect();
   if (jumpHighlightTimer !== null) window.clearTimeout(jumpHighlightTimer);
   jumpHighlightTimer = null;
-  disposeScrollSync?.();
-  disposeScrollSync = null;
-  view?.destroy();
-  view = null;
 });
 
 watch(
   () => props.diagnostics,
   (diagnostics) => {
-    if (view) view.dispatch({ effects: setRuleDiagnostics.of(diagnostics) });
+    const editor = editorField.value?.getEditorView();
+    if (editor) editor.dispatch({ effects: setRuleDiagnostics.of(diagnostics) });
   },
   { deep: true }
 );
 
-watch(
-  () => props.modelValue,
-  (v) => {
-    if (!view) return;
-    const cur = view.state.doc.toString();
-    if (v !== cur) {
-      view.dispatch({
-        changes: { from: 0, to: cur.length, insert: v || "" },
-      });
-    }
-  }
-);
 </script>
 
 <template>
   <div class="domain-editor">
-    <div class="editor-shell" :class="{ 'is-invalid': invalid }" :style="{ height: height + 'px' }">
-      <AppScrollArea
-        root-class="domain-editor-scroll-area"
-        viewport-class="domain-editor-scroll-viewport"
-        orientation="both"
-        type="hover"
-        @ready="connectScrollArea"
-      >
-        <div
-          ref="host"
-          class="cm-host cm-host-scrollable"
-          :style="{ '--cm-editor-height': `${height}px` }"
-        />
-        <div ref="spacer" class="cm-scroll-spacer" aria-hidden="true"></div>
-      </AppScrollArea>
-      <div v-if="!modelValue && placeholder" class="ph">{{ placeholder }}</div>
-    </div>
+    <CodeMirrorField
+      ref="editorField"
+      :model-value="props.modelValue"
+      :placeholder="props.placeholder"
+      :height="props.height"
+      :invalid="props.invalid"
+      theme="one-dark"
+      :extensions="editorExtensions"
+      @update:model-value="emit('update:modelValue', $event)"
+    />
     <section
       v-if="diagnostics.length"
       class="rule-diagnostic-panel"
@@ -432,63 +364,6 @@ watch(
 .domain-editor {
   min-width: 0;
 }
-.editor-shell {
-  position: relative;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-  overflow: hidden;
-  /* 固定高度，不随内容增高 */
-  flex-shrink: 0;
-}
-.editor-shell.is-invalid {
-  border-color: var(--red);
-  box-shadow: 0 0 0 3px var(--red-soft);
-}
-
-.domain-editor-scroll-area {
-  width: 100%;
-  height: 100%;
-}
-:deep(.domain-editor-scroll-viewport) {
-  position: relative;
-  overflow: auto;
-}
-.cm-host-scrollable {
-  position: sticky;
-  top: 0;
-  left: 0;
-  z-index: 1;
-  margin-bottom: calc(-1 * var(--cm-editor-height));
-}
-.cm-scroll-spacer {
-  min-width: 100%;
-  min-height: 100%;
-  pointer-events: none;
-}
-.cm-host {
-  height: 100%;
-}
-.cm-host :deep(.cm-editor) {
-  height: 100%;
-  background: transparent;
-}
-.cm-host :deep(.cm-scroller) {
-  overflow: auto !important;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.cm-host :deep(.cm-scroller::-webkit-scrollbar) {
-  display: none;
-  width: 0;
-  height: 0;
-}
-.cm-host :deep(.cm-gutters) {
-  background: var(--surface-2);
-  border-right: 1px solid var(--line);
-  color: var(--muted);
-}
-
 .rule-diagnostic-panel {
   margin-top: 8px;
   overflow: hidden;

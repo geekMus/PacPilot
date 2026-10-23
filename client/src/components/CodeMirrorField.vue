@@ -2,10 +2,11 @@
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { EditorView, keymap, lineNumbers, placeholder as cmPlaceholder } from "@codemirror/view";
-import { EditorState } from "@codemirror/state";
+import { EditorState, type Extension } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
 import { json } from "@codemirror/lang-json";
+import { oneDark } from "@codemirror/theme-one-dark";
 import AppScrollArea from "@/components/AppScrollArea.vue";
 import { attachCodeMirrorScrollArea } from "@/utils/codemirror-scroll-area";
 const { t } = useI18n();
@@ -19,6 +20,9 @@ const props = withDefaults(
     language?: "json" | "text";
     ariaLabel?: string;
     invalid?: boolean;
+    extensions?: Extension[];
+    theme?: "app" | "one-dark";
+    embedded?: boolean;
   }>(),
   {
     placeholder: "",
@@ -27,6 +31,9 @@ const props = withDefaults(
     language: "text",
     ariaLabel: "", // i18n
     invalid: false,
+    extensions: () => [],
+    theme: "app",
+    embedded: false,
   }
 );
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
@@ -35,6 +42,11 @@ const spacer = ref<HTMLDivElement | null>(null);
 let view: EditorView | null = null;
 let scrollViewport: HTMLElement | null = null;
 let disposeScrollSync: (() => void) | null = null;
+let themeObserver: MutationObserver | null = null;
+
+function isDark(): boolean {
+  return typeof document !== "undefined" && document.documentElement.classList.contains("theme-dark");
+}
 
 function connectScrollArea(element?: HTMLElement) {
   if (element) scrollViewport = element;
@@ -56,6 +68,7 @@ function buildExtensions() {
     ...(!props.singleLine ? [lineNumbers()] : []),
     keymap.of(bindings),
     syntaxHighlighting(defaultHighlightStyle),
+    ...(props.theme === "one-dark" && isDark() ? [oneDark] : []),
     ...(props.language === "json" ? [json()] : []),
     ...(props.placeholder ? [cmPlaceholder(props.placeholder)] : []),
     ...(!props.singleLine ? [EditorView.lineWrapping] : []),
@@ -97,6 +110,7 @@ function buildExtensions() {
       ".cm-selectionBackground": { background: "var(--accent-soft)" },
       "&.cm-focused": { outline: "none" },
     }),
+    ...props.extensions,
   ];
 }
 
@@ -116,13 +130,30 @@ function mountEditor() {
   connectScrollArea();
 }
 
-onMounted(mountEditor);
+onMounted(() => {
+  mountEditor();
+  if (props.theme === "one-dark") {
+    themeObserver = new MutationObserver(() => mountEditor());
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+  }
+});
+
+defineExpose({ getEditorView: () => view });
 onBeforeUnmount(() => {
+  themeObserver?.disconnect();
+  themeObserver = null;
   disposeScrollSync?.();
   disposeScrollSync = null;
   view?.destroy();
   view = null;
 });
+watch(
+  () => [props.singleLine, props.language, props.height, props.placeholder, props.extensions, props.theme],
+  () => mountEditor()
+);
 watch(
   () => props.modelValue,
   (value) => {
@@ -137,7 +168,7 @@ watch(
 <template>
   <div
     class="cm-field-frame"
-    :class="{ 'single-line': singleLine, invalid }"
+    :class="{ 'single-line': singleLine, invalid, embedded }"
     :style="!singleLine ? { height: `${height}px`, '--cm-editor-height': `${height}px` } : undefined"
   >
     <AppScrollArea
@@ -167,6 +198,16 @@ watch(
   transition:
     border-color 0.15s,
     box-shadow 0.15s;
+}
+.cm-field-frame.embedded {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  transition: none;
+}
+.cm-field-frame.embedded:focus-within {
+  border: 0;
+  box-shadow: none;
 }
 .cm-field-frame:focus-within {
   border-color: var(--accent);
