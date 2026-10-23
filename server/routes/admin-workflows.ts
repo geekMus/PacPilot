@@ -11,7 +11,7 @@ export function adminWorkflowRoutes(database: AppDatabase, storage: ApplicationS
   const parseWorkflowId = (value: string | string[] | undefined): number =>
     typeof value === "string" ? Number.parseInt(value, 10) : Number.NaN;
 
-  router.get("/api/admin/workflows", requireAdmin(database), (req, res) => {
+  router.get("/api/admin/workflows", requireAdmin(storage.credentials), (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     const limit = Math.min(
       100,
@@ -33,7 +33,7 @@ export function adminWorkflowRoutes(database: AppDatabase, storage: ApplicationS
     });
   });
 
-  router.delete("/api/admin/workflows", requireAdmin(database), (req, res) => {
+  router.delete("/api/admin/workflows", requireAdmin(storage.credentials), (req, res) => {
     try {
       const result = storage.workflows.clearHistory();
       if (result.activeRuns > 0) {
@@ -49,7 +49,7 @@ export function adminWorkflowRoutes(database: AppDatabase, storage: ApplicationS
     }
   });
 
-  router.get("/api/admin/workflows/:id", requireAdmin(database), (req, res) => {
+  router.get("/api/admin/workflows/:id", requireAdmin(storage.credentials), (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     const id = parseWorkflowId(req.params.id);
     if (!Number.isSafeInteger(id) || id < 1) {
@@ -64,7 +64,7 @@ export function adminWorkflowRoutes(database: AppDatabase, storage: ApplicationS
     res.json({ run, stages: storage.workflows.stages(id) });
   });
 
-  router.post("/api/admin/workflows/:id/cancel", requireAdmin(database), (req, res) => {
+  router.post("/api/admin/workflows/:id/cancel", requireAdmin(storage.credentials), (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     const id = parseWorkflowId(req.params.id);
     if (!Number.isSafeInteger(id) || id < 1) {
@@ -83,7 +83,7 @@ export function adminWorkflowRoutes(database: AppDatabase, storage: ApplicationS
     res.json({ ok: true, id, status: "cancelled" });
   });
 
-  router.delete("/api/admin/workflows/:id", requireAdmin(database), (req, res) => {
+  router.delete("/api/admin/workflows/:id", requireAdmin(storage.credentials), (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     const id = parseWorkflowId(req.params.id);
     if (!Number.isSafeInteger(id) || id < 1) {
