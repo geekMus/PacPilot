@@ -1,5 +1,6 @@
 import { Router } from "express";
 import type { AppDatabase } from "../db/sqlite";
+import { countWorkflowRuns, vacuumDatabase } from "../db/sqlite";
 import {
   cancelPendingWorkflow,
   clearWorkflowHistory,
@@ -28,10 +29,7 @@ export function adminWorkflowRoutes(database: AppDatabase): Router {
     );
     const beforeId = Math.max(0, Number.parseInt(String(req.query.beforeId ?? "0"), 10) || 0);
     const page = listWorkflowRuns(database, limit + 1, beforeId);
-    const total = Number(
-      (database.query("SELECT COUNT(*) AS total FROM workflow_runs").get() as { total: number })
-        .total
-    );
+    const total = countWorkflowRuns(database);
     const hasMore = page.length > limit;
     res.json({
       current: getCurrentWorkflow(database),
@@ -55,7 +53,7 @@ export function adminWorkflowRoutes(database: AppDatabase): Router {
         });
         return;
       }
-      if (result.deletedRuns > 0) database.run("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
+      if (result.deletedRuns > 0) vacuumDatabase(database, true);
       res.json({ ok: true, deletedRuns: result.deletedRuns });
     } catch (error) {
       res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
