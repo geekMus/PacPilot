@@ -238,7 +238,9 @@ watch(
 }
 .cm-field-scroll-area {
   width: 100%;
+  max-width: 100%;
   height: 100%;
+  min-width: 0;
 }
 :deep(.cm-field-scroll-viewport) {
   position: relative;
@@ -258,6 +260,8 @@ watch(
 }
 .cm-field-host {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 .cm-field-host :deep(.cm-editor) {
   width: 100%;
