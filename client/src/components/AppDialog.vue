@@ -179,7 +179,6 @@ function onCloseAutoFocus(event: Event): void {
 .app-dialog-body {
   flex: 1 1 auto;
   width: 100%;
-  max-height: calc(100dvh - 160px);
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -187,8 +186,8 @@ function onCloseAutoFocus(event: Event): void {
 .app-dialog-body .app-scroll-area-viewport {
   box-sizing: border-box;
   width: 100%;
-  height: auto;
-  max-height: calc(100dvh - 160px);
+  height: 100%;
+  max-height: none;
   min-width: 0;
   min-height: 0;
   padding: 18px;
@@ -244,11 +243,8 @@ function onCloseAutoFocus(event: Event): void {
   .app-dialog-header {
     padding: 14px;
   }
-  .app-dialog-body {
-    max-height: calc(100dvh - 140px);
-  }
   .app-dialog-body .app-scroll-area-viewport {
-    max-height: calc(100dvh - 140px);
+    max-height: none;
     padding: 14px;
   }
   .app-dialog-footer {
