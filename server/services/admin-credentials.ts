@@ -1,5 +1,5 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
-import type { AppDatabase } from "../db/sqlite";
+import type { AdminCredentialRecord, AdminCredentialRepository } from "../storage/repositories";
 
 const AUTH_KEY = "admin-auth";
 const HASH_BYTES = 64;
@@ -8,11 +8,7 @@ const SCRYPT_N = 16384;
 const SCRYPT_R = 8;
 const SCRYPT_P = 1;
 
-interface AdminAuthRecord {
-  passwordHash: string;
-  salt: string;
-  sessionSecret: string;
-}
+type AdminAuthRecord = AdminCredentialRecord;
 
 export type AdminPasswordErrorCode =
   | "current_password_incorrect"
@@ -29,36 +25,12 @@ export class AdminPasswordError extends Error {
   }
 }
 
-function readRecord(database: AppDatabase): AdminAuthRecord | null {
-  const row = database.query("SELECT value FROM settings WHERE key = ?").get(AUTH_KEY) as {
-    value: string;
-  } | null;
-  if (!row) return null;
-  try {
-    const v = JSON.parse(row.value) as Partial<AdminAuthRecord>;
-    if (
-      typeof v.passwordHash === "string" &&
-      typeof v.salt === "string" &&
-      typeof v.sessionSecret === "string"
-    ) {
-      return {
-        passwordHash: v.passwordHash,
-        salt: v.salt,
-        sessionSecret: v.sessionSecret,
-      };
-    }
-  } catch {
-    /* ignore malformed row */
-  }
-  return null;
+function readRecord(repository: AdminCredentialRepository): AdminAuthRecord | null {
+  return repository.get();
 }
 
-function writeRecord(database: AppDatabase, record: AdminAuthRecord): void {
-  database
-    .query(
-      "INSERT INTO settings (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value"
-    )
-    .run(AUTH_KEY, JSON.stringify(record));
+function writeRecord(repository: AdminCredentialRepository, record: AdminAuthRecord): void {
+  repository.set(record);
 }
 
 function hashPassword(password: string, salt: string): string {
@@ -79,8 +51,8 @@ function passwordRecord(password: string): AdminAuthRecord {
   };
 }
 
-export function isAdminCredentialsMissing(database: AppDatabase): boolean {
-  return readRecord(database) === null;
+export function isAdminCredentialsMissing(repository: AdminCredentialRepository): boolean {
+  return readRecord(repository) === null;
 }
 
 export function createInitialAdminCredentials(database: AppDatabase): string | null {
@@ -88,19 +60,19 @@ export function createInitialAdminCredentials(database: AppDatabase): string | n
     if (readRecord(database)) return null;
 
     const initialPassword = randomBytes(18).toString("base64url");
-    writeRecord(database, passwordRecord(initialPassword));
+    writeRecord(repository, passwordRecord(initialPassword));
     return initialPassword;
   })();
 }
 
-function getRecord(database: AppDatabase): AdminAuthRecord {
+function getRecord(repository: AdminCredentialRepository): AdminAuthRecord {
   const record = readRecord(database);
   if (!record) throw new Error("Admin credentials are not initialized.");
   return record;
 }
 
 export function getAdminSessionSecret(database: AppDatabase): string {
-  return getRecord(database).sessionSecret;
+  return getRecord(repository).sessionSecret;
 }
 
 export function verifyAdminPassword(database: AppDatabase, password: string): boolean {
@@ -117,7 +89,7 @@ export function changeAdminPassword(
   currentPassword: string,
   newPassword: string
 ): void {
-  if (!verifyAdminPassword(database, currentPassword)) {
+  if (!verifyAdminPassword(repository, currentPassword)) {
     throw new AdminPasswordError("current_password_incorrect", "当前管理密码不正确。");
   }
   if (typeof newPassword !== "string" || newPassword.length === 0) {
