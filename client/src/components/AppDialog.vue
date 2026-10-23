@@ -112,7 +112,7 @@ function onCloseAutoFocus(event: Event): void {
   width: max-content;
   max-width: calc(100vw - 16px);
   height: fit-content;
-  max-height: calc(100dvh - 24px);
+  max-height: min(85dvh, 800px);
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--line);
@@ -239,6 +239,7 @@ function onCloseAutoFocus(event: Event): void {
 @media (max-width: 560px) {
   .app-dialog-shell {
     max-width: calc(100vw - 16px);
+    max-height: 90dvh;
   }
   .app-dialog-header {
     padding: 14px;
