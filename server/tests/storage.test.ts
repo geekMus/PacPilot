@@ -104,3 +104,20 @@ describe("ephemeral PAC artifact files", () => {
     expect(() => readEphemeralFile(":memory:/proxy.source.pac")).toThrow();
   });
 });
+
+
+describe("Admin credential repositories", () => {
+  it("keeps memory credentials isolated and returns defensive copies", async () => {
+    const { MemoryAdminCredentialRepository } = await import("../storage/memory-credentials");
+    const store = new MemoryAdminCredentialRepository();
+    const record = { passwordHash: "hash", salt: "salt", sessionSecret: "secret" };
+    store.set(record);
+    record.passwordHash = "mutated";
+    expect(store.get()).toEqual({ passwordHash: "hash", salt: "salt", sessionSecret: "secret" });
+    const copy = store.get();
+    if (copy) copy.sessionSecret = "mutated";
+    expect(store.get()?.sessionSecret).toBe("secret");
+    store.clear();
+    expect(store.get()).toBeNull();
+  });
+});
