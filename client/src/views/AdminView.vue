@@ -20,14 +20,7 @@ import AppDialog from "@/components/AppDialog.vue";
 import AppScrollArea from "@/components/AppScrollArea.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 import AppFooter from "@/components/AppFooter.vue";
-import TextDetail from "@/components/TextDetail.vue";
-import VirtualTable from "@/components/VirtualTable.vue";
 import { useAdminSettings } from "@/composables/useAdminSettings";
-import { PROJECT_LINKS } from "@shared/project-links";
-
-const WebhookChannelEditor = defineAsyncComponent(
-  () => import("@/features/webhooks/components/WebhookChannelEditor.vue")
-);
 
 const DomainListEditor = defineAsyncComponent(
   () => import("@/features/domain-rules/components/DomainListEditor.vue")
@@ -39,24 +32,11 @@ const {
   flash,
   flashOk,
   error,
-  logs,
-  logHasMore,
-  logLoadingMore,
-  logLoadError,
-  logTotal,
-  loadMoreLogs,
   pacpilotProbe,
   timezoneMenuOpen,
   timezoneQuery,
   mobileTimezoneOpen,
-  passwordSaving,
-  passwordError,
-  passwordForm,
-  webhookTestState,
   form,
-  generationLogText,
-  generationLogDate,
-  generationModeLabel,
   commonTimeZones,
   isValidTimeZone,
   filteredTimeZones,
@@ -75,14 +55,11 @@ const {
   blockListError,
   timezoneError,
   cronError,
-  webhookValidation,
   formErrors,
   handleFloatingSaveClick,
   canSubmit,
   hasUnsavedSettings,
   saveAndGenerate,
-  testWebhook,
-  changeAdminPassword,
 } = useAdminSettings();
 
 </script>
@@ -111,76 +88,6 @@ const {
       </div>
 
       <template v-if="!loading && !error">
-        <section id="security" class="card security-card">
-          <div class="card-head">
-            <div>
-              <h2>{{ t("settings.changePasswordTitle") }}</h2>
-              <p class="card-sub">{{ t("settings.passwordStoredLocal") }}</p>
-            </div>
-          </div>
-          <form class="password-change-form" @submit.prevent="changeAdminPassword">
-            <div class="field">
-              <label for="current-admin-password">{{ t("settings.currentPassword") }}</label>
-              <input
-                id="current-admin-password"
-                v-model="passwordForm.currentPassword"
-                type="password"
-                autocomplete="current-password"
-                required
-                @input="passwordError = ''"
-              />
-            </div>
-            <div class="field">
-              <label for="new-admin-password">{{ t("settings.newPassword") }}</label>
-              <input
-                id="new-admin-password"
-                v-model="passwordForm.newPassword"
-                type="password"
-                autocomplete="new-password"
-                required
-                :placeholder="t('settings.newPasswordPlaceholder')"
-                @input="passwordError = ''"
-              />
-            </div>
-            <div class="field">
-              <label for="confirm-admin-password">{{ t("settings.confirmPassword") }}</label>
-              <input
-                id="confirm-admin-password"
-                v-model="passwordForm.confirmPassword"
-                type="password"
-                autocomplete="new-password"
-                required
-                @input="passwordError = ''"
-              />
-            </div>
-            <p v-if="passwordError" class="field-error" role="alert">{{ passwordError }}</p>
-            <div class="actions">
-              <button
-                type="submit"
-                class="btn primary"
-                :class="{ 'is-loading': passwordSaving }"
-                :disabled="passwordSaving"
-                :title="
-                  passwordSaving
-                    ? t('settings.changingPasswordTitle')
-                    : t('settings.changePasswordTitle')
-                "
-              >
-                {{ passwordSaving ? t("settings.changingPassword") : t("settings.changePassword") }}
-              </button>
-            </div>
-          </form>
-          <p class="field-hint">
-            {{ t("settings.resetHelpFull")
-            }}<a
-              :href="PROJECT_LINKS.adminPasswordReset"
-              target="_blank"
-              rel="noopener noreferrer"
-              >{{ t("settings.resetHelpLink") }}</a
-            >
-          </p>
-        </section>
-
         <form
           id="settings-form"
           class="stack"
@@ -597,9 +504,9 @@ const {
                   <AppIcon name="calendar-clock" :size="18" />
                 </span>
                 <div>
-                  <h2>{{ t("settings.scheduleWebhook") }}</h2>
+                  <h2>{{ t("settings.scheduleOnly") }}</h2>
                   <p class="card-sub">
-                    {{ t("settings.scheduleWebhookDesc") }}
+                    {{ t("settings.scheduleOnlyDesc") }}
                   </p>
                 </div>
               </div>
@@ -643,30 +550,6 @@ const {
               </div>
             </div>
 
-            <div class="webhook-grid">
-              <WebhookChannelEditor
-                :title="t('settings.successNotify')"
-                kind="success"
-                :model-value="form.webhookSuccessConfig"
-                :pending="webhookTestState.success.pending"
-                :result-message="webhookTestState.success.message"
-                :result-ok="webhookTestState.success.ok"
-                :validation-errors="webhookValidation.success"
-                @update:model-value="form.webhookSuccessConfig = $event"
-                @test="testWebhook('success')"
-              />
-              <WebhookChannelEditor
-                :title="t('settings.failureNotify')"
-                kind="failure"
-                :model-value="form.webhookFailureConfig"
-                :pending="webhookTestState.failure.pending"
-                :result-message="webhookTestState.failure.message"
-                :result-ok="webhookTestState.failure.ok"
-                :validation-errors="webhookValidation.failure"
-                @update:model-value="form.webhookFailureConfig = $event"
-                @test="testWebhook('failure')"
-              />
-            </div>
           </section>
 
           <div class="actions-block">
@@ -681,64 +564,6 @@ const {
             </p>
           </div>
         </form>
-
-        <section id="logs" class="card">
-          <div class="card-head">
-            <div class="card-title">
-              <span class="icon-badge" aria-hidden="true">
-                <AppIcon name="chart" :size="18" />
-              </span>
-              <div>
-                <h2>{{ t("settings.recentLogs") }}</h2>
-                <p class="card-sub">
-                  {{ t("settings.loadedLogs", { loaded: logs.length, total: logTotal }) }}
-                </p>
-              </div>
-            </div>
-          </div>
-          <VirtualTable
-            :items="logs"
-            item-key="id"
-            :col-span="4"
-            :row-height="58"
-            height="420px"
-            min-width="700px"
-            :has-more="logHasMore"
-            :loading="logLoadingMore"
-            :error="logLoadError"
-            :empty-text="t('settings.noLogs')"
-            :load-more="loadMoreLogs"
-          >
-            <template #columns
-              ><col style="width: 145px" />
-              <col style="width: 78px" />
-              <col style="width: 120px" />
-              <col style="width: 357px"
-            /></template>
-            <template #header
-              ><tr>
-                <th>{{ t("settings.colTime") }}</th>
-                <th>{{ t("settings.colResult") }}</th>
-                <th>{{ t("settings.colMode") }}</th>
-                <th>{{ t("settings.colMessage") }}</th>
-              </tr></template
-            >
-            <template #row="{ item: l }">
-              <tr>
-                <td class="nowrap">{{ generationLogDate(l.created_at) }}</td>
-                <td>
-                  <span class="pill" :class="l.success ? 'ok' : 'bad'">{{
-                    l.success ? t("common.success") : t("common.failed")
-                  }}</span>
-                </td>
-                <td>{{ generationModeLabel(l.mode) }}</td>
-                <td class="msg">
-                  <TextDetail :text="generationLogText(l)" :label="t('settings.genLogInfo')" />
-                </td>
-              </tr>
-            </template>
-          </VirtualTable>
-        </section>
 
         <button
           v-if="hasUnsavedSettings"
