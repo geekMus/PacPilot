@@ -1008,15 +1008,11 @@ onUnmounted(() => {
   line-height: 1.55;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  max-height: 220px;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
 }
 .stage-detail-pre.is-error {
   border-color: color-mix(in srgb, var(--red) 28%, var(--line));
   background: var(--red-soft);
   color: var(--red);
-  max-height: 160px;
 }
 
 @media (max-width: 650px) {
