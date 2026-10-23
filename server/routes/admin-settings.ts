@@ -98,10 +98,10 @@ function persistSettings(
 
 export function adminSettingsRoutes(env: EnvConfig, database: AppDatabase, storage: ApplicationStorage): Router {
   const router = Router();
-  router.get("/api/admin/settings", requireAdmin(database), (_req, res) =>
+  router.get("/api/admin/settings", requireAdmin(storage.credentials), (_req, res) =>
     res.json(storage.settings.get())
   );
-  router.put("/api/admin/settings", requireAdmin(database), (req, res) => {
+  router.put("/api/admin/settings", requireAdmin(storage.credentials), (req, res) => {
     const result = persistSettings(
       (req.body || {}) as Record<string, unknown>,
       env,
@@ -115,7 +115,7 @@ export function adminSettingsRoutes(env: EnvConfig, database: AppDatabase, stora
     }
     res.json(result.settings);
   });
-  router.post("/api/admin/settings/save-and-generate", requireAdmin(database), (req, res) => {
+  router.post("/api/admin/settings/save-and-generate", requireAdmin(storage.credentials), (req, res) => {
     const saved = persistSettings(
       (req.body || {}) as Record<string, unknown>,
       env,
@@ -137,7 +137,7 @@ export function adminSettingsRoutes(env: EnvConfig, database: AppDatabase, stora
       res.status(409).json({ error: e instanceof Error ? e.message : String(e) });
     }
   });
-  router.post("/api/admin/webhook-test", requireAdmin(database), async (req, res) => {
+  router.post("/api/admin/webhook-test", requireAdmin(storage.credentials), async (req, res) => {
     const c = normalizeWebhookConfig(req.body?.config ?? req.body),
       errors = validateWebhookConfig(c);
     if (errors.length) {
