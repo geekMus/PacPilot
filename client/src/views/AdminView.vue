@@ -16,6 +16,7 @@ import {
 } from "reka-ui";
 import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppIcon from "@/components/AppIcon.vue";
+import AppInput from "@/components/AppInput.vue";
 import AppScrollArea from "@/components/AppScrollArea.vue";
 import AppDialog from "@/components/AppDialog.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
@@ -270,7 +271,7 @@ const {
 
             <div class="field" data-validation-target="pac-proxy">
               <label for="pacProxy">{{ t("settings.pacProxy") }}</label>
-              <input
+              <AppInput
                 id="pacProxy"
                 v-model="form.pacProxy"
                 :aria-invalid="Boolean(pacProxyError)"
@@ -290,7 +291,7 @@ const {
                 >{{ t("settings.listUrlLabel") }}
                 <span class="lab-hint">{{ t("settings.listUrlLabHint") }}</span></label
               >
-              <input
+              <AppInput
                 id="listUrl"
                 v-model="form.listUrl"
                 :disabled="form.mode !== 'remote'"
@@ -445,7 +446,7 @@ const {
                   >{{ t("settings.cronExpr") }}
                   <span class="lab-hint">{{ t("settings.cronFields") }}</span></label
                 >
-                <input
+                <AppInput
                   id="cron"
                   v-model="form.cronSchedule"
                   class="mono"
