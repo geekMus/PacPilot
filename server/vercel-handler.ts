@@ -40,7 +40,10 @@ async function getApplication(): Promise<ReturnType<typeof createApp>> {
   return appPromise;
 }
 
-/** Vercel serverless entry point. All mutable application state is process-local. */
+/**
+ * Test-only Vercel serverless adapter; not recommended or supported for production deployment.
+ * All mutable application state is process-local and uses ephemeral memory storage.
+ */
 export default async function handleVercelRequest(req: Request, res: Response): Promise<void> {
   const app = await getApplication();
   const originalUrl = req.url || "/";
