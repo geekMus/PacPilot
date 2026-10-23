@@ -40,7 +40,7 @@ const props = withDefaults(
     extensions: () => [],
     theme: "app",
     embedded: false,
-    scrollbarMode: "hover",
+    scrollbarMode: "always",
   }
 );
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
