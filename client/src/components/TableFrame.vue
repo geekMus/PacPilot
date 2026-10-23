@@ -130,9 +130,9 @@ onUnmounted(() => resizeObserver?.disconnect());
   min-height: 98px;
 }
 .app-table-body-scroll {
-  /* Reka ScrollArea's root needs an intrinsic height so the table body is visible
-     before it reaches its max-height; otherwise a flex item can collapse. */
-  height: auto;
+  /* A zero flex-basis lets the fixed-height frame allocate the remaining body
+     space instead of letting intrinsic table content dictate the scroll area. */
+  height: 0;
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
