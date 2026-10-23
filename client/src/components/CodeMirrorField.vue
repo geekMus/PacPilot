@@ -150,13 +150,13 @@ function mountEditor() {
 
 onMounted(() => {
   mountEditor();
-  if (props.theme === "one-dark") {
-    themeObserver = new MutationObserver(() => mountEditor());
-    themeObserver.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-  }
+  themeObserver = new MutationObserver(() => {
+    if (props.theme === "one-dark") mountEditor();
+  });
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
 });
 
 defineExpose({ getEditorView: () => view });
