@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from "vue";
 withDefaults(defineProps<{
   modelValue: string;
   type?: string;
@@ -16,6 +17,18 @@ withDefaults(defineProps<{
   invalid: false,
 });
 
+const inputElement = ref<HTMLInputElement | null>(null);
+
+function focus(options?: FocusOptions): void {
+  inputElement.value?.focus(options);
+}
+
+function getInputElement(): HTMLInputElement | null {
+  return inputElement.value;
+}
+
+defineExpose({ focus, getInputElement });
+
 const emit = defineEmits<{
   "update:modelValue": [value: string];
   input: [event: Event];
@@ -29,6 +42,7 @@ function onInput(event: Event): void {
 
 <template>
   <input
+    ref="inputElement"
     v-bind="$attrs"
     class="app-input"
     :class="{ 'is-invalid': invalid }"
