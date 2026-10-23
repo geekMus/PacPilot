@@ -5,6 +5,7 @@ import { EditorView, highlightActiveLine, keymap, lineNumbers } from "@codemirro
 import { EditorState } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { oneDark } from "@codemirror/theme-one-dark";
+import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
 import { json } from "@codemirror/lang-json";
 import AppScrollArea from "@/components/AppScrollArea.vue";
 import { attachCodeMirrorScrollArea } from "@/utils/codemirror-scroll-area";
@@ -66,6 +67,7 @@ function buildExtensions(dark: boolean) {
     highlightActiveLine(),
     history(),
     keymap.of([...defaultKeymap, ...historyKeymap]),
+    syntaxHighlighting(defaultHighlightStyle),
     json(),
     EditorView.lineWrapping,
     EditorView.updateListener.of((update) => {
