@@ -195,6 +195,8 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
       ...(init?.headers || {}),
     },
     ...init,
+    // A stalled API request must not leave admin pages in a permanent loading state.
+    signal: init?.signal ?? AbortSignal.timeout(20_000),
   });
   if (!res.ok) {
     let msg = res.statusText;
