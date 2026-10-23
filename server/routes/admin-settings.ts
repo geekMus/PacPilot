@@ -116,7 +116,7 @@ export function adminSettingsRoutes(env: EnvConfig, storage: ApplicationStorage)
     const saved = persistSettings(
       (req.body || {}) as Record<string, unknown>,
       env,
-      database,
+      storage,
       requestLocale(req)
     );
     if ("error" in saved) {
