@@ -10,6 +10,7 @@ import { t } from "../../shared/i18n";
 import type { AppSettings } from "../db/settings";
 import { buildRemoteListPac, fetchAndParseRemoteList } from "./remote-list";
 import { runtimeLog } from "../utils/runtime-log";
+import { isMemoryPath, readEphemeralFile, statEphemeralFile, writeEphemeralFile } from "../storage/ephemeral-files";
 
 export interface GenerateResult {
   success: boolean;
@@ -237,8 +238,13 @@ async function runRemoteMode(
     ? withPacVersionHeader(await compressPac(pac), generatedAt, settings.timezone)
     : source;
   const sourcePath = path.join(path.dirname(outFile), "proxy.source.pac");
-  fs.writeFileSync(sourcePath, source, "utf8");
-  fs.writeFileSync(outFile, output, "utf8");
+  if (isMemoryPath(outFile)) {
+    writeEphemeralFile(sourcePath, source);
+    writeEphemeralFile(outFile, output);
+  } else {
+    fs.writeFileSync(sourcePath, source, "utf8");
+    fs.writeFileSync(outFile, output, "utf8");
+  }
   const formatKey =
     parsed.format === "gfwlist-base64"
       ? "format.gfwlist"
@@ -287,7 +293,7 @@ async function runRemoteMode(
 export async function generatePac(database: AppDatabase, dataDir: string): Promise<GenerateResult> {
   const settings = getSettings(database);
   const pacPath = path.join(dataDir, "proxy.pac");
-  fs.mkdirSync(dataDir, { recursive: true });
+  if (!isMemoryPath(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
   try {
     const proxyError = validatePacProxyString(settings.pacProxy);
@@ -311,8 +317,13 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
         ? withPacVersionHeader(await compressPac(customPac), generatedAt, settings.timezone)
         : source;
       const sourcePath = path.join(dataDir, "proxy.source.pac");
-      fs.writeFileSync(sourcePath, source, "utf8");
-      fs.writeFileSync(pacPath, output, "utf8");
+      if (isMemoryPath(dataDir)) {
+        writeEphemeralFile(sourcePath, source);
+        writeEphemeralFile(pacPath, output);
+      } else {
+        fs.writeFileSync(sourcePath, source, "utf8");
+        fs.writeFileSync(pacPath, output, "utf8");
+      }
       resultCode = settings.pacCompress ? "custom.compressed" : "custom.uncompressed";
       resultData = { compressed: Boolean(settings.pacCompress) };
       message = t("zh_CN", `gen.success.${resultCode}`);
@@ -376,12 +387,13 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
 export function readPacFile(dataDir: string): string {
   const pacPath = path.join(dataDir, "proxy.pac");
   try {
-    const original = fs.readFileSync(pacPath, "utf8");
+    const original = isMemoryPath(dataDir) ? readEphemeralFile(pacPath) : fs.readFileSync(pacPath, "utf8");
     const versioned = withPacVersionHeader(original);
     // 为升级前已生成的 PAC 补上当前版本头；规则正文不变。
     if (versioned !== original) {
       try {
-        fs.writeFileSync(pacPath, versioned, "utf8");
+        if (isMemoryPath(dataDir)) writeEphemeralFile(pacPath, versioned);
+        else fs.writeFileSync(pacPath, versioned, "utf8");
       } catch {
         // 即使数据目录只读，也返回带版本头的内容供浏览器查看。
       }
@@ -401,7 +413,7 @@ export function readPacSourceFile(dataDir: string): string {
   // proxy.source.pac 仅作解析辅助输入；面向客户端的文件不存在或为空时，不得报告为已有 PAC。
   let clientPac: string;
   try {
-    clientPac = fs.readFileSync(pacPath, "utf8");
+    clientPac = isMemoryPath(dataDir) ? readEphemeralFile(pacPath) : fs.readFileSync(pacPath, "utf8");
   } catch {
     return "";
   }
@@ -409,7 +421,7 @@ export function readPacSourceFile(dataDir: string): string {
 
   const sourcePath = path.join(dataDir, "proxy.source.pac");
   try {
-    const sourcePac = fs.readFileSync(sourcePath, "utf8");
+    const sourcePac = isMemoryPath(dataDir) ? readEphemeralFile(sourcePath) : fs.readFileSync(sourcePath, "utf8");
     return sourcePac.trim() ? sourcePac : clientPac;
   } catch {
     return clientPac;
@@ -420,13 +432,13 @@ export function pacFileMtime(dataDir: string): Date | null {
   const sourcePath = path.join(dataDir, "proxy.source.pac");
   const pacPath = path.join(dataDir, "proxy.pac");
   try {
-    const pacStat = fs.statSync(pacPath);
+    const pacStat = isMemoryPath(dataDir) ? statEphemeralFile(pacPath) : fs.statSync(pacPath);
     if (!pacStat.isFile() || pacStat.size === 0) return null;
-    const sourceStat = fs.statSync(sourcePath);
+    const sourceStat = isMemoryPath(dataDir) ? statEphemeralFile(sourcePath) : fs.statSync(sourcePath);
     return sourceStat.isFile() && sourceStat.size > 0 ? sourceStat.mtime : pacStat.mtime;
   } catch {
     try {
-      const pacStat = fs.statSync(pacPath);
+      const pacStat = isMemoryPath(dataDir) ? statEphemeralFile(pacPath) : fs.statSync(pacPath);
       return pacStat.isFile() && pacStat.size > 0 ? pacStat.mtime : null;
     } catch {
       return null;

@@ -3,38 +3,40 @@ import os from "os";
 import path from "path";
 import { loadDevelopmentDotEnv } from "./load-dotenv";
 
-/** 这里只读取启动运行参数；应用设置、时区和管理员凭据统一存 SQLite。 */
 export interface EnvConfig {
   dataDir: string;
+  storageDriver: "sqlite" | "memory";
   runtimeProfile: "docker" | "production" | "development";
   port: number;
   host: string;
 }
 
 function str(name: string, fallback?: string): string | undefined {
-  const v = process.env[name];
-  return v === undefined || v === "" ? fallback : v;
+  const value = process.env[name];
+  return value === undefined || value === "" ? fallback : value;
 }
+
 function isContainer(): boolean {
   if (
     process.env.RUNNING_IN_DOCKER === "1" ||
     process.env.container ||
     process.env.KUBERNETES_SERVICE_HOST
-  )
-    return true;
+  ) return true;
   try {
     return fs.existsSync("/.dockerenv");
   } catch {
     return false;
   }
 }
+
 function isProduction(): boolean {
-  const n = (process.env.NODE_ENV || "").toLowerCase(),
-    g = (process.env.PACPILOT_ENV || "").toLowerCase();
-  if (g === "production" || g === "prod") return true;
-  if (g === "development" || g === "dev") return false;
-  return n === "production";
+  const nodeEnv = (process.env.NODE_ENV || "").toLowerCase();
+  const appEnv = (process.env.PACPILOT_ENV || "").toLowerCase();
+  if (appEnv === "production" || appEnv === "prod") return true;
+  if (appEnv === "development" || appEnv === "dev") return false;
+  return nodeEnv === "production";
 }
+
 function productionDataDir(): string {
   const home = os.homedir();
   if (process.platform === "win32") {
@@ -42,31 +44,65 @@ function productionDataDir(): string {
       process.env.LOCALAPPDATA || process.env.APPDATA || path.join(home, "AppData", "Local");
     return path.join(base, "PacPilot");
   }
-  if (process.platform === "darwin")
+  if (process.platform === "darwin") {
     return path.join(home, "Library", "Application Support", "PacPilot");
+  }
   const xdg = process.env.XDG_DATA_HOME;
   if (xdg) return path.join(xdg, "PacPilot");
   return path.join(home, ".local", "share", "PacPilot");
 }
-function resolveDataDir(): { dataDir: string; runtimeProfile: EnvConfig["runtimeProfile"] } {
-  if (isContainer()) return { dataDir: path.resolve("/data"), runtimeProfile: "docker" };
-  const fromEnv = str("DATA_DIR");
-  if (fromEnv)
+
+function resolveDataDir(): Pick<EnvConfig, "dataDir" | "storageDriver" | "runtimeProfile"> {
+  const driver = (str("STORAGE_DRIVER", "sqlite") || "sqlite").toLowerCase();
+  if (driver !== "sqlite" && driver !== "memory") {
+    throw new Error('Invalid STORAGE_DRIVER: expected "sqlite" or "memory".');
+  }
+
+  // The memory profile keeps structured state in an ephemeral in-memory SQLite
+  // connection and PAC artifacts in a process-local Map. No data files are written.
+  if (driver === "memory") {
     return {
-      dataDir: path.resolve(fromEnv),
+      dataDir: ":memory:",
+      storageDriver: "memory",
       runtimeProfile: isProduction() ? "production" : "development",
     };
-  if (isProduction())
-    return { dataDir: path.resolve(productionDataDir()), runtimeProfile: "production" };
-  return { dataDir: path.resolve(process.cwd(), "data"), runtimeProfile: "development" };
+  }
+
+  if (isContainer()) {
+    return { dataDir: path.resolve("/data"), storageDriver: "sqlite", runtimeProfile: "docker" };
+  }
+
+  const fromEnv = str("DATA_DIR");
+  if (fromEnv) {
+    return {
+      dataDir: path.resolve(fromEnv),
+      storageDriver: "sqlite",
+      runtimeProfile: isProduction() ? "production" : "development",
+    };
+  }
+
+  if (isProduction()) {
+    return {
+      dataDir: path.resolve(productionDataDir()),
+      storageDriver: "sqlite",
+      runtimeProfile: "production",
+    };
+  }
+
+  return {
+    dataDir: path.resolve(process.cwd(), "data"),
+    storageDriver: "sqlite",
+    runtimeProfile: "development",
+  };
 }
+
 export function loadEnv(): EnvConfig {
   loadDevelopmentDotEnv();
   const resolved = resolveDataDir();
-  // Respect the hosting platform’s injected PORT even inside containers; fall back to PacPilot’s default locally.
   const portRaw = str("PORT", "17321")!;
   const port = Number(portRaw);
-  if (!Number.isFinite(port) || port <= 0 || port > 65535)
+  if (!Number.isFinite(port) || port <= 0 || port > 65535) {
     throw new Error("Invalid PORT: " + portRaw);
+  }
   return { ...resolved, port, host: str("HOST", "0.0.0.0")! };
 }

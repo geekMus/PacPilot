@@ -16,6 +16,7 @@ import { requireAdmin } from "../middleware/auth";
 import { hasActivePacWorkflow } from "../services/workflow";
 import { reschedule } from "../services/scheduler";
 import { resolveLocale, t as serverT } from "../../shared/i18n";
+import { clearEphemeralFiles, isMemoryPath, statEphemeralFile, unlinkEphemeralFile } from "../storage/ephemeral-files";
 
 function requestLocale(req: import("express").Request): "zh_CN" | "en_US" {
   return resolveLocale(req.get("accept-language"));
@@ -38,8 +39,13 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
         /* missing or inaccessible data directory */
       }
     };
-    walk(env.dataDir);
-    const dbBytes = ["database.db", "database.db-wal", "database.db-shm"].reduce((sum, name) => {
+    if (env.storageDriver === "sqlite") walk(env.dataDir);
+    else {
+      for (const name of ["proxy.pac", "proxy.source.pac"]) {
+        try { dataBytes += statEphemeralFile(path.join(env.dataDir, name)).size; } catch { /* absent */ }
+      }
+    }
+    const dbBytes = env.storageDriver === "memory" ? 0 : ["database.db", "database.db-wal", "database.db-shm"].reduce((sum, name) => {
       try {
         return sum + fs.statSync(path.join(env.dataDir, name)).size;
       } catch {
@@ -53,7 +59,8 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
       .get();
     const pacFileInfo = (name: string) => {
       try {
-        const stat = fs.statSync(path.join(env.dataDir, name));
+        const filePath = path.join(env.dataDir, name);
+      const stat = isMemoryPath(env.dataDir) ? statEphemeralFile(filePath) : fs.statSync(filePath);
         if (!stat.isFile()) return { exists: false, sizeBytes: 0, modifiedAt: null };
         return { exists: true, sizeBytes: stat.size, modifiedAt: stat.mtime.toISOString() };
       } catch {
@@ -81,9 +88,11 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
     }
     const deleted: string[] = [];
     try {
+      if (isMemoryPath(env.dataDir)) clearEphemeralFiles();
       for (const name of ["proxy.pac", "proxy.source.pac"]) {
         try {
-          fs.unlinkSync(path.join(env.dataDir, name));
+          if (isMemoryPath(env.dataDir)) unlinkEphemeralFile(path.join(env.dataDir, name));
+          else fs.unlinkSync(path.join(env.dataDir, name));
           deleted.push(name);
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
@@ -91,7 +100,8 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
       }
       const fileInfo = (name: string) => {
         try {
-          const stat = fs.statSync(path.join(env.dataDir, name));
+          const filePath = path.join(env.dataDir, name);
+          const stat = isMemoryPath(env.dataDir) ? statEphemeralFile(filePath) : fs.statSync(filePath);
           return {
             exists: stat.isFile(),
             sizeBytes: stat.isFile() ? stat.size : 0,
@@ -113,14 +123,14 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
   router.post("/api/admin/logs/cleanup", requireAdmin(database), (_req, res) => {
     const deleted = cleanupOperationalLogs(database);
     if (deleted.generationLogs + deleted.accessEvents > 0) {
-      database.run("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
+      if (env.storageDriver === "sqlite") database.run("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
     }
     res.json({ deleted, retentionDays: getSettings(database).logRetentionDays });
   });
   router.post("/api/admin/logs/clear", requireAdmin(database), (_req, res) => {
     try {
       const deleted = clearOperationalLogs(database);
-      database.run("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
+      if (env.storageDriver === "sqlite") database.run("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
       res.json({ deleted, retentionDays: getSettings(database).logRetentionDays });
     } catch (error) {
       res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
@@ -146,10 +156,12 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
       );
       setSettings(database, DEFAULT_SETTINGS);
       database.run("COMMIT");
-      database.run("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
+      if (env.storageDriver === "sqlite") database.run("PRAGMA wal_checkpoint(TRUNCATE);");
+      database.run("VACUUM;");
       for (const name of ["proxy.pac", "proxy.source.pac"]) {
         try {
-          fs.unlinkSync(path.join(env.dataDir, name));
+          if (isMemoryPath(env.dataDir)) unlinkEphemeralFile(path.join(env.dataDir, name));
+          else fs.unlinkSync(path.join(env.dataDir, name));
         } catch {
           /* already absent */
         }

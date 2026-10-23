@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createMemoryStorage, MemoryArtifactStorage, MemoryKeyValueStorage } from "../storage/memory";
+import { clearEphemeralFiles, readEphemeralFile, statEphemeralFile, unlinkEphemeralFile, writeEphemeralFile } from "../storage/ephemeral-files";
 
 describe("MemoryKeyValueStorage", () => {
   it("isolates values by namespace and key", async () => {
@@ -78,5 +79,28 @@ describe("MemoryArtifactStorage", () => {
     const second = createMemoryStorage();
     expect(await second.values.get("settings", "config")).toBeUndefined();
     expect(await second.artifacts.exists("pac/output.pac")).toBe(false);
+  });
+});
+
+
+describe("ephemeral PAC artifact files", () => {
+  it("keeps artifacts in process memory and supports read/stat/delete", () => {
+    clearEphemeralFiles();
+    const file = ":memory:/proxy.pac";
+    writeEphemeralFile(file, "function FindProxyForURL(){return 'DIRECT';}");
+    expect(readEphemeralFile(file)).toContain("FindProxyForURL");
+    expect(statEphemeralFile(file).size).toBeGreaterThan(0);
+    expect(statEphemeralFile(file).isFile()).toBe(true);
+    unlinkEphemeralFile(file);
+    expect(() => readEphemeralFile(file)).toThrow();
+  });
+
+  it("clears all temporary artifacts on shutdown", () => {
+    clearEphemeralFiles();
+    writeEphemeralFile(":memory:/proxy.pac", "PAC");
+    writeEphemeralFile(":memory:/proxy.source.pac", "source");
+    clearEphemeralFiles();
+    expect(() => readEphemeralFile(":memory:/proxy.pac")).toThrow();
+    expect(() => readEphemeralFile(":memory:/proxy.source.pac")).toThrow();
   });
 });

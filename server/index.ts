@@ -10,6 +10,7 @@ import {
 } from "./services/admin-credentials";
 import { trackTcpConnection } from "./services/request-monitor";
 import { runtimeLog } from "./utils/runtime-log";
+import { clearEphemeralFiles } from "./storage/ephemeral-files";
 
 async function main(): Promise<void> {
   const env = loadEnv();
@@ -22,7 +23,7 @@ async function main(): Promise<void> {
   const cleanupLogs = (): void => {
     const deleted = cleanupOperationalLogs(database);
     if (deleted.generationLogs + deleted.accessEvents > 0) {
-      database.run("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
+      if (env.storageDriver === "sqlite") database.run("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
     }
   };
   cleanupLogs();
@@ -67,6 +68,7 @@ async function main(): Promise<void> {
     stopScheduler();
     clearInterval(logCleanupTimer);
     closeDb();
+    if (env.storageDriver === "memory") clearEphemeralFiles();
     process.exit(1);
   });
 
@@ -75,6 +77,7 @@ async function main(): Promise<void> {
     clearInterval(logCleanupTimer);
     server.close(() => {
       closeDb();
+      if (env.storageDriver === "memory") clearEphemeralFiles();
       process.exit(0);
     });
   };
