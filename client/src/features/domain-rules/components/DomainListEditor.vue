@@ -132,7 +132,11 @@ function jumpToLine(lineNumber: number) {
   const editor = editorField.value?.getEditorView();
   if (!editor || lineNumber < 1 || lineNumber > editor.state.doc.lines) return;
   const line = editor.state.doc.line(lineNumber);
-  const scroller = editor.scrollDOM;
+  // CodeMirror 的内部 scroller 被限制为 overflow:hidden；真正可滚动的是外层 AppScrollArea 视口。
+  const scroller =
+    editor.dom.closest(".cm-field-scroll-viewport") instanceof HTMLElement
+      ? (editor.dom.closest(".cm-field-scroll-viewport") as HTMLElement)
+      : editor.scrollDOM;
   if (jumpHighlightTimer !== null) window.clearTimeout(jumpHighlightTimer);
 
   editor.dispatch({
@@ -146,17 +150,19 @@ function jumpToLine(lineNumber: number) {
 
   const ensureLineVisible = () => {
     if (editorField.value?.getEditorView() !== editor || lineNumber > editor.state.doc.lines) return;
-    const block = editor.lineBlockAt(editor.state.doc.line(lineNumber).from);
-    const rect = scroller.getBoundingClientRect();
-    const top = rect.top + scroller.clientTop;
-    const bottom = top + scroller.clientHeight;
-    const lineTop = top + block.top - scroller.scrollTop;
-    const lineBottom = lineTop + Math.max(1, block.height);
-    if (lineBottom <= top || lineTop >= bottom) {
-      scroller.scrollTop = Math.max(
-        0,
-        block.top - Math.max(0, (scroller.clientHeight - block.height) / 2)
-      );
+    const line = editor.state.doc.line(lineNumber);
+    const lineBlock = editor.lineBlockAt(line.from);
+    const coords = editor.coordsAtPos(line.from);
+    if (!coords) return;
+    const viewportRect = scroller.getBoundingClientRect();
+    const viewportTop = viewportRect.top + scroller.clientTop;
+    const viewportBottom = viewportTop + scroller.clientHeight;
+    const lineHeight = Math.max(1, coords.bottom - coords.top);
+    if (coords.top < viewportTop || coords.bottom > viewportBottom) {
+      // 使用实际滚动视口的坐标差调整 scrollTop，避免依赖被禁用滚动的 CodeMirror 内部 scroller。
+      const lineTopInViewport = coords.top - viewportTop + scroller.scrollTop;
+      scroller.scrollTop =
+        lineTopInViewport - Math.max(0, (scroller.clientHeight - lineHeight) / 2);
     }
   };
   // 兼容移动端触摸、软键盘及容器重排后的布局变化。
