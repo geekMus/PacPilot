@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { DialogDescription, DialogTitle } from "reka-ui";
-import AppDialog from "@/components/AppDialog.vue";
+import {
+  PopoverAnchor,
+  PopoverContent,
+  PopoverPortal,
+  PopoverRoot,
+} from "reka-ui";
 
 const props = withDefaults(
   defineProps<{
@@ -62,76 +66,96 @@ function onOpenChange(open: boolean) {
 </script>
 
 <template>
-  <div class="confirm-anchor" @click.stop>
-    <slot name="trigger" :toggle="toggle" :open="props.open" />
-  </div>
-  <AppDialog
-    :open="props.open"
-    :label="props.title"
-    :close-label="resolvedCancelText"
-    width="min(440px, calc(100vw - 24px))"
-    content-class="confirm-dialog"
-    @update:open="onOpenChange"
-  >
-    <template #header>
-      <div class="confirm-dialog-heading">
-        <DialogTitle class="confirm-dialog-title">{{ props.title }}</DialogTitle>
-        <DialogDescription class="confirm-dialog-description">
-          {{ props.description }}
-        </DialogDescription>
+  <PopoverRoot :open="props.open" @update:open="onOpenChange">
+    <PopoverAnchor as-child>
+      <div class="confirm-anchor" @click.stop>
+        <slot name="trigger" :toggle="toggle" :open="props.open" />
       </div>
-    </template>
-    <template #body>
-      <div v-if="props.disabled && props.disabledReason" class="confirm-disabled-reason">
-        {{ resolvedDisabledReason }}
-      </div>
-    </template>
-    <template #footer>
-      <button type="button" class="confirm-cancel" :disabled="props.busy" @click="close">
-        {{ resolvedCancelText }}
-      </button>
-      <button
-        type="button"
-        :class="props.tone === 'warning' ? 'confirm-warning' : 'confirm-danger'"
-        :disabled="props.disabled || props.busy"
-        :title="props.busy ? resolvedBusyText : props.disabled ? resolvedDisabledReason : resolvedConfirmText"
-        @click="emit('confirm')"
+    </PopoverAnchor>
+    <PopoverPortal>
+      <PopoverContent
+        class="confirm-popover"
+        :align="props.align"
+        side="bottom"
+        :side-offset="7"
+        :collision-padding="10"
+        @open-auto-focus.prevent
       >
-        {{ props.busy ? resolvedBusyText : resolvedConfirmText }}
-      </button>
-    </template>
-  </AppDialog>
+        <div class="confirm-popover-heading">
+          <h3 class="confirm-popover-title">{{ props.title }}</h3>
+          <p class="confirm-popover-description">{{ props.description }}</p>
+        </div>
+        <div v-if="props.disabled && props.disabledReason" class="confirm-disabled-reason">
+          {{ resolvedDisabledReason }}
+        </div>
+        <div class="confirm-popover-actions">
+          <button type="button" class="confirm-cancel" :disabled="props.busy" @click="close">
+            {{ resolvedCancelText }}
+          </button>
+          <button
+            type="button"
+            :class="props.tone === 'warning' ? 'confirm-warning' : 'confirm-danger'"
+            :disabled="props.disabled || props.busy"
+            :title="props.busy ? resolvedBusyText : props.disabled ? resolvedDisabledReason : resolvedConfirmText"
+            @click="emit('confirm')"
+          >
+            {{ props.busy ? resolvedBusyText : resolvedConfirmText }}
+          </button>
+        </div>
+        <div class="confirm-popover-arrow" />
+      </PopoverContent>
+    </PopoverPortal>
+  </PopoverRoot>
 </template>
 
 <style>
 .confirm-anchor {
   position: relative;
-  display: inline-block;
+  display: inline-flex;
   max-width: 100%;
 }
-.confirm-dialog .app-dialog-header {
-  padding-bottom: 14px;
-}
-.confirm-dialog-heading {
+.confirm-popover {
+  position: relative;
+  z-index: 1200;
+  box-sizing: border-box;
   display: grid;
-  gap: 7px;
+  width: max-content;
+  min-width: min(280px, calc(100vw - 24px));
+  max-width: min(360px, calc(100vw - 24px));
+  gap: 14px;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--dialog-panel-shadow, 0 12px 36px rgb(0 0 0 / 18%));
+  outline: none;
+  transform-origin: var(--reka-popover-content-transform-origin);
+}
+.confirm-popover[data-state="open"] {
+  animation: confirm-popover-in 120ms ease-out;
+}
+.confirm-popover-heading {
+  display: grid;
+  gap: 6px;
   min-width: 0;
 }
-.confirm-dialog-title {
+.confirm-popover-title {
   margin: 0;
   color: var(--text);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 750;
   line-height: 1.4;
 }
-.confirm-dialog-description {
+.confirm-popover-description {
+  margin: 0;
   color: var(--muted);
   font-size: 12px;
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
 .confirm-disabled-reason {
-  padding: 10px 11px;
+  padding: 9px 10px;
   border: 1px solid var(--line);
   border-radius: 9px;
   color: var(--muted);
@@ -139,28 +163,73 @@ function onOpenChange(open: boolean) {
   font-size: 12px;
   line-height: 1.5;
 }
-.confirm-dialog .confirm-danger {
+.confirm-popover-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.confirm-popover-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.confirm-popover-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.confirm-popover-actions .confirm-danger {
   background: var(--red);
   border-color: var(--red);
   color: white;
 }
-.confirm-dialog .confirm-warning {
+.confirm-popover-actions .confirm-warning {
   background: var(--amber-soft, #fff3dc);
   border-color: color-mix(in srgb, var(--amber, #d97706) 40%, var(--line));
   color: var(--amber, #b45309);
 }
-.confirm-dialog .confirm-warning:hover:not(:disabled) {
+.confirm-popover-actions .confirm-warning:hover:not(:disabled) {
   filter: brightness(0.98);
 }
-.confirm-dialog .confirm-danger:hover:not(:disabled) {
+.confirm-popover-actions .confirm-danger:hover:not(:disabled) {
   filter: brightness(0.96);
 }
-.confirm-dialog .confirm-cancel:hover:not(:disabled) {
+.confirm-popover-actions .confirm-cancel:hover:not(:disabled) {
   border-color: var(--accent);
   color: var(--accent);
 }
-.confirm-dialog .app-dialog-body:empty {
-  display: none;
-  padding: 0;
+.confirm-popover-arrow {
+  position: absolute;
+  top: -5px;
+  right: 20px;
+  width: 8px;
+  height: 8px;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  background: var(--surface);
+  transform: rotate(45deg);
+}
+.confirm-popover[data-align="start"] .confirm-popover-arrow {
+  right: auto;
+  left: 20px;
+}
+@keyframes confirm-popover-in {
+  from { opacity: 0; transform: translateY(-3px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confirm-popover[data-state="open"] {
+    animation: none;
+  }
 }
 </style>
