@@ -1108,7 +1108,6 @@ textarea.body-area {
     flex-direction: column;
     gap: 10px;
     width: 100%;
-    height: 100%;
     min-height: 0;
   }
   .timezone-sheet-search {
@@ -1126,9 +1125,9 @@ textarea.body-area {
     font-size: 16px;
   }
   .timezone-sheet-options {
-    flex: 1 1 0%;
+    flex: 0 1 auto;
     width: 100%;
-    height: 0;
+    height: min(48dvh, 420px);
     min-height: 0;
     max-height: min(48dvh, 420px);
     margin: 0;
