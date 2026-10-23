@@ -33,7 +33,7 @@ const detailOpen = ref(false);
 
 function dateLabel(value: string): string {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(locale.value, { dateStyle: "short", timeStyle: "short" }).format(date);
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(locale.value === "en_US" ? "en-US" : "zh-CN", { dateStyle: "short", timeStyle: "short" }).format(date);
 }
 function modeLabel(mode: string): string {
   return mode === "remote" ? t("workflow.remoteMode") : mode === "custom" ? t("workflow.customMode") : mode;
