@@ -276,23 +276,37 @@ onMounted(() => {
           </nav>
 
           <section v-if="tab === 'channels'" class="workspace-layout">
-            <AppScrollArea root-class="directory-panel" type="always">
-              <div class="panel-heading">
-                <div><h3>通知渠道</h3><p>保存可复用的通知目标</p></div>
+            <section class="directory-panel">
+              <header class="panel-heading">
+                <span class="panel-heading-icon"><AppIcon name="network" :size="16" /></span>
+                <div class="panel-heading-copy"><h3>通知渠道</h3><p>保存可复用的通知目标</p></div>
                 <button class="icon-button" title="新建渠道" aria-label="新建渠道" @click="resetC">＋</button>
-              </div>
-              <div v-if="!channels.length" class="empty-directory">
-                <span class="empty-icon"><AppIcon name="network" :size="22" /></span>
-                <strong>还没有通知渠道</strong><p>添加钉钉机器人或 HTTP Webhook，供规则调用。</p>
-                <button class="button primary full" @click="resetC">创建第一个渠道</button>
-              </div>
-              <button v-for="item in channels" :key="item.id" class="directory-item" :class="{ selected: cid === item.id }" @click="editC(item)">
-                <span class="provider-icon"><AppIcon :name="item.provider === 'dingtalk' ? 'bell-ring' : 'globe'" :size="18" /></span>
-                <span class="directory-content"><strong>{{ item.name }}</strong><small>{{ providerName(item.provider) }}</small><small class="url-preview">{{ shortUrl(item.config.url) || "尚未配置 URL" }}</small></span>
-                <span class="status-dot" :class="{ online: item.enabled }" :title="item.enabled ? '已启用' : '已停用'"></span>
-              </button>
-              <div v-if="channels.length" class="directory-bottom"><span class="status-dot online"></span> {{ enabledChannels.length }} 个渠道已启用</div>
-            </AppScrollArea>
+              </header>
+              <AppScrollArea root-class="panel-scroll" type="always">
+                <div v-if="!channels.length" class="empty-directory">
+                  <span class="empty-icon"><AppIcon name="network" :size="22" /></span>
+                  <strong>还没有通知渠道</strong><p>添加钉钉机器人或 HTTP Webhook，供规则调用。</p>
+                  <button class="button primary full" @click="resetC">创建第一个渠道</button>
+                </div>
+                <div
+                  v-for="item in channels"
+                  :key="item.id"
+                  class="directory-item"
+                  :class="{ selected: cid === item.id }"
+                  role="button"
+                  tabindex="0"
+                  @click="editC(item)"
+                  @keydown.enter.prevent="editC(item)"
+                  @keydown.space.prevent="editC(item)"
+                >
+                  <span class="provider-icon"><AppIcon :name="item.provider === 'dingtalk' ? 'bell-ring' : 'globe'" :size="18" /></span>
+                  <span class="directory-content"><strong>{{ item.name }}</strong><small>{{ providerName(item.provider) }}</small><small class="url-preview">{{ shortUrl(item.config.url) || "尚未配置 URL" }}</small></span>
+                  <span class="status-dot" :class="{ online: item.enabled }" :title="item.enabled ? '已启用' : '已停用'"></span>
+                  <button type="button" class="row-delete" :aria-label="'删除渠道 ' + item.name" :title="'删除渠道 ' + item.name" @click.stop="deleteC(item)"><AppIcon name="trash-2" :size="14" /></button>
+                </div>
+              </AppScrollArea>
+              <footer v-if="channels.length" class="panel-footer"><span class="status-dot online"></span> {{ enabledChannels.length }} 个渠道已启用</footer>
+            </section>
 
             <form v-if="channelEditorOpen" class="editor-panel" @submit.prevent="saveC">
               <header class="editor-heading">
@@ -354,16 +368,33 @@ onMounted(() => {
           </section>
 
           <section v-else-if="tab === 'rules'" class="workspace-layout rule-layout">
-            <AppScrollArea root-class="directory-panel" type="always">
-              <div class="panel-heading"><div><h3>触发规则</h3><p>决定何时向哪些渠道发送</p></div><button class="icon-button" title="新建规则" aria-label="新建规则" @click="resetR">＋</button></div>
-              <div v-if="!rules.length" class="empty-directory"><span class="empty-icon"><AppIcon name="route" :size="22" /></span><strong>还没有通知规则</strong><p>创建规则，把业务事件路由到通知渠道。</p><button class="button primary full" @click="resetR">创建第一条规则</button></div>
-              <button v-for="item in rules" :key="item.id" class="directory-item rule-directory-item" :class="{ selected: rid === item.id }" @click="editR(item)">
-                <span class="provider-icon rule-provider"><AppIcon name="route" :size="18" /></span>
-                <span class="directory-content"><strong>{{ item.name }}</strong><small>{{ evName(item.eventType) }} · {{ phaseName(item.phase) }}</small><small>{{ outcomeName(item.outcome) }} · {{ item.channelIds.length }} 个通知渠道</small></span>
-                <span class="status-dot" :class="{ online: item.enabled }" :title="item.enabled ? '已启用' : '已停用'"></span>
-              </button>
-              <div v-if="rules.length" class="directory-bottom"><span class="status-dot online"></span> {{ enabledRules.length }} 条规则正在生效</div>
-            </AppScrollArea>
+            <section class="directory-panel">
+              <header class="panel-heading">
+                <span class="panel-heading-icon"><AppIcon name="route" :size="16" /></span>
+                <div class="panel-heading-copy"><h3>触发规则</h3><p>决定何时向哪些渠道发送</p></div>
+                <button class="icon-button" title="新建规则" aria-label="新建规则" @click="resetR">＋</button>
+              </header>
+              <AppScrollArea root-class="panel-scroll" type="always">
+                <div v-if="!rules.length" class="empty-directory"><span class="empty-icon"><AppIcon name="route" :size="22" /></span><strong>还没有通知规则</strong><p>创建规则，把业务事件路由到通知渠道。</p><button class="button primary full" @click="resetR">创建第一条规则</button></div>
+                <div
+                  v-for="item in rules"
+                  :key="item.id"
+                  class="directory-item rule-directory-item"
+                  :class="{ selected: rid === item.id }"
+                  role="button"
+                  tabindex="0"
+                  @click="editR(item)"
+                  @keydown.enter.prevent="editR(item)"
+                  @keydown.space.prevent="editR(item)"
+                >
+                  <span class="provider-icon rule-provider"><AppIcon name="route" :size="18" /></span>
+                  <span class="directory-content"><strong>{{ item.name }}</strong><small>{{ evName(item.eventType) }} · {{ phaseName(item.phase) }}</small><small>{{ outcomeName(item.outcome) }} · {{ item.channelIds.length }} 个通知渠道</small></span>
+                  <span class="status-dot" :class="{ online: item.enabled }" :title="item.enabled ? '已启用' : '已停用'"></span>
+                  <button type="button" class="row-delete" :aria-label="'删除规则 ' + item.name" :title="'删除规则 ' + item.name" @click.stop="deleteR(item)"><AppIcon name="trash-2" :size="14" /></button>
+                </div>
+              </AppScrollArea>
+              <footer v-if="rules.length" class="panel-footer"><span class="status-dot online"></span> {{ enabledRules.length }} 条规则正在生效</footer>
+            </section>
 
             <form v-if="ruleEditorOpen" class="editor-panel" @submit.prevent="saveR">
               <header class="editor-heading">
@@ -415,19 +446,27 @@ onMounted(() => {
           </section>
 
           <section v-else class="history-workspace">
-            <div class="history-column">
-              <AppScrollArea root-class="history-panel" type="always">
-                <header class="panel-heading"><div><h3>最近事件</h3><p>业务系统发布的标准化事件</p></div><span class="neutral-count">{{ events.length }} 条</span></header>
+            <section class="history-panel">
+              <header class="panel-heading">
+                <span class="panel-heading-icon"><AppIcon name="activity" :size="16" /></span>
+                <div class="panel-heading-copy"><h3>最近事件</h3><p>业务系统发布的标准化事件</p></div>
+                <span class="neutral-count">{{ events.length }} 条</span>
+              </header>
+              <AppScrollArea root-class="panel-scroll" type="always">
                 <div v-if="!events.length" class="empty-history"><span class="empty-icon"><AppIcon name="activity" :size="22" /></span><strong>暂时没有事件记录</strong><p>当任务或请求产生事件后，记录会显示在这里。</p></div>
                 <article v-for="item in events" :key="item.id" class="event-row">
                   <span class="timeline-marker"><AppIcon :name="item.outcome === 'failure' ? 'circle-alert' : item.outcome === 'success' ? 'circle-check' : 'activity'" :size="16" /></span>
                   <div class="history-row-content"><div class="history-row-title"><strong>{{ evName(item.type) }}</strong><span class="phase-tag">{{ phaseName(item.phase) }}</span><span v-if="item.outcome" class="outcome-tag" :class="'outcome-' + item.outcome">{{ outcomeName(item.outcome) }}</span></div><p>{{ item.summary || "该事件没有附加说明。" }}</p><small>{{ formatDate(item.occurredAt) }} · {{ item.subject?.name || item.subject?.type || "业务事件" }}</small></div>
                 </article>
               </AppScrollArea>
-            </div>
-            <div class="history-column delivery-column">
-              <AppScrollArea root-class="history-panel" type="always">
-                <header class="panel-heading delivery-heading"><div><h3>投递记录</h3><p>逐条查看渠道发送结果与重试状态</p></div><select v-model="deliveryFilter" class="filter-select" aria-label="按投递状态筛选"><option value="all">全部状态</option><option value="succeeded">已送达</option><option value="pending">等待发送</option><option value="sending">发送中</option><option value="failed">发送失败</option></select></header>
+            </section>
+            <section class="history-panel">
+              <header class="panel-heading">
+                <span class="panel-heading-icon"><AppIcon name="bell-ring" :size="16" /></span>
+                <div class="panel-heading-copy"><h3>投递记录</h3><p>逐条查看渠道发送结果与重试状态</p></div>
+                <select v-model="deliveryFilter" class="filter-select" aria-label="按投递状态筛选"><option value="all">全部状态</option><option value="succeeded">已送达</option><option value="pending">等待发送</option><option value="sending">发送中</option><option value="failed">发送失败</option></select>
+              </header>
+              <AppScrollArea root-class="panel-scroll" type="always">
                 <div v-if="!filteredDeliveries.length" class="empty-history"><span class="empty-icon"><AppIcon name="activity" :size="22" /></span><strong>{{ deliveries.length ? "没有符合条件的记录" : "还没有投递记录" }}</strong><p>{{ deliveries.length ? "试试切换其他投递状态。" : "当事件匹配到启用的规则时，会在这里创建投递记录。" }}</p></div>
                 <article v-for="item in filteredDeliveries" :key="item.id" class="delivery-row">
                   <span class="delivery-status-icon" :class="'delivery-' + item.status"><AppIcon :name="statusIcon(item.status)" :size="16" /></span>
@@ -435,7 +474,7 @@ onMounted(() => {
                   <button v-if="item.status === 'failed'" class="button retry-button" @click="retry(item.id)"><AppIcon name="refresh-cw" :size="14" /> 重试</button>
                 </article>
               </AppScrollArea>
-            </div>
+            </section>
           </section>
         </section>
       </template>
@@ -879,76 +918,110 @@ onMounted(() => {
   overflow: hidden;
 }
 
-/* ---------- Panels (shared surface + radius baseline) ---------- */
+/* ---------- Panels: "header band + scroll body (+ footer)" ----------
+   Every workspace panel uses the same skeleton. The header and the optional
+   footer are fixed bands that belong to the whole panel; only the body is a
+   scroll owner (AppScrollArea), so a panel's scrollbar never runs under its
+   own title. */
 
 .directory-panel,
 .editor-panel,
 .history-panel {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
   max-height: 100%;
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--wh-radius-panel);
   background: var(--wh-panel-bg);
   box-shadow: var(--shadow);
+}
+
+/* Header band — reads as the panel's own title, not as the first row. */
+.panel-heading {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 15px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 16%, var(--line));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 8%, var(--surface-2)),
+    var(--wh-heading-bg)
+  );
+}
+
+.panel-heading-icon {
+  display: grid;
+  flex: 0 0 30px;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.panel-heading-copy {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 3px;
+  min-width: 0;
+}
+
+.panel-heading-copy h3 {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 780;
+  letter-spacing: -0.01em;
+}
+
+.panel-heading-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Scroll body — the single scroll owner inside a panel. */
+.panel-scroll {
+  flex: 1 1 0%;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.panel-scroll :deep(.app-scroll-area-viewport) {
+  height: 100%;
+}
+
+/* Footer band (optional) — status/summary strip, never scrolls. */
+.panel-footer {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  border-top: 1px solid var(--line);
+  background: var(--wh-heading-bg);
+  color: var(--muted);
+  font-size: 10px;
 }
 
 /* ---------- Directory panel (channels / rules list) ---------- */
 
 .directory-panel {
-  display: flex;
   flex: 0 0 min(32%, 340px);
-  flex-direction: column;
   width: min(32%, 340px);
-  height: 100%;
-  max-height: 100%;
   border-color: color-mix(in srgb, var(--accent) 12%, var(--line));
-}
-
-.directory-panel :deep(.app-scroll-area-viewport) {
-  display: flex;
-  flex: 1 1 0%;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
-  overscroll-behavior: contain;
-  background: transparent;
-}
-
-.panel-heading {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 19px;
-}
-
-.directory-panel .panel-heading {
-  position: sticky;
-  z-index: 1;
-  top: 0;
-  padding: 18px 17px 15px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 14%, var(--line));
-  background: var(--wh-heading-bg);
-}
-
-.panel-heading h3 {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 780;
-}
-
-.panel-heading p {
-  margin: 5px 0 0;
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1.5;
 }
 
 .icon-button {
@@ -976,12 +1049,11 @@ onMounted(() => {
 .directory-item {
   position: relative;
   display: flex;
-  flex: 0 0 auto;
-  align-items: flex-start;
-  gap: 11px;
+  align-items: center;
+  gap: 10px;
   width: calc(100% - 16px);
   margin: 4px 8px;
-  padding: 12px;
+  padding: 9px 10px;
   border: 1px solid transparent;
   border-radius: var(--wh-radius-item);
   background: transparent;
@@ -993,6 +1065,11 @@ onMounted(() => {
 
 .directory-item:hover {
   background: var(--wh-item-hover);
+}
+
+.directory-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .directory-item.selected {
@@ -1007,12 +1084,58 @@ onMounted(() => {
   color: var(--accent);
 }
 
+/* Quick delete — revealed on hover / keyboard focus so the row stays calm at
+   rest, and always available on touch devices that cannot hover. */
+.row-delete {
+  display: grid;
+  flex: 0 0 26px;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease, color 140ms ease, background 140ms ease,
+    border-color 140ms ease;
+}
+
+.directory-item:hover .row-delete,
+.directory-item:focus-within .row-delete {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.row-delete:hover {
+  border-color: color-mix(in srgb, var(--red) 30%, var(--line));
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.row-delete:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 1px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: none) {
+  .row-delete {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 .provider-icon {
   display: grid;
-  flex: 0 0 36px;
+  flex: 0 0 34px;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border: 1px solid var(--line);
   border-radius: var(--wh-radius-control);
   background: var(--wh-heading-bg);
@@ -1051,23 +1174,9 @@ onMounted(() => {
   opacity: 0.85;
 }
 
-.directory-bottom {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 8px;
-  margin: auto 0 0;
-  padding: 13px 17px;
-  border-top: 1px solid color-mix(in srgb, var(--accent) 14%, var(--line));
-  background: var(--wh-heading-bg);
-  color: var(--muted);
-  font-size: 10px;
-}
-
 .empty-directory,
 .empty-history {
   display: flex;
-  flex: 0 0 auto;
   align-items: center;
   flex-direction: column;
   gap: 8px;
@@ -1176,7 +1285,6 @@ onMounted(() => {
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-gutter: stable;
-  overscroll-behavior: contain;
 }
 
 /* ---------- Forms ---------- */
@@ -1553,49 +1661,6 @@ onMounted(() => {
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
 }
 
-.history-column {
-  display: flex;
-  min-width: 0;
-  min-height: 0;
-  max-height: 100%;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: var(--wh-radius-panel);
-  background: var(--wh-panel-bg);
-  box-shadow: var(--shadow);
-}
-
-.history-panel {
-  display: flex;
-  flex: 1 1 0%;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  border: 0;
-  border-radius: inherit;
-  box-shadow: none;
-}
-
-.history-panel :deep(.app-scroll-area-viewport) {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
-  overscroll-behavior: contain;
-}
-
-.history-panel .panel-heading {
-  position: sticky;
-  z-index: 2;
-  top: 0;
-  border-bottom: 1px solid var(--line);
-  background: var(--wh-heading-bg);
-}
-
-.delivery-heading { gap: 14px; }
-
 .neutral-count {
   padding: 5px 8px;
   border: 1px solid var(--line);
@@ -1779,7 +1844,6 @@ onMounted(() => {
 
   .directory-panel,
   .editor-panel,
-  .history-column,
   .history-panel {
     max-height: none;
     width: 100%;
@@ -1791,22 +1855,15 @@ onMounted(() => {
     height: var(--wh-directory-height);
   }
 
-  .directory-panel :deep(.app-scroll-area-viewport) {
-    height: 100%;
-  }
-
   .editor-panel {
     height: var(--wh-editor-height);
   }
 
   .history-workspace { display: flex; }
 
-  .history-column {
+  .history-panel {
+    flex: 0 0 auto;
     height: var(--wh-history-height);
-  }
-
-  .history-panel :deep(.app-scroll-area-viewport) {
-    height: 100%;
   }
 
   .editor-heading { padding-right: 17px; padding-left: 17px; }
@@ -1851,7 +1908,8 @@ onMounted(() => {
   .editor-footer .button.primary { flex: 1 0 100%; }
   .editor-note { padding-right: 16px; padding-left: 16px; }
   .inline-empty { flex-wrap: wrap; }
-  .delivery-heading { align-items: flex-start; flex-direction: column; }
+  .panel-heading { align-items: flex-start; flex-wrap: wrap; }
+  .panel-heading-copy p { white-space: normal; }
   .filter-select { max-width: none; width: 100%; }
   .event-row,
   .delivery-row { gap: 9px; padding: 13px; }
