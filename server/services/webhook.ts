@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import type { AppSettings, WebhookConfig } from "../domain/settings";
+import type { DomainEvent } from "../../shared/contracts";
 import { createDefaultWebhookConfig, normalizeWebhookConfig } from "../domain/settings";
 import { assertSafeHttpUrl } from "../utils/url-safety";
 import { runtimeLog } from "../utils/runtime-log";
@@ -15,10 +16,7 @@ export interface WebhookDeliveryResult {
 }
 type EventKind = "success" | "failure" | "test";
 interface MessageContext {
-  event: string;
-  ok: boolean;
-  message: string;
-  timestamp: string;
+  event: string; ok: boolean; message: string; timestamp: string; status?: string;
 }
 
 function urlValidationError(raw: string, label: string): string | null {
@@ -110,7 +108,7 @@ function buildContext(
 function templateValues(context: MessageContext): Record<string, string> {
   return {
     event: context.event,
-    status: context.event === "webhook.test" ? "test" : context.ok ? "success" : "failure",
+    status: context.status ?? (context.event === "webhook.test" ? "test" : context.ok ? "success" : "failure"),
     message: context.message,
     timestamp: context.timestamp,
     ok: String(context.ok),
@@ -318,4 +316,10 @@ export async function notifyFailure(
   message?: string
 ): Promise<WebhookDeliveryResult | null> {
   return notify(getNotificationConfig(settings, "failure"), "failure", message, settings.timezone);
+}
+
+export async function sendWebhookForEvent(input: WebhookConfig, event: DomainEvent, timeZone = "Asia/Shanghai"): Promise<WebhookDeliveryResult> {
+ const config=normalizeWebhookConfig(input);
+ const context:MessageContext={event:event.type+"."+event.phase,ok:event.outcome==="success",status:event.outcome||(event.phase==="started"?"started":"unknown"),message:event.summary||event.type+" "+event.phase,timestamp:new Date(event.occurredAt).toLocaleString("zh-CN",{timeZone})};
+ return config.provider==="dingtalk"?sendDingTalk(config,context):sendCustom(config,context);
 }

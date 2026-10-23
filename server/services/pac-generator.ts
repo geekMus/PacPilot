@@ -2,7 +2,6 @@ import { minify } from "terser";
 import path from "path";
 import { isIP } from "node:net";
 import type { ApplicationStorage } from "../storage/repositories";
-import { notifyFailure, notifySuccess } from "./webhook";
 import { APP_VERSION } from "../version";
 import { t } from "../../shared/i18n";
 import type { AppSettings } from "../../shared/contracts";
@@ -336,8 +335,6 @@ export async function generatePac(
     }
 
     await storage.generationLogs.append(true, settings.mode, resultCode, resultData);
-    const webhook = await notifySuccess(settings);
-    if (webhook) detail = { ...detail, webhook };
     return {
       success: true,
       mode: settings.mode,
@@ -354,7 +351,6 @@ export async function generatePac(
         ? (err as { fetchMeta?: unknown }).fetchMeta
         : undefined;
     await storage.generationLogs.append(false, settings.mode, "failed", {}, message);
-    const webhook = await notifyFailure(settings, message);
     runtimeLog("error", `PAC generation failed: ${message}`);
     return {
       success: false,
@@ -368,7 +364,6 @@ export async function generatePac(
         pac_proxy: settings.pacProxy,
         error: message,
         fetch: fetchMeta || null,
-        webhook: webhook || null,
       },
     };
   }

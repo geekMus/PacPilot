@@ -5,6 +5,7 @@ import type {
   WorkflowRun,
   WorkflowStage,
   WorkflowStatus,
+  NotificationChannel, NotificationRule, DomainEvent, NotificationDelivery, NotificationEventDefinition,
 } from "@shared/contracts";
 export type {
   AppSettings,
@@ -15,6 +16,7 @@ export type {
   WorkflowRun,
   WorkflowStage,
   WorkflowStatus,
+  NotificationChannel, NotificationRule, DomainEvent, NotificationDelivery, NotificationEventDefinition,
 } from "@shared/contracts";
 
 export interface Meta {
@@ -258,6 +260,15 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  notifications: () => request<{ channels: NotificationChannel[]; rules: NotificationRule[]; events: DomainEvent[]; deliveries: NotificationDelivery[]; eventCatalog: NotificationEventDefinition[] }>("/api/admin/notifications"),
+  createNotificationChannel: (body: Partial<NotificationChannel>) => request<NotificationChannel>("/api/admin/notifications/channels", {method:"POST",body:JSON.stringify(body)}),
+  updateNotificationChannel: (id:string,body:Partial<NotificationChannel>) => request<NotificationChannel>("/api/admin/notifications/channels/"+encodeURIComponent(id),{method:"PUT",body:JSON.stringify(body)}),
+  deleteNotificationChannel: (id:string) => request<{ok:boolean}>("/api/admin/notifications/channels/"+encodeURIComponent(id),{method:"DELETE"}),
+  testNotificationChannel: (id:string) => request<WebhookTestResult>("/api/admin/notifications/channels/"+encodeURIComponent(id)+"/test",{method:"POST"}),
+  createNotificationRule: (body:Partial<NotificationRule>) => request<NotificationRule>("/api/admin/notifications/rules",{method:"POST",body:JSON.stringify(body)}),
+  updateNotificationRule: (id:string,body:Partial<NotificationRule>) => request<NotificationRule>("/api/admin/notifications/rules/"+encodeURIComponent(id),{method:"PUT",body:JSON.stringify(body)}),
+  deleteNotificationRule: (id:string) => request<{ok:boolean}>("/api/admin/notifications/rules/"+encodeURIComponent(id),{method:"DELETE"}),
+  retryNotificationDelivery: (id:string) => request<{ok:boolean}>("/api/admin/notifications/deliveries/"+encodeURIComponent(id)+"/retry",{method:"POST"}),
   testWebhook: (body: { config: WebhookConfig }) =>
     request<WebhookTestResult>("/api/admin/webhook-test", {
       method: "POST",

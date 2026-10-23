@@ -1,0 +1,7 @@
+import {beforeEach,describe,expect,it} from "vitest";
+import {createMemoryApplicationStorage} from "../storage/memory/application-storage";
+import {getNotificationAdminView,publishDomainEvent,saveNotificationChannel,saveNotificationRule} from "../services/notifications";
+describe("notification events and rules",()=>{let storage:ReturnType<typeof createMemoryApplicationStorage>;beforeEach(()=>{storage=createMemoryApplicationStorage()});
+it("stores unmatched events and exposes the catalogue",async()=>{await publishDomainEvent(storage,{type:"request.process",phase:"finished",outcome:"success",subject:{type:"request",id:"r1"},correlationId:"r1"});const v=await getNotificationAdminView(storage);expect(v.events).toHaveLength(1);expect(v.eventCatalog.some(x=>x.type==="request.process")).toBe(true);expect(v.deliveries).toHaveLength(0)});
+it("rejects invalid phases and missing channel references",async()=>{const c=await saveNotificationChannel(storage,{name:"Draft",config:{provider:"custom",url:"",method:"POST",headers:"{}",body:"",dingTalkSecret:"",dingTalkMessageType:"text",testBody:"{}",messageTemplate:"",testMessageTemplate:""}});await expect(saveNotificationRule(storage,{name:"bad",eventType:"system.error",phase:"started",outcome:"any",channelIds:[c.id]})).rejects.toThrow("不支持所选阶段");await expect(saveNotificationRule(storage,{name:"bad",eventType:"task.execution",phase:"started",outcome:"any",channelIds:["missing"]})).rejects.toThrow("不存在")});
+});

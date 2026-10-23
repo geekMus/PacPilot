@@ -20,6 +20,7 @@ export function resetOperationalData(database: AppDatabase, settings = DEFAULT_S
     const generationLogs = Number(database.query("DELETE FROM generation_log").run().changes);
     const accessEvents = Number(database.query("DELETE FROM access_events").run().changes);
     const workflows = Number(database.query("DELETE FROM workflow_runs").run().changes);
+    database.query("DELETE FROM settings WHERE key = ?").run("notifications");
     setSettings(database, settings);
     database.run("COMMIT");
     return { generationLogs, accessEvents, workflows };

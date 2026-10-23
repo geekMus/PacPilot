@@ -3,6 +3,7 @@ import type {
   GenerationMode,
   WorkflowRun,
   WorkflowStage,
+  NotificationDocument,
 } from "../../shared/contracts";
 export interface AccessEventInput {
   created_at: string;
@@ -187,7 +188,11 @@ export interface ApplicationStorage {
   readonly generationLogs: GenerationLogRepository;
   readonly monitoring: MonitoringRepository;
   readonly workflows: WorkflowRepository;
+  readonly notifications: NotificationRepository;
   readonly artifacts: ArtifactRepository;
   readonly maintenance: StorageMaintenance;
   close(): Promise<void>;
 }
+
+export interface SyncNotificationRepository { get(): NotificationDocument; set(document: NotificationDocument): void; }
+export type NotificationRepository = AsyncRepository<SyncNotificationRepository>;
