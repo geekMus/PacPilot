@@ -24,6 +24,8 @@ const deliveries = ref<any[]>([]);
 const catalog = ref<any[]>([]);
 const cid = ref("");
 const rid = ref("");
+const channelEditorOpen = ref(false);
+const ruleEditorOpen = ref(false);
 const busy = ref(false);
 const testingId = ref("");
 const deliveryFilter = ref("all");
@@ -95,7 +97,6 @@ async function load(options: { preserveView?: boolean } = {}) {
     events.value = [...result.events].reverse();
     deliveries.value = [...result.deliveries].reverse();
     catalog.value = result.eventCatalog;
-    if (!cid.value && result.channels.length) editC(result.channels[0]);
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -103,11 +104,13 @@ async function load(options: { preserveView?: boolean } = {}) {
   }
 }
 function resetC() {
+  channelEditorOpen.value = true;
   cid.value = "";
   showSecret.value = false;
   Object.assign(ch, { name: "", enabled: true, config: config() });
 }
 function editC(item: NotificationChannel) {
+  channelEditorOpen.value = true;
   cid.value = item.id;
   showSecret.value = false;
   Object.assign(ch, { name: item.name, enabled: item.enabled, config: { ...item.config } });
@@ -149,10 +152,12 @@ async function testC(item: NotificationChannel) {
   }
 }
 function resetR() {
+  ruleEditorOpen.value = true;
   rid.value = "";
   Object.assign(rule, { name: "", enabled: true, eventType: "task.execution", phase: "finished", outcome: "failure", channelIds: [], subjectType: "" });
 }
 function editR(item: NotificationRule) {
+  ruleEditorOpen.value = true;
   rid.value = item.id;
   Object.assign(rule, { name: item.name, enabled: item.enabled, eventType: item.eventType, phase: item.phase, outcome: item.outcome ?? "any", channelIds: [...item.channelIds], subjectType: item.subjectType ?? "" });
 }
@@ -279,7 +284,7 @@ onMounted(() => {
             <div v-if="channels.length" class="directory-bottom"><span class="status-dot online"></span> {{ enabledChannels.length }} 个渠道已启用</div>
           </AppScrollArea>
 
-          <form class="editor-panel" @submit.prevent="saveC">
+          <form v-if="channelEditorOpen" class="editor-panel" @submit.prevent="saveC">
             <header class="editor-heading">
               <div class="editor-title-mark"><AppIcon name="network" :size="19" /></div>
               <div class="editor-heading-copy"><div class="editor-kicker">{{ cid ? "CHANNEL SETTINGS" : "NEW CHANNEL" }}</div><h3>{{ cid ? "编辑通知渠道" : "创建通知渠道" }}</h3><p>配置接收通知的目标地址和消息格式。</p></div>
@@ -335,6 +340,7 @@ onMounted(() => {
             </footer>
             <div v-if="cid && !channelReady" class="editor-note"><AppIcon name="info" :size="15" /> 请补齐 URL；钉钉渠道还需要有效的机器人配置后才能测试发送。</div>
           </form>
+          <section v-if="!channelEditorOpen" class="editor-panel editor-placeholder"><AppIcon name="mouse-pointer-click" :size="24" /><h3>请选择一个通知渠道</h3><p>从左侧选择已有渠道，或点击加号创建新渠道。</p></section>
         </section>
 
         <section v-else-if="tab === 'rules'" class="workspace-layout rule-layout">
@@ -349,7 +355,7 @@ onMounted(() => {
             <div v-if="rules.length" class="directory-bottom"><span class="status-dot online"></span> {{ enabledRules.length }} 条规则正在生效</div>
           </AppScrollArea>
 
-          <form class="editor-panel" @submit.prevent="saveR">
+          <form v-if="ruleEditorOpen" class="editor-panel" @submit.prevent="saveR">
             <header class="editor-heading">
               <div class="editor-title-mark rule-title-mark"><AppIcon name="route" :size="19" /></div>
               <div class="editor-heading-copy"><div class="editor-kicker">{{ rid ? "RULE SETTINGS" : "NEW RULE" }}</div><h3>{{ rid ? "编辑触发规则" : "创建触发规则" }}</h3><p>用简单条件定义事件触发时机与通知目标。</p></div>
@@ -395,6 +401,7 @@ onMounted(() => {
               <button type="submit" class="button primary" :disabled="busy || !rule.name.trim() || !rule.channelIds.length"><AppIcon name="save" :size="15" /> {{ busy ? "正在保存…" : "保存规则" }}</button>
             </footer>
           </form>
+          <section v-if="!ruleEditorOpen" class="editor-panel editor-placeholder"><AppIcon name="mouse-pointer-click" :size="24" /><h3>请选择一条触发规则</h3><p>从左侧选择已有规则，或点击加号创建新规则。</p></section>
         </section>
 
         <section v-else class="history-workspace">
@@ -490,6 +497,10 @@ onMounted(() => {
 .tab-alert { display: inline-grid; place-items: center; min-width: 19px; height: 19px; padding: 0 4px; border-radius: 6px; background: var(--red-soft); color: var(--red); font-size: 10px; }
 .workspace-layout { display: grid; flex: 0 0 auto; grid-template-columns: minmax(245px, .72fr) minmax(0, 1.8fr); align-items: stretch; gap: 16px; min-width: 0; min-height: 280px; height: clamp(280px, calc(100dvh - var(--admin-topbar-space, 104px) - 180px), 720px); max-height: none; }
 .editor-panel { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; overflow: hidden; }
+.editor-placeholder { align-items: center; justify-content: center; gap: 10px; padding: 28px; text-align: center; color: var(--muted); }
+.editor-placeholder > svg { color: var(--accent); opacity: .8; }
+.editor-placeholder h3 { margin: 0; color: var(--text); font-size: 15px; }
+.editor-placeholder p { max-width: 300px; margin: 0; font-size: 12px; line-height: 1.7; }
 .editor-body { flex: 0 0 auto; align-content: start; }
 .directory-panel, .editor-panel, .history-panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
 .directory-panel { position: static; min-width: 0; min-height: 0; height: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface); box-shadow: var(--shadow); }
