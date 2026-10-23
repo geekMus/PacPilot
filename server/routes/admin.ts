@@ -1,5 +1,4 @@
 import { Router } from "express";
-import type { AppDatabase } from "../db/sqlite";
 import type { ApplicationStorage } from "../storage/repositories";
 import type { EnvConfig } from "../config/env";
 import { adminWorkflowRoutes } from "./admin-workflows";
@@ -9,13 +8,13 @@ import { adminAuthRoutes } from "./admin-auth";
 import { adminSettingsRoutes } from "./admin-settings";
 import { adminGenerationRoutes } from "./admin-generation";
 
-export function adminRoutes(env: EnvConfig, database: AppDatabase, storage: ApplicationStorage): Router {
+export function adminRoutes(env: EnvConfig, storage: ApplicationStorage): Router {
   const router = Router();
-  router.use(adminWorkflowRoutes(database, storage));
-  router.use(adminMonitorRoutes(database, storage));
-  router.use(adminSystemRoutes(env, database, storage));
+  router.use(adminWorkflowRoutes(storage));
+  router.use(adminMonitorRoutes(storage));
+  router.use(adminSystemRoutes(env, storage));
   router.use(adminAuthRoutes(storage));
-  router.use(adminSettingsRoutes(env, database, storage));
-  router.use(adminGenerationRoutes(database, env.dataDir, storage));
+  router.use(adminSettingsRoutes(env, storage));
+  router.use(adminGenerationRoutes(env.dataDir, storage));
   return router;
 }
