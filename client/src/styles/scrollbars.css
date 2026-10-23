@@ -1,7 +1,7 @@
 :root {
   --scrollbar-size: 8px;
-  --scrollbar-thumb: color-mix(in srgb, var(--text) 26%, transparent);
-  --scrollbar-thumb-hover: color-mix(in srgb, var(--text) 44%, transparent);
+  --scrollbar-thumb: color-mix(in srgb, var(--text) 36%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--text) 52%, transparent);
   --scrollbar-track: transparent;
 }
 
@@ -23,7 +23,7 @@
 .cm-overlay-scrollbar-thumb {
   position: absolute; top: 2px; left: 2px; display: block; box-sizing: border-box;
   min-width: 4px; min-height: 4px; margin: 0; padding: 0; border: 0; border-radius: 999px;
-  background: var(--scrollbar-thumb); cursor: grab; touch-action: none; pointer-events: auto;
+  background: var(--scrollbar-thumb); cursor: grab; touch-action: none; pointer-events: auto; opacity: 1;
 }
 .cm-overlay-scrollbar-thumb:hover, .cm-overlay-scrollbar-thumb:focus-visible {
   background: var(--scrollbar-thumb-hover); outline: none;
