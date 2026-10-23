@@ -17,7 +17,6 @@ import {
 import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AppDialog from "@/components/AppDialog.vue";
-import AppScrollArea from "@/components/AppScrollArea.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 import AppFooter from "@/components/AppFooter.vue";
 import { useAdminSettings } from "@/composables/useAdminSettings";
