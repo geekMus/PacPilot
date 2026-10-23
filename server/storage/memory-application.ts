@@ -1,5 +1,5 @@
 import type { AppSettings, WorkflowRun, WorkflowStage } from "../../shared/contracts";
-import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../db/settings";
+import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../domain/settings";
 import type {
   AccessEvent,
   AccessEventInput,
