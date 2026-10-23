@@ -239,6 +239,41 @@ export function operationalLogStorageBytes(database: AppDatabase): number {
   return Number(row.bytes || 0);
 }
 
+
+/** Storage queries used by HTTP handlers; SQL remains confined to the persistence module. */
+export function getOperationalCounts(database: AppDatabase): {
+  generationLogs: number;
+  accessEvents: number;
+  workflows: number;
+  activeWorkflows: number;
+} {
+  const row = database.query(
+    "SELECT (SELECT COUNT(*) FROM generation_log) AS generationLogs, " +
+      "(SELECT COUNT(*) FROM access_events) AS accessEvents, " +
+      "(SELECT COUNT(*) FROM workflow_runs) AS workflows, " +
+      "(SELECT COUNT(*) FROM workflow_runs WHERE status IN ('pending','running')) AS activeWorkflows"
+  ).get() as { generationLogs: number; accessEvents: number; workflows: number; activeWorkflows: number };
+  return {
+    generationLogs: Number(row.generationLogs),
+    accessEvents: Number(row.accessEvents),
+    workflows: Number(row.workflows),
+    activeWorkflows: Number(row.activeWorkflows),
+  };
+}
+
+export function countGenerationLogs(database: AppDatabase): number {
+  return Number((database.query("SELECT COUNT(*) AS total FROM generation_log").get() as { total: number }).total);
+}
+
+export function countAccessEvents(database: AppDatabase): number {
+  return Number((database.query("SELECT COUNT(*) AS total FROM access_events").get() as { total: number }).total);
+}
+
+export function vacuumDatabase(database: AppDatabase, truncateWal = false): void {
+  if (truncateWal) database.run("PRAGMA wal_checkpoint(TRUNCATE);");
+  database.run("VACUUM;");
+}
+
 export function closeDb(): void {
   if (db) {
     db.close();
