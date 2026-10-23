@@ -5,7 +5,6 @@ import type { AppSettings } from "../../../shared/contracts";
 import type {
   AccessEventInput,
   ApplicationStorage,
-  ArtifactRepository,
   GenerationLogRepository,
   MonitoringRepository,
   SettingsRepository,
@@ -34,7 +33,7 @@ import {
 } from "./workflows";
 import { countAccessEvents, getMonitorSummary, listAccessEvents, recordAccessEvent } from "./monitoring";
 import { SqliteAdminCredentialRepository } from "./credentials";
-import { normalizeArtifactKey } from "../artifact-key";
+import { createFilesystemArtifactRepository } from "../filesystem/artifact-repository";
 
 export function createSqliteSettingsRepository(database: Database): SettingsRepository {
   return {
@@ -109,78 +108,6 @@ export function createSqliteWorkflowRepository(database: Database): WorkflowRepo
   };
 }
 
-export function createSqliteArtifactRepository(dataDir: string): ArtifactRepository {
-  const filePath = (key: string) => path.join(dataDir, normalizeArtifactKey(key));
-  return {
-    read(key) {
-      const target = filePath(key);
-      try {
-        return new Uint8Array(fs.readFileSync(target));
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
-        throw error;
-      }
-    },
-    write(key, contents) {
-      const target = filePath(key);
-      fs.mkdirSync(path.dirname(target), { recursive: true });
-      fs.writeFileSync(target, contents);
-    },
-    delete(key) {
-      const target = filePath(key);
-      try {
-        fs.unlinkSync(target);
-        return true;
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
-        throw error;
-      }
-    },
-    exists(key) {
-      try {
-        return fs.statSync(filePath(key)).isFile();
-      } catch { return false; }
-    },
-    stat(key) {
-      try {
-        const stat = fs.statSync(filePath(key));
-        return stat.isFile() ? { size: stat.size, modifiedAt: stat.mtime.toISOString() } : undefined;
-      } catch { return undefined; }
-    },
-    list(prefix = "") {
-      const result: string[] = [];
-      const walk = (dir: string, relative: string) => {
-        try {
-          for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-            if (entry.isSymbolicLink()) continue;
-            const nextRelative = relative ? relative + "/" + entry.name : entry.name;
-            const full = path.join(dir, entry.name);
-            if (entry.isDirectory()) walk(full, nextRelative);
-            else if (entry.isFile() && nextRelative.startsWith(prefix)) result.push(nextRelative);
-          }
-        } catch { /* missing or inaccessible directory */ }
-      };
-      walk(dataDir, "");
-      return result.sort();
-    },
-    totalBytes() {
-      let bytes = 0;
-      const walk = (dir: string) => {
-        try {
-          for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-            if (entry.isSymbolicLink()) continue;
-            const full = path.join(dir, entry.name);
-            if (entry.isDirectory()) walk(full);
-            else if (entry.isFile()) bytes += fs.statSync(full).size;
-          }
-        } catch { /* missing or inaccessible directory */ }
-      };
-      walk(dataDir);
-      return bytes;
-    },
-  };
-}
-
 /** SQLite composition root. Business layers consume repository ports, not SQL. */
 export function createSqliteApplicationStorage(database: Database, dataDir: string): ApplicationStorage {
   if (dataDir === ":memory:") {
@@ -193,7 +120,7 @@ export function createSqliteApplicationStorage(database: Database, dataDir: stri
     generationLogs: createSqliteGenerationLogRepository(database),
     monitoring: createSqliteMonitoringRepository(database),
     workflows: createSqliteWorkflowRepository(database),
-    artifacts: createSqliteArtifactRepository(dataDir),
+    artifacts: createFilesystemArtifactRepository(dataDir),
     maintenance: {
       databaseBytes: () => {
         return ["database.db", "database.db-wal", "database.db-shm"].reduce((sum, name) => {
