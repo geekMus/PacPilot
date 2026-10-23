@@ -6,6 +6,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["server/tests/**/*.test.ts"],
+    exclude: ["server/tests/core-validation.test.ts"],
     clearMocks: true,
     restoreMocks: true,
     coverage: {

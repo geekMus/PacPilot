@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from "bun:test";
 import { validatePacProxyString } from "../services/pac-generator";
 import { parseRemoteListText } from "../services/remote-list";
 
