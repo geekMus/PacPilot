@@ -129,7 +129,7 @@ export function createSqliteArtifactRepository(dataDir: string): ArtifactReposit
     read(key) {
       const target = filePath(key);
       try {
-        return new TextEncoder().encode(fs.readFileSync(target, "utf8"));
+        return new Uint8Array(fs.readFileSync(target));
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
         throw error;
@@ -137,9 +137,8 @@ export function createSqliteArtifactRepository(dataDir: string): ArtifactReposit
     },
     write(key, contents) {
       const target = filePath(key);
-      const text = typeof contents === "string" ? contents : new TextDecoder().decode(contents);
       fs.mkdirSync(path.dirname(target), { recursive: true });
-      fs.writeFileSync(target, text, "utf8");
+      fs.writeFileSync(target, contents);
     },
     delete(key) {
       const target = filePath(key);

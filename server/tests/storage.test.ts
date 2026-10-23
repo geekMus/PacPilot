@@ -86,6 +86,7 @@ describe("SQLite storage adapter", () => {
     storage.generationLogs.append(true, "custom", "custom.uncompressed", { compressed: false });
     const workflowId = storage.workflows.create("manual", "custom");
     storage.artifacts.write("proxy.pac", "PAC");
+    storage.artifacts.write("binary.bin", new Uint8Array([0, 255, 1]));
 
     expect(storage.driver).toBe("sqlite");
     expect(storage.settings.get().timezone).toBe("UTC");
@@ -94,6 +95,7 @@ describe("SQLite storage adapter", () => {
     expect(storage.workflows.get(workflowId)?.status).toBe("pending");
     expect(new TextDecoder().decode(storage.artifacts.read("proxy.pac"))).toBe("PAC");
     expect(storage.artifacts.list()).toContain("proxy.pac");
+    expect(Array.from(storage.artifacts.read("binary.bin") ?? [])).toEqual([0, 255, 1]);
 
     storage.close();
   });
