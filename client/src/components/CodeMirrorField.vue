@@ -250,13 +250,4 @@ watch(
   border-right: 1px solid var(--line);
   color: var(--muted);
 }
-.cm-field-host :deep(.cm-scroller) {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.cm-field-host :deep(.cm-scroller::-webkit-scrollbar) {
-  display: none;
-  width: 0;
-  height: 0;
-}
 </style>
