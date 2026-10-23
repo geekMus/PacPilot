@@ -74,6 +74,7 @@ export interface WorkflowRepository {
   claim(id: number, startedAt: string): boolean;
   update(id: number, patch: Partial<Pick<WorkflowRun, "status" | "stage" | "mode" | "error" | "started_at" | "finished_at" | "duration_ms">>): void;
   list(limit?: number, beforeId?: number): WorkflowRun[];
+  count(): number;
   listActive(): WorkflowRun[];
   current(): WorkflowRun | null;
   markInterrupted(): void;
