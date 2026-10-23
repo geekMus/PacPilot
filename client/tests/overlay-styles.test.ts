@@ -1,9 +1,10 @@
 /// <reference types="node" />
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 function readSource(path: string): string {
-  return readFileSync(new URL(path, new URL("../src/", import.meta.url)), "utf8");
+  return readFileSync(resolve(process.cwd(), "client", "src", path), "utf8");
 }
 
 describe("portaled overlay style architecture", () => {
