@@ -133,7 +133,7 @@ function durationLabel(s: WorkflowStage) {
   });
 }
 
-function stageIconName(status: string): string {
+function stageIconName(status: string) {
   if (status === "succeeded") return "circle-check";
   if (status === "failed") return "circle-x";
   if (status === "running") return "loader-circle";
