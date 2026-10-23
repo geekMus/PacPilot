@@ -436,6 +436,11 @@ onMounted(() => {
 </template>
 
 <style scoped>
+:deep(.admin-content-inner:has(.webhook-page)) {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
 .webhook-page {
   display: flex;
   flex: 1 1 auto;
