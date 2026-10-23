@@ -125,6 +125,9 @@ onUnmounted(() => resizeObserver?.disconnect());
 }
 .app-table-body-scroll :deep(.app-scroll-area-viewport) {
   overflow-anchor: none;
+  /* Let vertical wheel/touch gestures chain to the page when the table cannot scroll. */
+  overscroll-behavior-y: auto;
+  overscroll-behavior-x: contain;
 }
 .app-table :deep(tbody td) {
   box-sizing: border-box;
