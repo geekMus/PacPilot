@@ -2,8 +2,7 @@ import fs from "fs";
 import { minify } from "terser";
 import path from "path";
 import { isIP } from "node:net";
-import type { AppDatabase } from "../db/sqlite";
-import { appendGenerationLog, getSettings } from "../db/sqlite";
+import type { ApplicationStorage } from "../storage/repositories";
 import { notifyFailure, notifySuccess } from "./webhook";
 import { APP_VERSION } from "../version";
 import { t } from "../../shared/i18n";
@@ -290,8 +289,11 @@ async function runRemoteMode(
   };
 }
 
-export async function generatePac(database: AppDatabase, dataDir: string): Promise<GenerateResult> {
-  const settings = getSettings(database);
+export async function generatePac(
+  storage: Pick<ApplicationStorage, "settings" | "generationLogs">,
+  dataDir: string
+): Promise<GenerateResult> {
+  const settings = storage.settings.get();
   const pacPath = path.join(dataDir, "proxy.pac");
   if (!isMemoryPath(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
@@ -345,7 +347,7 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
       };
     }
 
-    appendGenerationLog(database, true, settings.mode, resultCode, resultData);
+    storage.generationLogs.append( true, settings.mode, resultCode, resultData);
     const webhook = await notifySuccess(settings);
     if (webhook) detail = { ...detail, webhook };
     return {
@@ -363,7 +365,7 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
       err && typeof err === "object" && "fetchMeta" in err
         ? (err as { fetchMeta?: unknown }).fetchMeta
         : undefined;
-    appendGenerationLog(database, false, settings.mode, "failed", {}, message);
+    storage.generationLogs.append( false, settings.mode, "failed", {}, message);
     const webhook = await notifyFailure(settings, message);
     runtimeLog("error", `PAC generation failed: ${message}`);
     return {
