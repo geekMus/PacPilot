@@ -431,6 +431,7 @@ export default {
     quickActions: "常用操作",
     openSettings: "打开配置",
     viewMonitor: "查看网络监控",
+    viewNotifications: "通知服务",
     viewWorkflow: "查看工作流",
     readingStatus: "正在读取系统状态，请稍候",
     generatingStart: "PAC 生成任务正在启动",

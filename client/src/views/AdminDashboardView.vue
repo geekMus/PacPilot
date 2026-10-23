@@ -167,6 +167,9 @@ onMounted(() => {
           <RouterLink to="/admin/workflows" class="dash-button secondary"
             ><AppIcon name="workflow" :size="16" />{{ t("dashboard.viewWorkflow") }}</RouterLink
           >
+          <RouterLink to="/admin/notifications" class="dash-button secondary"
+            ><AppIcon name="bell-ring" :size="16" />{{ t("dashboard.viewNotifications") }}</RouterLink
+          >
           <button
             type="button"
             class="dash-button primary"

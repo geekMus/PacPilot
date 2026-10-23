@@ -448,6 +448,7 @@ export default {
     quickActions: "Quick actions",
     openSettings: "Open configuration",
     viewMonitor: "Network monitor",
+    viewNotifications: "Notifications",
     viewWorkflow: "Workflows",
     readingStatus: "Reading system status…",
     generatingStart: "PAC generation is starting",

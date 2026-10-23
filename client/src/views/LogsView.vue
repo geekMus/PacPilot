@@ -17,7 +17,7 @@ const {
   accessKeyword, accessCategory, accessStatus,
   selectedAccess, accessDetailOpen, accessCopyState, openAccessDetail, onAccessDetailOpenChange,
   formatAccessHeaders, copyAccessDetail, filteredAccesses, hasAccessFilters, resetAccessFilters,
-  loadMoreAccesses, formatDate, formatDuration, formatBytes, categoryLabel, statusLabel, statusTone,
+  loadMoreAccesses, formatDate, formatDuration, formatBytes, categoryLabel, statusLabel, statusTone, error: monitorError,
 } = useMonitoringDashboard();
 const logs = ref<GenerationLog[]>([]);
 const logsLoading = ref(true);
