@@ -180,7 +180,7 @@ const channelStatusText = computed(() => {
           :model-value="config.headers"
           :height="126"
           :invalid="Boolean(validationErrors?.headers)"
-          :placeholder='{"Authorization":"Bearer …"}'
+          placeholder='{"Authorization":"Bearer …"}'
           @update:model-value="update('headers', $event)"
         />
         <p v-if="validationErrors?.headers" class="field-error" role="alert">
