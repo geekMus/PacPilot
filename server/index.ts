@@ -11,14 +11,15 @@ import {
 import { trackTcpConnection } from "./services/request-monitor";
 import { runtimeLog } from "./utils/runtime-log";
 import { clearEphemeralFiles } from "./storage/ephemeral-files";
-import { SqliteAdminCredentialRepository } from "./storage/sqlite-credentials";
+import { createSqliteApplicationStorage } from "./storage/sqlite-repositories";
 
 async function main(): Promise<void> {
   const env = loadEnv();
   process.env.PACPILOT_RUNTIME_PROFILE = env.runtimeProfile;
   const database = getDb(env.dataDir);
-  const firstStart = isAdminCredentialsMissing(new SqliteAdminCredentialRepository(database));
-  const initialAdminPassword = createInitialAdminCredentials(new SqliteAdminCredentialRepository(database));
+  const storage = createSqliteApplicationStorage(database, env.dataDir);
+  const firstStart = isAdminCredentialsMissing(storage.credentials);
+  const initialAdminPassword = createInitialAdminCredentials(storage.credentials);
   const adminCredentialsMissing = isAdminCredentialsMissing(database);
   markInterruptedWorkflows(database);
   const cleanupLogs = (): void => {
@@ -44,14 +45,14 @@ async function main(): Promise<void> {
     );
   }
 
-  const app = createApp(env, database);
+  const app = createApp(env, database, storage);
 
   const server = app.listen(env.port, env.host, () => {
     if (!firstStart && !adminCredentialsMissing) {
       // 先开始监听端口，让管理界面能够实时查看启动工作流的状态。
-      void runPacWorkflow(database, env.dataDir, "startup")
+      void runPacWorkflow(storage, env.dataDir, "startup")
         .catch((error) => runtimeLog("error", "PAC startup workflow failed: ", error))
-        .finally(() => reschedule(database, env.dataDir));
+        .finally(() => reschedule(storage, env.dataDir));
     }
   });
 
