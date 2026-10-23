@@ -234,8 +234,6 @@ watch(
 }
 .cm-host :deep(.cm-scroller) {
   overflow: auto !important;
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 .cm-host :deep(.cm-gutters) {
   background: var(--surface-2);
