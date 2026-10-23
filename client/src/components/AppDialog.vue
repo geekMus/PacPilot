@@ -177,7 +177,13 @@ function onCloseAutoFocus(event: Event): void {
   outline-offset: 2px;
 }
 .app-dialog-body {
-  flex: 1 1 auto;
+  /*
+   * Give the scroll-area root a definite flex-constrained height.
+   * Without this, its 100%-height viewport can resolve against its content,
+   * letting long dialog bodies overflow the shell instead of scrolling.
+   */
+  flex: 1 1 0%;
+  height: 0;
   width: 100%;
   max-height: calc(100dvh - 160px);
   min-width: 0;
@@ -188,6 +194,7 @@ function onCloseAutoFocus(event: Event): void {
   box-sizing: border-box;
   width: 100%;
   height: 100%;
+  min-height: 0;
   min-width: 0;
   min-height: 0;
   padding: 18px;
