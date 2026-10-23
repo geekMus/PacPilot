@@ -8,6 +8,7 @@ import { initializeSchema } from "./schema";
 export type AppDatabase = Database;
 
 let db: AppDatabase | null = null;
+let dbDataDir: string | null = null;
 
 export function createDatabase(dataDir: string): AppDatabase {
   const inMemory = dataDir === ":memory:";
@@ -35,13 +36,26 @@ export function createDatabase(dataDir: string): AppDatabase {
 }
 
 export function getDb(dataDir: string): AppDatabase {
-  if (db) return db;
+  if (db) {
+    if (dbDataDir !== dataDir) {
+      throw new Error("SQLite is already initialized for a different data directory.");
+    }
+    return db;
+  }
   db = createDatabase(dataDir);
+  dbDataDir = dataDir;
   return db;
 }
 
+/** Close a connection and invalidate the singleton when it owns that connection. */
+export function closeDatabase(database: AppDatabase): void {
+  if (db === database) {
+    db = null;
+    dbDataDir = null;
+  }
+  database.close();
+}
+
 export function closeDb(): void {
-  if (!db) return;
-  db.close();
-  db = null;
+  if (db) closeDatabase(db);
 }

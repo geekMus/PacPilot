@@ -13,6 +13,7 @@ import type {
 import { appendGenerationLog, countGenerationLogs, recentLogs } from "./generation-logs";
 import { getSettings, setSettings, updateSettings } from "./settings";
 import { checkpointDatabase, resetOperationalData, vacuumDatabase } from "./maintenance";
+import { closeDatabase } from "./database";
 
 import {
   cancelPendingWorkflow,
@@ -131,6 +132,6 @@ export function createSqliteApplicationStorage(database: Database, dataDir: stri
       checkpoint: () => checkpointDatabase(database),
       resetOperationalData: (settings) => { resetOperationalData(database, settings); },
     },
-    close: () => database.close(),
+    close: () => closeDatabase(database),
   };
 }
