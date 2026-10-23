@@ -340,7 +340,7 @@ onMounted(() => {
             </footer>
             <div v-if="cid && !channelReady" class="editor-note"><AppIcon name="info" :size="15" /> 请补齐 URL；钉钉渠道还需要有效的机器人配置后才能测试发送。</div>
           </form>
-          <section v-if="!channelEditorOpen" class="editor-panel editor-placeholder" aria-live="polite"><div class="placeholder-icon"><AppIcon name="file-search" :size="22" /></div><p>暂无可查看信息，请选中一条再试吧</p></section>
+          <section v-if="!channelEditorOpen" class="editor-panel editor-placeholder" aria-live="polite"><div class="placeholder-icon"><AppIcon name="file-search" :size="22" /></div><p>暂无可查看信息,请选中一条再试吧</p></section>
         </section>
 
         <section v-else-if="tab === 'rules'" class="workspace-layout rule-layout">
@@ -401,7 +401,7 @@ onMounted(() => {
               <button type="submit" class="button primary" :disabled="busy || !rule.name.trim() || !rule.channelIds.length"><AppIcon name="save" :size="15" /> {{ busy ? "正在保存…" : "保存规则" }}</button>
             </footer>
           </form>
-          <section v-if="!ruleEditorOpen" class="editor-panel editor-placeholder" aria-live="polite"><div class="placeholder-icon"><AppIcon name="file-search" :size="22" /></div><p>暂无可查看信息，请选中一条再试吧</p></section>
+          <section v-if="!ruleEditorOpen" class="editor-panel editor-placeholder" aria-live="polite"><div class="placeholder-icon"><AppIcon name="file-search" :size="22" /></div><p>暂无可查看信息,请选中一条再试吧</p></section>
         </section>
 
         <section v-else class="history-workspace">
