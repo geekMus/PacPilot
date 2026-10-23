@@ -931,10 +931,6 @@ const {
   font-size: 12px;
   font-weight: 700;
 }
-.table-scroll {
-  width: 100%;
-  overflow-x: auto;
-}
 table {
   width: 100%;
   min-width: 720px;
@@ -1068,9 +1064,6 @@ td {
   }
   .panel-heading h2 {
     font-size: 17px;
-  }
-  .table-scroll {
-    margin-inline: -4px;
   }
   table {
     min-width: 680px;
