@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { AppDatabase } from "../db/sqlite";
 import type { EnvConfig } from "../config/env";
+import type { ApplicationStorage } from "../storage/repositories";
 import {
   cleanupOperationalLogs,
   checkpointDatabase,
@@ -26,7 +27,7 @@ function requestLocale(req: import("express").Request): "zh_CN" | "en_US" {
   return resolveLocale(req.get("accept-language"));
 }
 
-export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router {
+export function adminSystemRoutes(env: EnvConfig, database: AppDatabase, storage: ApplicationStorage): Router {
   const router = Router();
   router.get("/api/admin/storage", requireAdmin(database), (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
@@ -80,7 +81,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
     });
   });
   router.delete("/api/admin/pac-files", requireAdmin(database), (req, res) => {
-    if (hasActivePacWorkflow(database)) {
+    if (hasActivePacWorkflow(storage)) {
       res.status(409).json({
         error: serverT(requestLocale(req), "serverErrors.activeWorkflowPacDelete"),
       });
@@ -142,7 +143,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
       });
       return;
     }
-    if (hasActivePacWorkflow(database)) {
+    if (hasActivePacWorkflow(storage)) {
       res.status(409).json({
         error: serverT(requestLocale(req), "serverErrors.activeWorkflowFactoryReset"),
       });
@@ -159,7 +160,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase): Router
           /* already absent */
         }
       }
-      reschedule(database, env.dataDir);
+      reschedule(storage, env.dataDir);
       res.json({
         ok: true,
         message: serverT(requestLocale(req), "serverErrors.factoryResetCompleted"),
