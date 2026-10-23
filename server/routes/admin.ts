@@ -8,10 +8,12 @@ import { adminAuthRoutes } from "./admin-auth";
 import { adminSettingsRoutes } from "./admin-settings";
 import { adminGenerationRoutes } from "./admin-generation";
 import { adminNotificationRoutes } from "./admin-notifications";
+import { adminNotificationRoutes } from "./admin-notifications";
 
 export function adminRoutes(env: EnvConfig, storage: ApplicationStorage): Router {
   const router = Router();
   router.use(adminWorkflowRoutes(storage));
+  router.use(adminNotificationRoutes(storage));
   router.use(adminNotificationRoutes(storage));
   router.use(adminMonitorRoutes(storage));
   router.use(adminSystemRoutes(env, storage));

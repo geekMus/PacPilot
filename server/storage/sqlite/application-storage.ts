@@ -13,6 +13,7 @@ import { createSqliteGenerationLogRepository } from "./generation-log-repository
 import { createSqliteMonitoringRepository } from "./monitoring-repository";
 import { createSqliteWorkflowRepository } from "./workflow-repository";
 import { createSqliteNotificationRepository } from "./notification-repository";
+import { createSqliteNotificationRepository } from "./notification-repository";
 
 /** SQLite composition root. Business layers consume repository ports, not SQL. */
 export function createSqliteApplicationStorage(
@@ -31,6 +32,7 @@ export function createSqliteApplicationStorage(
     generationLogs: asAsyncRepository(createSqliteGenerationLogRepository(database)),
     monitoring: asAsyncRepository(createSqliteMonitoringRepository(database)),
     workflows: asAsyncRepository(createSqliteWorkflowRepository(database)),
+    notifications: asAsyncRepository(createSqliteNotificationRepository(database)),
     notifications: asAsyncRepository(createSqliteNotificationRepository(database)),
     artifacts: asAsyncRepository(createFilesystemArtifactRepository(dataDir)),
     maintenance: asAsyncRepository({

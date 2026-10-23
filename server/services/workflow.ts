@@ -3,6 +3,7 @@ import { generatePac, type GenerateResult } from "./pac-generator";
 import { t } from "../../shared/i18n";
 import { runtimeLog } from "../utils/runtime-log";
 import { publishDomainEvent } from "./notifications";
+import { publishDomainEvent } from "./notifications";
 
 export type WorkflowSource = "startup" | "scheduled" | "manual" | "save-and-generate";
 export interface PacWorkflowResult {
@@ -50,6 +51,7 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
       return cancelledResult();
     }
     const settings = await storage.settings.get();
+    await publishDomainEvent(storage,{type:"task.execution",phase:"started",subject:{type:"task",id:String(id),name:"PAC 生成任务"},correlationId:"workflow-"+id,summary:"PAC 生成任务已开始。"});
     await publishDomainEvent(storage, { type: "task.execution", phase: "started", subject: { type: "task", id: String(id), name: "PAC 生成任务" }, correlationId: "workflow-" + id, summary: "PAC 生成任务已开始。" });
     const prepareDetail = encodeWorkflowStageDetail({
       mode: settings.mode,
