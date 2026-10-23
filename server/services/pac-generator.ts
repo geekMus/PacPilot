@@ -6,7 +6,7 @@ import type { ApplicationStorage } from "../storage/repositories";
 import { notifyFailure, notifySuccess } from "./webhook";
 import { APP_VERSION } from "../version";
 import { t } from "../../shared/i18n";
-import type { AppSettings } from "../db/settings";
+import type { AppSettings } from "../../shared/contracts";
 import { buildRemoteListPac, fetchAndParseRemoteList } from "./remote-list";
 import { runtimeLog } from "../utils/runtime-log";
 import { isMemoryPath, readEphemeralFile, statEphemeralFile, writeEphemeralFile } from "../storage/ephemeral-files";
