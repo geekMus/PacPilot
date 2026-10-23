@@ -10,6 +10,8 @@ const props = withDefaults(
     colSpan: number;
     rowHeight?: number;
     height?: number | string;
+    /** Keep the configured frame height instead of shrinking to content. */
+    fixedHeight?: boolean;
     minWidth?: string;
     tableClass?: string;
     hasMore?: boolean;
@@ -26,6 +28,7 @@ const props = withDefaults(
     loading: false,
     error: "",
     emptyText: "",
+    fixedHeight: false,
   }
 );
 const { t } = useI18n();
@@ -38,6 +41,10 @@ const resolvedEmptyText = computed(() => props.emptyText || t("common.noRecords"
 // Treat height as the maximum viewport height. Small result sets shrink to their
 // content instead of leaving a mostly empty fixed-height frame.
 const resolvedHeight = computed(() => {
+  if (props.fixedHeight) {
+    const configured = props.height ?? 480;
+    return typeof configured === "number" ? `${configured}px` : configured;
+  }
   const configured = props.height ?? 480;
   const maxHeight =
     typeof configured === "number"
