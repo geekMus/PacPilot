@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createMemoryApplicationStorage } from "../storage/memory-application";
+import { createMemoryApplicationStorage } from "../storage/memory/application-storage";
 
 describe("memory storage adapter", () => {
   it("keeps application repositories isolated and clears volatile state on close", () => {

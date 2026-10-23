@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { createMemoryApplicationStorage } from "../storage/memory-application";
-import { createSqliteApplicationStorage } from "../storage/sqlite/repositories";
+import { createMemoryApplicationStorage } from "../storage/memory/application-storage";
+import { createSqliteApplicationStorage } from "../storage/sqlite/application-storage";
 import { createDatabase } from "../storage/sqlite/database";
 
 const temporaryDirectories: string[] = [];

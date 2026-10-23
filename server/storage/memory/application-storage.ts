@@ -6,9 +6,9 @@ import type {
   ApplicationStorage,
   GenerationLog,
   MonitorSummary,
-} from "./repositories";
-import { MemoryAdminCredentialRepository } from "./memory-credentials";
-import { normalizeArtifactKey } from "./artifact-key";
+} from "../repositories";
+import { MemoryAdminCredentialRepository } from "./admin-credential-repository";
+import { normalizeArtifactKey } from "../artifact-key";
 
 function clone<T>(value: T): T {
   return structuredClone(value);
