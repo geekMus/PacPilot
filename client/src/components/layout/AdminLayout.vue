@@ -152,7 +152,10 @@ watch(
   position: absolute;
   inset: 0;
   width: 100%;
-  height: 100%;
+  /* Let the absolute insets determine the scroll area's height. Combining
+     top/bottom insets with height: 100% over-constrains this positioned
+     element and can make the shared admin viewport collapse in some layouts. */
+  min-height: 0;
 
   --radius: 12px;
   --admin-panel-padding: 20px;
