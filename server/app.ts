@@ -72,7 +72,7 @@ export function createApp(env: EnvConfig, storage: ApplicationStorage): express.
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
 
-  app.use(publicRoutes(env, storage));
+  app.use(publicRoutes(storage));
   app.use(adminRoutes(env, storage));
 
   const here =
