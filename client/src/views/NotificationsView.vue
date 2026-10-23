@@ -252,6 +252,7 @@ onMounted(() => {
         <AppIcon name="circle-alert" :size="20" /><div><strong>暂时无法加载通知配置</strong><p>{{ error }}</p></div><button class="button secondary" @click="load()">重试</button>
       </section>
       <template v-else>
+        <section class="workspace-region">
         <nav class="workspace-tabs" aria-label="通知管理分类">
           <button :class="{ active: tab === 'channels' }" @click="tab = 'channels'">
             <AppIcon name="network" :size="16" /> 通知渠道 <span class="tab-count">{{ channels.length }}</span>
@@ -427,6 +428,7 @@ onMounted(() => {
             </section>
           </div>
         </section>
+        </section>
       </template>
       <AppFooter />
     </main>
@@ -436,16 +438,29 @@ onMounted(() => {
 <style scoped>
 .webhook-page {
   display: flex;
-  flex: 1 1 0%;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 18px;
   width: 100%;
   min-width: 0;
-  min-height: 0;
-  height: 100%;
-  overflow: hidden;
+  min-height: 100%;
+  box-sizing: border-box;
   color: var(--text);
 }
+.workspace-region {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  min-height: 0;
+}
+.workspace-region > .workspace-layout,
+.workspace-region > .history-workspace {
+  flex: 1 1 0%;
+  min-height: 0;
+}
+.workspace-region > .workspace-tabs { flex: 0 0 auto; }
 .page-intro {
   display: flex;
   align-items: center;
@@ -651,6 +666,8 @@ onMounted(() => {
   .editor-footer { padding-right: 17px; padding-left: 17px; }
 }
 @media (max-width: 900px) {
+  .workspace-region { flex: 0 0 auto; }
+  .workspace-region > .workspace-layout, .workspace-region > .history-workspace { flex: 0 0 auto; min-height: 320px; }
   .webhook-page { height: auto; min-height: 0; overflow: visible; }
   .workspace-layout, .history-workspace { display: flex; flex: 0 0 auto; flex-direction: column; align-items: stretch; height: auto; max-height: none; overflow: visible; }
   .editor-panel { display: flex; flex: 0 0 auto; width: 100%; height: auto; overflow: visible; }
