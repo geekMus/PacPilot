@@ -32,8 +32,8 @@ export function attachCodeMirrorOverlayScrollbars(view: EditorView): () => void 
     bar.track.hidden = max <= 1 || size <= 0;
     if (bar.track.hidden) return;
     const position = Math.max(0, size - bar.thumbSize) * offset / max;
-    bar.thumb.style.width = bar.axis === "vertical" ? "100%" : `${bar.thumbSize}px`;
-    bar.thumb.style.height = bar.axis === "vertical" ? `${bar.thumbSize}px` : "100%";
+    bar.thumb.style.width = bar.axis === "vertical" ? "" : `${bar.thumbSize}px`;
+    bar.thumb.style.height = bar.axis === "vertical" ? `${bar.thumbSize}px` : "";
     bar.thumb.style.transform = bar.axis === "vertical" ? `translateY(${position}px)` : `translateX(${position}px)`;
     bar.thumb.setAttribute("aria-valuemax", String(Math.round(max)));
     bar.thumb.setAttribute("aria-valuenow", String(Math.round(offset)));

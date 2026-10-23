@@ -28,6 +28,8 @@
 .cm-overlay-scrollbar-thumb:hover, .cm-overlay-scrollbar-thumb:focus-visible {
   background: var(--scrollbar-thumb-hover); outline: none;
 }
+.cm-overlay-scrollbar-vertical .cm-overlay-scrollbar-thumb { left: 2px; right: 2px; width: auto !important; }
+.cm-overlay-scrollbar-horizontal .cm-overlay-scrollbar-thumb { top: 2px; bottom: 2px; height: auto !important; }
 .cm-overlay-scrollbar-thumb:active { cursor: grabbing; }
 @media (prefers-reduced-motion: reduce) { .cm-overlay-scrollbar { transition: none; } }
 @media (forced-colors: active) {
