@@ -367,7 +367,7 @@ const {
           item-key="id"
           :col-span="6"
           :row-height="58"
-          height="520px"
+          :height="`${Math.min(520, Math.max(180, filteredRuns.length * 58 + 100))}px`"
           min-width="780px"
           :has-more="historyHasMore"
           :loading="historyLoadingMore"
