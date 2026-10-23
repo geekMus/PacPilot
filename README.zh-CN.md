@@ -40,8 +40,6 @@ docker logs pacpilot
 
 ## 文档
 
-> **Vercel 部署仅用于测试，不推荐用于实际生产环境。** 正式部署请使用 Docker；[Vercel 测试部署说明](docs/vercel-test-deployment.md)。
-
 - [中文文档目录](docs/README.zh-CN.md)
 - [部署指南（Docker、Compose、首次使用）](docs/deployment.md)
 - [配置说明（规则、环境变量、数据、安全、管理员密码）](docs/configuration.md)
