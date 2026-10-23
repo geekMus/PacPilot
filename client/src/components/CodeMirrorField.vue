@@ -45,6 +45,28 @@ const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 const host = ref<HTMLDivElement | null>(null);
 let view: EditorView | null = null;
 let themeObserver: MutationObserver | null = null;
+let contentObserver: ResizeObserver | null = null;
+
+function syncScrollableContentHeight(): void {
+  if (props.singleLine || !view || !host.value) return;
+  const content = view.dom.querySelector<HTMLElement>(".cm-content");
+  if (!content) return;
+  // Keep the direct ScrollArea child sized to CodeMirror content so Reka UI
+  // recalculates its scrollbar while typing, without requiring blur/refocus.
+  const contentHeight = Math.max(content.scrollHeight, view.dom.scrollHeight);
+  host.value.style.minHeight = String(Math.max(props.height - 2, contentHeight)) + "px";
+}
+
+function observeScrollableContent(): void {
+  contentObserver?.disconnect();
+  contentObserver = null;
+  if (props.singleLine || !view) return;
+  const content = view.dom.querySelector<HTMLElement>(".cm-content");
+  if (!content) return;
+  contentObserver = new ResizeObserver(syncScrollableContentHeight);
+  contentObserver.observe(content);
+  syncScrollableContentHeight();
+}
 
 function isDark(): boolean {
   return typeof document !== "undefined" && document.documentElement.classList.contains("theme-dark");
@@ -114,6 +136,9 @@ function buildExtensions() {
 
 function mountEditor() {
   if (!host.value) return;
+  contentObserver?.disconnect();
+  contentObserver = null;
+  host.value.style.minHeight = "";
   const current = view;
   const doc = current ? current.state.doc.toString() : props.modelValue || "";
   const selection = current ? current.state.selection.main.head : 0;
@@ -123,6 +148,7 @@ function mountEditor() {
     state: EditorState.create({ doc, extensions: buildExtensions() }),
   });
   view.dispatch({ selection: { anchor: Math.min(selection, view.state.doc.length) } });
+  observeScrollableContent();
 }
 
 onMounted(() => {
@@ -140,6 +166,8 @@ defineExpose({ getEditorView: () => view });
 onBeforeUnmount(() => {
   themeObserver?.disconnect();
   themeObserver = null;
+  contentObserver?.disconnect();
+  contentObserver = null;
   view?.destroy();
   view = null;
 });
@@ -169,7 +197,7 @@ watch(
       root-class="cm-field-scroll-area"
       viewport-class="cm-field-scroll-viewport"
       orientation="both"
-      type="hover"
+      type="always"
     >
       <div ref="host" class="cm-field-host cm-field-host-scrollable"></div>
     </AppScrollArea>
