@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertSafeHttpUrl, isBlockedHostname, isBlockedIpAddress } from "../../server/utils/url-safety";
+import { assertSafeHttpUrl, isBlockedHostname, isBlockedIpAddress } from "../utils/url-safety";
 
 describe("isBlockedIpAddress", () => {
   it("blocks private, loopback, link-local, CGNAT and reserved IPv4 ranges", () => {

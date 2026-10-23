@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateSettingsPayload } from "../../server/utils/settings-validation";
+import { validateSettingsPayload } from "../utils/settings-validation";
 
 describe("validateSettingsPayload", () => {
   it("accepts an empty object and supported setting values", () => {

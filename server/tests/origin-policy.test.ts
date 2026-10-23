@@ -3,7 +3,7 @@ import {
   getLocalInterfaceAddresses,
   isTrustedOrigin,
   normalizeOrigin,
-} from "../../server/utils/origin-policy";
+} from "../utils/origin-policy";
 
 describe("normalizeOrigin", () => {
   it("normalizes valid HTTP origins and removes path and query", () => {

@@ -3,7 +3,7 @@ import {
   buildRemoteListPac,
   fetchAndParseRemoteList,
   parseRemoteListText,
-} from "../../server/services/remote-list";
+} from "../services/remote-list";
 
 afterEach(() => {
   vi.unstubAllGlobals();
