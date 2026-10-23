@@ -6,6 +6,13 @@ import ConfirmPopover from "@/components/ConfirmPopover.vue";
 import VirtualTable from "@/components/VirtualTable.vue";
 import AppSelect from "@/components/AppSelect.vue";
 import { useWorkflowDashboard } from "@/composables/useWorkflowDashboard";
+import { ref } from "vue";
+import AppDialog from "@/components/AppDialog.vue";
+import { DialogDescription, DialogTitle } from "reka-ui";
+
+const selectedRun = ref<any>(null);
+const runDetailOpen = ref(false);
+function openRunDetail(run: any): void { selectedRun.value = run; runDetailOpen.value = true; }
 
 const {
   t,
@@ -399,9 +406,9 @@ const {
               tabindex="0"
               role="link"
               :aria-label="t('workflowPage.viewRunDetails', { id: run.id })"
-              @click="router.push(`/admin/workflows/${run.id}`)"
-              @keydown.enter.prevent="router.push(`/admin/workflows/${run.id}`)"
-              @keydown.space.prevent="router.push(`/admin/workflows/${run.id}`)"
+              @click="openRunDetail(run)"
+              @keydown.enter.prevent="openRunDetail(run)"
+              @keydown.space.prevent="openRunDetail(run)"
             >
               <td class="task-id">
                 <span class="id-trigger">#{{ run.id }}</span>
@@ -501,6 +508,30 @@ const {
           {{ t("workflowPage.loadedHint", { loaded: runs.length, total: historyTotal }) }}
         </p>
       </section>
+      <AppDialog :open="runDetailOpen && !!selectedRun" :label="t('workflowPage.viewRunDetails', { id: selectedRun?.id })" width="min(720px, calc(100vw - 16px))" @update:open="runDetailOpen = $event">
+        <template #header>
+          <div>
+            <p class="eyebrow">WORKFLOW RUN #{{ selectedRun?.id }}</p>
+            <DialogTitle>{{ t("workflow.pacGeneration") }}</DialogTitle>
+            <DialogDescription>{{ t("workflowPage.viewRunDetails", { id: selectedRun?.id }) }}</DialogDescription>
+          </div>
+        </template>
+        <template #body>
+          <div v-if="selectedRun" class="run-detail-content">
+            <div class="run-detail-grid">
+              <div><span>{{ t("workflowPage.k69") }}</span><strong>{{ sourceLabel(selectedRun.source) }}</strong></div>
+              <div><span>{{ t("workflowPage.k71") }}</span><strong><span class="status-pill" :class="selectedRun.status">{{ statusLabel(selectedRun.status) }}</span></strong></div>
+              <div><span>{{ t("workflowPage.k70") }}</span><strong>{{ dateLabel(selectedRun.started_at || selectedRun.created_at) }}</strong></div>
+              <div><span>{{ t("workflowPage.k72") }}</span><strong>{{ durationLabel(selectedRun) }}</strong></div>
+              <div><span>{{ t("workflowPage.k50") }}</span><strong>{{ modeLabel(selectedRun.mode) }}</strong></div>
+              <div><span>{{ t("workflowPage.k61") }}</span><strong>{{ stageLabel(selectedRun.stage) || "—" }}</strong></div>
+              <div><span>{{ t("workflowPage.k75") }}</span><strong>{{ selectedRun.finished_at ? dateLabel(selectedRun.finished_at) : "—" }}</strong></div>
+            </div>
+            <div v-if="selectedRun.error" class="run-detail-error"><strong>{{ t("workflowPage.k57") }}</strong><pre>{{ selectedRun.error }}</pre></div>
+            <div class="run-detail-actions"><RouterLink class="workflow-button secondary" :to="`/admin/workflows/${selectedRun.id}`" @click="runDetailOpen = false"><AppIcon name="external-link" :size="14" />{{ t("workflowPage.k53") }}</RouterLink></div>
+          </div>
+        </template>
+      </AppDialog>
       <AppFooter />
     </div>
   </AdminLayout>
@@ -1092,4 +1123,14 @@ td {
     min-width: 100px;
   }
 }
+
+.run-detail-content { display: grid; gap: 18px; min-width: 0; }
+.run-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.run-detail-grid > div { display: grid; gap: 6px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); }
+.run-detail-grid > div > span:first-child { color: var(--muted); font-size: 11px; }
+.run-detail-grid strong { min-width: 0; overflow-wrap: anywhere; font-size: 13px; }
+.run-detail-error { display: grid; gap: 8px; }
+.run-detail-error pre { margin: 0; padding: 12px; border: 1px solid color-mix(in srgb, var(--red) 25%, var(--line)); border-radius: 8px; background: var(--red-soft); color: var(--red); white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.6 var(--font-mono); }
+.run-detail-actions { display: flex; justify-content: flex-end; }
+@media (max-width: 520px) { .run-detail-grid { grid-template-columns: 1fr; } }
 </style>
