@@ -45,7 +45,7 @@ async function main(): Promise<void> {
     );
   }
 
-  const app = createApp(env, database, storage);
+  const app = createApp(env, storage);
 
   const server = app.listen(env.port, env.host, () => {
     if (!firstStart && !adminCredentialsMissing) {
