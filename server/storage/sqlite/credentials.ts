@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import type { AdminCredentialRecord, AdminCredentialRepository } from "./repositories";
+import type { AdminCredentialRecord, AdminCredentialRepository } from "../repositories";
 
 /** SQLite persistence adapter for administrator credentials. */
 export class SqliteAdminCredentialRepository implements AdminCredentialRepository {

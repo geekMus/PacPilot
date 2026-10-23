@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Database } from "bun:sqlite";
-import type { AppSettings } from "../../shared/contracts";
+import type { AppSettings } from "../../../shared/contracts";
 import type {
   AccessEventInput,
   ApplicationStorage,
@@ -10,11 +10,9 @@ import type {
   MonitoringRepository,
   SettingsRepository,
   WorkflowRepository,
-} from "./repositories";
+} from "../repositories";
 import {
   appendGenerationLog,
-  clearOperationalLogs,
-  cleanupOperationalLogs,
   checkpointDatabase,
   countAccessEvents,
   countGenerationLogs,
@@ -25,7 +23,7 @@ import {
   vacuumDatabase,
   setSettings,
   updateSettings,
-} from "../db/sqlite";
+} from "./sqlite";
 import {
   cancelPendingWorkflow,
   clearWorkflowHistory,
@@ -41,10 +39,9 @@ import {
   markInterruptedWorkflows,
   startWorkflowStage,
   updateWorkflowRun,
-} from "../db/workflows";
-import { getMonitorSummary, listAccessEvents, recordAccessEvent } from "../db/monitoring";
-import { SqliteAdminCredentialRepository } from "./sqlite-credentials";
-import { isMemoryPath, readEphemeralFile, statEphemeralFile, unlinkEphemeralFile, writeEphemeralFile } from "./ephemeral-files";
+} from "./workflows";
+import { getMonitorSummary, listAccessEvents, recordAccessEvent } from "./monitoring";
+import { SqliteAdminCredentialRepository } from "./credentials";
 
 export function createSqliteSettingsRepository(database: Database): SettingsRepository {
   return {
@@ -132,7 +129,7 @@ export function createSqliteArtifactRepository(dataDir: string): ArtifactReposit
     read(key) {
       const target = filePath(key);
       try {
-        return new TextEncoder().encode(isMemoryPath(dataDir) ? readEphemeralFile(target) : fs.readFileSync(target, "utf8"));
+        return new TextEncoder().encode(fs.readFileSync(target, "utf8"));
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
         throw error;
@@ -141,18 +138,13 @@ export function createSqliteArtifactRepository(dataDir: string): ArtifactReposit
     write(key, contents) {
       const target = filePath(key);
       const text = typeof contents === "string" ? contents : new TextDecoder().decode(contents);
-      if (isMemoryPath(dataDir)) {
-        writeEphemeralFile(target, text);
-      } else {
-        fs.mkdirSync(path.dirname(target), { recursive: true });
-        fs.writeFileSync(target, text, "utf8");
-      }
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, text, "utf8");
     },
     delete(key) {
       const target = filePath(key);
       try {
-        if (isMemoryPath(dataDir)) unlinkEphemeralFile(target);
-        else fs.unlinkSync(target);
+        fs.unlinkSync(target);
         return true;
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
@@ -161,22 +153,16 @@ export function createSqliteArtifactRepository(dataDir: string): ArtifactReposit
     },
     exists(key) {
       try {
-        if (isMemoryPath(dataDir)) { statEphemeralFile(filePath(key)); return true; }
         return fs.statSync(filePath(key)).isFile();
       } catch { return false; }
     },
     stat(key) {
       try {
-        if (isMemoryPath(dataDir)) {
-          const stat = statEphemeralFile(filePath(key));
-          return { size: stat.size, modifiedAt: stat.mtime.toISOString() };
-        }
         const stat = fs.statSync(filePath(key));
         return stat.isFile() ? { size: stat.size, modifiedAt: stat.mtime.toISOString() } : undefined;
       } catch { return undefined; }
     },
     list(prefix = "") {
-      if (isMemoryPath(dataDir)) return [];
       const result: string[] = [];
       const walk = (dir: string, relative: string) => {
         try {
@@ -193,7 +179,6 @@ export function createSqliteArtifactRepository(dataDir: string): ArtifactReposit
       return result.sort();
     },
     totalBytes() {
-      if (isMemoryPath(dataDir)) return 0;
       let bytes = 0;
       const walk = (dir: string) => {
         try {
