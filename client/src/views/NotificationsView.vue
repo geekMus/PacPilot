@@ -244,7 +244,7 @@ onMounted(() => {
 
       <p v-if="loading" class="state-panel"><AppIcon name="loader-circle" :size="18" class="spin" /> 正在加载通知配置…</p>
       <section v-else-if="error" class="state-panel state-error">
-        <AppIcon name="circle-alert" :size="20" /><div><strong>暂时无法加载通知配置</strong><p>{{ error }}</p></div><button class="button secondary" @click="load">重试</button>
+        <AppIcon name="circle-alert" :size="20" /><div><strong>暂时无法加载通知配置</strong><p>{{ error }}</p></div><button class="button secondary" @click="load()">重试</button>
       </section>
       <template v-else>
         <nav class="workspace-tabs" aria-label="通知管理分类">
