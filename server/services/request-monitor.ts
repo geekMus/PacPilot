@@ -1,8 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import type { Socket } from "node:net";
 import { performance } from "node:perf_hooks";
-import type { AppDatabase } from "../db/sqlite";
-import { recordAccessEvent } from "../db/monitoring";
+import type { MonitoringRepository } from "../storage/repositories";
 import { runtimeLog } from "../utils/runtime-log";
 
 const tcpSockets = new Set<Socket>();
@@ -21,7 +20,7 @@ export function getTcpConnectionCount(): number {
   return tcpSockets.size;
 }
 
-export function requestMonitoringMiddleware(database: AppDatabase) {
+export function requestMonitoringMiddleware(repository: MonitoringRepository) {
   return (req: Request, res: Response, next: NextFunction): void => {
     const path = req.path || "/";
     if (!shouldRecord(path)) {
@@ -48,7 +47,7 @@ export function requestMonitoringMiddleware(database: AppDatabase) {
         .slice(0, 200);
 
       try {
-        recordAccessEvent(database, {
+        repository.record({
           created_at: new Date().toISOString(),
           method: req.method.slice(0, 12),
           path: safePath(path),
