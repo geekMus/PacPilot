@@ -111,7 +111,7 @@ function templateValues(context: MessageContext): Record<string, string> {
     status: context.status ?? (context.event === "webhook.test" ? "test" : context.ok ? "success" : "failure"),
     message: context.message,
     timestamp: context.timestamp,
-    ok: String(context.ok),
+    ok: context.ok === null ? "" : String(context.ok),
   };
 }
 
@@ -320,6 +320,6 @@ export async function notifyFailure(
 
 export async function sendWebhookForEvent(input: WebhookConfig, event: DomainEvent, timeZone = "Asia/Shanghai"): Promise<WebhookDeliveryResult> {
  const config=normalizeWebhookConfig(input);
- const context:MessageContext={event:event.type+"."+event.phase,ok:event.outcome==="success",status:event.outcome||(event.phase==="started"?"started":"unknown"),message:event.summary||event.type+" "+event.phase,timestamp:new Date(event.occurredAt).toLocaleString("zh-CN",{timeZone})};
+ const context:MessageContext={event:event.type+"."+event.phase,ok:event.outcome == null ? null : event.outcome==="success",status:event.outcome||(event.phase==="started"?"started":"unknown"),message:event.summary||event.type+" "+event.phase,timestamp:new Date(event.occurredAt).toLocaleString("zh-CN",{timeZone})};
  return config.provider==="dingtalk"?sendDingTalk(config,context):sendCustom(config,context);
 }

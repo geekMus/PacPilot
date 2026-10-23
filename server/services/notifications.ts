@@ -213,13 +213,15 @@ async function updateDelivery(storage: ApplicationStorage, id: string, update: (
   });
 }
 async function deliver(storage: ApplicationStorage, event: DomainEvent, deliveryId: string, timeZone: string) {
+  const existing = await storage.notifications.get();
+  const previousAttempts = existing.deliveries.find((item) => item.id === deliveryId)?.attemptCount ?? 0;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const ready = await updateDelivery(storage, deliveryId, (delivery, document) => {
       const channel = document.channels.find((item) => item.id === delivery.channelId && item.enabled);
       const rule = document.rules.find((item) => item.id === delivery.ruleId && item.enabled);
       if (!channel || !rule) { delivery.status = "failed"; delivery.lastError = "通知规则或渠道已停用。"; delivery.updatedAt = now(); return; }
       delivery.status = "sending";
-      delivery.attemptCount = attempt;
+      delivery.attemptCount = previousAttempts + attempt;
       delivery.updatedAt = now();
     });
     if (!ready) return;
@@ -321,17 +323,19 @@ export async function retryNotificationDelivery(storage: ApplicationStorage, id:
   const timeZone = (await storage.settings.get()).timezone;
   await dispatchPending(storage, [result.deliveryId], timeZone);
 }
-let recovery: Promise<void> | null = null;
+const recoveries = new WeakMap<object, Promise<void>>();
 /** Resume persisted pending deliveries after a process restart; delivery is at-least-once. */
 export function resumePendingNotificationDeliveries(storage: ApplicationStorage): Promise<void> {
-  if (recovery) return recovery;
-  recovery = (async () => {
+  const previous = recoveries.get(storage);
+  if (previous) return previous;
+  const recovery = (async () => {
     try {
       const document = await withLock(storage, () => storage.notifications.get());
       const ids = document.deliveries.filter((item) => (item.status === "pending" || item.status === "sending") && !activeDeliveries.has(item.id)).map((item) => item.id);
       await dispatchPending(storage, ids, (await storage.settings.get()).timezone);
     } catch (error) { runtimeLog("error", "Failed to resume notification deliveries: ", error); }
-    finally { recovery = null; }
+    finally { recoveries.delete(storage); }
   })();
+  recoveries.set(storage, recovery);
   return recovery;
 }
