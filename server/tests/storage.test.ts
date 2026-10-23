@@ -60,4 +60,28 @@ describe("memory storage adapter", () => {
     first.close();
     second.close();
   });
+  it("keeps workflow stages attached to existing runs and protects active history", () => {
+    const storage = createMemoryApplicationStorage();
+    expect(() => storage.workflows.startStage(999, "prepare")).toThrow(/unknown workflow run/);
+
+    const workflowId = storage.workflows.create("manual", "custom");
+    expect(storage.workflows.clearHistory()).toEqual({ deletedRuns: 0, activeRuns: 1 });
+    expect(storage.workflows.delete(workflowId)).toBe("active");
+    expect(storage.workflows.claim(workflowId, new Date().toISOString())).toBe(true);
+
+    const stageId = storage.workflows.startStage(workflowId, "prepare", "{}");
+    storage.workflows.finishStage(stageId, "succeeded");
+    expect(storage.workflows.stages(workflowId)).toMatchObject([
+      { run_id: workflowId, stage_key: "prepare", status: "succeeded" },
+    ]);
+
+    storage.workflows.update(workflowId, {
+      status: "succeeded",
+      stage: "complete",
+      finished_at: new Date().toISOString(),
+    });
+    expect(storage.workflows.delete(workflowId)).toBe("deleted");
+    storage.close();
+  });
+
 });

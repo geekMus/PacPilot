@@ -46,6 +46,7 @@ export function createMemoryWorkflowRepository(): MemoryWorkflowRepository {
       }
     },
     startStage(runId: number, stageKey: string, detail = "") {
+      if (!runs.has(runId)) throw new Error("Cannot create a stage for an unknown workflow run.");
       const id = nextStageId++;
       stages.set(id, { id, run_id: runId, stage_key: stageKey, status: "running", error: "", detail, started_at: new Date().toISOString(), finished_at: null, duration_ms: null });
       return id;
