@@ -6,6 +6,8 @@ import { EditorState } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { json } from "@codemirror/lang-json";
+import AppScrollArea from "@/components/AppScrollArea.vue";
+import { attachCodeMirrorScrollArea } from "@/utils/codemirror-scroll-area";
 const { t } = useI18n();
 
 const props = withDefaults(
@@ -26,8 +28,20 @@ const props = withDefaults(
 );
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 const host = ref<HTMLDivElement | null>(null);
+const spacer = ref<HTMLDivElement | null>(null);
 let view: EditorView | null = null;
+let scrollViewport: HTMLElement | null = null;
+let disposeScrollSync: (() => void) | null = null;
 let themeObserver: MutationObserver | null = null;
+
+function connectScrollArea(element?: HTMLElement) {
+  if (element) scrollViewport = element;
+  disposeScrollSync?.();
+  disposeScrollSync = null;
+  if (view && scrollViewport && spacer.value) {
+    disposeScrollSync = attachCodeMirrorScrollArea(view, scrollViewport, spacer.value);
+  }
+}
 
 const jsonStatus = computed(() => {
   const raw = props.modelValue.trim();
@@ -75,12 +89,15 @@ function mountEditor() {
   if (!host.value) return;
   const doc = view ? view.state.doc.toString() : props.modelValue || "";
   const selection = view ? view.state.selection.main.head : 0;
+  disposeScrollSync?.();
+  disposeScrollSync = null;
   view?.destroy();
   view = new EditorView({
     parent: host.value,
     state: EditorState.create({ doc, extensions: buildExtensions(isDark()) }),
   });
   view.dispatch({ selection: { anchor: Math.min(selection, view.state.doc.length) } });
+  connectScrollArea();
 }
 function replaceDocument(value: string) {
   if (!view) {
@@ -108,6 +125,8 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   themeObserver?.disconnect();
+  disposeScrollSync?.();
+  disposeScrollSync = null;
   view?.destroy();
   view = null;
 });
@@ -144,7 +163,20 @@ watch(
       </div>
     </div>
     <div class="json-editor-frame" :style="{ height: height + 'px' }">
-      <div ref="host" class="cm-host"></div>
+      <AppScrollArea
+        root-class="json-editor-scroll-area"
+        viewport-class="json-editor-scroll-viewport"
+        orientation="both"
+        type="hover"
+        @ready="connectScrollArea"
+      >
+        <div
+          ref="host"
+          class="cm-host cm-host-scrollable"
+          :style="{ '--cm-editor-height': `${height}px` }"
+        ></div>
+        <div ref="spacer" class="cm-scroll-spacer" aria-hidden="true"></div>
+      </AppScrollArea>
       <div v-if="!modelValue && placeholder" class="json-placeholder">{{ placeholder }}</div>
     </div>
     <div class="json-editor-status" :class="jsonStatus.kind" role="status" aria-live="polite">
@@ -227,6 +259,26 @@ watch(
   position: relative;
   overflow: hidden;
 }
+.json-editor-scroll-area {
+  width: 100%;
+  height: 100%;
+}
+.json-editor-scroll-viewport {
+  position: relative;
+  overflow: auto;
+}
+.cm-host-scrollable {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  margin-bottom: calc(-1 * var(--cm-editor-height));
+}
+.cm-scroll-spacer {
+  min-width: 100%;
+  min-height: 100%;
+  pointer-events: none;
+}
 .cm-host,
 .cm-host :deep(.cm-editor) {
   height: 100%;
@@ -234,6 +286,13 @@ watch(
 }
 .cm-host :deep(.cm-scroller) {
   overflow: auto !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.cm-host :deep(.cm-scroller::-webkit-scrollbar) {
+  display: none;
+  width: 0;
+  height: 0;
 }
 .cm-host :deep(.cm-gutters) {
   background: var(--surface-2);

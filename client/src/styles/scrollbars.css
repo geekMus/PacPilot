@@ -5,38 +5,6 @@
   --scrollbar-track: transparent;
 }
 
-/*
- * CodeMirror keeps its native scroll container. Use the same design tokens as
- * AppScrollArea so editor scrolling follows the browser's native, accessible
- * scroll behavior instead of maintaining a second custom scrollbar engine.
- */
-.cm-scroller {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-  -ms-overflow-style: auto;
-}
-.cm-scroller::-webkit-scrollbar {
-  width: var(--scrollbar-size);
-  height: var(--scrollbar-size);
-}
-.cm-scroller::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
-  border-radius: 999px;
-}
-.cm-scroller::-webkit-scrollbar-thumb {
-  border: 2px solid transparent;
-  border-radius: 999px;
-  background: var(--scrollbar-thumb);
-  background-clip: padding-box;
-}
-.cm-scroller::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
-  background-clip: padding-box;
-}
-.cm-scroller::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
 @media (forced-colors: active) {
   :where(*) {
     scrollbar-color: auto;
