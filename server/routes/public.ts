@@ -2,7 +2,8 @@ import { Router } from "express";
 import type { EnvConfig } from "../config/env";
 import { pacFileMtime, readPacFile, readPacSourceFile } from "../services/pac-generator";
 import { parsePacStatus } from "../services/pac-parser";
-import { getSettings, type AppDatabase } from "../db/sqlite";
+import type { AppDatabase } from "../db/sqlite";
+import type { ApplicationStorage } from "../storage/repositories";
 import { APP_VERSION, PROJECT_URL } from "../version";
 
 function sendPac(req: import("express").Request, res: import("express").Response, dataDir: string) {
@@ -25,7 +26,7 @@ function sendPac(req: import("express").Request, res: import("express").Response
   res.send(pac);
 }
 
-export function publicRoutes(env: EnvConfig, database: AppDatabase): Router {
+export function publicRoutes(env: EnvConfig, database: AppDatabase, storage: ApplicationStorage): Router {
   const router = Router();
 
   router.get("/proxy.pac", (req, res) => sendPac(req, res, env.dataDir));
@@ -40,7 +41,7 @@ export function publicRoutes(env: EnvConfig, database: AppDatabase): Router {
 
   router.get("/api/status", (_req, res) => {
     const pacSource = readPacSourceFile(env.dataDir);
-    res.json(parsePacStatus(pacSource, getSettings(database).timezone, pacFileMtime(env.dataDir)));
+    res.json(parsePacStatus(pacSource, storage.settings.get().timezone, pacFileMtime(env.dataDir)));
   });
 
   return router;
