@@ -370,7 +370,7 @@ onMounted(() => void load());
                 <div v-if="!channels.length" class="inline-empty"><AppIcon name="network" :size="18" /><div><strong>还没有可用渠道</strong><p>先创建通知渠道，再回来配置规则。</p></div><button type="button" class="button secondary" @click="tab = 'channels'">前往渠道设置</button></div>
                 <div v-else class="channel-options">
                   <label v-for="item in channels" :key="item.id" class="channel-option" :class="{ checked: rule.channelIds.includes(item.id), unavailable: !item.enabled }">
-                    <input v-model="rule.channelIds" type="checkbox" :value="item.id" :disabled="!item.enabled" />
+                    <input v-model="rule.channelIds" type="checkbox" :value="item.id" :disabled="!item.enabled && !rule.channelIds.includes(item.id)" />
                     <span class="option-icon"><AppIcon :name="item.provider === 'dingtalk' ? 'bell-ring' : 'globe'" :size="17" /></span>
                     <span class="option-copy"><strong>{{ item.name }}</strong><small>{{ providerName(item.provider) }} · {{ item.enabled ? "已启用" : "已停用" }}</small></span>
                     <AppIcon v-if="rule.channelIds.includes(item.id)" name="circle-check" :size="17" class="option-check" />
