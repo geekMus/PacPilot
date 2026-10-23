@@ -16,7 +16,7 @@ async function main(): Promise<void> {
   process.env.PACPILOT_RUNTIME_PROFILE = env.runtimeProfile;
   const storage = await createApplicationStorage(env);
   const firstStart = isAdminCredentialsMissing(storage.credentials);
-  const initialAdminPassword = createInitialAdminCredentials(storage.credentials);
+  const initialAdminPassword = createInitialAdminCredentials(storage.credentials, process.env.ADMIN_PASSWORD, process.env.ADMIN_SESSION_SECRET);
   const adminCredentialsMissing = isAdminCredentialsMissing(storage.credentials);
   storage.workflows.markInterrupted();
   const cleanupLogs = (): void => {
