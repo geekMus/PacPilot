@@ -72,7 +72,7 @@ function onValueChange(value: string): void {
           :side-offset="4"
           :collision-padding="8"
         >
-          <ScrollAreaRoot class="app-select-scroll-area" type="auto">
+          <ScrollAreaRoot class="app-select-scroll-area" type="always">
             <SelectViewport as-child>
               <ScrollAreaViewport class="app-select-viewport">
                 <SelectItem
