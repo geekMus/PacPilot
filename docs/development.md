@@ -49,7 +49,7 @@ bun run format
 bun run build
 
 # 生产模式启动（需先构建）
-bun start
+bun run start
 ```
 
 ## 检查范围
