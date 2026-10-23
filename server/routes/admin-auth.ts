@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { AppDatabase } from "../db/sqlite";
 import { getAdminSessionSecret } from "../services/admin-credentials";
+import { SqliteAdminCredentialRepository } from "../storage/sqlite-credentials";
 import {
   checkLoginRateLimit,
   clearLoginFailures,
@@ -23,11 +24,11 @@ export function adminAuthRoutes(database: AppDatabase): Router {
   router.get("/api/admin/session", (req, res) =>
     res.json({
       loggedIn: isLoggedIn(req, database),
-      adminCredentialsMissing: isAdminCredentialsMissing(database),
+      adminCredentialsMissing: isAdminCredentialsMissing(new SqliteAdminCredentialRepository(database)),
     })
   );
   router.post("/api/admin/login", (req, res) => {
-    if (isAdminCredentialsMissing(database)) {
+    if (isAdminCredentialsMissing(new SqliteAdminCredentialRepository(database))) {
       res.status(428).json({ error: "setup_required" });
       return;
     }
@@ -37,13 +38,13 @@ export function adminAuthRoutes(database: AppDatabase): Router {
       return;
     }
     const pw = String(req.body?.password ?? "");
-    if (!verifyAdminPassword(database, pw)) {
+    if (!verifyAdminPassword(new SqliteAdminCredentialRepository(database), pw)) {
       recordLoginFailure(req);
       res.status(401).json({ error: "Invalid password" });
       return;
     }
     clearLoginFailures(req);
-    const token = createSessionToken(getAdminSessionSecret(database));
+    const token = createSessionToken(getAdminSessionSecret(new SqliteAdminCredentialRepository(database)));
     const secure = req.secure || req.headers["x-forwarded-proto"] === "https";
     setSessionCookie(res, token, secure);
     res.json({ ok: true });
@@ -55,7 +56,7 @@ export function adminAuthRoutes(database: AppDatabase): Router {
   router.post("/api/admin/password", requireAdmin(database), (req, res) => {
     try {
       changeAdminPassword(
-        database,
+        new SqliteAdminCredentialRepository(database),
         String(req.body?.currentPassword ?? ""),
         String(req.body?.newPassword ?? "")
       );
