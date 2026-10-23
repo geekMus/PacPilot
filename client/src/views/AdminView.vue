@@ -152,7 +152,7 @@ const {
                       <ComboboxEmpty class="timezone-no-results">
                         {{ t("settings.timezoneNoMatch") }}
                       </ComboboxEmpty>
-                    </ComboboxViewport>    </AppScrollArea>
+                    </ComboboxViewport>
                   </ComboboxContent>
                 </ComboboxPortal>
               </ComboboxRoot>
