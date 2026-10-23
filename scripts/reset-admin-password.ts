@@ -3,6 +3,7 @@ import path from "node:path";
 import { loadEnv } from "../server/config/env";
 import { closeDb, getDb } from "../server/db/sqlite";
 import { resetAdminPassword } from "../server/services/admin-credentials";
+import { SqliteAdminCredentialRepository } from "../server/storage/sqlite-credentials";
 
 type RuntimeProfile = "development" | "production";
 
@@ -96,7 +97,7 @@ try {
 
   const database = getDb(dataDir);
   try {
-    const generatedPassword = resetAdminPassword(database);
+    const generatedPassword = resetAdminPassword(new SqliteAdminCredentialRepository(database));
     console.log("管理员凭据已创建或重置。下面的随机密码只显示这一次：");
     console.log("");
     console.log(generatedPassword);
