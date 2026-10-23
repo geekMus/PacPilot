@@ -175,6 +175,7 @@ function onValueChange(value: string): void {
 }
 .app-select-scroll-area {
   width: 100%;
+  height: 100%;
   max-height: var(--reka-select-content-available-height);
   overflow: hidden;
 }
