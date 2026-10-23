@@ -11,13 +11,14 @@ import {
 import { trackTcpConnection } from "./services/request-monitor";
 import { runtimeLog } from "./utils/runtime-log";
 import { clearEphemeralFiles } from "./storage/ephemeral-files";
+import { SqliteAdminCredentialRepository } from "./storage/sqlite-credentials";
 
 async function main(): Promise<void> {
   const env = loadEnv();
   process.env.PACPILOT_RUNTIME_PROFILE = env.runtimeProfile;
   const database = getDb(env.dataDir);
-  const firstStart = isAdminCredentialsMissing(database);
-  const initialAdminPassword = createInitialAdminCredentials(database);
+  const firstStart = isAdminCredentialsMissing(new SqliteAdminCredentialRepository(database));
+  const initialAdminPassword = createInitialAdminCredentials(new SqliteAdminCredentialRepository(database));
   const adminCredentialsMissing = isAdminCredentialsMissing(database);
   markInterruptedWorkflows(database);
   const cleanupLogs = (): void => {
