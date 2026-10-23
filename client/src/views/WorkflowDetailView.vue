@@ -427,18 +427,17 @@ onUnmounted(() => {
       >
         <template #header>
           <div class="stage-detail-heading">
-              <p class="stage-detail-kicker">STAGE · {{ selectedStage?.stage_key ?? "" }}</p>
-              <DialogTitle class="stage-detail-title">
-                {{ stageLabel(selectedStage?.stage_key ?? "") }}
-              </DialogTitle>
-              <DialogDescription class="app-dialog-visually-hidden">
-                {{ t("workflowDetailPage.k36") }}. {{ t("workflowDetailPage.k37") }}
-              </DialogDescription>
-
+            <p class="stage-detail-kicker">STAGE · {{ selectedStage?.stage_key ?? "" }}</p>
+            <DialogTitle class="stage-detail-title">
+              {{ stageLabel(selectedStage?.stage_key ?? "") }}
+            </DialogTitle>
+            <DialogDescription class="app-dialog-visually-hidden">
+              {{ t("workflowDetailPage.k36") }}. {{ t("workflowDetailPage.k37") }}
+            </DialogDescription>
           </div>
         </template>
         <template #header-actions>
-              <button
+          <button
                 class="stage-detail-btn"
                 :class="{ 'is-copy-success': stageCopyState === 'success', 'is-copy-error': stageCopyState === 'error' }"
                 type="button"
@@ -449,8 +448,7 @@ onUnmounted(() => {
                   :name="stageCopyState === 'success' ? 'circle-check' : stageCopyState === 'error' ? 'circle-x' : 'copy'"
                   :size="14"
                 />{{ stageCopyState === 'success' ? t("common.copiedShort") : stageCopyState === 'error' ? t("common.copyFailed") : t("workflowDetailPage.k31") }}
-              </button>
-
+          </button>
         </template>
         <template #body>
           <div v-if="selectedStage" class="stage-detail-body">
@@ -903,6 +901,15 @@ onUnmounted(() => {
   display: grid;
   gap: 4px;
   min-width: 0;
+}
+.stage-detail-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
 }
 .stage-detail-kicker {
   margin: 0 0 4px;

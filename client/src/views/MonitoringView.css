@@ -591,11 +591,6 @@
   min-width: 32px;
   padding: 0 8px;
 }
-.access-detail-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 800;
-}
 .access-detail-heading {
   display: grid;
   gap: 5px;
@@ -615,10 +610,6 @@
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.12em;
-}
-.access-detail-header h2 {
-  margin: 0;
-  font-size: 18px;
 }
 .access-detail-copy {
   min-height: 32px;
