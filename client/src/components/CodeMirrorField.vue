@@ -91,7 +91,7 @@ function buildExtensions() {
       "&": {
         ...(props.singleLine
           ? { height: props.height + "px", maxHeight: props.height + "px" }
-          : { minHeight: props.height + "px" }),
+          : { minHeight: Math.max(0, props.height - 2) + "px" }),
         background: "transparent",
         color: "var(--text)",
         fontSize: "12px",
