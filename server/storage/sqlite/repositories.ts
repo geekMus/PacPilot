@@ -23,7 +23,7 @@ import {
   vacuumDatabase,
   setSettings,
   updateSettings,
-} from "./sqlite";
+} from "./database";
 import {
   cancelPendingWorkflow,
   clearWorkflowHistory,

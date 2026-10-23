@@ -1,4 +1,4 @@
-import type { AppDatabase } from "./sqlite";
+import type { AppDatabase } from "./database";
 import type { WorkflowRun, WorkflowStage } from "../../../shared/contracts";
 export type { WorkflowRun, WorkflowStage, WorkflowStatus } from "../../../shared/contracts";
 

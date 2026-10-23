@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { loadEnv } from "../server/config/env";
-import { closeDb, getDb } from "../server/storage/sqlite/sqlite";
+import { closeDb, getDb } from "../server/storage/sqlite/database";
 import { resetAdminPassword } from "../server/services/admin-credentials";
 import { SqliteAdminCredentialRepository } from "../server/storage/sqlite/credentials";
 

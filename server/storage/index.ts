@@ -9,7 +9,7 @@ export async function createApplicationStorage(
   if (env.storageDriver === "memory") return createMemoryApplicationStorage();
 
   const [{ getDb }, { createSqliteApplicationStorage }] = await Promise.all([
-    import("./sqlite/sqlite"),
+    import("./sqlite/database"),
     import("./sqlite/repositories"),
   ]);
   return createSqliteApplicationStorage(getDb(env.dataDir), env.dataDir);

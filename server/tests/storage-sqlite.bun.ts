@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { createMemoryApplicationStorage } from "../storage/memory-application";
 import { createSqliteApplicationStorage } from "../storage/sqlite/repositories";
-import { createDatabase } from "../storage/sqlite/sqlite";
+import { createDatabase } from "../storage/sqlite/database";
 
 const temporaryDirectories: string[] = [];
 afterEach(() => {
