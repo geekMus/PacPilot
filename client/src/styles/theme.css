@@ -119,14 +119,14 @@ body:has(.sidebar-backdrop) {
   overflow: hidden;
 }
 
-/* Admin pages use an internal flex scroll area; public pages keep a stable viewport gutter. */
+/* Both admin and public pages use internal shared scroll areas. */
 html:has(.admin-layout) {
   overflow: hidden;
   scrollbar-gutter: auto;
 }
 
 html:not(:has(.admin-layout)) {
-  scrollbar-gutter: stable;
+  scrollbar-gutter: auto;
 }
 
 [aria-modal="true"],
