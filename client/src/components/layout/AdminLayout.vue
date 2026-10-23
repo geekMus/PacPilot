@@ -41,6 +41,11 @@ watch(
     <AdminSidebar :active="active" :open="menuOpen" />
 
     <div class="admin-main">
+      <AppScrollArea root-class="admin-content" orientation="vertical">
+        <div class="admin-content-inner">
+          <slot></slot>
+        </div>
+      </AppScrollArea>
       <header class="admin-topbar">
         <button
           class="mobile-menu-toggle"
@@ -61,11 +66,6 @@ watch(
           <UserPreferencesMenu />
         </div>
       </header>
-      <AppScrollArea root-class="admin-content" orientation="vertical">
-        <div class="admin-content-inner">
-          <slot></slot>
-        </div>
-      </AppScrollArea>
     </div>
   </div>
 </template>
@@ -73,6 +73,7 @@ watch(
 <style scoped>
 .admin-layout {
   --sidebar-width: 258px;
+  --admin-topbar-space: 104px;
   display: flex;
   width: 100%;
   height: 100dvh;
@@ -82,6 +83,7 @@ watch(
   background: var(--bg);
 }
 .admin-main {
+  position: relative;
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
@@ -90,10 +92,11 @@ watch(
   height: 100%;
 }
 .admin-topbar {
-  position: relative;
+  position: absolute;
   z-index: 30;
-  isolation: isolate;
-  flex: 0 0 auto;
+  top: 0;
+  right: 0;
+  left: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -101,9 +104,9 @@ watch(
   min-height: 88px;
   padding: 15px clamp(20px, 3vw, 42px);
   border-bottom: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
-  background: color-mix(in srgb, var(--bg) 72%, transparent);
-  -webkit-backdrop-filter: saturate(180%) blur(22px);
-  backdrop-filter: saturate(180%) blur(22px);
+  background: color-mix(in srgb, var(--bg) 58%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  backdrop-filter: saturate(180%) blur(24px);
 }
 .topbar-title {
   min-width: 0;
@@ -146,10 +149,10 @@ watch(
   font-size: 12px;
 }
 .admin-content {
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 0;
+  position: absolute;
+  inset: 0;
   width: 100%;
+  height: 100%;
 
   --radius: 12px;
   --admin-panel-padding: 20px;
@@ -160,7 +163,7 @@ watch(
   width: 100%;
   max-width: 1680px;
   margin: 0 auto;
-  padding: 25px clamp(20px, 3vw, 42px) 40px;
+  padding: calc(var(--admin-topbar-space) + 25px) clamp(20px, 3vw, 42px) 40px;
 }
 
 /* 管理区共享尺寸规范：三个工作页面共用同一组卡片、指标、标题和控件比例。 */
@@ -276,6 +279,9 @@ watch(
   }
 }
 @media (max-width: 900px) {
+  .admin-layout {
+    --admin-topbar-space: 92px;
+  }
   .sidebar-backdrop {
     display: block;
     position: fixed;
@@ -321,6 +327,9 @@ watch(
   }
 }
 @media (max-width: 620px) {
+  .admin-layout {
+    --admin-topbar-space: 64px;
+  }
   .admin-topbar {
     display: grid;
     grid-template-columns: 32px minmax(0, 1fr) auto;
