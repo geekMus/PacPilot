@@ -103,9 +103,6 @@ async function loadUnlocked(storage: ApplicationStorage): Promise<NotificationDo
   await storage.notifications.set(document);
   return document;
 }
-async function load(storage: ApplicationStorage) {
-  return withLock(storage, () => loadUnlocked(storage));
-}
 
 export async function getNotificationAdminView(storage: ApplicationStorage) {
   return withLock(storage, async () => {
@@ -220,7 +217,7 @@ async function deliver(storage: ApplicationStorage, event: DomainEvent, delivery
     const ready = await updateDelivery(storage, deliveryId, (delivery, document) => {
       const channel = document.channels.find((item) => item.id === delivery.channelId && item.enabled);
       const rule = document.rules.find((item) => item.id === delivery.ruleId && item.enabled);
-      if (!channel || !rule) { delivery.lastError = "通知规则或渠道已停用。"; return; }
+      if (!channel || !rule) { delivery.status = "failed"; delivery.lastError = "通知规则或渠道已停用。"; delivery.updatedAt = now(); return; }
       delivery.status = "sending";
       delivery.attemptCount = attempt;
       delivery.updatedAt = now();
@@ -319,7 +316,7 @@ export async function retryNotificationDelivery(storage: ApplicationStorage, id:
     if (!event || !channel || !channel.enabled) throw new Error("事件或已启用的渠道不存在。");
     delivery.status = "pending"; delivery.lastError = undefined; delivery.updatedAt = now();
     await storage.notifications.set(document);
-    return { event, deliveryId: delivery.id };
+    return { deliveryId: delivery.id };
   });
   const timeZone = (await storage.settings.get()).timezone;
   await dispatchPending(storage, [result.deliveryId], timeZone);
