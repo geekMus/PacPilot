@@ -8,8 +8,7 @@ import AppDialog from "@/components/AppDialog.vue";
 import AppSelect from "@/components/AppSelect.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 import AppFooter from "@/components/AppFooter.vue";
-import TextDetail from "@/components/TextDetail.vue";
-import VirtualTable from "@/components/VirtualTable.vue";
+import GenerationLogTable from "@/components/GenerationLogTable.vue";
 import { useMonitoringDashboard } from "@/composables/useMonitoringDashboard";
 import { useI18n } from "vue-i18n";
 
@@ -88,17 +87,7 @@ onMounted(() => void refreshGenerationLogs());
           </button>
         </div>
         <p v-if="logsError" class="monitor-state is-error" role="alert">{{ logsError }}</p>
-        <VirtualTable :items="logs" item-key="id" :col-span="4" :row-height="58" height="420px" min-width="700px"
-          :has-more="logHasMore" :loading="logLoadingMore" :error="logsError" :empty-text="t('settings.noLogs')" :load-more="loadMoreGenerationLogs">
-          <template #columns><col style="width: 145px" /><col style="width: 78px" /><col style="width: 120px" /><col style="width: 357px" /></template>
-          <template #header><tr><th>{{ t("settings.colTime") }}</th><th>{{ t("settings.colResult") }}</th><th>{{ t("settings.colMode") }}</th><th>{{ t("settings.colMessage") }}</th></tr></template>
-          <template #row="{ item: entry }"><tr class="generation-log-row" tabindex="0" role="button" @click="openGenerationLogDetail(entry)" @keydown.enter.prevent="openGenerationLogDetail(entry)" @keydown.space.prevent="openGenerationLogDetail(entry)">
-            <td class="nowrap">{{ generationLogDate(entry.created_at) }}</td>
-            <td><span class="pill" :class="entry.success ? 'ok' : 'bad'">{{ entry.success ? t("common.success") : t("common.failed") }}</span></td>
-            <td>{{ generationModeLabel(entry.mode) }}</td>
-            <td class="msg"><span @click.stop><TextDetail :text="generationLogText(entry)" :label="t('settings.genLogInfo')" /></span></td>
-          </tr></template>
-        </VirtualTable>
+        <GenerationLogTable :items="logs" :height="480" :has-more="logHasMore" :loading="logLoadingMore" :error="logsError" :empty-text="t('settings.noLogs')" :load-more="loadMoreGenerationLogs" @row-click="openGenerationLogDetail" />
       </section>
 
 <section class="monitor-panel">
