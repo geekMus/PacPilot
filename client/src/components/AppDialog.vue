@@ -77,6 +77,7 @@ function onCloseAutoFocus(event: Event): void {
           <AppScrollArea
             :root-class="['app-dialog-body', props.bodyClass].filter(Boolean).join(' ')"
             orientation="vertical"
+            type="auto"
           >
             <slot name="body">
               <slot />

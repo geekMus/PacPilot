@@ -488,6 +488,7 @@ const {
           :open="accessDetailOpen && !!selectedAccess"
           :label="t('monitor.k39')"
           width="min(640px, calc(100vw - 16px))"
+          body-class="access-detail-dialog-body"
           :close-label="t('monitor.k40')"
           @update:open="onAccessDetailOpenChange"
         >
