@@ -265,6 +265,10 @@ export function countGenerationLogs(database: AppDatabase): number {
   return Number((database.query("SELECT COUNT(*) AS total FROM generation_log").get() as { total: number }).total);
 }
 
+export function countWorkflowRuns(database: AppDatabase): number {
+  return Number((database.query("SELECT COUNT(*) AS total FROM workflow_runs").get() as { total: number }).total);
+}
+
 export function countAccessEvents(database: AppDatabase): number {
   return Number((database.query("SELECT COUNT(*) AS total FROM access_events").get() as { total: number }).total);
 }
