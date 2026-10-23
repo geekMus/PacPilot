@@ -17,7 +17,6 @@ import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import ResponsiveTrendChart from "@/components/ResponsiveTrendChart.vue";
-import TextDetail from "@/components/TextDetail.vue";
 import GenerationLogTable from "@/components/GenerationLogTable.vue";
 
 const { t, locale } = useI18n();
@@ -50,18 +49,6 @@ const customRuleCount = computed(
 );
 const latestLog = computed(() => logs.value[0] ?? null);
 
-function modeForLog(value: string): string {
-  return value === "remote"
-    ? t("dashboard.remoteRuleList")
-    : value === "custom"
-      ? t("dashboard.customRulesLabel")
-      : value;
-}
-function generationLogText(entry: GenerationLog): string {
-  return entry.success
-    ? t(`gen.success.${entry.result_code}`, entry.detail)
-    : entry.error || t("common.failed");
-}
 function formatStatusDate(value: string | undefined): string {
   if (!value) return t("common.noRecords");
   const date = new Date(value);
@@ -946,14 +933,5 @@ onMounted(() => {
 .recent-log-row { cursor: pointer; }
 .recent-log-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .detail-kicker { margin: 0 0 5px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .08em; }
-.recent-log-detail { display: grid; gap: 18px; min-width: 0; }
-.recent-log-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.recent-log-detail-grid > div { display: grid; gap: 6px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); }
-.recent-log-detail-grid span { color: var(--muted); font-size: 11px; }
-.recent-log-detail-grid strong { overflow-wrap: anywhere; font-size: 13px; }
-.recent-log-detail-block { display: grid; gap: 8px; min-width: 0; }
-.recent-log-detail-block h3 { margin: 0; font-size: 12px; }
-.recent-log-detail-block pre { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.6 var(--font-mono); }
-.recent-log-detail-block.is-error pre { color: var(--red); background: var(--red-soft); }
-@media (max-width: 520px) { .recent-log-detail-grid { grid-template-columns: 1fr; } }
+
 </style>
