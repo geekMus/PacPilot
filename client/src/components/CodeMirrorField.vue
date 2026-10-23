@@ -153,14 +153,5 @@ watch(
   background: transparent;
 }
 .cm-field-host :deep(.cm-scroller) {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-}
-.cm-field-host :deep(.cm-scroller::-webkit-scrollbar) {
-  width: var(--scrollbar-size);
-}
-.cm-field-host :deep(.cm-scroller::-webkit-scrollbar-thumb) {
-  background: var(--scrollbar-thumb);
-  border-radius: 999px;
 }
 </style>
