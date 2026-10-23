@@ -274,7 +274,7 @@ const {
               <AppInput
                 id="pacProxy"
                 v-model="form.pacProxy"
-                :aria-invalid="Boolean(pacProxyError)"
+                :invalid="Boolean(pacProxyError)"
                 placeholder="SOCKS5 127.0.0.1:1080; DIRECT"
               />
               <p class="field-hint">
@@ -296,7 +296,7 @@ const {
                 v-model="form.listUrl"
                 :disabled="form.mode !== 'remote'"
                 :aria-disabled="form.mode !== 'remote'"
-                :aria-invalid="Boolean(listUrlError)"
+                :invalid="Boolean(listUrlError)"
                 placeholder="https://example.com/list.txt"
               />
               <p class="field-hint">
@@ -450,7 +450,7 @@ const {
                   id="cron"
                   v-model="form.cronSchedule"
                   class="mono"
-                  :aria-invalid="Boolean(cronError)"
+                  :invalid="Boolean(cronError)"
                   spellcheck="false"
                   autocomplete="off"
                   :placeholder="t('settings.cronExample')"
