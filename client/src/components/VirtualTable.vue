@@ -54,10 +54,14 @@ const resolvedHeight = computed(() => {
         : 480;
   const stateRowHeight = 42;
   const emptyBodyHeight = 98;
+  // Include the frame's 1px border on both sides. Without these 2px,
+  // the body viewport is slightly shorter than the rendered rows and Reka UI
+  // incorrectly exposes a vertical scrollbar even for a short table.
+  const frameBorderHeight = 2;
   const contentHeight =
     !props.items.length && !props.loading && !props.error
-      ? 44 + emptyBodyHeight
-      : 44 + props.items.length * props.rowHeight + stateRowHeight;
+      ? 44 + emptyBodyHeight + frameBorderHeight
+      : 44 + props.items.length * props.rowHeight + stateRowHeight + frameBorderHeight;
   return `${Math.min(maxHeight, contentHeight)}px`;
 });
 
