@@ -355,7 +355,7 @@ onMounted(() => {
               <div class="editor-heading-copy"><div class="editor-kicker">{{ rid ? "RULE SETTINGS" : "NEW RULE" }}</div><h3>{{ rid ? "编辑触发规则" : "创建触发规则" }}</h3><p>用简单条件定义事件触发时机与通知目标。</p></div>
               <span class="status-pill" :class="rule.enabled ? 'pill-enabled' : 'pill-disabled'"><span class="status-dot" :class="{ online: rule.enabled }"></span>{{ rule.enabled ? "已启用" : "已停用" }}</span>
             </header>
-            <div class="editor-body">
+            <AppScrollArea root-class="editor-scroll" type="always"><div class="editor-body">
               <section class="form-section">
                 <div class="section-title"><span>01</span><div><h4>规则信息</h4><p>给规则一个容易识别的名称。</p></div></div>
                 <label class="field"><span>规则名称 <i>*</i></span><input v-model="rule.name" required maxlength="80" placeholder="例如：任务失败时通知运维群" /></label>
