@@ -6,6 +6,7 @@ import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AppDialog from "@/components/AppDialog.vue";
 import AppSelect from "@/components/AppSelect.vue";
+import AppInput from "@/components/AppInput.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 import AppFooter from "@/components/AppFooter.vue";
 import GenerationLogTable from "@/components/GenerationLogTable.vue";
@@ -100,7 +101,7 @@ onMounted(() => void refreshGenerationLogs());
           <div class="access-filters" :aria-label="t('monitor.k33')">
             <label class="access-filter search-filter">
               <span>{{ t("monitor.k116") }}</span>
-              <input
+              <AppInput
                 v-model="accessKeyword"
                 type="search"
                 :placeholder="t('monitor.k34')"
