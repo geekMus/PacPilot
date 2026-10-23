@@ -20,6 +20,14 @@ interface QueueItem {
 const queues = new Map<string, QueueItem[]>();
 const runningTypes = new Set<string>();
 const PAC_WORKFLOW_TYPE = "pac-generation";
+function encodeWorkflowStageDetail(value: unknown): string {
+  const json = JSON.stringify(value ?? {});
+  if (json === undefined) throw new Error("Workflow stage detail is not JSON-serializable.");
+  return json.length > 32000
+    ? JSON.stringify({ truncated: true, originalLength: json.length })
+    : json;
+}
+
 const cancelledResult = (): GenerateResult => ({
   success: false,
   mode: "",
@@ -140,7 +148,7 @@ function enqueueWorkflow(
   source: WorkflowSource,
   execute: (item: QueueItem) => Promise<GenerateResult>
 ): QueueItem {
-  const workflowId = createWorkflowRun(database, source, storage.settings.get().mode);
+  const workflowId = storage.workflows.create(source, storage.settings.get().mode);
   let resolve!: (result: GenerateResult) => void;
   let reject!: (error: unknown) => void;
   const promise = new Promise<GenerateResult>((res, rej) => {
