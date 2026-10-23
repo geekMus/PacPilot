@@ -2,7 +2,7 @@ import { Router } from "express";
 import type { ApplicationStorage } from "../storage/repositories";
 import type { EnvConfig } from "../config/env";
 
-import type { AppSettings, GenerationMode } from "../db/settings";
+import type { AppSettings, GenerationMode } from "../../shared/contracts";
 import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../db/settings";
 import { requireAdmin } from "../middleware/auth";
 import { validatePacProxyString } from "../services/pac-generator";
