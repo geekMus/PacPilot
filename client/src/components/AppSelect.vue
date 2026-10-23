@@ -167,6 +167,7 @@ function onValueChange(value: string): void {
   width: max-content;
   max-width: calc(100vw - 16px);
   max-height: var(--reka-select-content-available-height);
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--surface);
