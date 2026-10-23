@@ -67,7 +67,7 @@ async function logout(): Promise<void> {
             :class="{ active: props.active === 'logs' }"
             :aria-current="props.active === 'logs' ? 'page' : undefined"
           >
-            <AppIcon name="scroll-text" :size="18" />
+            <AppIcon name="file-text" :size="18" />
             <span>{{ t("nav.logs") }}</span>
           </RouterLink>
           <RouterLink
@@ -76,7 +76,7 @@ async function logout(): Promise<void> {
             :class="{ active: props.active === 'notifications' }"
             :aria-current="props.active === 'notifications' ? 'page' : undefined"
           >
-            <AppIcon name="bell-ring" :size="18" />
+            <AppIcon name="zap" :size="18" />
             <span>{{ t("nav.notifications") }}</span>
           </RouterLink>
           <RouterLink

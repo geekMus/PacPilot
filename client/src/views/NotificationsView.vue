@@ -16,7 +16,7 @@ const { t, loading, saving, error, channels, testState, validation, validationMe
       <section v-else-if="error" class="state-card is-error" role="alert"><AppIcon name="circle-alert" :size="18" /><p>{{ error }}</p></section>
       <template v-else>
         <section class="notification-intro">
-          <span class="notification-icon"><AppIcon name="bell-ring" :size="20" /></span>
+          <span class="notification-icon"><AppIcon name="zap" :size="20" /></span>
           <div><h2>{{ t("notifications.channelsTitle") }}</h2><p>{{ t("notifications.channelsDescription") }}</p></div>
           <button class="notification-save" type="button" :disabled="saving" @click="save"><AppIcon :name="saving ? 'loader-circle' : 'save'" :size="15" />{{ saving ? t("common.saving") : t("common.save") }}</button>
         </section>

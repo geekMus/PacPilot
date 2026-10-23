@@ -74,7 +74,7 @@ onMounted(() => void refreshGenerationLogs());
       <div v-if="monitorError" class="monitor-alert is-error" role="alert">{{ monitorError }}</div>
       <section class="monitor-panel generation-log-panel">
         <div class="panel-heading">
-          <div><h2><AppIcon name="file-clock" :size="17" />{{ t("logs.generationTitle") }}</h2>
+          <div><h2><AppIcon name="file-check" :size="17" />{{ t("logs.generationTitle") }}</h2>
           <p>{{ t("settings.loadedLogs", { loaded: logs.length, total: logTotal }) }}</p></div>
           <button class="monitor-button secondary" type="button" :disabled="logsLoading" @click="refreshGenerationLogs">
             <AppIcon name="refresh-cw" :size="14" />{{ t("common.refresh") }}
