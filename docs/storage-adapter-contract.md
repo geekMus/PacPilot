@@ -4,25 +4,26 @@ This document is the implementation guide for anyone adding a database or storag
 
 ## Required public shape
 
-Every driver must return an `ApplicationStorage` with the same repository properties and synchronous method signatures defined in `repositories.ts`: `settings`, `credentials`, `generationLogs`, `monitoring`, `workflows`, `artifacts`, `maintenance`, `driver`, and `close()`.
+Every driver must return an `ApplicationStorage` with the same repository properties and asynchronous method signatures defined in `repositories.ts`: `settings`, `credentials`, `generationLogs`, `monitoring`, `workflows`, `artifacts`, `maintenance`, `driver`, and `close()`. Every repository operation and lifecycle operation returns a `Promise`; no adapter may expose a synchronous variant through `ApplicationStorage`.
 
 - `driver` must identify the selected implementation using the supported driver union. Add a new literal to the union and configuration validation when adding a driver.
-- Repository operations are synchronous today. Do not silently return promises from a new adapter. If asynchronous I/O is ever required, migrate the shared contract and every adapter/caller together as a separate design change.
+- The public storage contract is uniformly asynchronous. Callers must `await` reads, writes, maintenance operations, and `close()`; do not mix sync and async behavior by adapter. `Sync*Repository` types are private-to-the-storage-layer implementation contracts, not a service-facing API. Composition roots wrap concrete implementations using `asAsyncRepository` so the public surface has one shape.
+- **Important driver limitation:** the current SQLite implementation still uses Bun's synchronous `bun:sqlite` API. The async contract makes future async drivers substitutable, but the wrapper does not move SQL work off the event loop. Do not describe current SQLite calls as non-blocking. A future requirement for genuinely non-blocking SQLite I/O must replace the synchronous driver or isolate it behind a worker, preserving the same contract and atomicity semantics.
 - Methods must preserve exact return types and null/undefined distinctions in the interfaces; do not invent sentinel objects.
 - Adapter constructors receive dependencies explicitly. SQL clients, transactions, and vendor-specific types must not leak into `repositories.ts`, routes, services, or domain types.
-- `close()` must release resources owned by the adapter. A memory adapter should clear volatile state; a persistent adapter must not delete persisted user data merely because it is closed.
+- `close()` returns `Promise<void>` and must release resources owned by the adapter. A memory adapter should clear volatile state; a persistent adapter must not delete persisted user data merely because it is closed. Await it during shutdown and in lifecycle tests.
 
 ## Repository data semantics
 
-| Contract | Required semantics |
-| --- | --- |
-| `SettingsRepository` | `get()` returns normalized `AppSettings`; `set()` persists/replaces the complete normalized settings value; `update()` merges a partial patch, normalizes it, persists it, and returns the resulting settings. |
-| `AdminCredentialRepository` | `get()` returns a validated `AdminCredentialRecord` or `null`; `set()` replaces the complete credential record. Never log or expose secrets. |
-| `GenerationLogRepository` | `append()` stores a log entry; `list()` uses limit/offset/before-ID arguments consistently; `count()`, `storageBytes()`, `cleanup()`, and `clear()` refer only to generation-log data. |
-| `MonitoringRepository` | `record()` stores the supplied event; `list()` and `count()` refer to the same event set; `summarize()` returns the full `MonitorSummary` shape; cleanup/clear affect only access events. |
-| `WorkflowRepository` | IDs uniquely identify runs/stages; stages remain attached to their run; `claim()` must atomically claim a run at most once; deleting/clearing history must not delete active runs; statuses and result unions must match the contract. |
-| `ArtifactRepository` | Keys pass through `normalizeArtifactKey`; bytes round-trip unchanged; string writes are UTF-8; missing reads/stat return `undefined`; `delete()` returns whether an item existed; `list()` is deterministic and prefix-filtered; byte counts are bytes, not characters. |
-| `StorageMaintenance` | `databaseBytes()` returns bytes; `compact()` and `checkpoint()` may be documented no-ops for a driver without those operations; `resetOperationalData(settings)` clears operational history atomically where supported and updates settings without deleting artifacts or credentials. |
+| Contract                    | Required semantics                                                                                                                                                                                                                                                                     |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SettingsRepository`        | `get()` returns normalized `AppSettings`; `set()` persists/replaces the complete normalized settings value; `update()` merges a partial patch, normalizes it, persists it, and returns the resulting settings.                                                                         |
+| `AdminCredentialRepository` | `get()` returns a validated `AdminCredentialRecord` or `null`; `set()` replaces the complete credential record. Never log or expose secrets.                                                                                                                                           |
+| `GenerationLogRepository`   | `append()` stores a log entry; `list()` uses limit/offset/before-ID arguments consistently; `count()`, `storageBytes()`, `cleanup()`, and `clear()` refer only to generation-log data.                                                                                                 |
+| `MonitoringRepository`      | `record()` stores the supplied event; `list()` and `count()` refer to the same event set; `summarize()` returns the full `MonitorSummary` shape; cleanup/clear affect only access events.                                                                                              |
+| `WorkflowRepository`        | IDs uniquely identify runs/stages; stages remain attached to their run; `claim()` must atomically claim a run at most once; deleting/clearing history must not delete active runs; statuses and result unions must match the contract.                                                 |
+| `ArtifactRepository`        | Keys pass through `normalizeArtifactKey`; bytes round-trip unchanged; string writes are UTF-8; missing reads/stat return `undefined`; `delete()` returns whether an item existed; `list()` is deterministic and prefix-filtered; byte counts are bytes, not characters.                |
+| `StorageMaintenance`        | `databaseBytes()` returns bytes; `compact()` and `checkpoint()` may be documented no-ops for a driver without those operations; `resetOperationalData(settings)` clears operational history atomically where supported and updates settings without deleting artifacts or credentials. |
 
 ## Data representation rules
 
