@@ -9,9 +9,11 @@ import ConfirmPopover from "@/components/ConfirmPopover.vue";
 import AppSelect from "@/components/AppSelect.vue";
 import { useToast } from "@/composables/useToast";
 import { useI18n } from "vue-i18n";
+import { useAdminPassword } from "@/composables/useAdminPassword";
 const router = useRouter(),
   { notify } = useToast();
 const { t, locale } = useI18n();
+const { passwordSaving, passwordError, passwordForm, changeAdminPassword } = useAdminPassword();
 const loading = ref(true),
   savingRetention = ref(false),
   cleaning = ref(false),
@@ -181,6 +183,19 @@ onMounted(() => void load());
     :subtitle="t('system.subtitleFull')"
   >
     <div class="system-settings">
+      <section class="settings-panel password-settings-panel">
+        <div class="heading">
+          <span class="icon-badge"><AppIcon name="shield-check" :size="19" /></span>
+          <div><h2>{{ t("settings.changePasswordTitle") }}</h2><p>{{ t("settings.passwordStoredLocal") }}</p></div>
+        </div>
+        <form class="system-password-form" @submit.prevent="changeAdminPassword">
+          <label><span>{{ t("settings.currentPassword") }}</span><input v-model="passwordForm.currentPassword" type="password" autocomplete="current-password" required @input="passwordError = ''" /></label>
+          <label><span>{{ t("settings.newPassword") }}</span><input v-model="passwordForm.newPassword" type="password" autocomplete="new-password" required :placeholder="t('settings.newPasswordPlaceholder')" @input="passwordError = ''" /></label>
+          <label><span>{{ t("settings.confirmPassword") }}</span><input v-model="passwordForm.confirmPassword" type="password" autocomplete="new-password" required @input="passwordError = ''" /></label>
+          <p v-if="passwordError" class="field-error" role="alert">{{ passwordError }}</p>
+          <div class="password-settings-actions"><button class="primary" type="submit" :disabled="passwordSaving"><AppIcon :name="passwordSaving ? 'loader-circle' : 'key-round'" :size="15" />{{ passwordSaving ? t("settings.changingPassword") : t("settings.changePassword") }}</button></div>
+        </form>
+      </section>
       <p v-if="maintenanceBusy()" class="maintenance-status" role="status" aria-live="polite">
         {{ maintenanceDisabledReason }}
       </p>
@@ -506,6 +521,14 @@ onMounted(() => void load());
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
+.system-password-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.system-password-form label { display: grid; gap: 7px; color: var(--muted); font-size: 12px; font-weight: 650; }
+.system-password-form input { width: 100%; min-width: 0; min-height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); background: var(--surface-2); font: inherit; }
+.system-password-form input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.password-settings-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+.password-settings-actions button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 1px solid var(--accent); border-radius: 8px; color: white; background: var(--accent); font: inherit; cursor: pointer; }
+.password-settings-actions button:disabled { opacity: .65; cursor: progress; }
+@media (max-width: 800px) { .system-password-form { grid-template-columns: minmax(0, 1fr); } }
 .system-settings {
   display: grid;
   gap: 18px;
