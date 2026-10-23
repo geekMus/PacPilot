@@ -29,9 +29,6 @@ const logLoadingMore = ref(false);
 const logTotal = ref(0);
 const pageSize = 50;
 
-function generationModeLabel(mode: string): string {
-  return mode === "remote" ? t("workflow.remoteMode") : t("workflow.customMode");
-}
 async function refreshGenerationLogs(): Promise<void> {
   logsLoading.value = true;
   logsError.value = "";
