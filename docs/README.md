@@ -6,6 +6,7 @@ This directory contains the project's user, deployment, development, and operati
 
 | Document | Description |
 | --- | --- |
+| [Vercel test deployment](vercel-test-deployment.md) | Test-only Vercel configuration, limitations, and maintenance conventions (not for production) |
 | [Deployment guide](deployment.md) | Docker, Docker Compose, first startup, and common access URLs |
 | [Configuration](configuration.md) | PAC rules, environment variables, data files, CORS policy, and administrator password |
 | [Development guide](development.md) | Local development environment, common commands, and checks |
