@@ -1,8 +1,8 @@
 import { Database } from "bun:sqlite";
 import fs from "fs";
 import path from "path";
-import type { AppSettings, GenerationMode } from "./settings";
-import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "./settings";
+import type { AppSettings, GenerationMode } from "../domain/settings";
+import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../domain/settings";
 import { initializeSchema } from "./schema";
 export * from "./workflows";
 
