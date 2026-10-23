@@ -340,7 +340,7 @@ onMounted(() => {
             </footer>
             <div v-if="cid && !channelReady" class="editor-note"><AppIcon name="info" :size="15" /> 请补齐 URL；钉钉渠道还需要有效的机器人配置后才能测试发送。</div>
           </form>
-          <section v-if="!channelEditorOpen" class="editor-panel editor-placeholder"><AppIcon name="mouse-pointer-click" :size="24" /><h3>请选择一个通知渠道</h3><p>从左侧选择已有渠道，或点击加号创建新渠道。</p></section>
+          <section v-if="!channelEditorOpen" class="editor-panel editor-placeholder" aria-live="polite"><div class="placeholder-icon"><AppIcon name="file-search" :size="22" /></div><p>暂无可查看信息，请选中一条再试吧</p></section>
         </section>
 
         <section v-else-if="tab === 'rules'" class="workspace-layout rule-layout">
@@ -401,7 +401,7 @@ onMounted(() => {
               <button type="submit" class="button primary" :disabled="busy || !rule.name.trim() || !rule.channelIds.length"><AppIcon name="save" :size="15" /> {{ busy ? "正在保存…" : "保存规则" }}</button>
             </footer>
           </form>
-          <section v-if="!ruleEditorOpen" class="editor-panel editor-placeholder"><AppIcon name="mouse-pointer-click" :size="24" /><h3>请选择一条触发规则</h3><p>从左侧选择已有规则，或点击加号创建新规则。</p></section>
+          <section v-if="!ruleEditorOpen" class="editor-panel editor-placeholder" aria-live="polite"><div class="placeholder-icon"><AppIcon name="file-search" :size="22" /></div><p>暂无可查看信息，请选中一条再试吧</p></section>
         </section>
 
         <section v-else class="history-workspace">
@@ -497,10 +497,9 @@ onMounted(() => {
 .tab-alert { display: inline-grid; place-items: center; min-width: 19px; height: 19px; padding: 0 4px; border-radius: 6px; background: var(--red-soft); color: var(--red); font-size: 10px; }
 .workspace-layout { display: grid; flex: 0 0 auto; grid-template-columns: minmax(245px, .72fr) minmax(0, 1.8fr); align-items: stretch; gap: 16px; min-width: 0; min-height: 280px; height: clamp(280px, calc(100dvh - var(--admin-topbar-space, 104px) - 180px), 720px); max-height: none; }
 .editor-panel { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; overflow: hidden; }
-.editor-placeholder { align-items: center; justify-content: center; gap: 10px; padding: 28px; text-align: center; color: var(--muted); }
-.editor-placeholder > svg { color: var(--accent); opacity: .8; }
-.editor-placeholder h3 { margin: 0; color: var(--text); font-size: 15px; }
-.editor-placeholder p { max-width: 300px; margin: 0; font-size: 12px; line-height: 1.7; }
+.editor-placeholder { align-items: center; justify-content: center; gap: 14px; padding: 28px; text-align: center; color: var(--muted); }
+.placeholder-icon { display: grid; place-items: center; width: 52px; height: 52px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface-2); color: var(--muted); }
+.editor-placeholder p { margin: 0; font-size: 13px; line-height: 1.7; }
 .editor-body { flex: 0 0 auto; align-content: start; }
 .directory-panel, .editor-panel, .history-panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
 .directory-panel { position: static; min-width: 0; min-height: 0; height: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface); box-shadow: var(--shadow); }
