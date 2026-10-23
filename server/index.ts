@@ -15,16 +15,20 @@ async function main(): Promise<void> {
   const env = loadEnv();
   process.env.PACPILOT_RUNTIME_PROFILE = env.runtimeProfile;
   const storage = await createApplicationStorage(env);
-  const firstStart = isAdminCredentialsMissing(storage.credentials);
-  const initialAdminPassword = createInitialAdminCredentials(storage.credentials, process.env.ADMIN_PASSWORD, process.env.ADMIN_SESSION_SECRET);
-  const adminCredentialsMissing = isAdminCredentialsMissing(storage.credentials);
-  storage.workflows.markInterrupted();
-  const cleanupLogs = (): void => {
-    const retentionDays = storage.settings.get().logRetentionDays;
-    const deletedGenerationLogs = storage.generationLogs.cleanup(retentionDays);
-    const deletedAccessEvents = storage.monitoring.cleanup(retentionDays);
+  const firstStart = await isAdminCredentialsMissing(storage.credentials);
+  const initialAdminPassword = await createInitialAdminCredentials(
+    storage.credentials,
+    process.env.ADMIN_PASSWORD,
+    process.env.ADMIN_SESSION_SECRET
+  );
+  const adminCredentialsMissing = await isAdminCredentialsMissing(storage.credentials);
+  await storage.workflows.markInterrupted();
+  const cleanupLogs = async (): Promise<void> => {
+    const retentionDays = (await storage.settings.get()).logRetentionDays;
+    const deletedGenerationLogs = await storage.generationLogs.cleanup(retentionDays);
+    const deletedAccessEvents = await storage.monitoring.cleanup(retentionDays);
     if (deletedGenerationLogs + deletedAccessEvents > 0 && env.storageDriver === "sqlite") {
-      storage.maintenance.compact();
+      await storage.maintenance.compact();
     }
   };
   cleanupLogs();

@@ -49,13 +49,13 @@ export function clearSessionCookie(res: Response): void {
 }
 
 export function requireAdmin(repository: AdminCredentialRepository) {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    if (isAdminCredentialsMissing(repository)) {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    if (await isAdminCredentialsMissing(repository)) {
       res.status(401).json({ error: "unauthorized" });
       return;
     }
     const token = req.cookies?.[COOKIE_NAME] as string | undefined;
-    if (!verifySessionToken(token, getAdminSessionSecret(repository))) {
+    if (!verifySessionToken(token, await getAdminSessionSecret(repository))) {
       res.status(401).json({ error: "unauthorized" });
       return;
     }
@@ -63,10 +63,13 @@ export function requireAdmin(repository: AdminCredentialRepository) {
   };
 }
 
-export function isLoggedIn(req: Request, repository: AdminCredentialRepository): boolean {
-  if (isAdminCredentialsMissing(repository)) return false;
+export async function isLoggedIn(
+  req: Request,
+  repository: AdminCredentialRepository
+): Promise<boolean> {
+  if (await isAdminCredentialsMissing(repository)) return false;
   const token = req.cookies?.[COOKIE_NAME] as string | undefined;
-  return verifySessionToken(token, getAdminSessionSecret(repository));
+  return verifySessionToken(token, await getAdminSessionSecret(repository));
 }
 
 export function clientKey(req: Request): string {
