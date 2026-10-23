@@ -169,7 +169,7 @@ watch(
       root-class="cm-field-scroll-area"
       viewport-class="cm-field-scroll-viewport"
       orientation="both"
-      type="auto"
+      type="always"
     >
       <div ref="host" class="cm-field-host cm-field-host-scrollable"></div>
     </AppScrollArea>
