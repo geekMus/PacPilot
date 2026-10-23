@@ -488,11 +488,11 @@ onMounted(() => {
 .workspace-tabs button.active { color: var(--text); border-color: var(--line); background: var(--surface); box-shadow: 0 1px 2px #00000008; }
 .tab-count { display: inline-grid; place-items: center; min-width: 21px; height: 21px; padding: 0 5px; border-radius: 6px; background: var(--surface-2); color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
 .tab-alert { display: inline-grid; place-items: center; min-width: 19px; height: 19px; padding: 0 4px; border-radius: 6px; background: var(--red-soft); color: var(--red); font-size: 10px; }
-.workspace-layout { display: grid; flex: 0 0 auto; grid-template-columns: minmax(245px, .72fr) minmax(0, 1.8fr); align-items: stretch; gap: 16px; min-width: 0; min-height: 0; height: max(280px, calc(100dvh - var(--admin-topbar-space, 104px) - 108px)); max-height: none; }
-.editor-panel { display: flex; flex-direction: column; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.workspace-layout { display: grid; flex: 0 0 auto; grid-template-columns: minmax(245px, .72fr) minmax(0, 1.8fr); align-items: stretch; gap: 16px; min-width: 0; min-height: 280px; height: clamp(280px, calc(100dvh - var(--admin-topbar-space, 104px) - 180px), 720px); max-height: none; }
+.editor-panel { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .editor-body { flex: 0 0 auto; align-content: start; }
 .directory-panel, .editor-panel, .history-panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
-.directory-panel { position: static; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.directory-panel { position: static; min-width: 0; min-height: 0; height: 100%; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 19px 19px 16px; }
 .panel-heading h3 { margin: 0; font-size: 13px; font-weight: 780; }
 .panel-heading p { margin: 5px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
