@@ -269,7 +269,7 @@ const channelStatusText = computed(() => {
           <AppInput
             :model-value="config.dingTalkSecret"
             :type="showDingTalkSecret ? 'text' : 'password'"
-            :aria-invalid="Boolean(validationErrors?.secret)"
+            :invalid="Boolean(validationErrors?.secret)"
             autocomplete="new-password"
             :placeholder="t('webhookChannel.k19')"
             @update:model-value="update('dingTalkSecret', $event)"
@@ -582,27 +582,8 @@ const channelStatusText = computed(() => {
   min-width: 0;
 }
 .secret-field .app-input {
-  box-sizing: border-box;
   flex: 1;
-  width: 100%;
   min-width: 0;
-  min-height: 40px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 9px 10px;
-  color: var(--text);
-  background: var(--bg);
-  font: inherit;
-  font-size: 12px;
-}
-.secret-field .app-input:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-.secret-field .app-input[aria-invalid="true"] {
-  border-color: var(--red);
-  box-shadow: 0 0 0 3px var(--red-soft);
 }
 .reveal-button {
   display: inline-flex;
