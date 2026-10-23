@@ -8,10 +8,12 @@ import type { EnvConfig } from "./config/env";
 import { publicRoutes } from "./routes/public";
 import { adminRoutes } from "./routes/admin";
 import { requestMonitoringMiddleware } from "./services/request-monitor";
+import { resumePendingNotificationDeliveries } from "./services/notifications";
 import { getLocalInterfaceAddresses, isTrustedOrigin, normalizeOrigin } from "./utils/origin-policy";
 
 export function createApp(env: EnvConfig, storage: ApplicationStorage): express.Application {
   const app = express();
+  void resumePendingNotificationDeliveries(storage);
 
   app.disable("x-powered-by");
   // Honour X-Forwarded-* from a single reverse-proxy hop so Secure cookies and
