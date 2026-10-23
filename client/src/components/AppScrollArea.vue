@@ -17,7 +17,7 @@ withDefaults(
   }>(),
   {
     orientation: "vertical",
-    type: "auto",
+    type: "hover",
     rootClass: "",
     viewportClass: "",
   }
