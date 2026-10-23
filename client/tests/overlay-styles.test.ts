@@ -44,7 +44,7 @@ describe("portaled overlay style architecture", () => {
     ]) {
       const source = readSource(path);
       expect(source, `${path} must define its Portal styles in a non-scoped style block`).toMatch(
-        /<style(?![^>]*\\bscoped\\b)[^>]*>/
+        /<style(?![^>]*\bscoped\b)[^>]*>/
       );
     }
   });
