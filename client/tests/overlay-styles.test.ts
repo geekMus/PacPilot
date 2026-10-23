@@ -1,20 +1,18 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-
-function readSource(path: string): string {
-  return readFileSync(new URL(path, new URL("../src/", import.meta.url)), "utf8");
-}
+import adminStyles from "../src/views/AdminView.css?raw";
+import overlayStyles from "../src/styles/overlays.css?raw";
+import appEntry from "../src/main.ts?raw";
+import appDialog from "../src/components/AppDialog.vue?raw";
+import appSelect from "../src/components/AppSelect.vue?raw";
+import confirmPopover from "../src/components/ConfirmPopover.vue?raw";
+import userPreferencesMenu from "../src/components/UserPreferencesMenu.vue?raw";
 
 describe("portaled overlay style architecture", () => {
   it("loads the shared overlay stylesheet from the application entry point", () => {
-    const entry = readSource("main.ts");
-    expect(entry).toContain('import "@/styles/overlays.css";');
+    expect(appEntry).toContain('import "@/styles/overlays.css";');
   });
 
   it("keeps timezone Portal selectors out of the scoped admin view stylesheet", () => {
-    const adminStyles = readSource("views/AdminView.css");
-    const overlayStyles = readSource("styles/overlays.css");
-
     for (const selector of [
       ".timezone-options-menu",
       ".timezone-options-scroll",
@@ -35,14 +33,15 @@ describe("portaled overlay style architecture", () => {
   });
 
   it("keeps component-owned Portal styles unscoped", () => {
-    for (const path of [
-      "components/AppDialog.vue",
-      "components/AppSelect.vue",
-      "components/ConfirmPopover.vue",
-      "components/UserPreferencesMenu.vue",
+    for (const [path, source] of [
+      ["AppDialog.vue", appDialog],
+      ["AppSelect.vue", appSelect],
+      ["ConfirmPopover.vue", confirmPopover],
+      ["UserPreferencesMenu.vue", userPreferencesMenu],
     ]) {
-      const source = readSource(path);
-      expect(source, `${path} must define its Portal styles in a non-scoped style block`).toMatch(/<style(?![^>]*\bscoped\b)[^>]*>/);
+      expect(source, `${path} must define its Portal styles in a non-scoped style block`).toMatch(
+        /<style(?![^>]*\\bscoped\\b)[^>]*>/
+      );
     }
   });
 });
