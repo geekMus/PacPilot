@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { copyText } from "../../client/src/utils/clipboard";
+import { copyText } from "../src/utils/clipboard";
 
 function setClipboard(writeText?: (text: string) => Promise<void>): void {
   Object.defineProperty(navigator, "clipboard", {

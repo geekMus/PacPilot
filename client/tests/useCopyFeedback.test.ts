@@ -1,9 +1,9 @@
 import { effectScope } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useCopyFeedback } from "../../client/src/composables/useCopyFeedback";
-import { copyText } from "../../client/src/utils/clipboard";
+import { useCopyFeedback } from "../src/composables/useCopyFeedback";
+import { copyText } from "../src/utils/clipboard";
 
-vi.mock("../../client/src/utils/clipboard", () => ({
+vi.mock("../src/utils/clipboard", () => ({
   copyText: vi.fn(),
 }));
 

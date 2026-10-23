@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { WebhookConfig } from "../../shared/contracts";
-import { createAdminSettingsValidators } from "../../client/src/utils/admin-settings-validation";
+import { createAdminSettingsValidators } from "../src/utils/admin-settings-validation";
 
 const t = (key: string, params?: Record<string, unknown>) =>
   params ? key + ":" + JSON.stringify(params) : key;

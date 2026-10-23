@@ -59,7 +59,7 @@ describe("useTheme", () => {
 
   it("defaults to system mode and resolves the operating-system preference", async () => {
     installMatchMedia(true);
-    const { initThemeEarly, useTheme } = await import("../../client/src/composables/useTheme");
+    const { initThemeEarly, useTheme } = await import("../src/composables/useTheme");
     initThemeEarly();
     expect(document.documentElement.classList.contains("theme-dark")).toBe(true);
 
@@ -76,7 +76,7 @@ describe("useTheme", () => {
   it("restores valid stored modes and falls back for invalid values", async () => {
     localStorage.setItem("pacpilot-theme", "light");
     installMatchMedia(true);
-    const { initThemeEarly, useTheme } = await import("../../client/src/composables/useTheme");
+    const { initThemeEarly, useTheme } = await import("../src/composables/useTheme");
     initThemeEarly();
     expect(document.documentElement.classList.contains("theme-light")).toBe(true);
 
@@ -91,14 +91,14 @@ describe("useTheme", () => {
 
     localStorage.setItem("pacpilot-theme", "not-a-mode");
     vi.resetModules();
-    const second = await import("../../client/src/composables/useTheme");
+    const second = await import("../src/composables/useTheme");
     second.initThemeEarly();
     expect(document.documentElement.classList.contains("theme-dark")).toBe(true);
   });
 
   it("persists explicit mode changes and applies the corresponding class", async () => {
     installMatchMedia(false);
-    const { useTheme } = await import("../../client/src/composables/useTheme");
+    const { useTheme } = await import("../src/composables/useTheme");
     const wrapper = mount(defineComponent({
       setup() {
         const theme = useTheme();
@@ -118,7 +118,7 @@ describe("useTheme", () => {
 
   it("updates on system preference changes only in system mode and removes listeners", async () => {
     const { media, listeners } = installMatchMedia(false);
-    const { useTheme } = await import("../../client/src/composables/useTheme");
+    const { useTheme } = await import("../src/composables/useTheme");
     const wrapper = mount(defineComponent({
       setup() {
         const theme = useTheme();

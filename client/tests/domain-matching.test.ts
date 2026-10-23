@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { matchesCustomRule, matchesRemoteDomain } from "../../client/src/utils/domain-matching";
+import { matchesCustomRule, matchesRemoteDomain } from "../src/utils/domain-matching";
 
 describe("matchesCustomRule", () => {
   it("normalizes case and trailing dots for exact rules", () => {

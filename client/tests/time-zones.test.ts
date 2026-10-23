@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { commonTimeZones, isValidTimeZone } from "../../client/src/utils/time-zones";
+import { commonTimeZones, isValidTimeZone } from "../src/utils/time-zones";
 
 describe("time zone helpers", () => {
   it("provides unique, non-empty common time zones", () => {

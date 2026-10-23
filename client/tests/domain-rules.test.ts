@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeDomainRules, parseDomainRules } from "../../client/src/utils/domain-rules";
+import { analyzeDomainRules, parseDomainRules } from "../src/utils/domain-rules";
 
 describe("parseDomainRules", () => {
   it("parses exact, subdomain and combined wildcard rules", () => {
