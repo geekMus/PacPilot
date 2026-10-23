@@ -176,13 +176,11 @@ const channelStatusText = computed(() => {
           >{{ t("webhookChannel.k30") }}
           <span class="label-hint">{{ t("webhookChannel.k31") }}</span></label
         >
-        <CodeMirrorField
+        <WebhookBodyEditor
           :model-value="config.headers"
-          language="json"
           :height="126"
           :invalid="Boolean(validationErrors?.headers)"
-          :aria-label="t('webhookChannel.k14')"
-          placeholder='{"Authorization":"Bearer …"}'
+          :placeholder='{"Authorization":"Bearer …"}'
           @update:model-value="update('headers', $event)"
         />
         <p v-if="validationErrors?.headers" class="field-error" role="alert">
