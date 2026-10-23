@@ -23,6 +23,9 @@ const {
   loadMoreAccesses, formatDate, formatDuration, formatBytes, categoryLabel, statusLabel, statusTone, error: monitorError,
 } = useMonitoringDashboard();
 const logs = ref<GenerationLog[]>([]);
+const selectedGenerationLog = ref<GenerationLog | null>(null);
+const generationLogDetailOpen = ref(false);
+function openGenerationLogDetail(entry: GenerationLog): void { selectedGenerationLog.value = entry; generationLogDetailOpen.value = true; }
 const logsLoading = ref(true);
 const logsError = ref("");
 const logHasMore = ref(false);
@@ -88,7 +91,7 @@ onMounted(() => void refreshGenerationLogs());
           :has-more="logHasMore" :loading="logLoadingMore" :error="logsError" :empty-text="t('settings.noLogs')" :load-more="loadMoreGenerationLogs">
           <template #columns><col style="width: 145px" /><col style="width: 78px" /><col style="width: 120px" /><col style="width: 357px" /></template>
           <template #header><tr><th>{{ t("settings.colTime") }}</th><th>{{ t("settings.colResult") }}</th><th>{{ t("settings.colMode") }}</th><th>{{ t("settings.colMessage") }}</th></tr></template>
-          <template #row="{ item: entry }"><tr>
+          <template #row="{ item: entry }"><tr class="generation-log-row" tabindex="0" role="button" @click="openGenerationLogDetail(entry)" @keydown.enter.prevent="openGenerationLogDetail(entry)" @keydown.space.prevent="openGenerationLogDetail(entry)">
             <td class="nowrap">{{ generationLogDate(entry.created_at) }}</td>
             <td><span class="pill" :class="entry.success ? 'ok' : 'bad'">{{ entry.success ? t("common.success") : t("common.failed") }}</span></td>
             <td>{{ generationModeLabel(entry.mode) }}</td>
@@ -251,6 +254,28 @@ onMounted(() => void refreshGenerationLogs());
           </p>
         </section>
 
+        <AppDialog :open="generationLogDetailOpen && !!selectedGenerationLog" :label="t('settings.genLogInfo')" width="min(680px, calc(100vw - 16px))" @update:open="generationLogDetailOpen = $event">
+          <template #header>
+            <div>
+              <p class="detail-kicker">GENERATION LOG #{{ selectedGenerationLog?.id }}</p>
+              <DialogTitle>{{ t("settings.genLogInfo") }}</DialogTitle>
+              <DialogDescription>{{ selectedGenerationLog ? generationLogDate(selectedGenerationLog.created_at) : "" }}</DialogDescription>
+            </div>
+          </template>
+          <template #body>
+            <div v-if="selectedGenerationLog" class="generation-log-detail">
+              <div class="generation-log-detail-grid">
+                <div><span>{{ t("settings.colTime") }}</span><strong>{{ generationLogDate(selectedGenerationLog.created_at) }}</strong></div>
+                <div><span>{{ t("settings.colResult") }}</span><strong>{{ selectedGenerationLog.success ? t("common.success") : t("common.failed") }}</strong></div>
+                <div><span>{{ t("settings.colMode") }}</span><strong>{{ generationModeLabel(selectedGenerationLog.mode) }}</strong></div>
+                <div><span>ID</span><strong>#{{ selectedGenerationLog.id }}</strong></div>
+              </div>
+              <section class="generation-log-detail-block"><h3>{{ t("settings.colMessage") }}</h3><pre>{{ generationLogText(selectedGenerationLog) }}</pre></section>
+              <section v-if="selectedGenerationLog.detail" class="generation-log-detail-block"><h3>{{ t("settings.colMessage") }}</h3><pre>{{ selectedGenerationLog.detail }}</pre></section>
+              <section v-if="selectedGenerationLog.error" class="generation-log-detail-block is-error"><h3>{{ t("common.failed") }}</h3><pre>{{ selectedGenerationLog.error }}</pre></section>
+            </div>
+          </template>
+        </AppDialog>
         <AppDialog
           :open="accessDetailOpen && !!selectedAccess"
           :label="t('monitor.k39')"
@@ -377,4 +402,17 @@ onMounted(() => void refreshGenerationLogs());
   </AdminLayout>
 </template>
 
-<style scoped src="@/views/MonitoringView.css"></style>
+<style scoped src="@/views/MonitoringView.css">.generation-log-row { cursor: pointer; }
+.generation-log-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.detail-kicker { margin: 0 0 5px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .08em; }
+.generation-log-detail { display: grid; gap: 18px; min-width: 0; }
+.generation-log-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.generation-log-detail-grid > div { display: grid; gap: 6px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); }
+.generation-log-detail-grid span { color: var(--muted); font-size: 11px; }
+.generation-log-detail-grid strong { overflow-wrap: anywhere; font-size: 13px; }
+.generation-log-detail-block { display: grid; gap: 8px; min-width: 0; }
+.generation-log-detail-block h3 { margin: 0; font-size: 12px; }
+.generation-log-detail-block pre { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.6 var(--font-mono); }
+.generation-log-detail-block.is-error pre { color: var(--red); background: var(--red-soft); }
+@media (max-width: 520px) { .generation-log-detail-grid { grid-template-columns: 1fr; } }
+</style>
