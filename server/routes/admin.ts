@@ -14,7 +14,7 @@ export function adminRoutes(env: EnvConfig, database: AppDatabase, storage: Appl
   router.use(adminWorkflowRoutes(database, storage));
   router.use(adminMonitorRoutes(database, storage));
   router.use(adminSystemRoutes(env, database, storage));
-  router.use(adminAuthRoutes(database));
+  router.use(adminAuthRoutes(storage));
   router.use(adminSettingsRoutes(env, database, storage));
   router.use(adminGenerationRoutes(database, env.dataDir, storage));
   return router;
