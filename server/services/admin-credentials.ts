@@ -1,9 +1,7 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import type { AdminCredentialRecord, AdminCredentialRepository } from "../storage/repositories";
 
-const AUTH_KEY = "admin-auth";
 const HASH_BYTES = 64;
-/** Explicit scrypt cost (kept explicit for auditability). */
 const SCRYPT_N = 16384;
 const SCRYPT_R = 8;
 const SCRYPT_P = 1;
@@ -16,10 +14,7 @@ export type AdminPasswordErrorCode =
   | "new_password_same_as_current";
 
 export class AdminPasswordError extends Error {
-  constructor(
-    readonly code: AdminPasswordErrorCode,
-    message: string
-  ) {
+  constructor(readonly code: AdminPasswordErrorCode, message: string) {
     super(message);
     this.name = "AdminPasswordError";
   }
@@ -46,7 +41,6 @@ function passwordRecord(password: string): AdminAuthRecord {
   return {
     passwordHash: hashPassword(password, salt),
     salt,
-    // Rotating the session secret invalidates every existing admin cookie.
     sessionSecret: randomBytes(32).toString("base64url"),
   };
 }
@@ -55,29 +49,26 @@ export function isAdminCredentialsMissing(repository: AdminCredentialRepository)
   return readRecord(repository) === null;
 }
 
-export function createInitialAdminCredentials(database: AppDatabase): string | null {
-  return database.transaction(() => {
-    if (readRecord(database)) return null;
-
-    const initialPassword = randomBytes(18).toString("base64url");
-    writeRecord(repository, passwordRecord(initialPassword));
-    return initialPassword;
-  })();
+export function createInitialAdminCredentials(repository: AdminCredentialRepository): string | null {
+  if (readRecord(repository)) return null;
+  const initialPassword = randomBytes(18).toString("base64url");
+  writeRecord(repository, passwordRecord(initialPassword));
+  return initialPassword;
 }
 
 function getRecord(repository: AdminCredentialRepository): AdminAuthRecord {
-  const record = readRecord(database);
+  const record = readRecord(repository);
   if (!record) throw new Error("Admin credentials are not initialized.");
   return record;
 }
 
-export function getAdminSessionSecret(database: AppDatabase): string {
+export function getAdminSessionSecret(repository: AdminCredentialRepository): string {
   return getRecord(repository).sessionSecret;
 }
 
-export function verifyAdminPassword(database: AppDatabase, password: string): boolean {
+export function verifyAdminPassword(repository: AdminCredentialRepository, password: string): boolean {
   if (typeof password !== "string" || password.length === 0) return false;
-  const record = readRecord(database);
+  const record = readRecord(repository);
   if (!record) return false;
   const actual = Buffer.from(hashPassword(password, record.salt), "hex");
   const expected = Buffer.from(record.passwordHash, "hex");
@@ -85,7 +76,7 @@ export function verifyAdminPassword(database: AppDatabase, password: string): bo
 }
 
 export function changeAdminPassword(
-  database: AppDatabase,
+  repository: AdminCredentialRepository,
   currentPassword: string,
   newPassword: string
 ): void {
@@ -98,11 +89,11 @@ export function changeAdminPassword(
   if (newPassword === currentPassword) {
     throw new AdminPasswordError("new_password_same_as_current", "新密码不能与当前密码相同。");
   }
-  writeRecord(database, passwordRecord(newPassword));
+  writeRecord(repository, passwordRecord(newPassword));
 }
 
-export function resetAdminPassword(database: AppDatabase): string {
+export function resetAdminPassword(repository: AdminCredentialRepository): string {
   const temporary = randomBytes(18).toString("base64url");
-  writeRecord(database, passwordRecord(temporary));
+  writeRecord(repository, passwordRecord(temporary));
   return temporary;
 }
