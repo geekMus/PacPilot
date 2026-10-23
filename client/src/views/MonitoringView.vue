@@ -502,101 +502,106 @@ const {
             </div>
           </template>
           <template #header-actions>
-              <button
-                class="monitor-button secondary access-detail-copy"
-                :class="{ 'is-copy-success': accessCopyState === 'success', 'is-copy-error': accessCopyState === 'error' }"
-                type="button"
-                aria-live="polite"
-                @click="copyAccessDetail"
-              >
-                <AppIcon
-                  :name="accessCopyState === 'success' ? 'circle-check' : accessCopyState === 'error' ? 'circle-x' : 'copy'"
-                  :size="14"
-                />{{ accessCopyState === 'success' ? t("common.copiedShort") : accessCopyState === 'error' ? t("common.copyFailed") : t("monitor.k136") }}
-              </button>
-
+            <button
+              class="monitor-button secondary access-detail-copy"
+              :class="{
+                'is-copy-success': accessCopyState === 'success',
+                'is-copy-error': accessCopyState === 'error',
+              }"
+              type="button"
+              aria-live="polite"
+              @click="copyAccessDetail"
+            >
+              <AppIcon
+                :name="
+                  accessCopyState === 'success'
+                    ? 'circle-check'
+                    : accessCopyState === 'error'
+                      ? 'circle-x'
+                      : 'copy'
+                "
+                :size="14"
+              />
+              {{
+                accessCopyState === 'success'
+                  ? t("common.copiedShort")
+                  : accessCopyState === 'error'
+                    ? t("common.copyFailed")
+                    : t("monitor.k136")
+              }}
+            </button>
           </template>
           <template #body>
             <div v-if="selectedAccess" class="access-detail-content">
-          <div class="access-detail-grid">
-            <div>
-              <span>{{ t("monitor.k127") }}</span
-              ><strong>{{ formatDate(selectedAccess.created_at) }}</strong>
-            </div>
-            <div>
-              <span>{{ t("monitor.k137") }}</span
-              ><strong
-                ><code>{{ selectedAccess.method }}</code></strong
-              >
-            </div>
-            <div>
-              <span>{{ t("monitor.k129") }}</span
-              ><strong>{{ categoryLabel(selectedAccess.category) }}</strong>
-            </div>
-            <div>
-              <span>{{ t("monitor.k131") }}</span
-              ><strong
-                >{{ selectedAccess.status_code }}
-                {{ statusLabel(selectedAccess.status_code) }}</strong
-              >
-            </div>
-            <div>
-              <span>{{ t("monitor.k132") }}</span
-              ><strong>{{ formatDuration(selectedAccess.duration_ms) }}</strong>
-            </div>
-            <div>
-              <span>{{ t("monitor.k133") }}</span
-              ><strong>{{ formatBytes(selectedAccess.response_bytes) }}</strong>
-            </div>
-            <div>
-              <span>{{ t("monitor.k128") }}</span
-              ><strong
-                ><code>{{ selectedAccess.source_ip || "unknown" }}</code></strong
-              >
-            </div>
-            <div>
-              <span>Host</span
-              ><strong
-                ><code>{{ selectedAccess.host || "—" }}</code></strong
-              >
-            </div>
-          </div>
-          <div class="access-detail-block">
-            <span>{{ t("monitor.k138") }}</span>
-            <pre>{{ selectedAccess.user_agent || t("monitor.k2") }}</pre>
-          </div>
-          <div class="access-detail-block">
-            <span>{{ t("monitor.k130") }}</span>
-            <pre>{{ selectedAccess.path }}</pre>
-          </div>
-          <div class="access-detail-block">
-            <span>{{ t("monitor.k139") }}</span>
-            <pre>{{ selectedAccess.query_string || t("monitor.k2") }}</pre>
-          </div>
-          <div class="access-detail-block">
-            <span>Referer</span>
-            <pre>{{ selectedAccess.referer || t("monitor.k2") }}</pre>
-          </div>
-          <div class="access-detail-block">
-            <span>Accept / Accept-Language</span>
-            <pre
-              >{{ selectedAccess.accept || t("monitor.k2") }}
-{{ selectedAccess.accept_language || t("monitor.k2") }}</pre
-            >
-          </div>
-          <div class="access-detail-block">
-            <span>{{ t("monitor.k140") }}</span>
-            <pre>{{ selectedAccess.content_type || t("monitor.k2") }}</pre>
-          </div>
-          <div class="access-detail-block">
-            <span>{{ t("monitor.k141") }}</span>
-            <pre>{{ selectedAccess.response_content_type || t("monitor.k2") }}</pre>
-          </div>
-          <div class="access-detail-block">
-            <span>{{ t("monitor.k142") }}</span>
-            <pre>{{ formatAccessHeaders(selectedAccess.request_headers) }}</pre>
-          </div>
-
+              <div class="access-detail-grid">
+                <div>
+                  <span>{{ t("monitor.k127") }}</span>
+                  <strong>{{ formatDate(selectedAccess.created_at) }}</strong>
+                </div>
+                <div>
+                  <span>{{ t("monitor.k137") }}</span>
+                  <strong><code>{{ selectedAccess.method }}</code></strong>
+                </div>
+                <div>
+                  <span>{{ t("monitor.k129") }}</span>
+                  <strong>{{ categoryLabel(selectedAccess.category) }}</strong>
+                </div>
+                <div>
+                  <span>{{ t("monitor.k131") }}</span>
+                  <strong>
+                    {{ selectedAccess.status_code }} {{ statusLabel(selectedAccess.status_code) }}
+                  </strong>
+                </div>
+                <div>
+                  <span>{{ t("monitor.k132") }}</span>
+                  <strong>{{ formatDuration(selectedAccess.duration_ms) }}</strong>
+                </div>
+                <div>
+                  <span>{{ t("monitor.k133") }}</span>
+                  <strong>{{ formatBytes(selectedAccess.response_bytes) }}</strong>
+                </div>
+                <div>
+                  <span>{{ t("monitor.k128") }}</span>
+                  <strong><code>{{ selectedAccess.source_ip || "unknown" }}</code></strong>
+                </div>
+                <div>
+                  <span>Host</span>
+                  <strong><code>{{ selectedAccess.host || "—" }}</code></strong>
+                </div>
+              </div>
+              <div class="access-detail-block">
+                <span>{{ t("monitor.k138") }}</span>
+                <pre>{{ selectedAccess.user_agent || t("monitor.k2") }}</pre>
+              </div>
+              <div class="access-detail-block">
+                <span>{{ t("monitor.k130") }}</span>
+                <pre>{{ selectedAccess.path }}</pre>
+              </div>
+              <div class="access-detail-block">
+                <span>{{ t("monitor.k139") }}</span>
+                <pre>{{ selectedAccess.query_string || t("monitor.k2") }}</pre>
+              </div>
+              <div class="access-detail-block">
+                <span>Referer</span>
+                <pre>{{ selectedAccess.referer || t("monitor.k2") }}</pre>
+              </div>
+              <div class="access-detail-block">
+                <span>Accept / Accept-Language</span>
+                <pre>{{ selectedAccess.accept || t("monitor.k2") }}
+{{ selectedAccess.accept_language || t("monitor.k2") }}</pre>
+              </div>
+              <div class="access-detail-block">
+                <span>{{ t("monitor.k140") }}</span>
+                <pre>{{ selectedAccess.content_type || t("monitor.k2") }}</pre>
+              </div>
+              <div class="access-detail-block">
+                <span>{{ t("monitor.k141") }}</span>
+                <pre>{{ selectedAccess.response_content_type || t("monitor.k2") }}</pre>
+              </div>
+              <div class="access-detail-block">
+                <span>{{ t("monitor.k142") }}</span>
+                <pre>{{ formatAccessHeaders(selectedAccess.request_headers) }}</pre>
+              </div>
             </div>
           </template>
         </AppDialog>
