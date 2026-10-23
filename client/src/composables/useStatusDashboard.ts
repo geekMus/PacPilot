@@ -1,6 +1,7 @@
 import { useI18n } from "vue-i18n";
 import { onMounted, ref, computed, watch } from "vue";
 import { api, type Meta, type PacStatus } from "@/api/client";
+import { matchesCustomRule, matchesRemoteDomain } from "@/utils/domain-matching";
 
 export function useStatusDashboard() {
   const { t, locale } = useI18n();
@@ -129,30 +130,6 @@ export function useStatusDashboard() {
     if (octets.some((part) => part < 0 || part > 255)) return false;
     const [a, b] = octets;
     return a === 127 || a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
-  }
-
-  function matchesCustomRule(host: string, rule: string): boolean {
-    const normalizedHost = host.toLowerCase().replace(/\.$/, "");
-    const pattern = rule.trim().toLowerCase().replace(/\.$/, "");
-    if (!pattern) return false;
-
-    // 必须与 server/services/pac-generator.ts 中的 isMatch 保持一致：
-    // *.example.com 只匹配子域名；**.example.com 同时匹配根域名和子域名。
-    if (pattern.startsWith("**.")) {
-      const root = pattern.slice(3);
-      return normalizedHost === root || normalizedHost.endsWith("." + root);
-    }
-    if (pattern.startsWith("*.")) {
-      const suffix = pattern.slice(2);
-      return normalizedHost.length > suffix.length + 1 && normalizedHost.endsWith("." + suffix);
-    }
-    if (pattern.includes("*")) return false;
-    return normalizedHost === pattern;
-  }
-
-  function matchesRemoteDomain(host: string, rule: string): boolean {
-    const domain = rule.toLowerCase().trim();
-    return Boolean(domain) && (host === domain || host.endsWith("." + domain));
   }
 
   const domainRoute = computed<DomainRouteResult | null>(() => {
