@@ -91,7 +91,7 @@ onUnmounted(() => resizeObserver?.disconnect());
   border: 1px solid var(--line);
   border-radius: 10px;
   max-height: var(--table-max-height, 480px);
-  height: fit-content;
+  height: var(--table-max-height, 480px);
   overflow: hidden;
   background: var(--surface);
   /* Do not trap wheel/touch gestures at this non-scrolling frame. */
@@ -132,15 +132,14 @@ onUnmounted(() => resizeObserver?.disconnect());
 .app-table-body-scroll {
   /* Reka ScrollArea's root needs an intrinsic height so the table body is visible
      before it reaches its max-height; otherwise a flex item can collapse. */
-  height: fit-content;
-  flex: 0 1 auto;
+  height: auto;
+  flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
   max-height: calc(var(--table-max-height, 480px) - 44px);
-  height: auto;
 }
 .app-table-body-scroll :deep(.app-scroll-area-viewport) {
-  height: auto;
+  height: 100%;
   max-height: calc(var(--table-max-height, 480px) - 44px);
   overflow-anchor: none;
   /* Let vertical wheel/touch gestures chain to the page when the table cannot scroll. */
