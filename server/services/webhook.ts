@@ -16,7 +16,7 @@ export interface WebhookDeliveryResult {
 }
 type EventKind = "success" | "failure" | "test";
 interface MessageContext {
-  event: string; ok: boolean; message: string; timestamp: string; status?: string;
+  event: string; ok: boolean | null; message: string; timestamp: string; status?: string;
 }
 
 function urlValidationError(raw: string, label: string): string | null {
