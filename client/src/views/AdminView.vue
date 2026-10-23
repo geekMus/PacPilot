@@ -9,6 +9,7 @@ import {
 import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AppDialog from "@/components/AppDialog.vue";
+import AppScrollArea from "@/components/AppScrollArea.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 import AppFooter from "@/components/AppFooter.vue";
 import TextDetail from "@/components/TextDetail.vue";
@@ -286,10 +287,12 @@ const { style: timezonePanelStyle } = useViewportPanel(
                   :placeholder="t('settings.timezoneSearchShort')"
                   @keydown.enter.prevent
                 />
-                <div
-                  class="timezone-sheet-options"
+                <AppScrollArea
+                  root-class="timezone-sheet-options"
+                  viewport-class="timezone-sheet-options-viewport"
                   role="listbox"
                   :aria-label="t('settings.timezoneSuggest')"
+                  orientation="vertical"
                 >
                   <button
                     v-for="zone in filteredTimeZones"
