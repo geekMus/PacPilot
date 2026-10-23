@@ -58,8 +58,8 @@ function resolveDataDir(): Pick<EnvConfig, "dataDir" | "storageDriver" | "runtim
     throw new Error('Invalid STORAGE_DRIVER: expected "sqlite" or "memory".');
   }
 
-  // The memory profile keeps structured state in an ephemeral in-memory SQLite
-  // connection and PAC artifacts in a process-local Map. No data files are written.
+  // Memory mode keeps all application state and PAC artifacts in process-local memory.
+  // It does not initialize SQLite or write application data files.
   if (driver === "memory") {
     return {
       dataDir: ":memory:",

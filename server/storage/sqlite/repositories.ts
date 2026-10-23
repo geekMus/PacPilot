@@ -97,22 +97,22 @@ export function createSqliteMonitoringRepository(
 
 export function createSqliteWorkflowRepository(database: Database): WorkflowRepository {
   return {
-    create: (source, mode) => createWorkflowRun(database as never, source, mode),
-    claim: (id, startedAt) => claimWorkflowRun(database as never, id, startedAt),
-    update: (id, patch) => updateWorkflowRun(database as never, id, patch),
-    list: (limit = 50, beforeId = 0) => listWorkflowRuns(database as never, limit, beforeId),
+    create: (source, mode) => createWorkflowRun(database, source, mode),
+    claim: (id, startedAt) => claimWorkflowRun(database, id, startedAt),
+    update: (id, patch) => updateWorkflowRun(database, id, patch),
+    list: (limit = 50, beforeId = 0) => listWorkflowRuns(database, limit, beforeId),
     count: () => countWorkflowRuns(database),
-    listActive: () => listActiveWorkflowRuns(database as never),
-    current: () => getCurrentWorkflow(database as never),
-    markInterrupted: () => markInterruptedWorkflows(database as never),
-    startStage: (runId, stageKey, detail = "") => startWorkflowStage(database as never, runId, stageKey, detail),
+    listActive: () => listActiveWorkflowRuns(database),
+    current: () => getCurrentWorkflow(database),
+    markInterrupted: () => markInterruptedWorkflows(database),
+    startStage: (runId, stageKey, detail = "") => startWorkflowStage(database, runId, stageKey, detail),
     finishStage: (stageId, status, error = "", detail = "") =>
-      finishWorkflowStage(database as never, stageId, status, error, detail),
-    get: (id) => getWorkflowRun(database as never, id),
-    stages: (runId) => listWorkflowStages(database as never, runId),
-    cancelPending: (id) => cancelPendingWorkflow(database as never, id),
-    clearHistory: () => clearWorkflowHistory(database as never),
-    delete: (id) => deleteWorkflowRun(database as never, id),
+      finishWorkflowStage(database, stageId, status, error, detail),
+    get: (id) => getWorkflowRun(database, id),
+    stages: (runId) => listWorkflowStages(database, runId),
+    cancelPending: (id) => cancelPendingWorkflow(database, id),
+    clearHistory: () => clearWorkflowHistory(database),
+    delete: (id) => deleteWorkflowRun(database, id),
   };
 }
 

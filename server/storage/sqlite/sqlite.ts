@@ -4,7 +4,6 @@ import path from "path";
 import type { AppSettings, GenerationMode } from "../../domain/settings";
 import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../../domain/settings";
 import { initializeSchema } from "./schema";
-export * from "./workflows";
 
 /** Bun 内置 SQLite 连接类型 */
 export type AppDatabase = Database;
