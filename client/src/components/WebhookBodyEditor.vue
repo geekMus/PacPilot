@@ -263,7 +263,7 @@ watch(
   width: 100%;
   height: 100%;
 }
-.json-editor-scroll-viewport {
+:deep(.json-editor-scroll-viewport) {
   position: relative;
   overflow: auto;
 }

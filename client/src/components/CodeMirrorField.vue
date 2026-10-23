@@ -183,7 +183,7 @@ watch(
   width: 100%;
   height: 100%;
 }
-.cm-field-scroll-viewport {
+:deep(.cm-field-scroll-viewport) {
   position: relative;
   overflow: auto;
 }

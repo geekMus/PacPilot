@@ -450,7 +450,7 @@ watch(
   width: 100%;
   height: 100%;
 }
-.domain-editor-scroll-viewport {
+:deep(.domain-editor-scroll-viewport) {
   position: relative;
   overflow: auto;
 }
