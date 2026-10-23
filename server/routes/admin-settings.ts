@@ -3,7 +3,7 @@ import type { ApplicationStorage } from "../storage/repositories";
 import type { EnvConfig } from "../config/env";
 
 import type { AppSettings, GenerationMode } from "../../shared/contracts";
-import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../db/settings";
+import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../domain/settings";
 import { requireAdmin } from "../middleware/auth";
 import { validatePacProxyString } from "../services/pac-generator";
 import { startPacWorkflow } from "../services/workflow";
