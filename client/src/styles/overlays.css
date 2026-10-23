@@ -21,7 +21,7 @@
 
 .timezone-options-scroll {
   width: 100%;
-  height: auto;
+  height: min(320px, var(--reka-combobox-content-available-height, 320px));
   max-height: min(320px, var(--reka-combobox-content-available-height, 320px));
   min-height: 0;
   overflow: hidden;
@@ -29,9 +29,9 @@
 
 .timezone-options-scroll .timezone-options-viewport {
   width: 100%;
-  height: auto;
+  height: 100%;
   min-height: 0;
-  max-height: min(320px, var(--reka-combobox-content-available-height, 320px));
+  max-height: 100%;
   overflow-x: hidden;
 }
 
