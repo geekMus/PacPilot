@@ -8,7 +8,6 @@ import { syntaxHighlighting as addSyntaxHighlighting, defaultHighlightStyle } fr
 import { json } from "@codemirror/lang-json";
 import { oneDarkHighlightStyle, oneDarkTheme } from "@codemirror/theme-one-dark";
 import AppScrollArea from "@/components/AppScrollArea.vue";
-import { attachCodeMirrorScrollArea } from "@/utils/codemirror-scroll-area";
 const { t } = useI18n();
 
 const props = withDefaults(
@@ -44,23 +43,11 @@ const props = withDefaults(
 );
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 const host = ref<HTMLDivElement | null>(null);
-const spacer = ref<HTMLDivElement | null>(null);
 let view: EditorView | null = null;
-let scrollViewport: HTMLElement | null = null;
-let disposeScrollSync: (() => void) | null = null;
 let themeObserver: MutationObserver | null = null;
 
 function isDark(): boolean {
   return typeof document !== "undefined" && document.documentElement.classList.contains("theme-dark");
-}
-
-function connectScrollArea(element?: HTMLElement) {
-  if (element) scrollViewport = element;
-  disposeScrollSync?.();
-  disposeScrollSync = null;
-  if (!props.singleLine && view && scrollViewport && spacer.value) {
-    disposeScrollSync = attachCodeMirrorScrollArea(view, scrollViewport, spacer.value);
-  }
 }
 
 function buildExtensions() {
@@ -102,14 +89,15 @@ function buildExtensions() {
     }),
     EditorView.theme({
       "&": {
-        height: props.height + "px",
-        maxHeight: props.height + "px",
+        ...(props.singleLine
+          ? { height: props.height + "px", maxHeight: props.height + "px" }
+          : { minHeight: props.height + "px" }),
         background: "transparent",
         color: "var(--text)",
         fontSize: "12px",
       },
       ".cm-scroller": {
-        overflow: props.singleLine ? "hidden" : "auto",
+        overflow: props.singleLine ? "hidden" : "visible",
         fontFamily: 'ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace',
         lineHeight: "1.5",
       },
@@ -129,15 +117,12 @@ function mountEditor() {
   const current = view;
   const doc = current ? current.state.doc.toString() : props.modelValue || "";
   const selection = current ? current.state.selection.main.head : 0;
-  disposeScrollSync?.();
-  disposeScrollSync = null;
   current?.destroy();
   view = new EditorView({
     parent: host.value,
     state: EditorState.create({ doc, extensions: buildExtensions() }),
   });
   view.dispatch({ selection: { anchor: Math.min(selection, view.state.doc.length) } });
-  connectScrollArea();
 }
 
 onMounted(() => {
@@ -155,8 +140,6 @@ defineExpose({ getEditorView: () => view });
 onBeforeUnmount(() => {
   themeObserver?.disconnect();
   themeObserver = null;
-  disposeScrollSync?.();
-  disposeScrollSync = null;
   view?.destroy();
   view = null;
 });
@@ -187,10 +170,8 @@ watch(
       viewport-class="cm-field-scroll-viewport"
       orientation="both"
       type="auto"
-      @ready="connectScrollArea"
     >
       <div ref="host" class="cm-field-host cm-field-host-scrollable"></div>
-      <div ref="spacer" class="cm-field-scroll-spacer" aria-hidden="true"></div>
     </AppScrollArea>
     <div v-else ref="host" class="cm-field-host"></div>
   </div>
@@ -250,16 +231,7 @@ watch(
   overscroll-behavior-x: contain;
 }
 .cm-field-host-scrollable {
-  position: sticky;
-  top: 0;
-  left: 0;
-  z-index: 1;
-  margin-bottom: calc(-1 * var(--cm-editor-height));
-}
-.cm-field-scroll-spacer {
-  min-width: 100%;
   min-height: 100%;
-  pointer-events: none;
 }
 .cm-field-host {
   width: 100%;
