@@ -126,7 +126,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase, storage
         accessEvents: storage.monitoring.clear(),
       };
       if (env.storageDriver === "sqlite") vacuumDatabase(database, true);
-      res.json({ deleted, retentionDays: getSettings(database).logRetentionDays });
+      res.json({ deleted, retentionDays: storage.settings.get().logRetentionDays });
     } catch (error) {
       res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
     }
