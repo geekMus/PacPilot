@@ -74,6 +74,7 @@ function onValueChange(value: string): void {
             viewport-class="app-select-viewport"
             orientation="vertical"
             type="hover"
+            overscroll="contain"
           >
             <template #viewport="{ viewportComponent, viewportClass, onScroll }">
               <SelectViewport as-child>

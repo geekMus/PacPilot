@@ -78,6 +78,7 @@ function onCloseAutoFocus(event: Event): void {
             :root-class="['app-dialog-body', props.bodyClass].filter(Boolean).join(' ')"
             orientation="vertical"
             type="auto"
+            overscroll="contain"
           >
             <slot name="body">
               <slot />
@@ -192,7 +193,8 @@ function onCloseAutoFocus(event: Event): void {
   min-height: 0;
   padding: 18px;
   overflow-x: hidden;
-  overscroll-behavior: contain;
+  /* Chaining is blocked by the `overscroll="contain"` prop on the component
+     so the page behind the modal never scrolls. */
 }
 .app-dialog-footer {
   display: flex;

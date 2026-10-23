@@ -14,12 +14,20 @@ withDefaults(
     type?: "auto" | "always" | "scroll" | "hover";
     rootClass?: string;
     viewportClass?: string;
+    /**
+     * Scroll chaining. "auto" (default) lets the outer container take over
+     * once this area hits its own edge, which is what nested lists and
+     * panels need. Blocking overlays (dialogs, sheets) must pass "contain"
+     * so the page behind them never scrolls.
+     */
+    overscroll?: "auto" | "contain" | "none";
   }>(),
   {
     orientation: "vertical",
     type: "hover",
     rootClass: "",
     viewportClass: "",
+    overscroll: "auto",
   }
 );
 
@@ -54,6 +62,7 @@ function onScroll(event: Event): void {
     :class="rootClass"
     :type="type"
     :scroll-hide-delay="500"
+    :style="{ '--app-scroll-overscroll': overscroll }"
   >
     <template v-if="$slots.viewport">
       <slot
@@ -102,7 +111,10 @@ function onScroll(event: Event): void {
   width: 100%;
   height: 100%;
   border-radius: inherit;
-  overscroll-behavior: contain;
+  /* Chaining is the default so a nested area can hand the wheel back to the
+     page once it reaches its edge. Overlays override this via the
+     `overscroll` prop. */
+  overscroll-behavior: var(--app-scroll-overscroll, auto);
   -webkit-overflow-scrolling: touch;
 }
 
