@@ -1,4 +1,3 @@
-import fs from "fs";
 import { minify } from "terser";
 import path from "path";
 import { isIP } from "node:net";
@@ -9,7 +8,7 @@ import { t } from "../../shared/i18n";
 import type { AppSettings } from "../../shared/contracts";
 import { buildRemoteListPac, fetchAndParseRemoteList } from "./remote-list";
 import { runtimeLog } from "../utils/runtime-log";
-import { isMemoryPath, readEphemeralFile, statEphemeralFile, writeEphemeralFile } from "../storage/ephemeral-files";
+
 
 export interface GenerateResult {
   success: boolean;
@@ -237,13 +236,8 @@ async function runRemoteMode(
     ? withPacVersionHeader(await compressPac(pac), generatedAt, settings.timezone)
     : source;
   const sourcePath = path.join(path.dirname(outFile), "proxy.source.pac");
-  if (isMemoryPath(outFile)) {
-    writeEphemeralFile(sourcePath, source);
-    writeEphemeralFile(outFile, output);
-  } else {
-    fs.writeFileSync(sourcePath, source, "utf8");
-    fs.writeFileSync(outFile, output, "utf8");
-  }
+  artifacts.write("proxy.source.pac", source);
+  artifacts.write("proxy.pac", output);
   const formatKey =
     parsed.format === "gfwlist-base64"
       ? "format.gfwlist"
@@ -290,12 +284,11 @@ async function runRemoteMode(
 }
 
 export async function generatePac(
-  storage: Pick<ApplicationStorage, "settings" | "generationLogs">,
+  storage: Pick<ApplicationStorage, "settings" | "generationLogs" | "artifacts">,
   dataDir: string
 ): Promise<GenerateResult> {
   const settings = storage.settings.get();
   const pacPath = path.join(dataDir, "proxy.pac");
-  if (!isMemoryPath(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
   try {
     const proxyError = validatePacProxyString(settings.pacProxy);
@@ -306,7 +299,7 @@ export async function generatePac(
     let resultData: Record<string, string | number | boolean> = {};
     let detail: Record<string, unknown>;
     if (settings.mode === "remote") {
-      const remote = await runRemoteMode(settings, pacPath);
+      const remote = await runRemoteMode(settings, pacPath, storage.artifacts);
       message = remote.message;
       resultCode = remote.resultCode;
       resultData = remote.resultData;
@@ -319,13 +312,8 @@ export async function generatePac(
         ? withPacVersionHeader(await compressPac(customPac), generatedAt, settings.timezone)
         : source;
       const sourcePath = path.join(dataDir, "proxy.source.pac");
-      if (isMemoryPath(dataDir)) {
-        writeEphemeralFile(sourcePath, source);
-        writeEphemeralFile(pacPath, output);
-      } else {
-        fs.writeFileSync(sourcePath, source, "utf8");
-        fs.writeFileSync(pacPath, output, "utf8");
-      }
+      storage.artifacts.write("proxy.source.pac", source);
+      storage.artifacts.write("proxy.pac", output);
       resultCode = settings.pacCompress ? "custom.compressed" : "custom.uncompressed";
       resultData = { compressed: Boolean(settings.pacCompress) };
       message = t("zh_CN", `gen.success.${resultCode}`);
@@ -386,19 +374,14 @@ export async function generatePac(
   }
 }
 
-export function readPacFile(dataDir: string): string {
-  const pacPath = path.join(dataDir, "proxy.pac");
+export function readPacFile(storage: Pick<ApplicationStorage, "artifacts">): string {
   try {
-    const original = isMemoryPath(dataDir) ? readEphemeralFile(pacPath) : fs.readFileSync(pacPath, "utf8");
+    const bytes = storage.artifacts.read("proxy.pac");
+    if (!bytes) return "";
+    const original = new TextDecoder().decode(bytes);
     const versioned = withPacVersionHeader(original);
-    // 为升级前已生成的 PAC 补上当前版本头；规则正文不变。
     if (versioned !== original) {
-      try {
-        if (isMemoryPath(dataDir)) writeEphemeralFile(pacPath, versioned);
-        else fs.writeFileSync(pacPath, versioned, "utf8");
-      } catch {
-        // 即使数据目录只读，也返回带版本头的内容供浏览器查看。
-      }
+      try { storage.artifacts.write("proxy.pac", versioned); } catch { /* read-only adapter */ }
     }
     return versioned;
   } catch {
@@ -410,40 +393,20 @@ export function readPacFile(dataDir: string): string {
  * 读取始终未压缩的内部 PAC 源文件供状态页解析。
  * 兼容升级前的数据目录：源文件尚不存在时回退到现有 proxy.pac。
  */
-export function readPacSourceFile(dataDir: string): string {
-  const pacPath = path.join(dataDir, "proxy.pac");
-  // proxy.source.pac 仅作解析辅助输入；面向客户端的文件不存在或为空时，不得报告为已有 PAC。
-  let clientPac: string;
-  try {
-    clientPac = isMemoryPath(dataDir) ? readEphemeralFile(pacPath) : fs.readFileSync(pacPath, "utf8");
-  } catch {
-    return "";
-  }
+export function readPacSourceFile(storage: Pick<ApplicationStorage, "artifacts">): string {
+  const clientBytes = storage.artifacts.read("proxy.pac");
+  if (!clientBytes) return "";
+  const clientPac = new TextDecoder().decode(clientBytes);
   if (!clientPac.trim()) return "";
-
-  const sourcePath = path.join(dataDir, "proxy.source.pac");
-  try {
-    const sourcePac = isMemoryPath(dataDir) ? readEphemeralFile(sourcePath) : fs.readFileSync(sourcePath, "utf8");
-    return sourcePac.trim() ? sourcePac : clientPac;
-  } catch {
-    return clientPac;
-  }
+  const sourceBytes = storage.artifacts.read("proxy.source.pac");
+  if (!sourceBytes) return clientPac;
+  const sourcePac = new TextDecoder().decode(sourceBytes);
+  return sourcePac.trim() ? sourcePac : clientPac;
 }
 
-export function pacFileMtime(dataDir: string): Date | null {
-  const sourcePath = path.join(dataDir, "proxy.source.pac");
-  const pacPath = path.join(dataDir, "proxy.pac");
-  try {
-    const pacStat = isMemoryPath(dataDir) ? statEphemeralFile(pacPath) : fs.statSync(pacPath);
-    if (!pacStat.isFile() || pacStat.size === 0) return null;
-    const sourceStat = isMemoryPath(dataDir) ? statEphemeralFile(sourcePath) : fs.statSync(sourcePath);
-    return sourceStat.isFile() && sourceStat.size > 0 ? sourceStat.mtime : pacStat.mtime;
-  } catch {
-    try {
-      const pacStat = isMemoryPath(dataDir) ? statEphemeralFile(pacPath) : fs.statSync(pacPath);
-      return pacStat.isFile() && pacStat.size > 0 ? pacStat.mtime : null;
-    } catch {
-      return null;
-    }
-  }
+export function pacFileMtime(storage: Pick<ApplicationStorage, "artifacts">): Date | null {
+  const pac = storage.artifacts.stat("proxy.pac");
+  if (!pac || pac.size === 0) return null;
+  const source = storage.artifacts.stat("proxy.source.pac");
+  return source && source.size > 0 ? new Date(source.modifiedAt) : new Date(pac.modifiedAt);
 }
