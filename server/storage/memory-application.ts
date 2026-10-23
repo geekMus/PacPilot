@@ -67,6 +67,7 @@ function createMemoryArtifacts() {
       if (!item) return undefined;
       return { size: item.bytes.byteLength, modifiedAt: item.modifiedAt };
     },
+    totalBytes() { return [...files.values()].reduce((sum, item) => sum + item.bytes.byteLength, 0); },
     clear() { files.clear(); },
   };
 }
