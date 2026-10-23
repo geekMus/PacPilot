@@ -151,7 +151,6 @@ function jumpToLine(lineNumber: number) {
   const ensureLineVisible = () => {
     if (editorField.value?.getEditorView() !== editor || lineNumber > editor.state.doc.lines) return;
     const line = editor.state.doc.line(lineNumber);
-    const lineBlock = editor.lineBlockAt(line.from);
     const coords = editor.coordsAtPos(line.from);
     if (!coords) return;
     const viewportRect = scroller.getBoundingClientRect();
