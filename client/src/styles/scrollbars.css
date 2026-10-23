@@ -1,37 +1,42 @@
 :root {
-  --scrollbar-size: 12px;
-  --scrollbar-thumb: color-mix(in srgb, var(--text) 68%, transparent);
-  --scrollbar-thumb-hover: color-mix(in srgb, var(--text) 86%, transparent);
+  --scrollbar-size: 8px;
+  --scrollbar-thumb: color-mix(in srgb, var(--text) 26%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--text) 44%, transparent);
   --scrollbar-track: transparent;
 }
 
-/* CodeMirror uses project-owned overlay controls instead of native scrollbar chrome. */
-.cm-scroller { scrollbar-width: none !important; -ms-overflow-style: none; }
-.cm-scroller::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
-.cm-editor { position: relative; isolation: isolate; }
-.cm-overlay-scrollbar {
-  position: absolute; z-index: 50; display: block; padding: 2px; border-radius: 999px;
-  background: color-mix(in srgb, var(--text) 9%, transparent); opacity: 1; transition: background-color 120ms ease;
-  touch-action: none; user-select: none;
+/*
+ * CodeMirror keeps its native scroll container. Use the same design tokens as
+ * AppScrollArea so editor scrolling follows the browser's native, accessible
+ * scroll behavior instead of maintaining a second custom scrollbar engine.
+ */
+.cm-scroller {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  -ms-overflow-style: auto;
 }
-.cm-overlay-scrollbar[hidden] { display: none !important; }
-.cm-overlay-scrollbar-vertical { top: 2px; right: 2px; bottom: 2px; width: var(--scrollbar-size, 8px); }
-.cm-overlay-scrollbar-horizontal { right: 2px; bottom: 2px; left: 2px; height: var(--scrollbar-size, 8px); }
-.cm-overlay-scrollbar:hover, .cm-editor:focus-within .cm-overlay-scrollbar {
-  background: color-mix(in srgb, var(--text) 5%, transparent); opacity: 1;
+.cm-scroller::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
 }
-.cm-overlay-scrollbar-thumb {
-  position: absolute; top: 2px; left: 2px; display: block; box-sizing: border-box;
-  min-width: 6px; min-height: 28px; margin: 0; padding: 0; border: 0; border-radius: 999px;
-  background: var(--scrollbar-thumb); box-shadow: 0 0 0 1px color-mix(in srgb, var(--bg) 35%, transparent); cursor: grab; touch-action: none; pointer-events: auto; opacity: 1;
+.cm-scroller::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 999px;
 }
-.cm-overlay-scrollbar-thumb:hover, .cm-overlay-scrollbar-thumb:focus-visible {
-  background: var(--scrollbar-thumb-hover); outline: none;
+.cm-scroller::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--scrollbar-thumb);
+  background-clip: padding-box;
 }
-.cm-overlay-scrollbar-vertical .cm-overlay-scrollbar-thumb { left: 2px; right: 2px; width: auto !important; }
-.cm-overlay-scrollbar-horizontal .cm-overlay-scrollbar-thumb { top: 2px; bottom: 2px; height: auto !important; }
-.cm-overlay-scrollbar-thumb:active { cursor: grabbing; }
-@media (prefers-reduced-motion: reduce) { .cm-overlay-scrollbar { transition: none; } }
+.cm-scroller::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
+.cm-scroller::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 @media (forced-colors: active) {
   :where(*) {
     scrollbar-color: auto;

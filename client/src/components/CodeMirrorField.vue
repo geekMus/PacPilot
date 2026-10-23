@@ -6,7 +6,6 @@ import { EditorState } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
 import { json } from "@codemirror/lang-json";
-import { attachCodeMirrorOverlayScrollbars } from "@/utils/codemirror-overlay-scrollbar";
 const { t } = useI18n();
 
 const props = withDefaults(
@@ -31,7 +30,6 @@ const props = withDefaults(
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 const host = ref<HTMLDivElement | null>(null);
 let view: EditorView | null = null;
-let disposeOverlayScrollbars: (() => void) | null = null;
 
 function buildExtensions() {
   const bindings = [
@@ -92,21 +90,16 @@ function mountEditor() {
   const current = view;
   const doc = current ? current.state.doc.toString() : props.modelValue || "";
   const selection = current ? current.state.selection.main.head : 0;
-  disposeOverlayScrollbars?.();
-  disposeOverlayScrollbars = null;
   current?.destroy();
   view = new EditorView({
     parent: host.value,
     state: EditorState.create({ doc, extensions: buildExtensions() }),
   });
-  if (!props.singleLine) disposeOverlayScrollbars = attachCodeMirrorOverlayScrollbars(view);
   view.dispatch({ selection: { anchor: Math.min(selection, view.state.doc.length) } });
 }
 
 onMounted(mountEditor);
 onBeforeUnmount(() => {
-  disposeOverlayScrollbars?.();
-  disposeOverlayScrollbars = null;
   view?.destroy();
   view = null;
 });
@@ -158,7 +151,5 @@ watch(
 .cm-field-host :deep(.cm-editor) {
   width: 100%;
   background: transparent;
-}
-.cm-field-host :deep(.cm-scroller) {
 }
 </style>

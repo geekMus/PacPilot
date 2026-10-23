@@ -6,7 +6,6 @@ import { EditorState } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { json } from "@codemirror/lang-json";
-import { attachCodeMirrorOverlayScrollbars } from "@/utils/codemirror-overlay-scrollbar";
 const { t } = useI18n();
 
 const props = withDefaults(
@@ -28,7 +27,6 @@ const props = withDefaults(
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 const host = ref<HTMLDivElement | null>(null);
 let view: EditorView | null = null;
-let disposeOverlayScrollbars: (() => void) | null = null;
 let themeObserver: MutationObserver | null = null;
 
 const jsonStatus = computed(() => {
@@ -77,14 +75,11 @@ function mountEditor() {
   if (!host.value) return;
   const doc = view ? view.state.doc.toString() : props.modelValue || "";
   const selection = view ? view.state.selection.main.head : 0;
-  disposeOverlayScrollbars?.();
-  disposeOverlayScrollbars = null;
   view?.destroy();
   view = new EditorView({
     parent: host.value,
     state: EditorState.create({ doc, extensions: buildExtensions(isDark()) }),
   });
-  disposeOverlayScrollbars = attachCodeMirrorOverlayScrollbars(view);
   view.dispatch({ selection: { anchor: Math.min(selection, view.state.doc.length) } });
 }
 function replaceDocument(value: string) {
@@ -113,8 +108,6 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   themeObserver?.disconnect();
-  disposeOverlayScrollbars?.();
-  disposeOverlayScrollbars = null;
   view?.destroy();
   view = null;
 });
