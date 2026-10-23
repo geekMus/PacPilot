@@ -26,7 +26,7 @@
     "test:client:coverage": "vitest run --config client/vitest.config.ts --coverage",
     "test:coverage": "bun run test:server:coverage && bun run test:client:coverage",
     "prepare": "husky",
-    "test:core": "bun test server/tests/core-validation.test.ts server/tests/storage-sqlite.bun.ts"
+    "test:core": "bun test ./server/tests/core-validation.test.ts ./server/tests/storage-sqlite.bun.ts"
   },
   "engines": {
     "bun": ">=1.1.0"

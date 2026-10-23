@@ -4,6 +4,7 @@ import { loadEnv } from "../server/config/env";
 import { closeDb, getDb } from "../server/storage/sqlite/database";
 import { resetAdminPassword } from "../server/services/admin-credentials";
 import { SqliteAdminCredentialRepository } from "../server/storage/sqlite/credentials";
+import { asAsyncRepository } from "../server/storage/async-repository";
 
 type RuntimeProfile = "development" | "production";
 
@@ -97,7 +98,9 @@ try {
 
   const database = getDb(dataDir);
   try {
-    const generatedPassword = resetAdminPassword(new SqliteAdminCredentialRepository(database));
+    const generatedPassword = resetAdminPassword(
+      asAsyncRepository(new SqliteAdminCredentialRepository(database))
+    );
     console.log("管理员凭据已创建或重置。下面的随机密码只显示这一次：");
     console.log("");
     console.log(generatedPassword);
