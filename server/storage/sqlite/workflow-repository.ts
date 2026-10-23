@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import type { WorkflowRepository } from "../repositories";
+import type { SyncWorkflowRepository } from "../repositories";
 import {
   cancelPendingWorkflow,
   clearWorkflowHistory,
@@ -17,7 +17,7 @@ import {
   startWorkflowStage,
   updateWorkflowRun,
 } from "./workflows";
-export function createSqliteWorkflowRepository(database: Database): WorkflowRepository {
+export function createSqliteWorkflowRepository(database: Database): SyncWorkflowRepository {
   return {
     create: (source, mode) => createWorkflowRun(database, source, mode),
     claim: (id, startedAt) => claimWorkflowRun(database, id, startedAt),
@@ -27,7 +27,8 @@ export function createSqliteWorkflowRepository(database: Database): WorkflowRepo
     listActive: () => listActiveWorkflowRuns(database),
     current: () => getCurrentWorkflow(database),
     markInterrupted: () => markInterruptedWorkflows(database),
-    startStage: (runId, stageKey, detail = "") => startWorkflowStage(database, runId, stageKey, detail),
+    startStage: (runId, stageKey, detail = "") =>
+      startWorkflowStage(database, runId, stageKey, detail),
     finishStage: (stageId, status, error = "", detail = "") =>
       finishWorkflowStage(database, stageId, status, error, detail),
     get: (id) => getWorkflowRun(database, id),
