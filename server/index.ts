@@ -9,7 +9,6 @@ import {
 } from "./services/admin-credentials";
 import { trackTcpConnection } from "./services/request-monitor";
 import { runtimeLog } from "./utils/runtime-log";
-import { clearEphemeralFiles } from "./storage/ephemeral-files";
 import { createApplicationStorage } from "./storage";
 
 async function main(): Promise<void> {
@@ -70,7 +69,6 @@ async function main(): Promise<void> {
     stopScheduler();
     clearInterval(logCleanupTimer);
     storage.close();
-    if (env.storageDriver === "memory") clearEphemeralFiles();
     process.exit(1);
   });
 
@@ -79,7 +77,6 @@ async function main(): Promise<void> {
     clearInterval(logCleanupTimer);
     server.close(() => {
       storage.close();
-      if (env.storageDriver === "memory") clearEphemeralFiles();
       process.exit(0);
     });
   };
