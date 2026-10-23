@@ -9,6 +9,7 @@ import AppSelect from "@/components/AppSelect.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 import AppFooter from "@/components/AppFooter.vue";
 import GenerationLogTable from "@/components/GenerationLogTable.vue";
+import VirtualTable from "@/components/VirtualTable.vue";
 import { useMonitoringDashboard } from "@/composables/useMonitoringDashboard";
 import { useI18n } from "vue-i18n";
 
