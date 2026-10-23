@@ -166,6 +166,7 @@ export default {
     fieldUrl: "Webhook URL",
     fieldSecret: "Signing secret",
     fieldMessageType: "Message format",
+    messageTypeText: "Plain text",
     fieldMessageTemplate: "Message template",
     fieldTestMessage: "Test message",
     fieldMethod: "HTTP method",

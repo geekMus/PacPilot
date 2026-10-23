@@ -8,6 +8,10 @@ import AppFooter from "@/components/AppFooter.vue";
 import AppScrollArea from "@/components/AppScrollArea.vue";
 import AppDialog from "@/components/AppDialog.vue";
 import VirtualTable from "@/components/VirtualTable.vue";
+import AppInput from "@/components/AppInput.vue";
+import AppSelect, { type AppSelectOption } from "@/components/AppSelect.vue";
+import AppToggle from "@/components/AppToggle.vue";
+import AppCheckbox from "@/components/AppCheckbox.vue";
 import CodeMirrorField from "@/components/CodeMirrorField.vue";
 import WebhookBodyEditor from "@/features/webhooks/components/WebhookBodyEditor.vue";
 import { api, type NotificationChannel, type NotificationRule, type WebhookConfig } from "@/api/client";
@@ -125,8 +129,60 @@ const phaseDescription = computed(() => {
   }
 });
 
-const deliveryEvent = (item: any) => events.value.find((e) => e.id === item.eventId);
-const deliveryEventLabel = (item: any) => {
+const providerOptions = computed<AppSelectOption[]>(() => [
+  { value: "dingtalk", label: t("notifications.providerDingTalk") },
+  { value: "custom", label: t("notifications.providerHttp") },
+]);
+const messageTypeOptions = computed<AppSelectOption[]>(() => [
+  { value: "text", label: t("notifications.messageTypeText") },
+  { value: "markdown", label: "Markdown" },
+]);
+const methodOptions: AppSelectOption[] = [
+  { value: "POST", label: "POST" },
+  { value: "PUT", label: "PUT" },
+  { value: "PATCH", label: "PATCH" },
+];
+const eventOptions = computed<AppSelectOption[]>(() =>
+  catalog.value.map((item) => ({ value: item.type, label: evName(item.type) }))
+);
+const phaseOptions = computed<AppSelectOption[]>(() =>
+  (phases.value as string[]).map((item: string) => ({ value: item, label: phaseName(item) }))
+);
+const outcomeOptions = computed<AppSelectOption[]>(() => [
+  { value: "any", label: t("notifications.outcomeAnyOption") },
+  ...(outcomes.value as string[]).map((item: string) => ({ value: item, label: outcomeName(item) })),
+]);
+const statusFilterOptions = computed<AppSelectOption[]>(() => [
+  { value: "all", label: t("notifications.filterAll") },
+  { value: "succeeded", label: t("notifications.deliverySucceeded") },
+  { value: "pending", label: t("notifications.deliveryPending") },
+  { value: "sending", label: t("notifications.deliverySending") },
+  { value: "failed", label: t("notifications.deliveryFailed") },
+]);
+
+function setProvider(value: string | number): void {
+  ch.config.provider = String(value) as WebhookConfig["provider"];
+}
+function setMessageType(value: string | number): void {
+  ch.config.dingTalkMessageType = String(value) as WebhookConfig["dingTalkMessageType"];
+}
+function setMethod(value: string | number): void {
+  ch.config.method = String(value) as WebhookConfig["method"];
+}
+function setPhase(value: string | number): void {
+  rule.phase = String(value) as NotificationRule["phase"];
+}
+function setOutcome(value: string | number): void {
+  rule.outcome = String(value) as NotificationRule["outcome"];
+}
+function toggleChannel(id: string, checked: boolean): void {
+  const next = new Set(rule.channelIds);
+  if (checked) next.add(id);
+  else next.delete(id);
+  rule.channelIds = [...next];
+}
+
+const deliveryEvent = (item: any) => events.value.find((e) => e.id === item.eventId);const deliveryEventLabel = (item: any) => {
   const event = deliveryEvent(item);
   return event ? evName(event.type) : "—";
 };
@@ -382,8 +438,8 @@ onMounted(() => {
                 <section class="form-section">
                   <div class="section-title"><span>01</span><div><h4>{{ t("notifications.sectionBasics") }}</h4><p>{{ t("notifications.sectionBasicsHint") }}</p></div></div>
                   <div class="field-grid">
-                    <label class="field"><span>{{ t("notifications.fieldName") }} <i>*</i></span><input v-model="ch.name" required maxlength="80" :placeholder="t('notifications.placeholderChannelName')" /></label>
-                    <label class="field"><span>{{ t("notifications.fieldProvider") }} <i>*</i></span><select v-model="ch.config.provider"><option value="dingtalk">{{ t("notifications.providerDingTalk") }}</option><option value="custom">{{ t("notifications.providerHttp") }}</option></select></label>
+                    <label class="field"><span>{{ t("notifications.fieldName") }} <i>*</i></span><AppInput v-model="ch.name" required maxlength="80" :placeholder="t('notifications.placeholderChannelName')" /></label>
+                    <label class="field"><span>{{ t("notifications.fieldProvider") }} <i>*</i></span><AppSelect block :model-value="ch.config.provider" :options="providerOptions" @update:model-value="setProvider" /></label>
                   </div>
                 </section>
 
@@ -397,16 +453,16 @@ onMounted(() => {
                   <template v-if="ch.config.provider === 'dingtalk'">
                     <label class="field">
                       <span>{{ t("notifications.fieldSecret") }} <em>{{ t("notifications.optional") }}</em></span>
-                      <div class="secret-input"><input v-model="ch.config.dingTalkSecret" :type="showSecret ? 'text' : 'password'" autocomplete="new-password" :placeholder="cid && channels.find(x => x.id === cid)?.hasSecret ? t('notifications.placeholderSecretSaved') : t('notifications.placeholderSecretNew')" /><button type="button" class="reveal-button" :aria-label="showSecret ? t('notifications.fieldSecret') : t('notifications.fieldSecret')" @click="showSecret = !showSecret"><AppIcon :name="showSecret ? 'eye-off' : 'eye'" :size="16" /></button></div>
+                      <div class="secret-input"><AppInput v-model="ch.config.dingTalkSecret" :type="showSecret ? 'text' : 'password'" autocomplete="new-password" :placeholder="cid && channels.find(x => x.id === cid)?.hasSecret ? t('notifications.placeholderSecretSaved') : t('notifications.placeholderSecretNew')" /><button type="button" class="reveal-button" :aria-label="showSecret ? t('notifications.fieldSecret') : t('notifications.fieldSecret')" @click="showSecret = !showSecret"><AppIcon :name="showSecret ? 'eye-off' : 'eye'" :size="16" /></button></div>
                       <small class="field-hint">{{ t("notifications.hintSecretHidden") }}</small>
                     </label>
-                    <label class="field"><span>{{ t("notifications.fieldMessageType") }}</span><select v-model="ch.config.dingTalkMessageType"><option value="text">{{ t("notifications.fieldMessageType") }}</option><option value="markdown">Markdown</option></select></label>
+                    <label class="field"><span>{{ t("notifications.fieldMessageType") }}</span><AppSelect block :model-value="ch.config.dingTalkMessageType" :options="messageTypeOptions" @update:model-value="setMessageType" /></label>
                     <label class="field"><span>{{ t("notifications.fieldMessageTemplate") }}</span><CodeMirrorField :model-value="ch.config.messageTemplate" language="text" :height="120" :aria-label="t('notifications.fieldMessageTemplate')" @update:model-value="ch.config.messageTemplate = $event" /><small class="field-hint">{{ t("notifications.hintVariables") }}<code v-pre>{{event}}</code>、<code v-pre>{{status}}</code>、<code v-pre>{{message}}</code>、<code v-pre>{{timestamp}}</code>、<code v-pre>{{ok}}</code>。</small></label>
                     <label class="field"><span>{{ t("notifications.fieldTestMessage") }}</span><CodeMirrorField :model-value="ch.config.testMessageTemplate" language="text" :height="82" :aria-label="t('notifications.fieldTestMessage')" @update:model-value="ch.config.testMessageTemplate = $event" /></label>
                   </template>
                   <template v-else>
                     <div class="field-grid">
-                      <label class="field"><span>{{ t("notifications.fieldMethod") }}</span><select v-model="ch.config.method"><option value="POST">POST</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option></select></label>
+                      <label class="field"><span>{{ t("notifications.fieldMethod") }}</span><AppSelect block :model-value="ch.config.method" :options="methodOptions" @update:model-value="setMethod" /></label>
                       <label class="field"><span>{{ t("notifications.fieldContentType") }}</span><div class="field-static"><AppIcon name="file-text" :size="15" /> application/json</div></label>
                     </div>
                     <label class="field"><span>{{ t("notifications.fieldHeaders") }} <em>{{ t("notifications.json") }}</em></span><WebhookBodyEditor :model-value="ch.config.headers" :height="126" placeholder='{"Authorization":"Bearer …"}' @update:model-value="ch.config.headers = $event" /><small class="field-hint">{{ t("notifications.hintHeadersRedacted") }}</small></label>
@@ -416,7 +472,7 @@ onMounted(() => {
                 </section>
                 <section class="form-section compact-section">
                   <div class="section-title"><span>03</span><div><h4>{{ t("notifications.sectionChannelStatus") }}</h4><p>{{ t("notifications.sectionChannelStatusHint") }}</p></div></div>
-                  <label class="toggle-row"><span class="toggle-copy"><strong>{{ t("notifications.toggleChannel") }}</strong><small>{{ t("notifications.toggleChannelHint") }}</small></span><input v-model="ch.enabled" type="checkbox" class="toggle-input" /><span class="toggle-track"></span></label>
+                  <AppToggle v-model="ch.enabled" :label="t('notifications.toggleChannel')" :description="t('notifications.toggleChannelHint')" />
                 </section>
               </div></AppScrollArea>
               <footer class="editor-footer">
@@ -469,24 +525,29 @@ onMounted(() => {
               <AppScrollArea root-class="editor-scroll" type="auto"><div class="editor-body">
                 <section class="form-section">
                   <div class="section-title"><span>01</span><div><h4>{{ t("notifications.sectionRuleInfo") }}</h4><p>{{ t("notifications.sectionRuleInfoHint") }}</p></div></div>
-                  <label class="field"><span>{{ t("notifications.fieldRuleName") }} <i>*</i></span><input v-model="rule.name" required maxlength="80" :placeholder="t('notifications.placeholderRuleName')" /></label>
+                  <label class="field"><span>{{ t("notifications.fieldRuleName") }} <i>*</i></span><AppInput v-model="rule.name" required maxlength="80" :placeholder="t('notifications.placeholderRuleName')" /></label>
                 </section>
                 <section class="form-section">
                   <div class="section-title"><span>02</span><div><h4>{{ t("notifications.sectionConditions") }}</h4><p>{{ t("notifications.sectionConditionsHint") }}</p></div></div>
-                  <label class="field"><span>{{ t("notifications.fieldEvent") }}</span><select :value="rule.eventType" @change="setEvent(($event.target as HTMLSelectElement).value)"><option v-for="item in catalog" :key="item.type" :value="item.type">{{ evName(item.type) }}</option></select></label>
+                  <label class="field"><span>{{ t("notifications.fieldEvent") }}</span><AppSelect block :model-value="rule.eventType" :options="eventOptions" @update:model-value="setEvent(String($event))" /></label>
                   <div class="field-grid">
-                    <label class="field"><span>{{ t("notifications.fieldPhase") }}</span><select v-model="rule.phase"><option v-for="item in phases" :key="item" :value="item">{{ phaseName(item) }}</option></select></label>
-                    <label class="field"><span>{{ t("notifications.fieldOutcome") }}</span><select v-model="rule.outcome"><option value="any">{{ t("notifications.outcomeAnyOption") }}</option><option v-for="item in outcomes" :key="item" :value="item">{{ outcomeName(item) }}</option></select></label>
+                    <label class="field"><span>{{ t("notifications.fieldPhase") }}</span><AppSelect block :model-value="rule.phase" :options="phaseOptions" @update:model-value="setPhase" /></label>
+                    <label class="field"><span>{{ t("notifications.fieldOutcome") }}</span><AppSelect block :model-value="rule.outcome ?? 'any'" :options="outcomeOptions" @update:model-value="setOutcome" /></label>
                   </div>
                   <div class="condition-hint"><AppIcon name="info" :size="16" /><div><strong>{{ phaseName(rule.phase) }} · {{ outcomeName(rule.outcome) }}</strong><p>{{ phaseDescription }}</p></div></div>
-                  <label class="field"><span>{{ t("notifications.fieldSubjectType") }} <em>{{ t("notifications.optionalCondition") }}</em></span><input v-model="rule.subjectType" :placeholder="t('notifications.placeholderSubjectType')" /><small class="field-hint">{{ t("notifications.hintSubjectType") }}</small></label>
+                  <label class="field"><span>{{ t("notifications.fieldSubjectType") }} <em>{{ t("notifications.optionalCondition") }}</em></span><AppInput v-model="rule.subjectType" :placeholder="t('notifications.placeholderSubjectType')" /><small class="field-hint">{{ t("notifications.hintSubjectType") }}</small></label>
                 </section>
                 <section class="form-section">
                   <div class="section-title"><span>03</span><div><h4>{{ t("notifications.sectionTargets") }}</h4><p>{{ t("notifications.sectionTargetsHint") }}</p></div></div>
                   <div v-if="!channels.length" class="inline-empty"><AppIcon name="network" :size="18" /><div><strong>{{ t("notifications.noChannelsForRule") }}</strong><p>{{ t("notifications.noChannelsForRuleHint") }}</p></div><button type="button" class="button secondary" @click="tab = 'channels'">{{ t("notifications.goToChannels") }}</button></div>
                   <div v-else class="channel-options">
                     <label v-for="item in channels" :key="item.id" class="channel-option" :class="{ checked: rule.channelIds.includes(item.id), unavailable: !item.enabled }">
-                      <input v-model="rule.channelIds" type="checkbox" :value="item.id" :disabled="!item.enabled && !rule.channelIds.includes(item.id)" />
+                      <AppCheckbox
+                        :model-value="rule.channelIds.includes(item.id)"
+                        :disabled="!item.enabled && !rule.channelIds.includes(item.id)"
+                        :aria-label="item.name"
+                        @update:model-value="toggleChannel(item.id, $event)"
+                      />
                       <span class="option-icon"><AppIcon :name="item.provider === 'dingtalk' ? 'bell-ring' : 'globe'" :size="17" /></span>
                       <span class="option-copy"><strong>{{ item.name }}</strong><small>{{ providerName(item.provider) }} · {{ item.enabled ? t("notifications.statusEnabled") : t("notifications.statusDisabled") }}</small></span>
                       <AppIcon v-if="rule.channelIds.includes(item.id)" name="circle-check" :size="17" class="option-check" />
@@ -496,7 +557,7 @@ onMounted(() => {
                 </section>
                 <section class="form-section compact-section">
                   <div class="section-title"><span>04</span><div><h4>{{ t("notifications.sectionRuleStatus") }}</h4><p>{{ t("notifications.sectionRuleStatusHint") }}</p></div></div>
-                  <label class="toggle-row"><span class="toggle-copy"><strong>{{ t("notifications.toggleRule") }}</strong><small>{{ t("notifications.toggleRuleHint") }}</small></span><input v-model="rule.enabled" type="checkbox" class="toggle-input" /><span class="toggle-track"></span></label>
+                  <AppToggle v-model="rule.enabled" :label="t('notifications.toggleRule')" :description="t('notifications.toggleRuleHint')" />
                 </section>
               </div></AppScrollArea>
               <footer class="editor-footer">
@@ -515,7 +576,7 @@ onMounted(() => {
                 <span class="panel-heading-icon"><AppIcon name="bell-ring" :size="16" /></span>
                 <div class="panel-heading-copy"><h3>{{ t("notifications.recordsTitle") }}</h3><p>{{ t("notifications.recordsHint") }}</p></div>
                 <span class="neutral-count">{{ t("notifications.eventsCount", { count: filteredDeliveries.length }) }}</span>
-                <select v-model="deliveryFilter" class="filter-select" :aria-label="t('notifications.recordsTitle')"><option value="all">{{ t("notifications.filterAll") }}</option><option value="succeeded">{{ t("notifications.deliverySucceeded") }}</option><option value="pending">{{ t("notifications.deliveryPending") }}</option><option value="sending">{{ t("notifications.deliverySending") }}</option><option value="failed">{{ t("notifications.deliveryFailed") }}</option></select>
+                <AppSelect class="records-filter" :model-value="deliveryFilter" :options="statusFilterOptions" @update:model-value="deliveryFilter = String($event)" />
               </header>
               <div class="records-body">
                 <VirtualTable
@@ -1524,31 +1585,6 @@ onMounted(() => {
 .field i { color: var(--red); font-style: normal; }
 .field em { color: var(--muted); font-size: 10px; font-weight: 500; font-style: normal; }
 
-.field input:not([type="checkbox"]),
-.field select {
-  box-sizing: border-box;
-  width: 100%;
-  min-width: 0;
-  min-height: 41px;
-  padding: 0 11px;
-  border: 1px solid var(--line);
-  border-radius: var(--wh-radius-control);
-  outline: none;
-  background: var(--bg);
-  color: var(--text);
-  font: inherit;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.field input::placeholder { color: var(--muted); opacity: 0.8; }
-
-.field input:focus,
-.field select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
 .field :deep(.CodeMirror),
 .field :deep(.app-select) {
   width: 100%;
@@ -1607,63 +1643,6 @@ onMounted(() => {
   font-size: 10px;
   font-weight: 500;
 }
-
-.toggle-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  min-height: 62px;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--wh-radius-item);
-  background: var(--wh-heading-bg);
-  cursor: pointer;
-}
-
-.toggle-copy { display: grid; flex: 1 1 auto; gap: 4px; }
-.toggle-copy strong { font-size: 11px; }
-.toggle-copy small { color: var(--muted); font-size: 10px; line-height: 1.5; }
-
-.toggle-input {
-  position: absolute;
-  z-index: 1;
-  top: 50%;
-  right: 14px;
-  width: 38px;
-  height: 22px;
-  margin: 0;
-  opacity: 0;
-  transform: translateY(-50%);
-  cursor: pointer;
-}
-
-.toggle-track {
-  position: relative;
-  flex: 0 0 38px;
-  width: 38px;
-  height: 22px;
-  border-radius: 99px;
-  background: var(--line);
-  transition: background 160ms ease;
-}
-
-.toggle-track::after {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--wh-panel-bg);
-  box-shadow: 0 1px 3px #0002;
-  content: "";
-  transition: transform 160ms ease;
-}
-
-.toggle-input:checked + .toggle-track { background: var(--accent); }
-.toggle-input:checked + .toggle-track::after { transform: translateX(16px); }
-.toggle-input:focus-visible + .toggle-track { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
 
 .editor-footer {
   display: flex;
@@ -1768,7 +1747,6 @@ onMounted(() => {
 }
 
 .channel-option.unavailable { opacity: 0.55; cursor: not-allowed; }
-.channel-option input { width: 15px; height: 15px; accent-color: var(--accent); }
 
 .option-icon {
   display: grid;
@@ -2000,21 +1978,9 @@ onMounted(() => {
 .delivery-pill-succeeded { border-color: color-mix(in srgb, var(--green) 22%, var(--line)); background: var(--green-soft); color: var(--green); }
 .delivery-pill-failed { border-color: color-mix(in srgb, var(--red) 22%, var(--line)); background: var(--red-soft); color: var(--red); }
 
-.filter-select {
-  max-width: 145px;
-  min-height: 34px;
-  padding: 0 9px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--bg);
-  color: var(--text);
-  font: inherit;
-  font-size: 10px;
-}
-
-.filter-select:focus {
-  outline: 2px solid color-mix(in srgb, var(--accent) 28%, transparent);
-  outline-offset: 1px;
+.records-filter {
+  flex: 0 0 auto;
+  width: 148px;
 }
 
 .delivery-error { padding: 8px 9px; border-radius: 7px; background: var(--red-soft); color: var(--red) !important; }

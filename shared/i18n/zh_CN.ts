@@ -159,6 +159,7 @@ export default {
     fieldUrl: "Webhook URL",
     fieldSecret: "加签密钥",
     fieldMessageType: "消息格式",
+    messageTypeText: "纯文本",
     fieldMessageTemplate: "通知消息模板",
     fieldTestMessage: "测试消息内容",
     fieldMethod: "HTTP 方法",
