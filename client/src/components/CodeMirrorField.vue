@@ -6,6 +6,8 @@ import { EditorState } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
 import { json } from "@codemirror/lang-json";
+import AppScrollArea from "@/components/AppScrollArea.vue";
+import { attachCodeMirrorScrollArea } from "@/utils/codemirror-scroll-area";
 const { t } = useI18n();
 
 const props = withDefaults(
@@ -29,7 +31,19 @@ const props = withDefaults(
 );
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 const host = ref<HTMLDivElement | null>(null);
+const spacer = ref<HTMLDivElement | null>(null);
 let view: EditorView | null = null;
+let scrollViewport: HTMLElement | null = null;
+let disposeScrollSync: (() => void) | null = null;
+
+function connectScrollArea(element?: HTMLElement) {
+  if (element) scrollViewport = element;
+  disposeScrollSync?.();
+  disposeScrollSync = null;
+  if (!props.singleLine && view && scrollViewport && spacer.value) {
+    disposeScrollSync = attachCodeMirrorScrollArea(view, scrollViewport, spacer.value);
+  }
+}
 
 function buildExtensions() {
   const bindings = [
@@ -90,16 +104,21 @@ function mountEditor() {
   const current = view;
   const doc = current ? current.state.doc.toString() : props.modelValue || "";
   const selection = current ? current.state.selection.main.head : 0;
+  disposeScrollSync?.();
+  disposeScrollSync = null;
   current?.destroy();
   view = new EditorView({
     parent: host.value,
     state: EditorState.create({ doc, extensions: buildExtensions() }),
   });
   view.dispatch({ selection: { anchor: Math.min(selection, view.state.doc.length) } });
+  connectScrollArea();
 }
 
 onMounted(mountEditor);
 onBeforeUnmount(() => {
+  disposeScrollSync?.();
+  disposeScrollSync = null;
   view?.destroy();
   view = null;
 });
@@ -115,8 +134,23 @@ watch(
 </script>
 
 <template>
-  <div class="cm-field-frame" :class="{ 'single-line': singleLine, invalid }">
-    <div ref="host" class="cm-field-host"></div>
+  <div
+    class="cm-field-frame"
+    :class="{ 'single-line': singleLine, invalid }"
+    :style="!singleLine ? { height: `${height}px`, '--cm-editor-height': `${height}px` } : undefined"
+  >
+    <AppScrollArea
+      v-if="!singleLine"
+      root-class="cm-field-scroll-area"
+      viewport-class="cm-field-scroll-viewport"
+      orientation="both"
+      type="hover"
+      @ready="connectScrollArea"
+    >
+      <div ref="host" class="cm-field-host cm-field-host-scrollable"></div>
+      <div ref="spacer" class="cm-field-scroll-spacer" aria-hidden="true"></div>
+    </AppScrollArea>
+    <div v-else ref="host" class="cm-field-host"></div>
   </div>
 </template>
 
@@ -144,6 +178,26 @@ watch(
 }
 .cm-field-frame.single-line {
   height: 40px;
+}
+.cm-field-scroll-area {
+  width: 100%;
+  height: 100%;
+}
+.cm-field-scroll-viewport {
+  position: relative;
+  overflow: auto;
+}
+.cm-field-host-scrollable {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  margin-bottom: calc(-1 * var(--cm-editor-height));
+}
+.cm-field-scroll-spacer {
+  min-width: 100%;
+  min-height: 100%;
+  pointer-events: none;
 }
 .cm-field-host {
   width: 100%;
