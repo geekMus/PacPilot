@@ -230,7 +230,7 @@ const {
                       :display-value="(value) => String(value ?? '')"
                       :placeholder="t('settings.timezoneSearch')"
                       :aria-invalid="Boolean(timezoneError)"
-                      @focus="timezoneQuery = ''"
+                      @focus="timezoneMenuOpen = true; timezoneQuery = ''"
                     />
                   </div>
                 </ComboboxAnchor>
