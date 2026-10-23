@@ -198,8 +198,8 @@ function buildExtensions(): Extension[] {
 
     EditorView.theme({
       "&": {
-        height: `${h}px`,
-        maxHeight: `${h}px`,
+        height: `${Math.max(0, h - 2)}px`,
+        maxHeight: `${Math.max(0, h - 2)}px`,
         fontSize: "13px",
       },
       ".cm-scroller": {
