@@ -5,6 +5,7 @@ import { i18n, persistLocale, readStoredLocale } from "@/i18n";
 import { initThemeEarly } from "@/composables/useTheme";
 import "@/styles/theme.css";
 import "@/styles/scrollbars.css";
+import "@/styles/overlays.css";
 
 initThemeEarly();
 persistLocale(readStoredLocale());
