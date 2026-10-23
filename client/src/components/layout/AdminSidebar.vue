@@ -79,6 +79,10 @@ async function logout(): Promise<void> {
             <AppIcon name="zap" :size="18" />
             <span>{{ t("nav.notifications") }}</span>
           </RouterLink>
+        </section>
+
+        <section class="nav-group" aria-labelledby="nav-business">
+          <p id="nav-business" class="nav-caption">{{ t("layout.navBusiness") }}</p>
           <RouterLink
             to="/admin/settings"
             class="sidebar-link"
@@ -97,6 +101,10 @@ async function logout(): Promise<void> {
             <AppIcon name="workflow" :size="18" />
             <span>{{ t("nav.workflow") }}</span>
           </RouterLink>
+        </section>
+
+        <section class="nav-group" aria-labelledby="nav-system">
+          <p id="nav-system" class="nav-caption">{{ t("layout.navSystem") }}</p>
           <RouterLink
             to="/admin/system-settings"
             class="sidebar-link"

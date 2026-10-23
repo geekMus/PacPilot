@@ -402,6 +402,8 @@ export default {
   layout: {
     adminConsole: "Admin console",
     workbench: "Workbench",
+    navBusiness: "Configuration",
+    navSystem: "System",
     closeNav: "Close navigation menu",
     toggleNav: "Toggle navigation menu",
     adminConnected: "Admin service connected",

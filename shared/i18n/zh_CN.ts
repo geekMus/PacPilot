@@ -393,6 +393,8 @@ export default {
   layout: {
     adminConsole: "管理控制台",
     workbench: "工作台",
+    navBusiness: "业务配置",
+    navSystem: "系统",
     closeNav: "关闭导航菜单",
     toggleNav: "切换导航菜单",
     adminConnected: "管理服务已连接",
