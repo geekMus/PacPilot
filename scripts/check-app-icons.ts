@@ -26,7 +26,7 @@ function collectSourceFiles(directory: string): string[] {
 
 for (const file of collectSourceFiles(sourceRoot)) {
   const source = fs.readFileSync(file, "utf8");
-  if (/<CodeMirrorField\\b[^>]*\\bscrollbar-mode\\s*=\\s*["']always["']/s.test(source)) {
+  if (/<CodeMirrorField\b[^>]*\bscrollbar-mode\s*=\s*["']always["']/s.test(source)) {
     legacyScrollbarUsages.push(path.relative(process.cwd(), file));
   }
   const appIconTags = /<AppIcon\b([^>]*)>/g;
@@ -61,15 +61,15 @@ if (missing.length) {
 
 if (legacyScrollbarUsages.length) {
   throw new Error(
-    `发现已废弃的 CodeMirrorField scrollbar-mode="always"：\\n${legacyScrollbarUsages.join("\\n")}`
+    `发现已废弃的 CodeMirrorField scrollbar-mode="always"：\n${legacyScrollbarUsages.join("\n")}`
   );
 }
 
 const editorComponent = fs.readFileSync(path.join(sourceRoot, "components/CodeMirrorField.vue"), "utf8");
-if (!/scrollbarMode\\?:\\s*["']hover["']\\s*\\|\\s*["']auto["']/.test(editorComponent)) {
+if (!/scrollbarMode\?:\s*["']hover["']\s*\|\s*["']auto["']/.test(editorComponent)) {
   throw new Error("CodeMirrorField scrollbarMode 应仅支持 hover | auto。");
 }
-if (!/scrollbarMode:\\s*["']auto["']/.test(editorComponent)) {
+if (!/scrollbarMode:\s*["']auto["']/.test(editorComponent)) {
   throw new Error('CodeMirrorField scrollbarMode 默认值应为 "auto"。');
 }
 
