@@ -42,7 +42,7 @@ describe("portaled overlay style architecture", () => {
       "components/UserPreferencesMenu.vue",
     ]) {
       const source = readSource(path);
-      expect(source, `${path} must define its Portal styles in a non-scoped style block`).toMatch(/<style(?![^>]*\\bscoped\\b)[^>]*>/);
+      expect(source, `${path} must define its Portal styles in a non-scoped style block`).toMatch(/<style(?![^>]*\bscoped\b)[^>]*>/);
     }
   });
 });
