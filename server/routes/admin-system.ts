@@ -1,7 +1,6 @@
 import { Router } from "express";
 import fs from "node:fs";
 import path from "node:path";
-import type { AppDatabase } from "../db/sqlite";
 import type { EnvConfig } from "../config/env";
 import type { ApplicationStorage } from "../storage/repositories";
 
@@ -16,7 +15,7 @@ function requestLocale(req: import("express").Request): "zh_CN" | "en_US" {
   return resolveLocale(req.get("accept-language"));
 }
 
-export function adminSystemRoutes(env: EnvConfig, database: AppDatabase, storage: ApplicationStorage): Router {
+export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): Router {
   const router = Router();
   router.get("/api/admin/storage", requireAdmin(storage.credentials), (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
@@ -125,7 +124,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase, storage
         generationLogs: storage.generationLogs.clear(),
         accessEvents: storage.monitoring.clear(),
       };
-      if (env.storageDriver === "sqlite") vacuumDatabase(database, true);
+      if (env.storageDriver === "sqlite") storage.maintenance.compact();
       res.json({ deleted, retentionDays: storage.settings.get().logRetentionDays });
     } catch (error) {
       res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
@@ -146,7 +145,7 @@ export function adminSystemRoutes(env: EnvConfig, database: AppDatabase, storage
     }
     try {
       storage.maintenance.resetOperationalData(DEFAULT_SETTINGS);
-      if (env.storageDriver === "sqlite") vacuumDatabase(database, true);
+      if (env.storageDriver === "sqlite") storage.maintenance.compact();
       for (const name of ["proxy.pac", "proxy.source.pac"]) {
         try {
           if (isMemoryPath(env.dataDir)) unlinkEphemeralFile(path.join(env.dataDir, name));
