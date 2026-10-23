@@ -6,12 +6,15 @@ import { startPacWorkflow } from "../services/workflow";
 
 export function adminGenerationRoutes(dataDir: string, storage: ApplicationStorage): Router {
   const router = Router();
-  router.post("/api/admin/generate", requireAdmin(storage.credentials), (_req, res) => {
+  router.post("/api/admin/generate", requireAdmin(storage.credentials), async (_req, res) => {
     try {
-      const workflowId = startPacWorkflow(storage, dataDir, "manual");
+      const workflowId = await startPacWorkflow(storage, dataDir, "manual");
       res
         .status(202)
-        .json({ workflowId, status: storage.workflows.get(workflowId)?.status ?? "pending" });
+        .json({
+          workflowId,
+          status: (await storage.workflows.get(workflowId))?.status ?? "pending",
+        });
     } catch (e) {
       res.status(409).json({ error: e instanceof Error ? e.message : String(e) });
     }

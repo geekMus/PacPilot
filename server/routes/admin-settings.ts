@@ -60,12 +60,12 @@ function bodyToSettings(b: Record<string, unknown>): AppSettings {
 function requestLocale(req: import("express").Request): "zh_CN" | "en_US" {
   return resolveLocale(req.get("accept-language"));
 }
-function persistSettings(
+async function persistSettings(
   body: Record<string, unknown>,
   env: EnvConfig,
   storage: ApplicationStorage,
   locale: "zh_CN" | "en_US"
-): { settings: AppSettings } | { error: string } {
+): Promise<{ settings: AppSettings } | { error: string }> {
   const payloadError = validateSettingsPayload(body);
   if (payloadError) return { error: `Invalid settings payload: ${payloadError}` };
 
@@ -89,18 +89,18 @@ function persistSettings(
       if (errors.length) return { error: errors.join("\n") };
     }
   }
-  const settings = storage.settings.update(p);
+  const settings = await storage.settings.update(p);
   reschedule(storage, env.dataDir);
   return { settings };
 }
 
 export function adminSettingsRoutes(env: EnvConfig, storage: ApplicationStorage): Router {
   const router = Router();
-  router.get("/api/admin/settings", requireAdmin(storage.credentials), (_req, res) =>
-    res.json(storage.settings.get())
+  router.get("/api/admin/settings", requireAdmin(storage.credentials), async (_req, res) =>
+    res.json(await storage.settings.get())
   );
-  router.put("/api/admin/settings", requireAdmin(storage.credentials), (req, res) => {
-    const result = persistSettings(
+  router.put("/api/admin/settings", requireAdmin(storage.credentials), async (req, res) => {
+    const result = await persistSettings(
       (req.body || {}) as Record<string, unknown>,
       env,
       storage,
@@ -112,28 +112,32 @@ export function adminSettingsRoutes(env: EnvConfig, storage: ApplicationStorage)
     }
     res.json(result.settings);
   });
-  router.post("/api/admin/settings/save-and-generate", requireAdmin(storage.credentials), (req, res) => {
-    const saved = persistSettings(
-      (req.body || {}) as Record<string, unknown>,
-      env,
-      storage,
-      requestLocale(req)
-    );
-    if ("error" in saved) {
-      res.status(400).json({ error: saved.error });
-      return;
+  router.post(
+    "/api/admin/settings/save-and-generate",
+    requireAdmin(storage.credentials),
+    async (req, res) => {
+      const saved = await persistSettings(
+        (req.body || {}) as Record<string, unknown>,
+        env,
+        storage,
+        requestLocale(req)
+      );
+      if ("error" in saved) {
+        res.status(400).json({ error: saved.error });
+        return;
+      }
+      try {
+        const workflowId = await startPacWorkflow(storage, env.dataDir, "save-and-generate");
+        res.status(202).json({
+          settings: saved.settings,
+          workflowId,
+          status: (await storage.workflows.get(workflowId))?.status ?? "pending",
+        });
+      } catch (e) {
+        res.status(409).json({ error: e instanceof Error ? e.message : String(e) });
+      }
     }
-    try {
-      const workflowId = startPacWorkflow(storage, env.dataDir, "save-and-generate");
-      res.status(202).json({
-        settings: saved.settings,
-        workflowId,
-        status: storage.workflows.get(workflowId)?.status ?? "pending",
-      });
-    } catch (e) {
-      res.status(409).json({ error: e instanceof Error ? e.message : String(e) });
-    }
-  });
+  );
   router.post("/api/admin/webhook-test", requireAdmin(storage.credentials), async (req, res) => {
     const c = normalizeWebhookConfig(req.body?.config ?? req.body),
       errors = validateWebhookConfig(c);
@@ -141,7 +145,7 @@ export function adminSettingsRoutes(env: EnvConfig, storage: ApplicationStorage)
       res.status(400).json({ error: errors.join("\n") });
       return;
     }
-    res.json(await sendWebhookTest(c, storage.settings.get().timezone));
+    res.json(await sendWebhookTest(c, (await storage.settings.get()).timezone));
   });
   return router;
 }
