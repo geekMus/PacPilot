@@ -1,22 +1,23 @@
+/// <reference types="node" />
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-declare const Bun: {
-  file(path: URL): { text(): Promise<string> };
-};
+const sourceRoot = fileURLToPath(new URL("../src/", import.meta.url));
 
-function readSource(path: string): Promise<string> {
-  return Bun.file(new URL(path, new URL("../src/", import.meta.url))).text();
+function readSource(path: string): string {
+  return readFileSync(new URL(path, new URL("../src/", import.meta.url)), "utf8");
 }
 
 describe("portaled overlay style architecture", () => {
-  it("loads the shared overlay stylesheet from the application entry point", async () => {
-    const entry = await readSource("main.ts");
+  it("loads the shared overlay stylesheet from the application entry point", () => {
+    const entry = readSource("main.ts");
     expect(entry).toContain('import "@/styles/overlays.css";');
   });
 
-  it("keeps timezone Portal selectors out of the scoped admin view stylesheet", async () => {
-    const adminStyles = await readSource("views/AdminView.css");
-    const overlayStyles = await readSource("styles/overlays.css");
+  it("keeps timezone Portal selectors out of the scoped admin view stylesheet", () => {
+    const adminStyles = readSource("views/AdminView.css");
+    const overlayStyles = readSource("styles/overlays.css");
 
     for (const selector of [
       ".timezone-options-menu",
@@ -37,14 +38,14 @@ describe("portaled overlay style architecture", () => {
     }
   });
 
-  it("keeps component-owned Portal styles unscoped", async () => {
+  it("keeps component-owned Portal styles unscoped", () => {
     for (const path of [
       "components/AppDialog.vue",
       "components/AppSelect.vue",
       "components/ConfirmPopover.vue",
       "components/UserPreferencesMenu.vue",
     ]) {
-      const source = await readSource(path);
+      const source = readSource(path);
       expect(source, `${path} must define its Portal styles in a non-scoped style block`).toMatch(
         /<style(?![^>]*\\bscoped\\b)[^>]*>/
       );
