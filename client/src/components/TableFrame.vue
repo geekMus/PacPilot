@@ -27,12 +27,11 @@ const scroller = ref<HTMLElement | null>(null);
 
 const maxHeight = computed(() => {
   const value = props.height ?? 480;
-  const parsed = typeof value === "number" ? value : Number.parseFloat(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 480;
+  return typeof value === "number" ? value + "px" : value;
 });
 const headerOffset = ref(0);
 const frameStyle = computed(() => ({
-  "--table-max-height": maxHeight.value + "px",
+  "--table-max-height": maxHeight.value,
   "--virtual-row-height": props.rowHeight + "px",
   "--table-min-width": props.minWidth,
 }));
@@ -126,6 +125,9 @@ onUnmounted(() => resizeObserver?.disconnect());
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.app-table-frame.is-empty .app-table-body-scroll {
+  min-height: 98px;
 }
 .app-table-body-scroll {
   flex: 0 1 auto;
