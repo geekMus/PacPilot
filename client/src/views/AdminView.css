@@ -999,7 +999,7 @@ textarea.body-area {
   pointer-events: none;
   color: var(--muted);
 }
-:global(:global(.timezone-option)s-menu) {
+:global(.timezone-options-menu) {
   z-index: 1200;
   box-sizing: border-box;
   width: min(var(--reka-combobox-trigger-width, 100%), calc(100vw - 16px));
@@ -1014,14 +1014,14 @@ textarea.body-area {
   color: var(--text);
   box-shadow: var(--shadow);
 }
-:global(:global(.timezone-option)s-scroll) {
+:global(.timezone-options-scroll) {
   width: 100%;
   height: min(var(--timezone-list-height, 420px), var(--reka-combobox-content-available-height, 420px));
   max-height: min(var(--timezone-list-height, 420px), var(--reka-combobox-content-available-height, 420px));
   min-height: 0;
   overflow: hidden;
 }
-:global(:global(.timezone-option)s-viewport) {
+:global(.timezone-options-viewport) {
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -1133,7 +1133,7 @@ textarea.body-area {
     margin: 0;
     overscroll-behavior: contain;
   }
-  :global(:global(.timezone-sheet-options)-viewport) {
+  :global(.timezone-sheet-options-viewport) {
     height: 100%;
     min-height: 0;
     max-height: 100%;
