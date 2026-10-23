@@ -1548,8 +1548,17 @@ onMounted(() => {
 
   .directory-panel { max-height: 360px; }
   .directory-panel :deep(.app-scroll-area-viewport) { height: 100%; }
-  .editor-panel { min-height: 520px; }
-  .editor-scroll { min-height: 0; }
+  .editor-panel { min-height: 0; }
+  .editor-scroll {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .editor-scroll :deep(.app-scroll-area-viewport) {
+    height: auto;
+    overflow: visible;
+  }
   .history-workspace { display: flex; }
   .history-column { min-height: 280px; }
   .history-panel :deep(.app-scroll-area-viewport) { height: 100%; }
