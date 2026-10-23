@@ -30,15 +30,7 @@ const props = withDefaults(defineProps<{
 const { t, locale } = useI18n();
 const selectedLog = ref<GenerationLog | null>(null);
 const detailOpen = ref(false);
-// Treat height as a maximum for the full log table, not a forced height.
-// Keep the header and status/empty row comfortable while fitting short result sets.
-const tableHeight = computed(() => {
-  const maxHeight = typeof props.height === "number"
-    ? props.height
-    : Number.parseFloat(props.height) || 480;
-  const contentHeight = 44 + props.items.length * 48 + 42;
-  return Math.min(maxHeight, Math.max(144, contentHeight));
-});
+// The shared TableFrame measures actual rendered rows and treats height as a maximum.
 
 function dateLabel(value: string): string {
   const date = new Date(value);
@@ -83,7 +75,7 @@ function message(entry: GenerationLog): string {
       </tr>
     </template>
   </TableFrame>
-  <VirtualTable v-else :items="items" item-key="id" :col-span="4" :height="tableHeight" min-width="760px" table-class="generation-table" :row-height="48" :has-more="hasMore" :loading="loading" :error="error" :empty-text="emptyText" :load-more="loadMore">
+  <VirtualTable v-else :items="items" item-key="id" :col-span="4" :height="height" min-width="760px" table-class="generation-table" :row-height="48" :has-more="hasMore" :loading="loading" :error="error" :empty-text="emptyText" :load-more="loadMore">
     <template #columns><col style="width: 150px" /><col style="width: 110px" /><col style="width: 120px" /><col style="width: 360px" /></template>
     <template #header><tr><th>{{ t("settings.colTime") }}</th><th>{{ t("settings.colResult") }}</th><th>{{ t("settings.colMode") }}</th><th>{{ t("settings.colMessage") }}</th></tr></template>
     <template #row="{ item: entry }">
