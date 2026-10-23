@@ -3,7 +3,6 @@ import cookieParser from "cookie-parser";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import type { AppDatabase } from "./db/sqlite";
 import type { ApplicationStorage } from "./storage/repositories";
 import type { EnvConfig } from "./config/env";
 import { publicRoutes } from "./routes/public";
@@ -11,7 +10,7 @@ import { adminRoutes } from "./routes/admin";
 import { requestMonitoringMiddleware } from "./services/request-monitor";
 import { getLocalInterfaceAddresses, isTrustedOrigin, normalizeOrigin } from "./utils/origin-policy";
 
-export function createApp(env: EnvConfig, database: AppDatabase, storage: ApplicationStorage): express.Application {
+export function createApp(env: EnvConfig, storage: ApplicationStorage): express.Application {
   const app = express();
 
   app.disable("x-powered-by");
@@ -73,8 +72,8 @@ export function createApp(env: EnvConfig, database: AppDatabase, storage: Applic
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
 
-  app.use(publicRoutes(env, database, storage));
-  app.use(adminRoutes(env, database, storage));
+  app.use(publicRoutes(env, storage));
+  app.use(adminRoutes(env, storage));
 
   const here =
     typeof import.meta.dir === "string"
