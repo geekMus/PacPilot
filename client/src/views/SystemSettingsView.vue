@@ -702,11 +702,6 @@ onMounted(() => void load());
   min-width: 145px;
   flex: 0 0 145px;
 }
-.retention .app-select :deep(.app-select-trigger) {
-  min-height: 40px;
-  padding: 9px 10px 9px 12px;
-  font-size: 12px;
-}
 .primary,
 .secondary,
 .danger {
