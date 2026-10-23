@@ -52,7 +52,6 @@ function onCloseAutoFocus(event: Event): void {
       <DialogOverlay class="app-dialog-overlay" />
       <DialogContent
         as-child
-        class="app-dialog-content"
         :aria-label="props.label"
         @close-auto-focus="onCloseAutoFocus"
       >
@@ -101,15 +100,19 @@ function onCloseAutoFocus(event: Event): void {
   -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
 }
-.app-dialog-content {
+.app-dialog-shell {
   position: fixed;
   top: 50%;
   left: 50%;
   z-index: 1001;
+  display: flex;
+  flex-direction: column;
   box-sizing: border-box;
   width: max-content;
   max-width: calc(100vw - 16px);
   max-height: calc(100dvh - 24px);
+  min-width: 0;
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--surface);
@@ -117,15 +120,6 @@ function onCloseAutoFocus(event: Event): void {
   box-shadow: var(--dialog-panel-shadow);
   transform: translate(-50%, -50%);
   outline: none;
-}
-.app-dialog-shell {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  max-width: 100%;
-  max-height: calc(100dvh - 24px);
-  overflow: hidden;
-  border-radius: inherit;
 }
 .app-dialog-header {
   display: flex;
@@ -174,9 +168,10 @@ function onCloseAutoFocus(event: Event): void {
   outline-offset: 2px;
 }
 .app-dialog-body {
-  flex: 1 1 auto;
+  flex: 1 1 0%;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
 }
 .app-dialog-body .app-scroll-area-viewport {
   padding: 18px;
@@ -224,7 +219,7 @@ function onCloseAutoFocus(event: Event): void {
   border: 0;
 }
 @media (max-width: 560px) {
-  .app-dialog-content {
+  .app-dialog-shell {
     max-width: calc(100vw - 16px);
   }
   .app-dialog-header {
