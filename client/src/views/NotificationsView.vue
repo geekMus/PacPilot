@@ -285,7 +285,7 @@ onMounted(() => {
               <div class="editor-heading-copy"><div class="editor-kicker">{{ cid ? "CHANNEL SETTINGS" : "NEW CHANNEL" }}</div><h3>{{ cid ? "编辑通知渠道" : "创建通知渠道" }}</h3><p>配置接收通知的目标地址和消息格式。</p></div>
               <div class="editor-heading-tools"><span class="status-pill" :class="ch.enabled ? 'pill-enabled' : 'pill-disabled'"><span class="status-dot" :class="{ online: ch.enabled }"></span>{{ ch.enabled ? "已启用" : "已停用" }}</span></div>
             </header>
-            <AppScrollArea root-class="editor-scroll" type="always"><AppScrollArea root-class="editor-scroll" type="always"><div class="editor-body">
+            <AppScrollArea root-class="editor-scroll" type="always"><div class="editor-body">
               <section class="form-section">
                 <div class="section-title"><span>01</span><div><h4>基本信息</h4><p>为渠道命名并选择接入类型。</p></div></div>
                 <div class="field-grid">
