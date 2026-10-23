@@ -6,6 +6,8 @@ import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import AppScrollArea from "@/components/AppScrollArea.vue";
+import AppDialog from "@/components/AppDialog.vue";
+import VirtualTable from "@/components/VirtualTable.vue";
 import CodeMirrorField from "@/components/CodeMirrorField.vue";
 import WebhookBodyEditor from "@/features/webhooks/components/WebhookBodyEditor.vue";
 import { api, type NotificationChannel, type NotificationRule, type WebhookConfig } from "@/api/client";
@@ -31,6 +33,8 @@ const busy = ref(false);
 const testingId = ref("");
 const deliveryFilter = ref("all");
 const showSecret = ref(false);
+const selectedDelivery = ref<any | null>(null);
+const deliveryDetailOpen = ref(false);
 
 const config = (): WebhookConfig => ({
   provider: "dingtalk",
@@ -119,6 +123,23 @@ const phaseDescription = computed(() => {
     case "state_changed": return t("notifications.phaseDescStateChanged");
     default: return t("notifications.phaseDescProgress");
   }
+});
+
+const deliveryEvent = (item: any) => events.value.find((e) => e.id === item.eventId);
+const deliveryEventLabel = (item: any) => {
+  const event = deliveryEvent(item);
+  return event ? evName(event.type) : "—";
+};
+const ruleNameById = (id: string) => rules.value.find((r) => r.id === id)?.name ?? id;
+function openDeliveryDetails(item: any) {
+  selectedDelivery.value = item;
+  deliveryDetailOpen.value = true;
+}
+// Keep the open dialog in sync after a retry refreshes the delivery list.
+watch(deliveries, (list) => {
+  if (!selectedDelivery.value) return;
+  const next = list.find((item) => item.id === selectedDelivery.value?.id);
+  if (next) selectedDelivery.value = next;
 });
 
 async function load(options: { preserveView?: boolean } = {}) {
@@ -491,34 +512,117 @@ onMounted(() => {
           <section v-else class="history-workspace">
             <section class="history-panel">
               <header class="panel-heading">
-                <span class="panel-heading-icon"><AppIcon name="activity" :size="16" /></span>
-                <div class="panel-heading-copy"><h3>{{ t("notifications.eventsTitle") }}</h3><p>{{ t("notifications.eventsHint") }}</p></div>
-                <span class="neutral-count">{{ t("notifications.eventsCount", { count: events.length }) }}</span>
-              </header>
-              <AppScrollArea root-class="panel-scroll" type="auto">
-                <div v-if="!events.length" class="empty-history"><span class="empty-icon"><AppIcon name="activity" :size="22" /></span><strong>{{ t("notifications.emptyEvents") }}</strong><p>{{ t("notifications.emptyEventsHint") }}</p></div>
-                <article v-for="item in events" :key="item.id" class="event-row">
-                  <span class="timeline-marker"><AppIcon :name="item.outcome === 'failure' ? 'circle-alert' : item.outcome === 'success' ? 'circle-check' : 'activity'" :size="16" /></span>
-                  <div class="history-row-content"><div class="history-row-title"><strong>{{ evName(item.type) }}</strong><span class="phase-tag">{{ phaseName(item.phase) }}</span><span v-if="item.outcome" class="outcome-tag" :class="'outcome-' + item.outcome">{{ outcomeName(item.outcome) }}</span></div><p>{{ item.summary || t("notifications.selectHint") }}</p><small>{{ formatDate(item.occurredAt) }}</small></div>
-                </article>
-              </AppScrollArea>
-            </section>
-            <section class="history-panel">
-              <header class="panel-heading">
                 <span class="panel-heading-icon"><AppIcon name="bell-ring" :size="16" /></span>
                 <div class="panel-heading-copy"><h3>{{ t("notifications.recordsTitle") }}</h3><p>{{ t("notifications.recordsHint") }}</p></div>
+                <span class="neutral-count">{{ t("notifications.eventsCount", { count: filteredDeliveries.length }) }}</span>
                 <select v-model="deliveryFilter" class="filter-select" :aria-label="t('notifications.recordsTitle')"><option value="all">{{ t("notifications.filterAll") }}</option><option value="succeeded">{{ t("notifications.deliverySucceeded") }}</option><option value="pending">{{ t("notifications.deliveryPending") }}</option><option value="sending">{{ t("notifications.deliverySending") }}</option><option value="failed">{{ t("notifications.deliveryFailed") }}</option></select>
               </header>
-              <AppScrollArea root-class="panel-scroll" type="auto">
-                <div v-if="!filteredDeliveries.length" class="empty-history"><span class="empty-icon"><AppIcon name="activity" :size="22" /></span><strong>{{ deliveries.length ? t("notifications.recordsNoMatch") : t("notifications.emptyRecords") }}</strong><p>{{ deliveries.length ? t("notifications.recordsNoMatchHint") : t("notifications.emptyRecordsHint") }}</p></div>
-                <article v-for="item in filteredDeliveries" :key="item.id" class="delivery-row">
-                  <span class="delivery-status-icon" :class="'delivery-' + item.status"><AppIcon :name="statusIcon(item.status)" :size="16" /></span>
-                  <div class="history-row-content"><div class="history-row-title"><strong>{{ channelName(item.channelId) }}</strong><span class="status-pill small-pill" :class="'delivery-pill-' + item.status">{{ statusName(item.status) }}</span></div><p>{{ events.find(event => event.id === item.eventId)?.summary || evName(events.find(event => event.id === item.eventId)?.type || "") }}</p><small>{{ formatDate(item.updatedAt) }} · {{ t("notifications.attemptCount", { count: item.attemptCount }) }}</small><p v-if="item.lastError" class="delivery-error">{{ item.lastError }}</p></div>
-                  <button v-if="item.status === 'failed'" class="button retry-button" @click="retry(item.id)"><AppIcon name="refresh-cw" :size="14" /> {{ t("notifications.retry") }}</button>
-                </article>
-              </AppScrollArea>
+              <div class="records-body">
+                <VirtualTable
+                  :items="filteredDeliveries"
+                  item-key="id"
+                  :col-span="6"
+                  :row-height="56"
+                  height="100%"
+                  fixed-height
+                  min-width="880px"
+                  table-class="records-table"
+                  :empty-text="deliveries.length ? t('notifications.recordsNoMatch') : t('notifications.emptyRecords')"
+                  :load-more="() => {}"
+                >
+                  <template #columns>
+                    <col style="width: 128px" />
+                    <col style="width: 200px" />
+                    <col style="width: 220px" />
+                    <col style="width: 180px" />
+                    <col style="width: 100px" />
+                    <col style="width: 110px" />
+                  </template>
+                  <template #header>
+                    <tr>
+                      <th>{{ t("notifications.columnStatus") }}</th>
+                      <th>{{ t("notifications.columnChannel") }}</th>
+                      <th>{{ t("notifications.columnEvent") }}</th>
+                      <th>{{ t("notifications.columnTime") }}</th>
+                      <th>{{ t("notifications.columnAttempts") }}</th>
+                      <th>{{ t("notifications.columnActions") }}</th>
+                    </tr>
+                  </template>
+                  <template #row="{ item }">
+                    <tr
+                      class="record-row"
+                      tabindex="0"
+                      role="button"
+                      :title="t('notifications.rowOpenHint')"
+                      @click="openDeliveryDetails(item)"
+                      @keydown.enter.prevent="openDeliveryDetails(item)"
+                      @keydown.space.prevent="openDeliveryDetails(item)"
+                    >
+                      <td>
+                        <span class="status-pill small-pill" :class="'delivery-pill-' + item.status"><AppIcon :name="statusIcon(item.status)" :size="13" />{{ statusName(item.status) }}</span>
+                      </td>
+                      <td class="cell-strong">{{ channelName(item.channelId) }}</td>
+                      <td class="cell-muted">{{ deliveryEventLabel(item) }}</td>
+                      <td class="cell-muted nowrap">{{ formatDate(item.updatedAt) }}</td>
+                      <td class="cell-muted">{{ item.attemptCount }}</td>
+                      <td>
+                        <button
+                          v-if="item.status === 'failed'"
+                          type="button"
+                          class="button retry-button"
+                          @click.stop="retry(item.id)"
+                        ><AppIcon name="refresh-cw" :size="13" /> {{ t("notifications.retry") }}</button>
+                        <span v-else class="row-open-hint">{{ t("notifications.rowOpenHint") }}</span>
+                      </td>
+                    </tr>
+                  </template>
+                </VirtualTable>
+              </div>
             </section>
           </section>
+
+          <AppDialog
+            :open="deliveryDetailOpen && !!selectedDelivery"
+            :label="t('notifications.dialogTitle')"
+            width="min(720px, calc(100vw - 16px))"
+            @update:open="deliveryDetailOpen = $event"
+          >
+            <template #header>
+              <div>
+                <p class="eyebrow">{{ t("notifications.dialogEyebrow") }} {{ selectedDelivery ? String(selectedDelivery.id).slice(0, 8) : "" }}</p>
+                <h2 class="dialog-title">{{ t("notifications.dialogTitle") }}</h2>
+                <p class="dialog-sub">{{ selectedDelivery ? channelName(selectedDelivery.channelId) : "" }}</p>
+              </div>
+            </template>
+            <template #body>
+              <div v-if="selectedDelivery" class="record-detail">
+                <div class="record-detail-grid">
+                  <div><span>{{ t("notifications.columnStatus") }}</span><strong>{{ statusName(selectedDelivery.status) }}</strong></div>
+                  <div><span>{{ t("notifications.columnChannel") }}</span><strong>{{ channelName(selectedDelivery.channelId) }}</strong></div>
+                  <div><span>{{ t("notifications.dialogRule") }}</span><strong>{{ ruleNameById(selectedDelivery.ruleId) }}</strong></div>
+                  <div><span>{{ t("notifications.dialogEvent") }}</span><strong>{{ deliveryEventLabel(selectedDelivery) }}</strong></div>
+                  <div><span>{{ t("notifications.dialogPhase") }}</span><strong>{{ deliveryEvent(selectedDelivery) ? phaseName(deliveryEvent(selectedDelivery).phase) : "—" }}</strong></div>
+                  <div><span>{{ t("notifications.dialogOutcome") }}</span><strong>{{ deliveryEvent(selectedDelivery) ? outcomeName(deliveryEvent(selectedDelivery).outcome) : "—" }}</strong></div>
+                  <div><span>{{ t("notifications.dialogCreatedAt") }}</span><strong>{{ formatDate(selectedDelivery.createdAt) }}</strong></div>
+                  <div><span>{{ t("notifications.dialogUpdatedAt") }}</span><strong>{{ formatDate(selectedDelivery.updatedAt) }}</strong></div>
+                  <div><span>{{ t("notifications.dialogDeliveredAt") }}</span><strong>{{ selectedDelivery.deliveredAt ? formatDate(selectedDelivery.deliveredAt) : "—" }}</strong></div>
+                  <div><span>{{ t("notifications.columnAttempts") }}</span><strong>{{ selectedDelivery.attemptCount }}</strong></div>
+                </div>
+                <section class="record-detail-block">
+                  <h3>{{ t("notifications.dialogSummarySection") }}</h3>
+                  <p>{{ deliveryEvent(selectedDelivery)?.summary || t("notifications.dialogNoSummary") }}</p>
+                </section>
+                <section class="record-detail-block record-detail-error">
+                  <h3>{{ t("notifications.dialogErrorSection") }}</h3>
+                  <pre v-if="selectedDelivery.lastError">{{ selectedDelivery.lastError }}</pre>
+                  <p v-else>{{ t("notifications.dialogNoError") }}</p>
+                </section>
+                <div v-if="selectedDelivery.status === 'failed'" class="record-detail-actions">
+                  <button type="button" class="button secondary" @click="retry(selectedDelivery.id)"><AppIcon name="refresh-cw" :size="14" /> {{ t("notifications.retry") }}</button>
+                </div>
+              </div>
+            </template>
+          </AppDialog>
         </section>
       </template>
       <AppFooter />
@@ -1697,11 +1801,123 @@ onMounted(() => {
 .inline-empty strong { color: var(--text); font-size: 11px; }
 .inline-empty p { margin: 4px 0 0; font-size: 10px; line-height: 1.5; }
 
-/* ---------- History ---------- */
+/* ---------- Records table ---------- */
 
 .history-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.records-body {
+  display: grid;
+  flex: 1 1 0%;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.record-row {
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.record-row:hover {
+  background: var(--wh-item-hover);
+}
+
+.record-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.cell-strong { font-weight: 620; }
+.cell-muted { color: var(--muted); }
+.nowrap { white-space: nowrap; }
+
+.row-open-hint {
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+/* ---------- Notification detail dialog ---------- */
+
+.dialog-title {
+  margin: 4px 0 2px;
+  font-size: 17px;
+  font-weight: 780;
+}
+
+.dialog-sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.record-detail {
+  display: grid;
+  gap: 16px;
+}
+
+.record-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 13px 18px;
+}
+
+.record-detail-grid > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.record-detail-grid span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.record-detail-grid strong {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.record-detail-block {
+  display: grid;
+  gap: 8px;
+  padding-top: 13px;
+  border-top: 1px solid var(--line);
+}
+
+.record-detail-block h3 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.record-detail-block p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.record-detail-block pre {
+  margin: 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--red-soft);
+  color: var(--red);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.record-detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .neutral-count {
