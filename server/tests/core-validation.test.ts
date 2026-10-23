@@ -1,6 +1,6 @@
-import { describe, expect, test } from "bun:test";
-import { validatePacProxyString } from "../server/services/pac-generator";
-import { parseRemoteListText } from "../server/services/remote-list";
+import { describe, expect, test } from "vitest";
+import { validatePacProxyString } from "../services/pac-generator";
+import { parseRemoteListText } from "../services/remote-list";
 
 describe("validatePacProxyString", () => {
   test("accepts direct and valid proxy endpoints", () => {

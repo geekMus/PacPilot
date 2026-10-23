@@ -5,7 +5,7 @@ export default defineConfig({
   root: fileURLToPath(new URL("..", import.meta.url)),
   test: {
     environment: "node",
-    include: ["tests/server/**/*.test.ts"],
+    include: ["server/tests/**/*.test.ts"],
     clearMocks: true,
     restoreMocks: true,
     coverage: {

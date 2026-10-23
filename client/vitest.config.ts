@@ -16,7 +16,7 @@ export default defineConfig({
     environmentOptions: {
       jsdom: { url: "http://localhost/" },
     },
-    include: ["tests/client/**/*.test.ts"],
+    include: ["client/tests/**/*.test.ts"],
     clearMocks: true,
     restoreMocks: true,
     coverage: {
@@ -27,6 +27,8 @@ export default defineConfig({
         "client/src/utils/admin-settings-validation.ts",
         "client/src/utils/domain-rules.ts",
         "client/src/utils/time-zones.ts",
+        "client/src/utils/domain-matching.ts",
+        "client/src/utils/clipboard.ts",
         "client/src/composables/useTheme.ts",
       ],
       exclude: ["client/src/**/*.d.ts"],
