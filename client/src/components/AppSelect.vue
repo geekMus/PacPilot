@@ -10,6 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
   SelectViewport,
+  ScrollAreaRoot,
+  ScrollAreaViewport,
+  ScrollAreaScrollbar,
+  ScrollAreaThumb,
 } from "reka-ui";
 import AppIcon from "@/components/AppIcon.vue";
 
@@ -68,20 +72,27 @@ function onValueChange(value: string): void {
           :side-offset="4"
           :collision-padding="8"
         >
-          <SelectViewport class="app-select-viewport">
-            <SelectItem
-              v-for="option in props.options"
-              :key="String(option.value)"
-              :value="String(option.value)"
-              :disabled="option.disabled"
-              class="app-select-item"
-            >
-              <SelectItemText>{{ option.label }}</SelectItemText>
-              <SelectItemIndicator class="app-select-item-indicator">
-                <AppIcon name="check" :size="14" aria-hidden="true" />
-              </SelectItemIndicator>
-            </SelectItem>
-          </SelectViewport>
+          <ScrollAreaRoot class="app-select-scroll-area" type="auto">
+            <SelectViewport as-child>
+              <ScrollAreaViewport class="app-select-viewport">
+                <ScrollAreaScrollbar class="app-scrollbar" orientation="vertical">
+                  <ScrollAreaThumb class="app-scrollbar-thumb" />
+                </ScrollAreaScrollbar>
+                <SelectItem
+                  v-for="option in props.options"
+                  :key="String(option.value)"
+                  :value="String(option.value)"
+                  :disabled="option.disabled"
+                  class="app-select-item"
+                >
+                  <SelectItemText>{{ option.label }}</SelectItemText>
+                  <SelectItemIndicator class="app-select-item-indicator">
+                    <AppIcon name="check" :size="14" aria-hidden="true" />
+                  </SelectItemIndicator>
+                </SelectItem>
+              </ScrollAreaViewport>
+            </SelectViewport>
+          </ScrollAreaRoot>
         </SelectContent>
       </SelectPortal>
     </SelectRoot>
@@ -156,15 +167,21 @@ function onValueChange(value: string): void {
   width: max-content;
   max-width: calc(100vw - 16px);
   max-height: var(--reka-select-content-available-height);
-  overflow-x: hidden;
-  overflow-y: auto;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--surface);
   color: var(--text);
   box-shadow: var(--shadow);
 }
+.app-select-scroll-area {
+  width: 100%;
+  max-height: var(--reka-select-content-available-height);
+  overflow: hidden;
+}
 .app-select-viewport {
+  width: 100%;
+  height: 100%;
+  max-height: var(--reka-select-content-available-height);
   padding: 4px;
 }
 .app-select-item {
