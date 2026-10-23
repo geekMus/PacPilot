@@ -8,8 +8,8 @@ let currentKey = "";
 let scheduledRunInFlight = false;
 let overlapWarningLogged = false;
 
-export function reschedule(storage: ApplicationStorage, dataDir: string): void {
-  const settings = storage.settings.get();
+export async function reschedule(storage: ApplicationStorage, dataDir: string): Promise<void> {
+  const settings = await storage.settings.get();
   const expression = settings.cronSchedule.trim();
   const key = expression + "\n" + settings.timezone;
 
@@ -32,8 +32,8 @@ export function reschedule(storage: ApplicationStorage, dataDir: string): void {
 
   currentTask = cron.schedule(
     expression,
-    () => {
-      if (scheduledRunInFlight || hasActivePacWorkflow(storage)) {
+    async () => {
+      if (scheduledRunInFlight || (await hasActivePacWorkflow(storage))) {
         if (!overlapWarningLogged) {
           runtimeLog(
             "warn",

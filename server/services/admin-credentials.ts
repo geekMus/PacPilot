@@ -9,23 +9,27 @@ const SCRYPT_P = 1;
 type AdminAuthRecord = AdminCredentialRecord;
 
 export type AdminPasswordErrorCode =
-  | "current_password_incorrect"
-  | "new_password_empty"
-  | "new_password_same_as_current";
+  "current_password_incorrect" | "new_password_empty" | "new_password_same_as_current";
 
 export class AdminPasswordError extends Error {
-  constructor(readonly code: AdminPasswordErrorCode, message: string) {
+  constructor(
+    readonly code: AdminPasswordErrorCode,
+    message: string
+  ) {
     super(message);
     this.name = "AdminPasswordError";
   }
 }
 
-function readRecord(repository: AdminCredentialRepository): AdminAuthRecord | null {
-  return repository.get();
+async function readRecord(repository: AdminCredentialRepository): Promise<AdminAuthRecord | null> {
+  return await repository.get();
 }
 
-function writeRecord(repository: AdminCredentialRepository, record: AdminAuthRecord): void {
-  repository.set(record);
+async function writeRecord(
+  repository: AdminCredentialRepository,
+  record: AdminAuthRecord
+): Promise<void> {
+  await repository.set(record);
 }
 
 function hashPassword(password: string, salt: string): string {
@@ -45,46 +49,53 @@ function passwordRecord(password: string, sessionSecret?: string): AdminAuthReco
   };
 }
 
-export function isAdminCredentialsMissing(repository: AdminCredentialRepository): boolean {
-  return readRecord(repository) === null;
+export async function isAdminCredentialsMissing(
+  repository: AdminCredentialRepository
+): Promise<boolean> {
+  return (await readRecord(repository)) === null;
 }
 
-export function createInitialAdminCredentials(
+export async function createInitialAdminCredentials(
   repository: AdminCredentialRepository,
   configuredPassword?: string,
   configuredSessionSecret?: string
-): string | null {
-  if (readRecord(repository)) return null;
+): Promise<string | null> {
+  if (await readRecord(repository)) return null;
   const initialPassword = configuredPassword || randomBytes(18).toString("base64url");
-  writeRecord(repository, passwordRecord(initialPassword, configuredSessionSecret));
+  await writeRecord(repository, passwordRecord(initialPassword, configuredSessionSecret));
   return initialPassword;
 }
 
-function getRecord(repository: AdminCredentialRepository): AdminAuthRecord {
-  const record = readRecord(repository);
+async function getRecord(repository: AdminCredentialRepository): Promise<AdminAuthRecord> {
+  const record = await readRecord(repository);
   if (!record) throw new Error("Admin credentials are not initialized.");
   return record;
 }
 
-export function getAdminSessionSecret(repository: AdminCredentialRepository): string {
-  return getRecord(repository).sessionSecret;
+export async function getAdminSessionSecret(
+  repository: AdminCredentialRepository
+): Promise<string> {
+  return (await getRecord(repository)).sessionSecret;
 }
 
-export function verifyAdminPassword(repository: AdminCredentialRepository, password: string): boolean {
+export async function verifyAdminPassword(
+  repository: AdminCredentialRepository,
+  password: string
+): Promise<boolean> {
   if (typeof password !== "string" || password.length === 0) return false;
-  const record = readRecord(repository);
+  const record = await readRecord(repository);
   if (!record) return false;
   const actual = Buffer.from(hashPassword(password, record.salt), "hex");
   const expected = Buffer.from(record.passwordHash, "hex");
   return expected.length === actual.length && timingSafeEqual(actual, expected);
 }
 
-export function changeAdminPassword(
+export async function changeAdminPassword(
   repository: AdminCredentialRepository,
   currentPassword: string,
   newPassword: string
-): void {
-  if (!verifyAdminPassword(repository, currentPassword)) {
+): Promise<void> {
+  if (!(await verifyAdminPassword(repository, currentPassword))) {
     throw new AdminPasswordError("current_password_incorrect", "当前管理密码不正确。");
   }
   if (typeof newPassword !== "string" || newPassword.length === 0) {
@@ -93,7 +104,7 @@ export function changeAdminPassword(
   if (newPassword === currentPassword) {
     throw new AdminPasswordError("new_password_same_as_current", "新密码不能与当前密码相同。");
   }
-  writeRecord(repository, passwordRecord(newPassword));
+  await writeRecord(repository, passwordRecord(newPassword));
 }
 
 export function resetAdminPassword(repository: AdminCredentialRepository): string {

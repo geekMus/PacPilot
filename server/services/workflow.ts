@@ -36,8 +36,8 @@ const cancelledResult = (): GenerateResult => ({
   pacPath: "",
 });
 
-export function hasActivePacWorkflow(storage: ApplicationStorage): boolean {
-  return storage.workflows.current() !== null;
+export async function hasActivePacWorkflow(storage: ApplicationStorage): Promise<boolean> {
+  return (await storage.workflows.current()) !== null;
 }
 
 async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
@@ -45,10 +45,10 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
   const startedAt = new Date();
   let activeStageId: number | null = null;
   try {
-    if (!storage.workflows.claim(id, startedAt.toISOString())) {
+    if (!(await storage.workflows.claim(id, startedAt.toISOString()))) {
       return cancelledResult();
     }
-    const settings = storage.settings.get();
+    const settings = await storage.settings.get();
     const prepareDetail = encodeWorkflowStageDetail({
       mode: settings.mode,
       pac_proxy: settings.pacProxy,
@@ -62,25 +62,25 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
       webhook_failure_configured: Boolean(settings.webhookFailureConfig?.url?.trim()),
       data_dir: item.dataDir,
     });
-    const prepareStage = storage.workflows.startStage(id, "prepare", prepareDetail);
+    const prepareStage = await storage.workflows.startStage(id, "prepare", prepareDetail);
     activeStageId = prepareStage;
-    storage.workflows.finishStage(prepareStage, "succeeded", "", prepareDetail);
+    await storage.workflows.finishStage(prepareStage, "succeeded", "", prepareDetail);
     activeStageId = null;
 
-    const generationStage = storage.workflows.startStage(id, "generate-pac");
-    storage.workflows.update(id, { stage: "generate-pac" });
+    const generationStage = await storage.workflows.startStage(id, "generate-pac");
+    await storage.workflows.update(id, { stage: "generate-pac" });
     activeStageId = generationStage;
     const generation = await generatePac(storage, item.dataDir);
     const finishedAt = new Date();
     const generationDetail = encodeWorkflowStageDetail(generation.detail || {});
-    storage.workflows.finishStage(
+    await storage.workflows.finishStage(
       generationStage,
       generation.success ? "succeeded" : "failed",
       generation.success ? "" : generation.message,
       generationDetail
     );
     activeStageId = null;
-    storage.workflows.update(id, {
+    await storage.workflows.update(id, {
       status: generation.success ? "succeeded" : "failed",
       stage: generation.success ? "done" : "failed",
       error: generation.success ? "" : generation.message,
@@ -93,14 +93,14 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
     const message = error instanceof Error ? error.message : String(error);
     try {
       if (activeStageId !== null) {
-        storage.workflows.finishStage(
+        await storage.workflows.finishStage(
           activeStageId,
           "failed",
           message,
           encodeWorkflowStageDetail({ error: message })
         );
       }
-      storage.workflows.update(id, {
+      await storage.workflows.update(id, {
         status: "failed",
         stage: "exception",
         error: message,
@@ -121,7 +121,7 @@ function pumpQueue(type: string): void {
     try {
       while (queue?.length) {
         const item = queue.shift()!;
-        const run = item.storage.workflows.get(item.workflowId);
+        const run = await item.storage.workflows.get(item.workflowId);
         if (!run || run.status !== "pending") {
           item.resolve(cancelledResult());
           continue;
@@ -141,14 +141,14 @@ function pumpQueue(type: string): void {
 }
 
 /** Each workflow type owns an independent serial queue; different types can run concurrently. */
-function enqueueWorkflow(
+async function enqueueWorkflow(
   type: string,
   storage: ApplicationStorage,
   dataDir: string,
   source: WorkflowSource,
   execute: (item: QueueItem) => Promise<GenerateResult>
-): QueueItem {
-  const workflowId = storage.workflows.create(source, storage.settings.get().mode);
+): Promise<QueueItem> {
+  const workflowId = await storage.workflows.create(source, (await storage.settings.get()).mode);
   let resolve!: (result: GenerateResult) => void;
   let reject!: (error: unknown) => void;
   const promise = new Promise<GenerateResult>((res, rej) => {
@@ -162,21 +162,21 @@ function enqueueWorkflow(
   pumpQueue(type);
   return item;
 }
-function enqueuePacWorkflow(
+async function enqueuePacWorkflow(
   storage: ApplicationStorage,
   dataDir: string,
   source: WorkflowSource
-): QueueItem {
-  return enqueueWorkflow(PAC_WORKFLOW_TYPE, storage, dataDir, source, executePacWorkflow);
+): Promise<QueueItem> {
+  return await enqueueWorkflow(PAC_WORKFLOW_TYPE, storage, dataDir, source, executePacWorkflow);
 }
 
 /** Start a queued server-owned task and return its ID immediately. */
-export function startPacWorkflow(
+export async function startPacWorkflow(
   storage: ApplicationStorage,
   dataDir: string,
   source: WorkflowSource
-): number {
-  const item = enqueuePacWorkflow(storage, dataDir, source);
+): Promise<number> {
+  const item = await enqueuePacWorkflow(storage, dataDir, source);
   void item.promise.catch((error) => runtimeLog("error", "Workflow execution failed: ", error));
   return item.workflowId;
 }
@@ -187,7 +187,7 @@ export async function runPacWorkflow(
   dataDir: string,
   source: WorkflowSource
 ): Promise<PacWorkflowResult> {
-  const item = enqueuePacWorkflow(storage, dataDir, source);
+  const item = await enqueuePacWorkflow(storage, dataDir, source);
   const generation = await item.promise;
   return { workflowId: item.workflowId, generation };
 }
