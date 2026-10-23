@@ -6,6 +6,7 @@ import { initThemeEarly } from "@/composables/useTheme";
 import "@/styles/theme.css";
 import "@/styles/scrollbars.css";
 import "@/styles/overlays.css";
+import "@/styles/controls.css";
 
 initThemeEarly();
 persistLocale(readStoredLocale());

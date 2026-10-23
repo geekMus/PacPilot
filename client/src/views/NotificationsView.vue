@@ -12,6 +12,8 @@ import AppInput from "@/components/AppInput.vue";
 import AppSelect, { type AppSelectOption } from "@/components/AppSelect.vue";
 import AppToggle from "@/components/AppToggle.vue";
 import AppCheckbox from "@/components/AppCheckbox.vue";
+import AppButton from "@/components/AppButton.vue";
+import AppIconButton from "@/components/AppIconButton.vue";
 import CodeMirrorField from "@/components/CodeMirrorField.vue";
 import WebhookBodyEditor from "@/features/webhooks/components/WebhookBodyEditor.vue";
 import { api, type NotificationChannel, type NotificationRule, type WebhookConfig } from "@/api/client";
@@ -378,7 +380,7 @@ onMounted(() => {
 
       <p v-if="loading" class="state-panel"><AppIcon name="loader-circle" :size="18" class="spin" /> {{ t("notifications.loading") }}</p>
       <section v-else-if="error" class="state-panel state-error">
-        <AppIcon name="circle-alert" :size="20" /><div><strong>{{ t("notifications.loadFailed") }}</strong><p>{{ error }}</p></div><button class="button secondary" @click="load()">{{ t("common.retry") }}</button>
+        <AppIcon name="circle-alert" :size="20" /><div><strong>{{ t("notifications.loadFailed") }}</strong><p>{{ error }}</p></div><AppButton variant="secondary" @click="load()">{{ t("common.retry") }}</AppButton>
       </section>
       <template v-else>
         <section class="workspace-region">
@@ -400,13 +402,13 @@ onMounted(() => {
               <header class="panel-heading">
                 <span class="panel-heading-icon"><AppIcon name="network" :size="16" /></span>
                 <div class="panel-heading-copy"><h3>{{ t("notifications.channelsTitle") }}</h3><p>{{ t("notifications.channelsPanelHint") }}</p></div>
-                <button class="icon-button" :title="t('notifications.newChannel')" :aria-label="t('notifications.newChannel')" @click="resetC">＋</button>
+                <AppIconButton :label="t('notifications.newChannel')" @click="resetC">＋</AppIconButton>
               </header>
               <AppScrollArea root-class="panel-scroll" type="auto">
                 <div v-if="!channels.length" class="empty-directory">
                   <span class="empty-icon"><AppIcon name="network" :size="22" /></span>
                   <strong>{{ t("notifications.emptyChannels") }}</strong><p>{{ t("notifications.emptyChannelsHint") }}</p>
-                  <button class="button primary full" @click="resetC">{{ t("notifications.createFirstChannel") }}</button>
+                  <AppButton variant="primary" block @click="resetC">{{ t("notifications.createFirstChannel") }}</AppButton>
                 </div>
                 <div
                   v-for="item in channels"
@@ -422,7 +424,7 @@ onMounted(() => {
                   <span class="provider-icon"><AppIcon :name="item.provider === 'dingtalk' ? 'bell-ring' : 'globe'" :size="18" /></span>
                   <span class="directory-content"><strong>{{ item.name }}</strong><small>{{ providerName(item.provider) }}</small><small class="url-preview">{{ shortUrl(item.config.url) || t("notifications.urlUnset") }}</small></span>
                   <span class="status-dot" :class="{ online: item.enabled }" :title="item.enabled ? t('notifications.statusEnabled') : t('notifications.statusDisabled')"></span>
-                  <button type="button" class="row-delete" :aria-label="t('notifications.deleteChannelTitle', { name: item.name })" :title="t('notifications.deleteChannelTitle', { name: item.name })" @click.stop="deleteC(item)"><AppIcon name="trash-2" :size="14" /></button>
+                  <AppIconButton class="row-delete" size="sm" danger :label="t('notifications.deleteChannelTitle', { name: item.name })" @click.stop="deleteC(item)"><AppIcon name="trash-2" :size="14" /></AppIconButton>
                 </div>
               </AppScrollArea>
               <footer v-if="channels.length" class="panel-footer"><span class="status-dot online"></span> {{ t("notifications.channelsEnabledCount", { count: enabledChannels.length }) }}</footer>
@@ -453,7 +455,7 @@ onMounted(() => {
                   <template v-if="ch.config.provider === 'dingtalk'">
                     <label class="field">
                       <span>{{ t("notifications.fieldSecret") }} <em>{{ t("notifications.optional") }}</em></span>
-                      <div class="secret-input"><AppInput v-model="ch.config.dingTalkSecret" :type="showSecret ? 'text' : 'password'" autocomplete="new-password" :placeholder="cid && channels.find(x => x.id === cid)?.hasSecret ? t('notifications.placeholderSecretSaved') : t('notifications.placeholderSecretNew')" /><button type="button" class="reveal-button" :aria-label="showSecret ? t('notifications.fieldSecret') : t('notifications.fieldSecret')" @click="showSecret = !showSecret"><AppIcon :name="showSecret ? 'eye-off' : 'eye'" :size="16" /></button></div>
+                      <div class="secret-input"><AppInput v-model="ch.config.dingTalkSecret" :type="showSecret ? 'text' : 'password'" autocomplete="new-password" :placeholder="cid && channels.find(x => x.id === cid)?.hasSecret ? t('notifications.placeholderSecretSaved') : t('notifications.placeholderSecretNew')" /><AppIconButton :label="showSecret ? t('notifications.fieldSecret') : t('notifications.fieldSecret')" @click="showSecret = !showSecret"><AppIcon :name="showSecret ? 'eye-off' : 'eye'" :size="16" /></AppIconButton></div>
                       <small class="field-hint">{{ t("notifications.hintSecretHidden") }}</small>
                     </label>
                     <label class="field"><span>{{ t("notifications.fieldMessageType") }}</span><AppSelect block :model-value="ch.config.dingTalkMessageType" :options="messageTypeOptions" @update:model-value="setMessageType" /></label>
@@ -476,11 +478,11 @@ onMounted(() => {
                 </section>
               </div></AppScrollArea>
               <footer class="editor-footer">
-                <button type="button" class="button secondary" @click="resetC">{{ t("notifications.buttonNewBlank") }}</button>
-                <button v-if="cid" type="button" class="button danger-ghost" @click="deleteC(channels.find(x => x.id === cid))"><AppIcon name="trash-2" :size="15" /> {{ t("common.delete") }}</button>
+                <AppButton variant="secondary" @click="resetC">{{ t("notifications.buttonNewBlank") }}</AppButton>
+                <AppButton v-if="cid" variant="danger-ghost" @click="deleteC(channels.find(x => x.id === cid))"><AppIcon name="trash-2" :size="15" /> {{ t("common.delete") }}</AppButton>
                 <span class="footer-spacer"></span>
-                <button type="button" class="button secondary" :disabled="!cid || testingId === cid" @click="testC(channels.find(x => x.id === cid))"><AppIcon :name="testingId === cid ? 'loader-circle' : 'activity'" :size="15" :class="{ spin: testingId === cid }" /> {{ testingId === cid ? t("notifications.buttonTesting") : t("notifications.buttonTest") }}</button>
-                <button type="submit" class="button primary" :disabled="busy || !ch.name.trim() || !ch.config.url.trim()"><AppIcon name="save" :size="15" /> {{ busy ? t("notifications.buttonSaving") : t("notifications.buttonSaveChannel") }}</button>
+                <AppButton variant="secondary" :disabled="!cid || testingId === cid" @click="testC(channels.find(x => x.id === cid))"><AppIcon :name="testingId === cid ? 'loader-circle' : 'activity'" :size="15" :class="{ spin: testingId === cid }" /> {{ testingId === cid ? t("notifications.buttonTesting") : t("notifications.buttonTest") }}</AppButton>
+                <AppButton type="submit" variant="primary" :disabled="busy || !ch.name.trim() || !ch.config.url.trim()"><AppIcon name="save" :size="15" /> {{ busy ? t("notifications.buttonSaving") : t("notifications.buttonSaveChannel") }}</AppButton>
               </footer>
               <div v-if="cid && !channelReady" class="editor-note"><AppIcon name="info" :size="15" /> {{ t("notifications.hintChannelIncomplete") }}</div>
             </form>
@@ -492,10 +494,10 @@ onMounted(() => {
               <header class="panel-heading">
                 <span class="panel-heading-icon"><AppIcon name="route" :size="16" /></span>
                 <div class="panel-heading-copy"><h3>{{ t("notifications.rulesTitle") }}</h3><p>{{ t("notifications.rulesPanelHint") }}</p></div>
-                <button class="icon-button" :title="t('notifications.newRule')" :aria-label="t('notifications.newRule')" @click="resetR">＋</button>
+                <AppIconButton :label="t('notifications.newRule')" @click="resetR">＋</AppIconButton>
               </header>
               <AppScrollArea root-class="panel-scroll" type="auto">
-                <div v-if="!rules.length" class="empty-directory"><span class="empty-icon"><AppIcon name="route" :size="22" /></span><strong>{{ t("notifications.emptyRules") }}</strong><p>{{ t("notifications.emptyRulesHint") }}</p><button class="button primary full" @click="resetR">{{ t("notifications.createFirstRule") }}</button></div>
+                <div v-if="!rules.length" class="empty-directory"><span class="empty-icon"><AppIcon name="route" :size="22" /></span><strong>{{ t("notifications.emptyRules") }}</strong><p>{{ t("notifications.emptyRulesHint") }}</p><AppButton variant="primary" block @click="resetR">{{ t("notifications.createFirstRule") }}</AppButton></div>
                 <div
                   v-for="item in rules"
                   :key="item.id"
@@ -510,7 +512,7 @@ onMounted(() => {
                   <span class="provider-icon rule-provider"><AppIcon name="route" :size="18" /></span>
                   <span class="directory-content"><strong>{{ item.name }}</strong><small>{{ evName(item.eventType) }} · {{ phaseName(item.phase) }}</small><small>{{ outcomeName(item.outcome) }} · {{ item.channelIds.length }}</small></span>
                   <span class="status-dot" :class="{ online: item.enabled }" :title="item.enabled ? t('notifications.statusEnabled') : t('notifications.statusDisabled')"></span>
-                  <button type="button" class="row-delete" :aria-label="t('notifications.deleteRuleTitle', { name: item.name })" :title="t('notifications.deleteRuleTitle', { name: item.name })" @click.stop="deleteR(item)"><AppIcon name="trash-2" :size="14" /></button>
+                  <AppIconButton class="row-delete" size="sm" danger :label="t('notifications.deleteRuleTitle', { name: item.name })" @click.stop="deleteR(item)"><AppIcon name="trash-2" :size="14" /></AppIconButton>
                 </div>
               </AppScrollArea>
               <footer v-if="rules.length" class="panel-footer"><span class="status-dot online"></span> {{ t("notifications.rulesActiveCount", { count: enabledRules.length }) }}</footer>
@@ -539,7 +541,7 @@ onMounted(() => {
                 </section>
                 <section class="form-section">
                   <div class="section-title"><span>03</span><div><h4>{{ t("notifications.sectionTargets") }}</h4><p>{{ t("notifications.sectionTargetsHint") }}</p></div></div>
-                  <div v-if="!channels.length" class="inline-empty"><AppIcon name="network" :size="18" /><div><strong>{{ t("notifications.noChannelsForRule") }}</strong><p>{{ t("notifications.noChannelsForRuleHint") }}</p></div><button type="button" class="button secondary" @click="tab = 'channels'">{{ t("notifications.goToChannels") }}</button></div>
+                  <div v-if="!channels.length" class="inline-empty"><AppIcon name="network" :size="18" /><div><strong>{{ t("notifications.noChannelsForRule") }}</strong><p>{{ t("notifications.noChannelsForRuleHint") }}</p></div><AppButton variant="secondary" @click="tab = 'channels'">{{ t("notifications.goToChannels") }}</AppButton></div>
                   <div v-else class="channel-options">
                     <label v-for="item in channels" :key="item.id" class="channel-option" :class="{ checked: rule.channelIds.includes(item.id), unavailable: !item.enabled }">
                       <AppCheckbox
@@ -561,10 +563,10 @@ onMounted(() => {
                 </section>
               </div></AppScrollArea>
               <footer class="editor-footer">
-                <button type="button" class="button secondary" @click="resetR">{{ t("notifications.buttonNewBlank") }}</button>
-                <button v-if="rid" type="button" class="button danger-ghost" @click="deleteR(rules.find(x => x.id === rid))"><AppIcon name="trash-2" :size="15" /> {{ t("common.delete") }}</button>
+                <AppButton variant="secondary" @click="resetR">{{ t("notifications.buttonNewBlank") }}</AppButton>
+                <AppButton v-if="rid" variant="danger-ghost" @click="deleteR(rules.find(x => x.id === rid))"><AppIcon name="trash-2" :size="15" /> {{ t("common.delete") }}</AppButton>
                 <span class="footer-spacer"></span>
-                <button type="submit" class="button primary" :disabled="busy || !rule.name.trim() || !rule.channelIds.length"><AppIcon name="save" :size="15" /> {{ busy ? t("notifications.buttonSaving") : t("notifications.buttonSaveRule") }}</button>
+                <AppButton type="submit" variant="primary" :disabled="busy || !rule.name.trim() || !rule.channelIds.length"><AppIcon name="save" :size="15" /> {{ busy ? t("notifications.buttonSaving") : t("notifications.buttonSaveRule") }}</AppButton>
               </footer>
             </form>
             <section v-else class="editor-panel editor-placeholder" aria-live="polite"><div class="placeholder-icon"><AppIcon name="file-text" :size="22" /></div><p>{{ t("notifications.selectHint") }}</p></section>
@@ -627,12 +629,12 @@ onMounted(() => {
                       <td class="cell-muted nowrap">{{ formatDate(item.updatedAt) }}</td>
                       <td class="cell-muted">{{ item.attemptCount }}</td>
                       <td>
-                        <button
+                        <AppButton
                           v-if="item.status === 'failed'"
-                          type="button"
-                          class="button retry-button"
+                          size="sm"
+                          variant="secondary"
                           @click.stop="retry(item.id)"
-                        ><AppIcon name="refresh-cw" :size="13" /> {{ t("notifications.retry") }}</button>
+                        ><AppIcon name="refresh-cw" :size="13" /> {{ t("notifications.retry") }}</AppButton>
                         <span v-else class="row-open-hint">{{ t("notifications.rowOpenHint") }}</span>
                       </td>
                     </tr>
@@ -679,7 +681,7 @@ onMounted(() => {
                   <p v-else>{{ t("notifications.dialogNoError") }}</p>
                 </section>
                 <div v-if="selectedDelivery.status === 'failed'" class="record-detail-actions">
-                  <button type="button" class="button secondary" @click="retry(selectedDelivery.id)"><AppIcon name="refresh-cw" :size="14" /> {{ t("notifications.retry") }}</button>
+                  <AppButton variant="secondary" @click="retry(selectedDelivery.id)"><AppIcon name="refresh-cw" :size="14" /> {{ t("notifications.retry") }}</AppButton>
                 </div>
               </div>
             </template>
@@ -1232,28 +1234,6 @@ onMounted(() => {
   border-color: color-mix(in srgb, var(--accent) 12%, var(--line));
 }
 
-.icon-button {
-  display: grid;
-  flex: 0 0 34px;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--line);
-  border-radius: var(--wh-radius-control);
-  background: var(--wh-panel-bg);
-  color: var(--text);
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
-}
-
-.icon-button:hover {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
 .directory-item {
   position: relative;
   display: flex;
@@ -1293,42 +1273,26 @@ onMounted(() => {
 }
 
 /* Quick delete — revealed on hover / keyboard focus so the row stays calm at
-   rest, and always available on touch devices that cannot hover. */
+   rest, and always available on touch devices that cannot hover. Visuals come
+   from AppIconButton; this block only controls the reveal behaviour. */
 .row-delete {
-  display: grid;
-  flex: 0 0 26px;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 140ms ease, color 140ms ease, background 140ms ease,
-    border-color 140ms ease;
+  transition: opacity 140ms ease;
 }
 
 .directory-item:hover .row-delete,
-.directory-item:focus-within .row-delete {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.row-delete:hover {
-  border-color: color-mix(in srgb, var(--red) 30%, var(--line));
-  background: var(--red-soft);
-  color: var(--red);
-}
-
+.directory-item:focus-within .row-delete,
 .row-delete:focus-visible {
-  outline: 2px solid var(--red);
-  outline-offset: 1px;
   opacity: 1;
   pointer-events: auto;
+}
+
+@media (hover: none) {
+  .row-delete {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 @media (hover: none) {
@@ -1615,20 +1579,6 @@ onMounted(() => {
 .secret-input { display: flex; gap: 7px; min-width: 0; }
 .secret-input input { flex: 1; min-width: 0; }
 
-.reveal-button {
-  display: grid;
-  flex: 0 0 41px;
-  place-items: center;
-  width: 41px;
-  border: 1px solid var(--line);
-  border-radius: var(--wh-radius-control);
-  background: var(--wh-heading-bg);
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.reveal-button:hover { border-color: var(--accent); color: var(--accent); }
-
 .field-static {
   display: flex;
   align-items: center;
@@ -1672,37 +1622,8 @@ onMounted(() => {
 
 .editor-note :deep(svg) { color: var(--red); }
 
-.button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 37px;
-  padding: 0 13px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  font: inherit;
-  font-size: 11px;
-  font-weight: 680;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
-}
-
-.button:disabled { opacity: 0.5; cursor: not-allowed; }
-.button.primary { border-color: var(--accent); background: var(--accent); color: var(--accent-contrast); }
-.button.primary:hover:not(:disabled) { filter: brightness(0.96); }
-.button.secondary { border-color: var(--line); background: var(--wh-panel-bg); color: var(--text); }
-.button.secondary:hover:not(:disabled) { border-color: var(--accent); background: var(--wh-item-hover); color: var(--accent); }
-.button.danger-ghost { border-color: color-mix(in srgb, var(--red) 22%, var(--line)); background: transparent; color: var(--red); }
-.button.danger-ghost:hover { background: var(--red-soft); }
-.button.full { width: 100%; }
-
-.button:focus-visible,
-.icon-button:focus-visible,
 .workspace-tabs button:focus-visible,
-.directory-item:focus-visible,
-.reveal-button:focus-visible {
+.directory-item:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -1984,7 +1905,6 @@ onMounted(() => {
 }
 
 .delivery-error { padding: 8px 9px; border-radius: 7px; background: var(--red-soft); color: var(--red) !important; }
-.retry-button { align-self: center; min-height: 32px; padding: 0 9px; }
 
 /* ---------- Editor placeholder ---------- */
 
@@ -2129,16 +2049,15 @@ onMounted(() => {
   .field-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .editor-footer { gap: 7px; padding: 12px 16px; }
   .editor-footer .footer-spacer { display: none; }
-  .editor-footer .button { flex: 1 1 auto; }
-  .editor-footer .button.primary { flex: 1 0 100%; }
+  .editor-footer :deep(.app-button) { flex: 1 1 auto; }
+  .editor-footer :deep(.app-button--primary) { flex: 1 0 100%; }
   .editor-note { padding-right: 16px; padding-left: 16px; }
   .inline-empty { flex-wrap: wrap; }
   .panel-heading { align-items: flex-start; flex-wrap: wrap; }
   .panel-heading-copy p { white-space: normal; }
-  .filter-select { max-width: none; width: 100%; }
+  .records-filter { width: 100%; }
   .event-row,
   .delivery-row { gap: 9px; padding: 13px; }
-  .retry-button { padding: 0 7px; font-size: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
