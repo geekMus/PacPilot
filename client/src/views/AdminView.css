@@ -952,6 +952,26 @@ textarea.body-area {
 .timezone-presets {
   margin: 8px 0 0;
 }
+.timezone-options-menu {
+  box-sizing: border-box;
+  max-height: min(440px, calc(100dvh - 32px));
+  overflow: hidden;
+}
+.timezone-options-scroll {
+  height: min(var(--timezone-list-height, 440px), 440px, calc(100dvh - 32px));
+  max-height: min(440px, calc(100dvh - 32px));
+}
+.timezone-options-viewport {
+  max-height: min(440px, calc(100dvh - 32px));
+  overflow-y: auto;
+}
+@supports not (height: 100dvh) {
+  .timezone-options-menu,
+  .timezone-options-scroll,
+  .timezone-options-viewport {
+    max-height: min(440px, calc(100vh - 32px));
+  }
+}
 .timezone-combobox {
   display: block;
   width: 100%;
@@ -997,39 +1017,6 @@ textarea.body-area {
   right: 12px;
   pointer-events: none;
   color: var(--muted);
-}
-.mobile-timezone-trigger {
-  display: none;
-}
-@media (max-width: 720px) {
-  .desktop-timezone-picker {
-    display: none;
-  }
-  .mobile-timezone-trigger {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    width: 100%;
-    min-height: 46px;
-    padding: 10px 12px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: var(--surface-2);
-    color: var(--text);
-    font: inherit;
-    text-align: left;
-  }
-  .mobile-timezone-trigger span:first-child {
-    overflow-wrap: anywhere;
-  }
-  .mobile-timezone-trigger-icon {
-    display: grid;
-    place-items: center;
-    flex: 0 0 auto;
-    color: var(--muted);
-  }
-
 }
 
 .storage-metrics {

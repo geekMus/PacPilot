@@ -35,13 +35,10 @@ const {
   pacpilotProbe,
   timezoneMenuOpen,
   timezoneQuery,
-  mobileTimezoneOpen,
   form,
   commonTimeZones,
-  isValidTimeZone,
   filteredTimeZones,
   selectTimeZone,
-  openMobileTimezonePicker,
   modeHint,
   cronPresets,
   cronHint,
@@ -176,93 +173,12 @@ const {
                   </ComboboxContent>
                 </ComboboxPortal>
               </ComboboxRoot>
-              <button
-                type="button"
-                class="mobile-timezone-trigger"
-                @click="openMobileTimezonePicker"
-              >
-                <span>{{ form.timezone || t("settings.selectTimezone") }}</span>
-                <span class="mobile-timezone-trigger-icon" aria-hidden="true"
-                  ><AppIcon name="chevron-down" :size="17"
-                /></span>
-              </button>
               <p class="field-hint">
                 {{ t("settings.timezoneHintFull") }}
               </p>
               <p v-if="timezoneError" class="field-error" role="alert">{{ timezoneError }}</p>
             </div>
 
-            <AppDialog
-              :open="mobileTimezoneOpen"
-              :label="t('settings.selectTimezone')"
-              width="min(640px, calc(100vw - 24px))"
-              :close-label="t('settings.closeTimezone')"
-              @update:open="mobileTimezoneOpen = $event"
-            >
-              <template #header>
-                <DialogTitle id="mobile-timezone-title" class="timezone-sheet-title">{{ t("settings.selectTimezone") }}</DialogTitle>
-                <DialogDescription class="app-dialog-visually-hidden">
-                  {{ t("settings.timezoneHintFull") }}
-                </DialogDescription>
-              </template>
-              <template #body>
-                <div class="timezone-sheet-body">
-                  <input
-                  v-model="timezoneQuery"
-                  class="timezone-sheet-search"
-                  type="search"
-                  autocomplete="off"
-                  :placeholder="t('settings.timezoneSearchShort')"
-                  @keydown.enter.prevent
-                />
-                  <AppScrollArea
-                  root-class="timezone-sheet-options"
-                  viewport-class="timezone-sheet-options-viewport"
-                  role="listbox"
-                  :aria-label="t('settings.timezoneSuggest')"
-                  orientation="vertical"
-                >
-                  <button
-                    v-for="zone in filteredTimeZones"
-                    :key="zone.value"
-                    type="button"
-                    role="option"
-                    :aria-selected="form.timezone === zone.value"
-                    class="timezone-option"
-                    @click="selectTimeZone(zone.value)"
-                  >
-                    <span>{{ t(zone.labelKey) }}</span
-                    ><code>{{ zone.value }}</code>
-                  </button>
-                  <button
-                    v-if="
-                      timezoneQuery.trim() &&
-                      isValidTimeZone(timezoneQuery) &&
-                      !commonTimeZones.some(
-                        (zone) => zone.value.toLowerCase() === timezoneQuery.trim().toLowerCase()
-                      )
-                    "
-                    type="button"
-                    role="option"
-                    class="timezone-option timezone-custom-option"
-                    @click="selectTimeZone(timezoneQuery.trim())"
-                  >
-                    <span>{{ t("settings.useCustomTimezone") }}</span
-                    ><code>{{ timezoneQuery.trim() }}</code>
-                  </button>
-                  <p
-                    v-if="filteredTimeZones.length === 0 && !isValidTimeZone(timezoneQuery)"
-                    class="timezone-no-results"
-                  >
-                    {{ t("settings.timezoneNoMatchStrict") }}
-                  </p>
-                  </AppScrollArea>
-                  <p class="timezone-sheet-hint">
-                    {{ t("settings.timezoneSelectHint") }}
-                  </p>
-                </div>
-              </template>
-            </AppDialog>
             <div class="chip-row timezone-presets">
               <button
                 v-for="zone in commonTimeZones.slice(0, 6)"

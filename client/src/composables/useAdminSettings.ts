@@ -50,7 +50,6 @@ export function useAdminSettings() {
 
   const timezoneQuery = ref("");
 
-  const mobileTimezoneOpen = ref(false);
 
   const form = reactive({
     mode: "custom" as "custom" | "remote",
@@ -109,18 +108,12 @@ export function useAdminSettings() {
     form.timezone = value;
     timezoneQuery.value = value;
     timezoneMenuOpen.value = false;
-    mobileTimezoneOpen.value = false;
   }
 
   function closeTimezoneMenu() {
     window.setTimeout(() => {
       timezoneMenuOpen.value = false;
     }, 140);
-  }
-
-  function openMobileTimezonePicker() {
-    timezoneQuery.value = "";
-    mobileTimezoneOpen.value = true;
   }
 
   async function scrollToCurrentSection(): Promise<void> {
@@ -428,14 +421,12 @@ export function useAdminSettings() {
     pacpilotProbe,
     timezoneMenuOpen,
     timezoneQuery,
-    mobileTimezoneOpen,
     form,
     commonTimeZones,
     isValidTimeZone,
     filteredTimeZones,
     selectTimeZone,
     closeTimezoneMenu,
-    openMobileTimezonePicker,
     modeHint,
     cronPresets,
     cronHint,
