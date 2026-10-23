@@ -1,8 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import crypto from "crypto";
-import type { AppDatabase } from "../db/sqlite";
 import { getAdminSessionSecret, isAdminCredentialsMissing } from "../services/admin-credentials";
-import { SqliteAdminCredentialRepository } from "../storage/sqlite-credentials";
+import type { AdminCredentialRepository } from "../storage/repositories";
 
 const COOKIE_NAME = "pacpilot_admin_session";
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -49,14 +48,14 @@ export function clearSessionCookie(res: Response): void {
   res.clearCookie(COOKIE_NAME, { path: "/" });
 }
 
-export function requireAdmin(database: AppDatabase) {
+export function requireAdmin(repository: AdminCredentialRepository) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    if (isAdminCredentialsMissing(new SqliteAdminCredentialRepository(database))) {
+    if (isAdminCredentialsMissing(repository)) {
       res.status(401).json({ error: "unauthorized" });
       return;
     }
     const token = req.cookies?.[COOKIE_NAME] as string | undefined;
-    if (!verifySessionToken(token, getAdminSessionSecret(new SqliteAdminCredentialRepository(database)))) {
+    if (!verifySessionToken(token, getAdminSessionSecret(repository))) {
       res.status(401).json({ error: "unauthorized" });
       return;
     }
@@ -64,10 +63,10 @@ export function requireAdmin(database: AppDatabase) {
   };
 }
 
-export function isLoggedIn(req: Request, database: AppDatabase): boolean {
-  if (isAdminCredentialsMissing(new SqliteAdminCredentialRepository(database))) return false;
+export function isLoggedIn(req: Request, repository: AdminCredentialRepository): boolean {
+  if (isAdminCredentialsMissing(repository)) return false;
   const token = req.cookies?.[COOKIE_NAME] as string | undefined;
-  return verifySessionToken(token, getAdminSessionSecret(new SqliteAdminCredentialRepository(database)));
+  return verifySessionToken(token, getAdminSessionSecret(repository));
 }
 
 export function clientKey(req: Request): string {
