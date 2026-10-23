@@ -60,6 +60,17 @@ export default {
     publicStatus: "公共状态页",
     admin: "后台管理",
   },
+  notifications: {
+    subtitle: "集中管理生成成功与失败时发送的 Webhook 通知。",
+    channelsTitle: "通知渠道",
+    channelsDescription: "分别配置生成成功和失败时的通知目标。修改后单独保存，也可以先发送测试通知验证配置。",
+    saved: "通知配置已保存。",
+  },
+  logs: {
+    subtitle: "统一查看访问请求记录与 PAC 生成记录。",
+    generationTitle: "生成记录",
+    accessTitle: "访问记录",
+  },
   common: {
     save: "保存",
     cancel: "取消",

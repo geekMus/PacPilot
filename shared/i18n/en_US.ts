@@ -67,6 +67,17 @@ export default {
     publicStatus: "Public status",
     admin: "Admin",
   },
+  notifications: {
+    subtitle: "Manage webhook notifications for successful and failed generation runs.",
+    channelsTitle: "Notification channels",
+    channelsDescription: "Configure separate destinations for successful and failed runs. Save changes here or send a test notification to verify a channel.",
+    saved: "Notification settings saved.",
+  },
+  logs: {
+    subtitle: "Review access requests and PAC generation records in one place.",
+    generationTitle: "Generation records",
+    accessTitle: "Access records",
+  },
   common: {
     save: "Save",
     cancel: "Cancel",
