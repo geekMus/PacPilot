@@ -143,7 +143,7 @@ const {
                       root-class="timezone-options-scroll"
                       viewport-class="timezone-options-viewport"
                       orientation="vertical"
-                      type="auto"
+                      type="hover"
                     >
                       <template #viewport="{ viewportComponent, viewportClass, onScroll }">
                         <ComboboxViewport as-child>
