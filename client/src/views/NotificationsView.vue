@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/layout/AdminLayout.vue";
@@ -195,47 +195,8 @@ async function retry(id: string) {
     notify(e instanceof Error ? e.message : String(e), "error");
   }
 }
-let notificationViewport: HTMLElement | null = null;
-let notificationTabs: HTMLElement | null = null;
-let tabScrollLimit = Number.POSITIVE_INFINITY;
-
-function syncNotificationScrollLimit() {
-  if (!notificationViewport || !notificationTabs || window.matchMedia("(max-width: 900px)").matches) {
-    tabScrollLimit = Number.POSITIVE_INFINITY;
-    return;
-  }
-  const viewportRect = notificationViewport.getBoundingClientRect();
-  const tabsRect = notificationTabs.getBoundingClientRect();
-  const layout = document.querySelector(".admin-layout") ?? document.documentElement;
-  const topbarSpace = Number.parseFloat(getComputedStyle(layout).getPropertyValue("--admin-topbar-space")) || 104;
-  const target = notificationViewport.scrollTop + tabsRect.top - viewportRect.top - topbarSpace;
-  if (tabsRect.top <= viewportRect.top + topbarSpace + 1) {
-    tabScrollLimit = Math.max(0, target);
-    if (notificationViewport.scrollTop > tabScrollLimit + 1) notificationViewport.scrollTop = tabScrollLimit;
-  } else {
-    tabScrollLimit = Number.POSITIVE_INFINITY;
-  }
-}
-
-function onNotificationViewportScroll() {
-  if (!notificationViewport || window.matchMedia("(max-width: 900px)").matches) return;
-  if (Number.isFinite(tabScrollLimit) && notificationViewport.scrollTop > tabScrollLimit) {
-    notificationViewport.scrollTop = tabScrollLimit;
-  }
-  syncNotificationScrollLimit();
-}
-
 onMounted(() => {
   void load();
-  notificationViewport = document.querySelector(".admin-content .app-scroll-area-viewport");
-  notificationTabs = document.querySelector(".webhook-page .workspace-tabs");
-  notificationViewport?.addEventListener("scroll", onNotificationViewportScroll, { passive: true });
-  window.addEventListener("resize", syncNotificationScrollLimit);
-  requestAnimationFrame(syncNotificationScrollLimit);
-});
-onBeforeUnmount(() => {
-  notificationViewport?.removeEventListener("scroll", onNotificationViewportScroll);
-  window.removeEventListener("resize", syncNotificationScrollLimit);
 });
 </script>
 
@@ -521,13 +482,13 @@ onBeforeUnmount(() => {
 .overview-value { margin-top: 4px; font-size: 25px; line-height: 1.25; font-weight: 800; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
 .overview-value span { color: var(--muted); font-size: 13px; font-weight: 550; letter-spacing: 0; }
 .overview-foot { margin-top: 6px; color: var(--muted); font-size: 10px; line-height: 1.4; }
-.workspace-tabs { position: sticky; top: var(--admin-topbar-space, 104px); z-index: 20; display: flex; align-items: center; gap: 5px; padding: 5px; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--surface-2) 94%, transparent); backdrop-filter: blur(14px); }
+.workspace-tabs { position: static; flex: 0 0 auto; z-index: 20; display: flex; align-items: center; gap: 5px; padding: 5px; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--surface-2) 94%, transparent); backdrop-filter: blur(14px); }
 .workspace-tabs button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 15px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--muted); font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; transition: color .15s, background .15s, border-color .15s; }
 .workspace-tabs button:hover { color: var(--text); background: var(--surface); }
 .workspace-tabs button.active { color: var(--text); border-color: var(--line); background: var(--surface); box-shadow: 0 1px 2px #00000008; }
 .tab-count { display: inline-grid; place-items: center; min-width: 21px; height: 21px; padding: 0 5px; border-radius: 6px; background: var(--surface-2); color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
 .tab-alert { display: inline-grid; place-items: center; min-width: 19px; height: 19px; padding: 0 4px; border-radius: 6px; background: var(--red-soft); color: var(--red); font-size: 10px; }
-.workspace-layout { display: grid; flex: 1 1 auto; grid-template-columns: minmax(245px, .72fr) minmax(0, 1.8fr); align-items: stretch; gap: 16px; min-width: 0; min-height: 0; height: calc(100dvh - var(--admin-topbar-space, 104px) - 56px - 24px); max-height: none; }
+.workspace-layout { display: grid; flex: 0 0 auto; grid-template-columns: minmax(245px, .72fr) minmax(0, 1.8fr); align-items: stretch; gap: 16px; min-width: 0; min-height: 0; height: calc(100dvh - var(--admin-topbar-space, 104px) - 108px); max-height: calc(100dvh - var(--admin-topbar-space, 104px) - 108px); }
 .editor-panel { display: flex; flex-direction: column; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .editor-body { flex: 0 0 auto; align-content: start; }
 .directory-panel, .editor-panel, .history-panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
@@ -624,9 +585,9 @@ onBeforeUnmount(() => {
 .inline-empty div { flex: 1; min-width: 0; }
 .inline-empty strong { color: var(--text); font-size: 11px; }
 .inline-empty p { margin: 4px 0 0; font-size: 10px; line-height: 1.5; }
-.history-workspace { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); align-items: start; gap: 16px; min-width: 0; }
+.history-workspace { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); align-items: stretch; gap: 16px; min-width: 0; min-height: 0; height: calc(100dvh - var(--admin-topbar-space, 104px) - 108px); max-height: calc(100dvh - var(--admin-topbar-space, 104px) - 108px); }
 .history-column { min-width: 0; }
-.history-panel { height: 100%; }
+.history-panel { height: 100%; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .neutral-count { padding: 5px 8px; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); font-size: 10px; white-space: nowrap; }
 .event-row, .delivery-row { display: flex; align-items: flex-start; gap: 11px; padding: 15px 19px; border-top: 1px solid var(--line); }
 .timeline-marker, .delivery-status-icon { display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); color: var(--muted); }
@@ -664,8 +625,8 @@ onBeforeUnmount(() => {
 }
 @media (max-width: 900px) {
   .webhook-page { min-height: 0; }
-  .workspace-tabs { top: 0; }
-  .workspace-layout { flex: 0 0 auto; align-items: start; height: auto; max-height: none; }
+  .workspace-tabs { position: static; }
+  .workspace-layout, .history-workspace { flex: 0 0 auto; align-items: start; height: auto; max-height: none; }
   .editor-panel { display: block; overflow: visible; }
   .directory-panel { overflow: visible; }
   .editor-body { flex: 0 0 auto; }
