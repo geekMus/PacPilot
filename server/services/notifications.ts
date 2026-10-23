@@ -1,29 +1,340 @@
-import {randomUUID} from "node:crypto";import type {DomainEvent,NotificationChannel,NotificationDelivery,NotificationDocument,NotificationEventDefinition,NotificationEventPhase,NotificationOutcome,NotificationRule,WebhookConfig} from "../../shared/contracts";import type {ApplicationStorage} from "../storage/repositories";import {normalizeWebhookConfig} from "../domain/settings";import {sendWebhookForEvent,sendWebhookTest,validateWebhookConfig} from "./webhook";import {runtimeLog} from "../utils/runtime-log";
-const now=()=>new Date().toISOString(),sleep=(n:number)=>new Promise(r=>setTimeout(r,n)),MAX_EVENTS=200,MAX_DELIVERIES=500;
-export const notificationEventCatalog:NotificationEventDefinition[]=[{type:"task.execution",label:"任务执行",phases:["started","finished"],outcomes:["success","failure","cancelled","timeout","unknown"],subjectTypes:["task"]},{type:"config.publish",label:"配置发布",phases:["started","finished","state_changed"],outcomes:["success","failure","unknown"],subjectTypes:["configuration"]},{type:"request.process",label:"请求处理",phases:["started","finished"],outcomes:["success","failure","timeout","unknown"],subjectTypes:["request"]},{type:"system.error",label:"系统异常",phases:["state_changed"],outcomes:["failure","unknown"],subjectTypes:["system"]}];
-const empty=():NotificationDocument=>({schemaVersion:1,legacyMigrated:false,channels:[],rules:[],events:[],deliveries:[]});
-function safeUrl(s:string){try{const u=new URL(s);for(const k of [...u.searchParams.keys()])if(/token|secret|key|sign|authorization/i.test(k))u.searchParams.set(k,"***");return u.toString()}catch{return s}}
-function safeHeaders(s:string){try{const h=JSON.parse(s||"{}") as Record<string,string>;for(const k of Object.keys(h))if(/authorization|token|secret|api[_-]?key|signature/i.test(k))h[k]="***";return JSON.stringify(h,null,2)}catch{return s}}
-function publicChannel(c:NotificationChannel):NotificationChannel{return{...c,config:{...c.config,url:safeUrl(c.config.url),headers:safeHeaders(c.config.headers),dingTalkSecret:""},hasSecret:Boolean(c.config.dingTalkSecret||/(token|secret|key|sign)=/i.test(c.config.url)||/authorization|token|secret|api[_-]?key|signature/i.test(c.config.headers))}}
-async function load(s:ApplicationStorage){const d=await s.notifications.get();if(d.legacyMigrated)return d;const settings=await s.settings.get(),stamp=now();for(const x of [{key:"success",config:settings.webhookSuccessConfig,outcome:"success"},{key:"failure",config:settings.webhookFailureConfig,outcome:"failure"}] as const){if(!x.config.url.trim())continue;const id="legacy-"+x.key;d.channels.push({id,name:"旧版"+x.key+"通知渠道",provider:x.config.provider,enabled:true,config:normalizeWebhookConfig(x.config),createdAt:stamp,updatedAt:stamp});d.rules.push({id:"legacy-rule-"+x.key,name:"兼容旧版"+x.key+"通知",enabled:true,eventType:"task.execution",phase:"finished",outcome:x.outcome,channelIds:[id],subjectType:"task",createdAt:stamp,updatedAt:stamp})}d.legacyMigrated=true;await s.notifications.set(d);return d}
-export async function getNotificationAdminView(s:ApplicationStorage){const d=await load(s);return{channels:d.channels.map(publicChannel),rules:d.rules,events:d.events,deliveries:d.deliveries,eventCatalog:notificationEventCatalog}}
-export function validateRule(x:Partial<NotificationRule>):string|null{if(!x.name?.trim())return"规则名称不能为空。";const e=notificationEventCatalog.find(v=>v.type===x.eventType);if(!e)return"不支持的事件类型。";if(!e.phases.includes(x.phase as NotificationEventPhase))return"该事件类型不支持所选阶段。";if((x.phase==="started"||x.phase==="progress")&&x.outcome!=null&&x.outcome!=="any")return"开始或执行中阶段没有最终结果，请选择不限制结果。";if(x.outcome!=null&&x.outcome!=="any"&&!e.outcomes.includes(x.outcome as NotificationOutcome))return"该事件类型不支持所选结果。";if(!Array.isArray(x.channelIds)||!x.channelIds.length)return"至少选择一个通知渠道。";return null}
-function mergeSecrets(c:WebhookConfig,old?:WebhookConfig){const n=normalizeWebhookConfig(c);if(!old)return n;if(safeUrl(old.url)===n.url)n.url=old.url;if(!n.dingTalkSecret)n.dingTalkSecret=old.dingTalkSecret;try{const a=JSON.parse(old.headers||"{}"),b=JSON.parse(n.headers||"{}");for(const k of Object.keys(b))if(b[k]==="***"&&a[k])b[k]=a[k];n.headers=JSON.stringify(b,null,2)}catch{}return n}
-export async function saveNotificationChannel(s:ApplicationStorage,x:Partial<NotificationChannel>,id?:string){const d=await load(s),old=id?d.channels.find(c=>c.id===id):undefined;if(id&&!old)throw Error("通知渠道不存在。");const config=mergeSecrets((x.config||{}) as WebhookConfig,old?.config),errors=validateWebhookConfig(config);if(config.url.trim()&&errors.length)throw Error(errors.join("\n"));if(!x.name?.trim())throw Error("通知渠道名称不能为空。");const t=now(),c:NotificationChannel={id:old?.id||randomUUID(),name:x.name.trim(),provider:config.provider,enabled:x.enabled!==false,config,createdAt:old?.createdAt||t,updatedAt:t};if(old)d.channels=d.channels.map(v=>v.id===id?c:v);else d.channels.push(c);await s.notifications.set(d);return publicChannel(c)}
-export async function removeNotificationChannel(s:ApplicationStorage,id:string){const d=await load(s);if(d.rules.some(r=>r.channelIds.includes(id)))throw Error("该渠道仍被通知规则引用，请先修改或删除相关规则。");d.channels=d.channels.filter(c=>c.id!==id);await s.notifications.set(d)}
-export async function saveNotificationRule(s:ApplicationStorage,x:Partial<NotificationRule>,id?:string){const d=await load(s),old=id?d.rules.find(r=>r.id===id):undefined,e=validateRule(x);if(e)throw Error(e);if(id&&!old)throw Error("通知规则不存在。");for(const cid of x.channelIds!)if(!d.channels.some(c=>c.id===cid))throw Error("规则引用了不存在的通知渠道。");const t=now(),r:NotificationRule={id:old?.id||randomUUID(),name:x.name!.trim(),enabled:x.enabled!==false,eventType:x.eventType!,phase:x.phase!,outcome:x.outcome??null,channelIds:[...new Set(x.channelIds!)],subjectType:x.subjectType?.trim()||undefined,createdAt:old?.createdAt||t,updatedAt:t};if(old)d.rules=d.rules.map(v=>v.id===id?r:v);else d.rules.push(r);await s.notifications.set(d);return r}
-export async function removeNotificationRule(s:ApplicationStorage,id:string){const d=await load(s);d.rules=d.rules.filter(r=>r.id!==id);await s.notifications.set(d)}
-function matches(r:NotificationRule,e:DomainEvent){return r.enabled&&r.eventType===e.type&&r.phase===e.phase&&(r.outcome==null||r.outcome==="any"||r.outcome===e.outcome)&&(!r.subjectType||r.subjectType===e.subject.type)}
-async function deliver(s:ApplicationStorage,e:DomainEvent,c:NotificationChannel,id:string,tz:string){const d=await s.notifications.get(),v=d.deliveries.find(x=>x.id===id);if(!v)return;for(let i=1;i<=3;i++){v.status="sending";v.attemptCount=i;v.updatedAt=now();await s.notifications.set(d);try{const result=await sendWebhookForEvent(c.config,e,tz);if(result.success){v.status="succeeded";v.deliveredAt=now();v.lastError=undefined;break}v.lastError=(result.message||"Delivery failed").split(c.config.url).join("[redacted URL]").slice(0,1000);if((result.status&&result.status>=400&&result.status<500&&result.status!==429)||i===3){v.status="failed";break}}catch(err){v.lastError=(err instanceof Error?err.message:String(err)).split(c.config.url).join("[redacted URL]").slice(0,1000);if(i===3){v.status="failed";break}}await sleep(250*2**(i-1))}v.updatedAt=now();await s.notifications.set(d);if(v.status==="failed")runtimeLog("error","Notification delivery failed: "+v.lastError)}
-async function dispatch(s:ApplicationStorage,e:DomainEvent,tz:string){const d0=await s.notifications.get();for(const rule of d0.rules.filter(r=>matches(r,e)))for(const cid of rule.channelIds){const d=await s.notifications.get(),c=d.channels.find(v=>v.id===cid&&v.enabled),r=d.rules.find(v=>v.id===rule.id);if(!c||!r||!matches(r,e))continue;const v:NotificationDelivery={id:randomUUID(),eventId:e.id,ruleId:r.id,channelId:cid,status:"pending",attemptCount:0,createdAt:now(),updatedAt:now()};d.deliveries.push(v);d.deliveries=d.deliveries.slice(-MAX_DELIVERIES);await s.notifications.set(d);await deliver(s,e,c,v.id,tz)}}
-export async function publishDomainEvent(s:ApplicationStorage,x:Omit<DomainEvent,"id"|"occurredAt"|"schemaVersion">&{id?:string;occurredAt?:string;schemaVersion?:number}){try{const d=await load(s),summary=x.summary?.replace(/https?:\/\/[^\s]+/g,(url)=>{try{return new URL(url).toString().replace(/([?&](?:access_token|token|secret|key|sign|signature|api[_-]?key)=)[^&]+/gi,"$1***")}catch{return url}}),e:DomainEvent={...x,summary,id:x.id||randomUUID(),occurredAt:x.occurredAt||now(),schemaVersion:x.schemaVersion||1};d.events.push(e);d.events=d.events.slice(-MAX_EVENTS);await s.notifications.set(d);void dispatch(s,e,(await s.settings.get()).timezone).catch(err=>runtimeLog("error","Notification dispatch failed: ",err))}catch(err){runtimeLog("error","Failed to persist notification event: ",err)}}
-export async function testNotificationChannel(s:ApplicationStorage,id:string){const d=await load(s),c=d.channels.find(v=>v.id===id);if(!c)throw Error("通知渠道不存在。");if(!c.enabled)throw Error("请先启用通知渠道。");const e=validateWebhookConfig(c.config);if(e.length)throw Error(e.join("\n"));return sendWebhookTest(c.config,(await s.settings.get()).timezone)}
-export async function retryNotificationDelivery(s:ApplicationStorage,id:string){const d=await load(s),v=d.deliveries.find(x=>x.id===id);if(!v)throw Error("投递记录不存在。");const e=d.events.find(x=>x.id===v.eventId),c=d.channels.find(x=>x.id===v.channelId);if(!e||!c||!c.enabled)throw Error("事件或已启用的渠道不存在。");v.status="pending";v.lastError=undefined;await s.notifications.set(d);await deliver(s,e,c,id,(await s.settings.get()).timezone)}
+import { randomUUID } from "node:crypto";
+import type {
+  DomainEvent, NotificationChannel, NotificationDelivery, NotificationDocument,
+  NotificationEventDefinition, NotificationEventPhase, NotificationOutcome, NotificationRule, WebhookConfig,
+} from "../../shared/contracts";
+import type { ApplicationStorage } from "../storage/repositories";
+import { normalizeWebhookConfig } from "../domain/settings";
+import { sendWebhookForEvent, sendWebhookTest, validateWebhookConfig } from "./webhook";
+import { runtimeLog } from "../utils/runtime-log";
 
-let recovery:Promise<void>|null=null;
-/** Resume persisted pending/sending deliveries after a process restart (at-least-once semantics). */
-export function resumePendingNotificationDeliveries(s:ApplicationStorage):Promise<void>{
- if(recovery)return recovery;
- recovery=(async()=>{try{const d=await load(s),tz=(await s.settings.get()).timezone;for(const v of d.deliveries.filter(x=>x.status==="pending"||x.status==="sending")){const latest=await s.notifications.get(),item=latest.deliveries.find(x=>x.id===v.id),e=latest.events.find(x=>x.id===v.eventId),c=latest.channels.find(x=>x.id===v.channelId&&x.enabled);if(!item||!e||!c)continue;item.status="pending";await s.notifications.set(latest);await deliver(s,e,c,item.id,tz)}}catch(e){runtimeLog("error","Failed to resume notification deliveries: ",e)}finally{recovery=null}})();
- return recovery;
+const MAX_EVENTS = 200;
+const MAX_DELIVERIES = 500;
+const MAX_ATTEMPTS = 3;
+const now = () => new Date().toISOString();
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const locks = new WeakMap<object, Promise<void>>();
+const activeDeliveries = new Set<string>();
+
+export const notificationEventCatalog: NotificationEventDefinition[] = [
+  { type: "task.execution", label: "任务执行", phases: ["started", "finished"], outcomes: ["success", "failure", "cancelled", "timeout", "unknown"], subjectTypes: ["task"] },
+  { type: "config.publish", label: "配置发布", phases: ["started", "finished", "state_changed"], outcomes: ["success", "failure", "unknown"], subjectTypes: ["configuration"] },
+  { type: "request.process", label: "请求处理", phases: ["started", "finished"], outcomes: ["success", "failure", "timeout", "unknown"], subjectTypes: ["request"] },
+  { type: "system.error", label: "系统异常", phases: ["state_changed"], outcomes: ["failure", "unknown"], subjectTypes: ["system"] },
+];
+const emptyDocument = (): NotificationDocument => ({ schemaVersion: 1, legacyMigrated: false, channels: [], rules: [], events: [], deliveries: [] });
+
+async function withLock<T>(storage: ApplicationStorage, action: () => Promise<T>): Promise<T> {
+  const previous = locks.get(storage) ?? Promise.resolve();
+  let release!: () => void;
+  const current = new Promise<void>((resolve) => { release = resolve; });
+  locks.set(storage, current);
+  await previous;
+  try { return await action(); }
+  finally { release(); if (locks.get(storage) === current) locks.delete(storage); }
+}
+
+function redactUrl(raw: string): string {
+  try {
+    const url = new URL(raw);
+    for (const key of [...url.searchParams.keys()]) {
+      if (/token|secret|key|sign|authorization/i.test(key)) url.searchParams.set(key, "***");
+    }
+    return url.toString();
+  } catch { return raw; }
+}
+function redactHeaders(raw: string): string {
+  try {
+    const headers = JSON.parse(raw || "{}") as Record<string, string>;
+    for (const key of Object.keys(headers)) {
+      if (/authorization|token|secret|api[_-]?key|signature/i.test(key)) headers[key] = "***";
+    }
+    return JSON.stringify(headers, null, 2);
+  } catch { return raw; }
+}
+function publicChannel(channel: NotificationChannel): NotificationChannel {
+  return {
+    ...channel,
+    config: { ...channel.config, url: redactUrl(channel.config.url), headers: redactHeaders(channel.config.headers), dingTalkSecret: "" },
+    hasSecret: Boolean(channel.config.dingTalkSecret || /(?:token|secret|key|sign)=/i.test(channel.config.url) || /authorization|token|secret|api[_-]?key|signature/i.test(channel.config.headers)),
+  };
+}
+function mergeSecrets(input: WebhookConfig, previous?: WebhookConfig): WebhookConfig {
+  const config = normalizeWebhookConfig(input);
+  if (!previous) return config;
+  if (redactUrl(previous.url) === config.url) config.url = previous.url;
+  if (!config.dingTalkSecret.trim()) config.dingTalkSecret = previous.dingTalkSecret;
+  if (config.provider !== "dingtalk") config.dingTalkSecret = "";
+  try {
+    const oldHeaders = JSON.parse(previous.headers || "{}") as Record<string, string>;
+    const newHeaders = JSON.parse(config.headers || "{}") as Record<string, string>;
+    for (const [key, value] of Object.entries(newHeaders)) {
+      if (value === "***" && oldHeaders[key]) newHeaders[key] = oldHeaders[key];
+    }
+    config.headers = JSON.stringify(newHeaders, null, 2);
+  } catch { /* server validation handles malformed header JSON */ }
+  return config;
+}
+
+async function loadUnlocked(storage: ApplicationStorage): Promise<NotificationDocument> {
+  const document = await storage.notifications.get();
+  if (document.legacyMigrated) return document;
+  const settings = await storage.settings.get();
+  const timestamp = now();
+  for (const item of [
+    { key: "success", config: settings.webhookSuccessConfig, outcome: "success" },
+    { key: "failure", config: settings.webhookFailureConfig, outcome: "failure" },
+  ] as const) {
+    if (!item.config.url.trim()) continue;
+    const id = "legacy-" + item.key;
+    document.channels.push({
+      id, name: item.key === "success" ? "旧版成功通知渠道" : "旧版失败通知渠道",
+      provider: item.config.provider, enabled: true, config: normalizeWebhookConfig(item.config),
+      createdAt: timestamp, updatedAt: timestamp,
+    });
+    document.rules.push({
+      id: "legacy-rule-" + item.key,
+      name: item.key === "success" ? "兼容旧版成功通知" : "兼容旧版失败通知",
+      enabled: true, eventType: "task.execution", phase: "finished", outcome: item.outcome,
+      channelIds: [id], subjectType: "task", createdAt: timestamp, updatedAt: timestamp,
+    });
+  }
+  document.legacyMigrated = true;
+  await storage.notifications.set(document);
+  return document;
+}
+async function load(storage: ApplicationStorage) {
+  return withLock(storage, () => loadUnlocked(storage));
+}
+
+export async function getNotificationAdminView(storage: ApplicationStorage) {
+  return withLock(storage, async () => {
+    const document = await loadUnlocked(storage);
+    return {
+      channels: document.channels.map(publicChannel), rules: document.rules,
+      events: document.events, deliveries: document.deliveries, eventCatalog: notificationEventCatalog,
+    };
+  });
+}
+export function validateRule(input: Partial<NotificationRule>): string | null {
+  if (!input.name?.trim()) return "规则名称不能为空。";
+  const definition = notificationEventCatalog.find((item) => item.type === input.eventType);
+  if (!definition) return "不支持的事件类型。";
+  if (!definition.phases.includes(input.phase as NotificationEventPhase)) return "该事件类型不支持所选阶段。";
+  if ((input.phase === "started" || input.phase === "progress") && input.outcome != null && input.outcome !== "any") {
+    return "开始或执行中阶段没有最终结果，请选择不限制结果。";
+  }
+  if (input.outcome != null && input.outcome !== "any" && !definition.outcomes.includes(input.outcome as NotificationOutcome)) {
+    return "该事件类型不支持所选结果。";
+  }
+  if (!Array.isArray(input.channelIds) || input.channelIds.length === 0 || input.channelIds.some((id) => typeof id !== "string" || !id.trim())) {
+    return "至少选择一个通知渠道。";
+  }
+  return null;
+}
+export async function saveNotificationChannel(storage: ApplicationStorage, input: Partial<NotificationChannel>, id?: string) {
+  return withLock(storage, async () => {
+    const document = await loadUnlocked(storage);
+    const previous = id ? document.channels.find((channel) => channel.id === id) : undefined;
+    if (id && !previous) throw new Error("通知渠道不存在。");
+    const config = mergeSecrets((input.config || {}) as WebhookConfig, previous?.config);
+    const errors = validateWebhookConfig(config);
+    if (config.url.trim() && errors.length) throw new Error(errors.join("\n"));
+    if (!input.name?.trim()) throw new Error("通知渠道名称不能为空。");
+    const timestamp = now();
+    const channel: NotificationChannel = {
+      id: previous?.id || randomUUID(), name: input.name.trim(), provider: config.provider,
+      enabled: input.enabled !== false, config, createdAt: previous?.createdAt || timestamp, updatedAt: timestamp,
+    };
+    if (previous) document.channels = document.channels.map((item) => item.id === id ? channel : item);
+    else document.channels.push(channel);
+    await storage.notifications.set(document);
+    return publicChannel(channel);
+  });
+}
+export async function removeNotificationChannel(storage: ApplicationStorage, id: string) {
+  return withLock(storage, async () => {
+    const document = await loadUnlocked(storage);
+    if (!document.channels.some((channel) => channel.id === id)) throw new Error("通知渠道不存在。");
+    if (document.rules.some((rule) => rule.channelIds.includes(id))) throw new Error("该渠道仍被通知规则引用，请先修改或删除相关规则。");
+    document.channels = document.channels.filter((channel) => channel.id !== id);
+    await storage.notifications.set(document);
+  });
+}
+export async function saveNotificationRule(storage: ApplicationStorage, input: Partial<NotificationRule>, id?: string) {
+  return withLock(storage, async () => {
+    const document = await loadUnlocked(storage);
+    const previous = id ? document.rules.find((rule) => rule.id === id) : undefined;
+    if (id && !previous) throw new Error("通知规则不存在。");
+    const validationError = validateRule(input);
+    if (validationError) throw new Error(validationError);
+    for (const channelId of input.channelIds!) {
+      if (!document.channels.some((channel) => channel.id === channelId)) throw new Error("规则引用了不存在的通知渠道。");
+    }
+    const timestamp = now();
+    const rule: NotificationRule = {
+      id: previous?.id || randomUUID(), name: input.name!.trim(), enabled: input.enabled !== false,
+      eventType: input.eventType!, phase: input.phase!, outcome: input.outcome ?? null,
+      channelIds: [...new Set(input.channelIds!)], subjectType: input.subjectType?.trim() || undefined,
+      createdAt: previous?.createdAt || timestamp, updatedAt: timestamp,
+    };
+    if (previous) document.rules = document.rules.map((item) => item.id === id ? rule : item);
+    else document.rules.push(rule);
+    await storage.notifications.set(document);
+    return rule;
+  });
+}
+export async function removeNotificationRule(storage: ApplicationStorage, id: string) {
+  return withLock(storage, async () => {
+    const document = await loadUnlocked(storage);
+    if (!document.rules.some((rule) => rule.id === id)) throw new Error("通知规则不存在。");
+    document.rules = document.rules.filter((rule) => rule.id !== id);
+    await storage.notifications.set(document);
+  });
+}
+function matches(rule: NotificationRule, event: DomainEvent) {
+  return rule.enabled && rule.eventType === event.type && rule.phase === event.phase
+    && (rule.outcome == null || rule.outcome === "any" || rule.outcome === event.outcome)
+    && (!rule.subjectType || rule.subjectType === event.subject.type);
+}
+function safeError(error: unknown, channel: NotificationChannel): string {
+  let message = error instanceof Error ? error.message : String(error);
+  for (const secret of [channel.config.url, channel.config.dingTalkSecret]) {
+    if (secret) message = message.split(secret).join("[redacted]");
+  }
+  return message.replace(/https?:\/\/[^\s]+/g, (url) => redactUrl(url)).slice(0, 1000);
+}
+
+async function updateDelivery(storage: ApplicationStorage, id: string, update: (delivery: NotificationDelivery, document: NotificationDocument) => void) {
+  return withLock(storage, async () => {
+    const document = await storage.notifications.get();
+    const delivery = document.deliveries.find((item) => item.id === id);
+    if (!delivery) return null;
+    update(delivery, document);
+    await storage.notifications.set(document);
+    return { delivery, document };
+  });
+}
+async function deliver(storage: ApplicationStorage, event: DomainEvent, deliveryId: string, timeZone: string) {
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const ready = await updateDelivery(storage, deliveryId, (delivery, document) => {
+      const channel = document.channels.find((item) => item.id === delivery.channelId && item.enabled);
+      const rule = document.rules.find((item) => item.id === delivery.ruleId && item.enabled);
+      if (!channel || !rule) { delivery.lastError = "通知规则或渠道已停用。"; return; }
+      delivery.status = "sending";
+      delivery.attemptCount = attempt;
+      delivery.updatedAt = now();
+    });
+    if (!ready) return;
+    const current = ready.document.deliveries.find((item) => item.id === deliveryId)!;
+    if (current.status !== "sending") return;
+    const channel = ready.document.channels.find((item) => item.id === current.channelId)!;
+    let result: Awaited<ReturnType<typeof sendWebhookForEvent>> | null = null;
+    let caught: unknown = null;
+    try { result = await sendWebhookForEvent(channel.config, event, timeZone); }
+    catch (error) { caught = error; }
+    const message = result ? (result.success ? "" : safeError(new Error(result.message), channel)) : safeError(caught, channel);
+    const permanent = Boolean(result?.status && result.status >= 400 && result.status < 500 && result.status !== 429);
+    const finished = await updateDelivery(storage, deliveryId, (delivery) => {
+      delivery.updatedAt = now();
+      if (result?.success) {
+        delivery.status = "succeeded"; delivery.deliveredAt = now(); delivery.lastError = undefined;
+      } else {
+        delivery.lastError = message || "通知发送失败。";
+        if (permanent || attempt === MAX_ATTEMPTS) delivery.status = "failed";
+        else delivery.status = "pending";
+      }
+    });
+    if (!finished) return;
+    if (finished.delivery.status === "succeeded") return;
+    if (finished.delivery.status === "failed") {
+      runtimeLog("error", "Notification delivery failed (" + finished.delivery.channelId + "): " + finished.delivery.lastError);
+      return;
+    }
+    await sleep(250 * 2 ** (attempt - 1) + Math.floor(Math.random() * 150));
+  }
+}
+async function dispatchPending(storage: ApplicationStorage, ids: string[], timeZone: string) {
+  for (const id of ids) {
+    if (activeDeliveries.has(id)) continue;
+    activeDeliveries.add(id);
+    try {
+      const document = await storage.notifications.get();
+      const delivery = document.deliveries.find((item) => item.id === id);
+      const event = delivery && document.events.find((item) => item.id === delivery.eventId);
+      if (delivery && event && (delivery.status === "pending" || delivery.status === "sending")) {
+        await deliver(storage, event, id, timeZone);
+      }
+    } catch (error) { runtimeLog("error", "Notification dispatch failed: ", error); }
+    finally { activeDeliveries.delete(id); }
+  }
+}
+export async function publishDomainEvent(storage: ApplicationStorage, input: Omit<DomainEvent, "id" | "occurredAt" | "schemaVersion"> & { id?: string; occurredAt?: string; schemaVersion?: number }) {
+  try {
+    const result = await withLock(storage, async () => {
+      const document = await loadUnlocked(storage);
+      const summary = input.summary?.replace(/https?:\/\/[^\s]+/g, (url) => redactUrl(url));
+      const event: DomainEvent = { ...input, summary, id: input.id || randomUUID(), occurredAt: input.occurredAt || now(), schemaVersion: input.schemaVersion || 1 };
+      document.events.push(event);
+      document.events = document.events.slice(-MAX_EVENTS);
+      const ids: string[] = [];
+      for (const rule of document.rules.filter((candidate) => matches(candidate, event))) {
+        for (const channelId of rule.channelIds) {
+          const channel = document.channels.find((candidate) => candidate.id === channelId && candidate.enabled);
+          if (!channel) continue;
+          const delivery: NotificationDelivery = { id: randomUUID(), eventId: event.id, ruleId: rule.id, channelId, status: "pending", attemptCount: 0, createdAt: now(), updatedAt: now() };
+          document.deliveries.push(delivery);
+          ids.push(delivery.id);
+        }
+      }
+      document.deliveries = document.deliveries.slice(-MAX_DELIVERIES);
+      await storage.notifications.set(document);
+      return { ids: ids.filter((id) => document.deliveries.some((delivery) => delivery.id === id)), event };
+    });
+    const timeZone = (await storage.settings.get()).timezone;
+    void dispatchPending(storage, result.ids, timeZone);
+  } catch (error) { runtimeLog("error", "Failed to persist notification event: ", error); }
+}
+export async function testNotificationChannel(storage: ApplicationStorage, id: string) {
+  const channel = await withLock(storage, async () => {
+    const document = await loadUnlocked(storage);
+    const item = document.channels.find((candidate) => candidate.id === id);
+    return item ? structuredClone(item) : null;
+  });
+  if (!channel) throw new Error("通知渠道不存在。");
+  if (!channel.enabled) throw new Error("请先启用通知渠道。");
+  const errors = validateWebhookConfig(channel.config);
+  if (errors.length) throw new Error(errors.join("\n"));
+  return sendWebhookTest(channel.config, (await storage.settings.get()).timezone);
+}
+export async function retryNotificationDelivery(storage: ApplicationStorage, id: string) {
+  const result = await withLock(storage, async () => {
+    const document = await storage.notifications.get();
+    const delivery = document.deliveries.find((item) => item.id === id);
+    if (!delivery) throw new Error("投递记录不存在。");
+    if (delivery.status === "sending") throw new Error("该通知正在发送，请稍后再试。");
+    if (delivery.status !== "failed") throw new Error("只有失败的通知可以手动重试。");
+    const event = document.events.find((item) => item.id === delivery.eventId);
+    const channel = document.channels.find((item) => item.id === delivery.channelId);
+    if (!event || !channel || !channel.enabled) throw new Error("事件或已启用的渠道不存在。");
+    delivery.status = "pending"; delivery.lastError = undefined; delivery.updatedAt = now();
+    await storage.notifications.set(document);
+    return { event, deliveryId: delivery.id };
+  });
+  const timeZone = (await storage.settings.get()).timezone;
+  await dispatchPending(storage, [result.deliveryId], timeZone);
+}
+let recovery: Promise<void> | null = null;
+/** Resume persisted pending deliveries after a process restart; delivery is at-least-once. */
+export function resumePendingNotificationDeliveries(storage: ApplicationStorage): Promise<void> {
+  if (recovery) return recovery;
+  recovery = (async () => {
+    try {
+      const document = await withLock(storage, () => storage.notifications.get());
+      const ids = document.deliveries.filter((item) => (item.status === "pending" || item.status === "sending") && !activeDeliveries.has(item.id)).map((item) => item.id);
+      await dispatchPending(storage, ids, (await storage.settings.get()).timezone);
+    } catch (error) { runtimeLog("error", "Failed to resume notification deliveries: ", error); }
+    finally { recovery = null; }
+  })();
+  return recovery;
 }
