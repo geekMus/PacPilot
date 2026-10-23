@@ -20,7 +20,7 @@ async function main(): Promise<void> {
   const storage = createSqliteApplicationStorage(database, env.dataDir);
   const firstStart = isAdminCredentialsMissing(storage.credentials);
   const initialAdminPassword = createInitialAdminCredentials(storage.credentials);
-  const adminCredentialsMissing = isAdminCredentialsMissing(database);
+  const adminCredentialsMissing = isAdminCredentialsMissing(storage.credentials);
   storage.workflows.markInterrupted();
   const cleanupLogs = (): void => {
     const retentionDays = storage.settings.get().logRetentionDays;
