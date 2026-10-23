@@ -6,8 +6,6 @@ import { EditorState, type Extension } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { syntaxHighlighting as addSyntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
 import { json } from "@codemirror/lang-json";
-import { javascript } from "@codemirror/lang-javascript";
-import { java } from "@codemirror/lang-java";
 import { oneDarkHighlightStyle, oneDarkTheme } from "@codemirror/theme-one-dark";
 import AppScrollArea from "@/components/AppScrollArea.vue";
 import { attachCodeMirrorScrollArea } from "@/utils/codemirror-scroll-area";
@@ -22,7 +20,7 @@ const props = withDefaults(
     lineNumbers?: boolean;
     syntaxHighlighting?: boolean;
     readOnly?: boolean;
-    language?: "json" | "javascript" | "java" | "text";
+    language?: "json" | "text";
     ariaLabel?: string;
     invalid?: boolean;
     extensions?: Extension[];
@@ -79,13 +77,7 @@ function buildExtensions() {
     ...(props.theme === "one-dark" && isDark()
       ? [oneDarkTheme, ...(props.syntaxHighlighting ? [addSyntaxHighlighting(oneDarkHighlightStyle)] : [])]
       : []),
-    ...(props.language === "json"
-      ? [json()]
-      : props.language === "javascript"
-        ? [javascript()]
-        : props.language === "java"
-          ? [java()]
-          : []),
+    ...(props.language === "json" ? [json()] : []),
     ...(props.placeholder ? [cmPlaceholder(props.placeholder)] : []),
     ...(!props.singleLine ? [EditorView.lineWrapping] : []),
     EditorView.contentAttributes.of({

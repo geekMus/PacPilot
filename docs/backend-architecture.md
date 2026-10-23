@@ -13,7 +13,7 @@ Backend TypeScript source files use **kebab-case** (for example, `request-monito
 - `server/storage/index.ts` is the composition/factory boundary. It chooses the adapter from configuration and dynamically imports SQLite only when the SQLite driver is selected.
 - `server/storage/artifact-key.ts` contains storage-driver-independent key normalization shared by adapters.
 
-The memory and SQLite adapters implement the same contracts. Routes and services depend on `ApplicationStorage` and repository interfaces, never on a concrete adapter. When changing a repository contract, update both adapters and run both adapter test suites.
+The memory and SQLite adapters implement the same contracts. Routes and services depend on `ApplicationStorage` and repository interfaces, never on a concrete adapter. When changing a repository contract, update both adapters and run both adapter test suites. Normative adapter semantics, data representation rules, migration requirements, and the new-driver checklist are documented in `docs/storage-adapter-contract.md`.
 
 ## Layer responsibilities
 
