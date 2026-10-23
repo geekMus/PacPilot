@@ -1,6 +1,7 @@
 import type { AppSettings } from "../../../shared/contracts";
 import { DEFAULT_SETTINGS } from "../../domain/settings";
 import type { ApplicationStorage } from "../repositories";
+import { asAsyncRepository } from "../async-repository";
 import { MemoryAdminCredentialRepository } from "./admin-credential-repository";
 import { createMemoryArtifactRepository } from "./artifact-repository";
 import { createMemoryGenerationLogRepository } from "./generation-log-repository";
@@ -19,13 +20,13 @@ export function createMemoryApplicationStorage(): ApplicationStorage {
 
   return {
     driver: "memory",
-    settings,
-    credentials,
-    generationLogs,
-    monitoring,
-    workflows,
-    artifacts,
-    maintenance: {
+    settings: asAsyncRepository(settings),
+    credentials: asAsyncRepository(credentials),
+    generationLogs: asAsyncRepository(generationLogs),
+    monitoring: asAsyncRepository(monitoring),
+    workflows: asAsyncRepository(workflows),
+    artifacts: asAsyncRepository(artifacts),
+    maintenance: asAsyncRepository({
       databaseBytes: () => 0,
       compact: () => {},
       checkpoint: () => {},
@@ -35,8 +36,8 @@ export function createMemoryApplicationStorage(): ApplicationStorage {
         workflows.reset();
         settings.set(value);
       },
-    },
-    close() {
+    }),
+    async close() {
       if (closed) return;
       closed = true;
       settings.set(DEFAULT_SETTINGS);
