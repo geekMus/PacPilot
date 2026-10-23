@@ -8,14 +8,16 @@ const route = useRoute();
 
 <template>
   <div class="app-shell">
-    <AppScrollArea
-      v-if="route.meta.layout !== 'admin'"
-      root-class="app-public-scroll"
-      orientation="vertical"
-    >
-      <RouterView />
-    </AppScrollArea>
-    <RouterView v-else />
+    <RouterView v-slot="{ Component }">
+      <AppScrollArea
+        v-if="route.meta.layout !== 'admin'"
+        root-class="app-public-scroll"
+        orientation="vertical"
+      >
+        <component :is="Component" />
+      </AppScrollArea>
+      <component :is="Component" v-else />
+    </RouterView>
     <ToastHost />
   </div>
 </template>
