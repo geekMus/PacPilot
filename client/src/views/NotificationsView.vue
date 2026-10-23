@@ -17,7 +17,6 @@ const { notify } = useToast();
 const loading = ref(true);
 const error = ref("");
 const tab = ref<ViewTab>("channels");
-const workspaceHeight = ref(420);
 const channels = ref<NotificationChannel[]>([]);
 const rules = ref<NotificationRule[]>([]);
 const events = ref<any[]>([]);
@@ -203,7 +202,7 @@ onMounted(() => {
 
 <template>
   <AdminLayout active="notifications" :title="t('nav.notifications')" :subtitle="t('notifications.subtitle')">
-    <main class="webhook-page" :style="{ '--notification-workspace-height': workspaceHeight + 'px' }">
+    <main class="webhook-page">
       <section class="page-intro">
         <div class="intro-copy">
           <div class="eyebrow"><AppIcon name="workflow" :size="14" /> NOTIFICATION WORKSPACE</div>
@@ -284,7 +283,7 @@ onMounted(() => {
             <header class="editor-heading">
               <div class="editor-title-mark"><AppIcon name="network" :size="19" /></div>
               <div class="editor-heading-copy"><div class="editor-kicker">{{ cid ? "CHANNEL SETTINGS" : "NEW CHANNEL" }}</div><h3>{{ cid ? "编辑通知渠道" : "创建通知渠道" }}</h3><p>配置接收通知的目标地址和消息格式。</p></div>
-              <div class="editor-heading-tools"><label class="workspace-height-control"><span>工作区高度</span><input v-model.number="workspaceHeight" type="range" min="280" max="640" step="20" aria-label="调整工作区高度" /><output>{{ workspaceHeight }}px</output></label><span class="status-pill" :class="ch.enabled ? 'pill-enabled' : 'pill-disabled'"><span class="status-dot" :class="{ online: ch.enabled }"></span>{{ ch.enabled ? "已启用" : "已停用" }}</span></div>
+              <div class="editor-heading-tools"><span class="status-pill" :class="ch.enabled ? 'pill-enabled' : 'pill-disabled'"><span class="status-dot" :class="{ online: ch.enabled }"></span>{{ ch.enabled ? "已启用" : "已停用" }}</span></div>
             </header>
             <div class="editor-body">
               <section class="form-section">
@@ -489,7 +488,7 @@ onMounted(() => {
 .workspace-tabs button.active { color: var(--text); border-color: var(--line); background: var(--surface); box-shadow: 0 1px 2px #00000008; }
 .tab-count { display: inline-grid; place-items: center; min-width: 21px; height: 21px; padding: 0 5px; border-radius: 6px; background: var(--surface-2); color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
 .tab-alert { display: inline-grid; place-items: center; min-width: 19px; height: 19px; padding: 0 4px; border-radius: 6px; background: var(--red-soft); color: var(--red); font-size: 10px; }
-.workspace-layout { display: grid; flex: 0 0 auto; grid-template-columns: minmax(245px, .72fr) minmax(0, 1.8fr); align-items: stretch; gap: 16px; min-width: 0; min-height: 0; height: var(--notification-workspace-height, 420px); max-height: calc(100dvh - var(--admin-topbar-space, 104px) - 108px); }
+.workspace-layout { display: grid; flex: 0 0 auto; grid-template-columns: minmax(245px, .72fr) minmax(0, 1.8fr); align-items: stretch; gap: 16px; min-width: 0; min-height: 0; height: max(280px, calc(100dvh - var(--admin-topbar-space, 104px) - 108px)); max-height: calc(100dvh - var(--admin-topbar-space, 104px) - 108px); }
 .editor-panel { display: flex; flex-direction: column; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .editor-body { flex: 0 0 auto; align-content: start; }
 .directory-panel, .editor-panel, .history-panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--wh-radius); background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
@@ -527,9 +526,6 @@ onMounted(() => {
 .rule-title-mark { color: var(--blue, var(--accent)); }
 .editor-heading-copy { flex: 1; min-width: 0; }
 .editor-heading-tools { display: flex; align-items: center; gap: 12px; margin-left: auto; }
-.workspace-height-control { display: grid; grid-template-columns: auto minmax(70px, 100px) auto; align-items: center; gap: 7px; color: var(--muted); font-size: 10px; white-space: nowrap; }
-.workspace-height-control input { width: 100%; min-width: 70px; accent-color: var(--accent); cursor: ew-resize; }
-.workspace-height-control output { min-width: 38px; color: var(--text); font-variant-numeric: tabular-nums; }
 .editor-heading h3 { margin: 4px 0 4px; font-size: 15px; font-weight: 790; letter-spacing: -.02em; }
 .editor-heading p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
 .status-pill { display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto; padding: 6px 9px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); color: var(--muted); font-size: 10px; font-weight: 650; white-space: nowrap; }
@@ -661,7 +657,6 @@ onMounted(() => {
   .editor-title-mark { flex-basis: 36px; width: 36px; height: 36px; }
   .editor-heading .status-pill { margin-left: 0; }
   .editor-heading-tools { width: 100%; justify-content: space-between; margin-left: 0; }
-  .workspace-height-control { flex: 1; grid-template-columns: auto minmax(60px, 1fr) auto; }
   .editor-body { padding: 0 16px; }
   .form-section { padding: 18px 0; gap: 14px; }
   .field-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
