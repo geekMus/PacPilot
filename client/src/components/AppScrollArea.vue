@@ -59,7 +59,7 @@ function onScroll(event: Event): void {
       <slot
         name="viewport"
         :viewport-component="ScrollAreaViewport"
-         :viewport-class="`app-scroll-area-viewport ${viewportClass}`"
+        :viewport-class="`app-scroll-area-viewport ${viewportClass}`"
         :on-scroll="onScroll"
       />
     </template>
