@@ -156,6 +156,7 @@ onMounted(() => void refreshGenerationLogs());
             :col-span="8"
             :row-height="58"
             height="520px"
+            fixed-height
             min-width="1225px"
             table-class="monitor-table"
             :has-more="accessHasMore"
