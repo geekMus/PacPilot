@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { ArtifactRepository } from "../repositories";
+import type { SyncArtifactRepository } from "../repositories";
 import { normalizeArtifactKey } from "../artifact-key";
 
 /** Filesystem-backed artifact repository shared by persistent database adapters. */
-export function createFilesystemArtifactRepository(dataDir: string): ArtifactRepository {
+export function createFilesystemArtifactRepository(dataDir: string): SyncArtifactRepository {
   const filePath = (key: string) => path.join(dataDir, normalizeArtifactKey(key));
   return {
     read(key) {
@@ -34,13 +34,19 @@ export function createFilesystemArtifactRepository(dataDir: string): ArtifactRep
     exists(key) {
       try {
         return fs.statSync(filePath(key)).isFile();
-      } catch { return false; }
+      } catch {
+        return false;
+      }
     },
     stat(key) {
       try {
         const stat = fs.statSync(filePath(key));
-        return stat.isFile() ? { size: stat.size, modifiedAt: stat.mtime.toISOString() } : undefined;
-      } catch { return undefined; }
+        return stat.isFile()
+          ? { size: stat.size, modifiedAt: stat.mtime.toISOString() }
+          : undefined;
+      } catch {
+        return undefined;
+      }
     },
     list(prefix = "") {
       const result: string[] = [];
@@ -53,7 +59,9 @@ export function createFilesystemArtifactRepository(dataDir: string): ArtifactRep
             if (entry.isDirectory()) walk(full, nextRelative);
             else if (entry.isFile() && nextRelative.startsWith(prefix)) result.push(nextRelative);
           }
-        } catch { /* missing or inaccessible directory */ }
+        } catch {
+          /* missing or inaccessible directory */
+        }
       };
       walk(dataDir, "");
       return result.sort();
@@ -68,7 +76,9 @@ export function createFilesystemArtifactRepository(dataDir: string): ArtifactRep
             if (entry.isDirectory()) walk(full);
             else if (entry.isFile()) bytes += fs.statSync(full).size;
           }
-        } catch { /* missing or inaccessible directory */ }
+        } catch {
+          /* missing or inaccessible directory */
+        }
       };
       walk(dataDir);
       return bytes;

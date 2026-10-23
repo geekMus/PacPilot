@@ -1,7 +1,7 @@
-import type { AdminCredentialRecord, AdminCredentialRepository } from "../repositories";
+import type { AdminCredentialRecord, SyncAdminCredentialRepository } from "../repositories";
 
 /** Process-local credential adapter; state disappears when this instance is discarded. */
-export class MemoryAdminCredentialRepository implements AdminCredentialRepository {
+export class MemoryAdminCredentialRepository implements SyncAdminCredentialRepository {
   private record: AdminCredentialRecord | null = null;
 
   get(): AdminCredentialRecord | null {
