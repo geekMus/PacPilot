@@ -160,20 +160,50 @@ export function createSqliteArtifactRepository(dataDir: string): ArtifactReposit
       }
     },
     exists(key) {
+      return Boolean(this.stat(key));
+    },
+    stat(key) {
       try {
-        if (isMemoryPath(dataDir)) { statEphemeralFile(filePath(key)); return true; }
-        return fs.statSync(filePath(key)).isFile();
-      } catch { return false; }
+        if (isMemoryPath(dataDir)) {
+          const stat = statEphemeralFile(filePath(key));
+          return { size: stat.size, modifiedAt: stat.mtime.toISOString() };
+        }
+        const stat = fs.statSync(filePath(key));
+        return stat.isFile() ? { size: stat.size, modifiedAt: stat.mtime.toISOString() } : undefined;
+      } catch { return undefined; }
     },
     list(prefix = "") {
       if (isMemoryPath(dataDir)) return [];
-      const root = prefix ? filePath(prefix) : dataDir;
-      try {
-        return fs.readdirSync(root, { withFileTypes: true })
-          .filter((entry) => entry.isFile())
-          .map((entry) => prefix ? (prefix.endsWith("/") ? prefix.slice(0, -1) : prefix) + "/" + entry.name : entry.name)
-          .sort();
-      } catch { return []; }
+      const result: string[] = [];
+      const walk = (dir: string, relative: string) => {
+        try {
+          for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            if (entry.isSymbolicLink()) continue;
+            const nextRelative = relative ? relative + "/" + entry.name : entry.name;
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) walk(full, nextRelative);
+            else if (entry.isFile() && nextRelative.startsWith(prefix)) result.push(nextRelative);
+          }
+        } catch { /* missing or inaccessible directory */ }
+      };
+      walk(dataDir, "");
+      return result.sort();
+    },
+    totalBytes() {
+      if (isMemoryPath(dataDir)) return 0;
+      let bytes = 0;
+      const walk = (dir: string) => {
+        try {
+          for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            if (entry.isSymbolicLink()) continue;
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) walk(full);
+            else if (entry.isFile()) bytes += fs.statSync(full).size;
+          }
+        } catch { /* missing or inaccessible directory */ }
+      };
+      walk(dataDir);
+      return bytes;
     },
   };
 }
