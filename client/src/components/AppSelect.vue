@@ -235,4 +235,9 @@ function onValueChange(value: string): void {
     background: transparent;
     color: var(--text);
   }
+
+  .app-select-item[data-state="checked"] {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
 }
