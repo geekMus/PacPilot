@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineAsyncComponent, ref } from "vue";
+import { defineAsyncComponent } from "vue";
 import {
   CheckboxIndicator,
   CheckboxRoot,
@@ -65,7 +65,6 @@ const {
   isValidTimeZone,
   filteredTimeZones,
   selectTimeZone,
-  closeTimezoneMenu,
   openMobileTimezonePicker,
   modeHint,
   cronPresets,
