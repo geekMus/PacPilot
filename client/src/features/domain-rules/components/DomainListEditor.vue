@@ -203,7 +203,7 @@ function buildExtensions(): Extension[] {
         fontSize: "13px",
       },
       ".cm-scroller": {
-        overflow: "auto",
+        overflow: "hidden",
         fontFamily: 'ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace',
         lineHeight: "1.65",
       },
