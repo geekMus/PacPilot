@@ -8,7 +8,7 @@
 /* CodeMirror uses project-owned overlay controls instead of native scrollbar chrome. */
 .cm-scroller { scrollbar-width: none !important; -ms-overflow-style: none; }
 .cm-scroller::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
-.cm-editor { position: relative; }
+.cm-editor { position: relative; isolation: isolate; }
 .cm-overlay-scrollbar {
   position: absolute; z-index: 20; display: block; padding: 2px; border-radius: 999px;
   background: transparent; opacity: .92; transition: opacity 120ms ease, background-color 120ms ease;

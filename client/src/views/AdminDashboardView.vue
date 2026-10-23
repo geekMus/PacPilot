@@ -161,7 +161,7 @@ onMounted(() => {
           <RouterLink to="/admin/settings" class="dash-button secondary"
             ><AppIcon name="settings" :size="16" />{{ t("dashboard.openSettings") }}</RouterLink
           >
-          <RouterLink to="/admin/monitor" class="dash-button secondary"
+          <RouterLink to="/admin/monitor#overall-stats" class="dash-button secondary"
             ><AppIcon name="activity" :size="16" />{{ t("dashboard.viewMonitor") }}</RouterLink
           >
           <RouterLink to="/admin/workflows" class="dash-button secondary"
@@ -226,7 +226,7 @@ onMounted(() => {
         >
       </RouterLink>
       <section class="overview-metrics" :aria-label="t('dashboard.keyStatus')">
-        <article class="overview-metric">
+        <RouterLink class="overview-metric" to="/">
           <div class="metric-top">
             <span class="metric-label">{{ t("dashboard.pacFileStatus") }}</span
             ><span class="metric-icon is-file"
@@ -243,8 +243,8 @@ onMounted(() => {
           <span class="metric-note">{{
             status?.hasPac ? t("dashboard.hasPacNote") : t("dashboard.noPacNote")
           }}</span>
-        </article>
-        <article class="overview-metric">
+        </RouterLink>
+        <RouterLink class="overview-metric" to="/admin/settings#mode">
           <div class="metric-top">
             <span class="metric-label">{{ t("dashboard.currentMode") }}</span
             ><span class="metric-icon is-route"
@@ -257,8 +257,8 @@ onMounted(() => {
               ? t("dashboard.modeRemoteHint")
               : t("dashboard.modeCustomHint")
           }}</span>
-        </article>
-        <article class="overview-metric">
+        </RouterLink>
+        <RouterLink class="overview-metric" to="/admin/settings#rules">
           <div class="metric-top">
             <span class="metric-label">{{ t("dashboard.customRules") }}</span
             ><span class="metric-icon is-rules"
@@ -272,8 +272,8 @@ onMounted(() => {
               block: settings?.blockList.length ?? 0,
             })
           }}</span>
-        </article>
-        <article class="overview-metric">
+        </RouterLink>
+        <RouterLink class="overview-metric" to="/admin/monitor#overall-stats">
           <div class="metric-top">
             <span class="metric-label">{{ t("dashboard.requests1h") }}</span
             ><span class="metric-icon is-activity"
@@ -282,7 +282,7 @@ onMounted(() => {
           </div>
           <strong class="metric-value">{{ monitor ? monitor.requestsLastHour : "—" }}</strong>
           <span class="metric-note">{{ t("dashboard.requests1hNote") }}</span>
-        </article>
+        </RouterLink>
       </section>
 
       <section class="overview-grid">
@@ -411,7 +411,7 @@ onMounted(() => {
             <h3>{{ t("dashboard.trend24h") }}</h3>
             <p>{{ t("dashboard.trend24hDesc") }}</p>
           </div>
-          <RouterLink to="/admin/monitor"
+          <RouterLink to="/admin/monitor#overall-stats"
             >{{ t("dashboard.detailMonitor") }} <AppIcon name="arrow-up-right" :size="13"
           /></RouterLink>
         </header>
@@ -929,5 +929,30 @@ onMounted(() => {
   color: var(--muted);
   font-size: 11px;
   overflow-wrap: anywhere;
+}
+
+/* Metric cards are real links, with keyboard focus and hover states matching the UI. */
+.overview-metric {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+.overview-metric:hover {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+  box-shadow: var(--shadow-sm, 0 5px 18px #0000000a);
+  transform: translateY(-1px);
+}
+.overview-metric:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .overview-metric {
+    transition: none;
+  }
+  .overview-metric:hover {
+    transform: none;
+  }
 }
 </style>

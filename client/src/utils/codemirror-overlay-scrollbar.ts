@@ -50,6 +50,7 @@ export function attachCodeMirrorOverlayScrollbars(view: EditorView): () => void 
     thumb.className = "cm-overlay-scrollbar-thumb";
     thumb.type = "button";
     thumb.setAttribute("role", "scrollbar");
+    thumb.tabIndex = 0;
     thumb.setAttribute("aria-controls", scroller.id);
     thumb.setAttribute("aria-orientation", axis);
     thumb.setAttribute("aria-valuemin", "0");
@@ -112,8 +113,14 @@ export function attachCodeMirrorOverlayScrollbars(view: EditorView): () => void 
   const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
   resize?.observe(editor); resize?.observe(scroller); resize?.observe(view.contentDOM); cleanup.push(() => resize?.disconnect());
   const mutation = typeof MutationObserver === "undefined" ? null : new MutationObserver(schedule);
-  mutation?.observe(view.contentDOM, { subtree: true, childList: true, characterData: true, attributes: true });
+  mutation?.observe(scroller, { subtree: true, childList: true, characterData: true, attributes: true });
   cleanup.push(() => mutation?.disconnect());
+  const onWindowResize = () => schedule();
+  window.addEventListener("resize", onWindowResize, { passive: true });
+  cleanup.push(() => window.removeEventListener("resize", onWindowResize));
+  // CodeMirror measures virtualized content asynchronously; measure again after first layout.
   schedule();
+  const initialFrame = requestAnimationFrame(schedule);
+  cleanup.push(() => cancelAnimationFrame(initialFrame));
   return () => { if (frame) cancelAnimationFrame(frame); cleanup.forEach(fn => fn()); if (!oldId) scroller.removeAttribute("id"); };
 }

@@ -80,7 +80,9 @@ const router = createRouter({
       if (!viewport) return { top: 0 };
 
       if (to.hash) {
-        const target = document.querySelector<HTMLElement>(to.hash);
+        // Resolve anchors inside the active scroll viewport first. A document-wide
+        // query can select a duplicate/off-screen element and calculate the wrong offset.
+        const target = viewport.querySelector<HTMLElement>(to.hash);
         if (target) {
           const top =
             target.getBoundingClientRect().top -

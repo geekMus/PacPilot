@@ -187,7 +187,7 @@ const {
           </div>
         </section>
 
-        <section class="monitor-panel pac-trend-panel">
+        <section id="pac-trends" class="monitor-panel pac-trend-panel">
           <div class="panel-heading">
             <div>
               <h2><AppIcon name="chart" :size="17" />{{ t("monitor.k83") }}</h2>
@@ -229,7 +229,7 @@ const {
           </div>
         </section>
 
-        <div class="overall-stats-heading">
+        <div id="overall-stats" class="overall-stats-heading">
           <h2><AppIcon name="activity" :size="17" />{{ t("monitor.k31") }}</h2>
           <p>{{ t("monitor.k91") }}</p>
         </div>
