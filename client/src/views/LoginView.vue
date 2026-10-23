@@ -6,6 +6,7 @@ import { api } from "@/api/client";
 import AppHeader from "@/components/AppHeader.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import AppIcon from "@/components/AppIcon.vue";
+import AppInput from "@/components/AppInput.vue";
 import { useToast } from "@/composables/useToast";
 import { PROJECT_LINKS } from "@shared/project-links";
 const { t } = useI18n();
@@ -14,7 +15,7 @@ const { notify } = useToast();
 const router = useRouter();
 const route = useRoute();
 const password = ref("");
-const passwordInput = ref<HTMLInputElement | null>(null);
+const passwordInput = ref<InstanceType<typeof AppInput> | null>(null);
 const notice = computed(() =>
   route.query.passwordChanged === "1" ? t("login.passwordChanged") : ""
 );
@@ -107,7 +108,7 @@ async function onSubmit() {
         </div>
         <form @submit.prevent="onSubmit">
           <label for="pw">{{ t("login.password") }}</label>
-          <input
+          <AppInput
             id="pw"
             ref="passwordInput"
             v-model="password"
@@ -236,32 +237,17 @@ async function onSubmit() {
   font-size: 12px;
   font-weight: 650;
 }
-.login-card input {
-  box-sizing: border-box;
-  width: 100%;
+.login-card .app-input {
   min-height: 44px;
   margin-bottom: 13px;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
   border-radius: 9px;
-  color: var(--text);
-  background: var(--bg);
 }
-.login-card input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-.login-card input:disabled {
-  color: var(--control-disabled-text);
+.login-card .app-input:disabled {
   -webkit-text-fill-color: var(--control-disabled-text);
-  background: var(--control-disabled-bg);
-  border-color: var(--control-disabled-border);
   box-shadow: none;
-  cursor: not-allowed;
   opacity: 1;
 }
-.login-card input:disabled::placeholder {
+.login-card .app-input:disabled::placeholder {
   color: var(--control-disabled-text);
   opacity: 1;
 }
@@ -409,7 +395,7 @@ async function onSubmit() {
     margin-bottom: 9px;
     font-size: 13px;
   }
-  .login-card input {
+  .login-card .app-input {
     min-height: 50px;
     margin-bottom: 16px;
     padding: 12px 14px;
