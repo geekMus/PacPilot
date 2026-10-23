@@ -482,7 +482,7 @@ onMounted(() => {
 .overview-value { margin-top: 4px; font-size: 25px; line-height: 1.25; font-weight: 800; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
 .overview-value span { color: var(--muted); font-size: 13px; font-weight: 550; letter-spacing: 0; }
 .overview-foot { margin-top: 6px; color: var(--muted); font-size: 10px; line-height: 1.4; }
-.workspace-tabs { position: sticky; top: var(--admin-topbar-space, 104px); flex: 0 0 auto; z-index: 20; display: flex; align-items: center; gap: 5px; padding: 5px; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--surface-2) 94%, transparent); backdrop-filter: blur(14px); }
+.workspace-tabs { position: static; flex: 0 0 auto; z-index: 20; display: flex; align-items: center; gap: 5px; padding: 5px; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--surface-2) 94%, transparent); backdrop-filter: blur(14px); }
 .workspace-tabs button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 15px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--muted); font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; transition: color .15s, background .15s, border-color .15s; }
 .workspace-tabs button:hover { color: var(--text); background: var(--surface); }
 .workspace-tabs button.active { color: var(--text); border-color: var(--line); background: var(--surface); box-shadow: 0 1px 2px #00000008; }
@@ -626,7 +626,6 @@ onMounted(() => {
 }
 @media (max-width: 900px) {
   .webhook-page { min-height: 0; }
-  .workspace-tabs { position: sticky; top: 0; }
   .workspace-layout, .history-workspace { flex: 0 0 auto; align-items: start; height: auto; max-height: none; }
   .editor-panel { display: block; overflow: visible; }
   .directory-panel { overflow: visible; }
