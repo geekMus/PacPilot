@@ -14,31 +14,33 @@ afterEach(() => {
 });
 
 describe("SQLite storage adapter", () => {
-  test("implements the repository contracts and preserves binary artifacts", () => {
+  test("implements the repository contracts and preserves binary artifacts", async () => {
     const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "pacpilot-storage-"));
     temporaryDirectories.push(dataDir);
     const database = createDatabase(":memory:");
     const storage = createSqliteApplicationStorage(database, dataDir);
     const memoryStorage = createMemoryApplicationStorage();
 
-    storage.settings.update({ timezone: "UTC" });
-    memoryStorage.settings.update({ timezone: "UTC" });
-    expect(storage.settings.get()).toEqual(memoryStorage.settings.get());
-    storage.credentials.set({ passwordHash: "hash", salt: "salt", sessionSecret: "secret" });
-    storage.generationLogs.append(true, "custom", "custom.uncompressed", { compressed: false });
-    const workflowId = storage.workflows.create("manual", "custom");
-    storage.artifacts.write("proxy.pac", "PAC");
-    storage.artifacts.write("binary.bin", new Uint8Array([0, 255, 1]));
+    await storage.settings.update({ timezone: "UTC" });
+    await memoryStorage.settings.update({ timezone: "UTC" });
+    expect(await storage.settings.get()).toEqual(await memoryStorage.settings.get());
+    await storage.credentials.set({ passwordHash: "hash", salt: "salt", sessionSecret: "secret" });
+    await storage.generationLogs.append(true, "custom", "custom.uncompressed", {
+      compressed: false,
+    });
+    const workflowId = await storage.workflows.create("manual", "custom");
+    await storage.artifacts.write("proxy.pac", "PAC");
+    await storage.artifacts.write("binary.bin", new Uint8Array([0, 255, 1]));
 
     expect(storage.driver).toBe("sqlite");
-    expect(storage.credentials.get()?.sessionSecret).toBe("secret");
-    expect(storage.generationLogs.count()).toBe(1);
-    expect(storage.workflows.get(workflowId)?.status).toBe("pending");
-    expect(new TextDecoder().decode(storage.artifacts.read("proxy.pac"))).toBe("PAC");
-    expect(storage.artifacts.list()).toContain("proxy.pac");
-    expect(Array.from(storage.artifacts.read("binary.bin") ?? [])).toEqual([0, 255, 1]);
+    expect((await storage.credentials.get())?.sessionSecret).toBe("secret");
+    expect(await storage.generationLogs.count()).toBe(1);
+    expect((await storage.workflows.get(workflowId))?.status).toBe("pending");
+    expect(new TextDecoder().decode(await storage.artifacts.read("proxy.pac"))).toBe("PAC");
+    expect(await storage.artifacts.list()).toContain("proxy.pac");
+    expect(Array.from((await storage.artifacts.read("binary.bin")) ?? [])).toEqual([0, 255, 1]);
 
-    storage.close();
+    await storage.close();
     memoryStorage.close();
   });
 
@@ -47,12 +49,12 @@ describe("SQLite storage adapter", () => {
     expect(() => createSqliteApplicationStorage(database, ":memory:")).toThrow(/memory adapter/);
     database.close();
   });
-  test("releases the cached connection on close and can reopen the same data directory", () => {
+  test("releases the cached connection on close and can reopen the same data directory", async () => {
     const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "pacpilot-storage-lifecycle-"));
     temporaryDirectories.push(dataDir);
     const first = getDb(dataDir);
     const storage = createSqliteApplicationStorage(first, dataDir);
-    storage.close();
+    await storage.close();
 
     const second = getDb(dataDir);
     expect(second).not.toBe(first);
@@ -67,5 +69,20 @@ describe("SQLite storage adapter", () => {
     expect(() => getDb(secondDir)).toThrow(/different data directory/);
     closeDb();
   });
+  test("exposes Promise-based operations and allows only one concurrent workflow claim", async () => {
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "pacpilot-storage-claims-"));
+    temporaryDirectories.push(dataDir);
+    const storage = createSqliteApplicationStorage(getDb(dataDir), dataDir);
+    const settingsPromise = storage.settings.get();
+    expect(settingsPromise).toBeInstanceOf(Promise);
+    await settingsPromise;
 
+    const workflowId = await storage.workflows.create("manual", "custom");
+    const claims = await Promise.all([
+      storage.workflows.claim(workflowId, "2026-10-23T10:00:00.000Z"),
+      storage.workflows.claim(workflowId, "2026-10-23T10:00:01.000Z"),
+    ]);
+    expect(claims.filter(Boolean)).toHaveLength(1);
+    await storage.close();
+  });
 });

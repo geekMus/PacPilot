@@ -19,8 +19,8 @@ async function getApplication(): Promise<ReturnType<typeof createApp>> {
 
       const env = loadEnv();
       const storage = createMemoryApplicationStorage();
-      const firstStart = isAdminCredentialsMissing(storage.credentials);
-      const initialPassword = createInitialAdminCredentials(
+      const firstStart = await isAdminCredentialsMissing(storage.credentials);
+      const initialPassword = await createInitialAdminCredentials(
         storage.credentials,
         process.env.ADMIN_PASSWORD,
         process.env.ADMIN_SESSION_SECRET
@@ -31,7 +31,8 @@ async function getApplication(): Promise<ReturnType<typeof createApp>> {
           "warn",
           "Initial administrator password is configured for this ephemeral Vercel instance. Set ADMIN_PASSWORD and ADMIN_SESSION_SECRET in Vercel environment variables to keep login initialization consistent across warm instances."
         );
-        if (!process.env.ADMIN_PASSWORD) runtimeLog("warn", "Generated initial administrator password: " + initialPassword);
+        if (!process.env.ADMIN_PASSWORD)
+          runtimeLog("warn", "Generated initial administrator password: " + initialPassword);
       }
 
       return createApp({ ...env, storageDriver: "memory", dataDir: ":memory:" }, storage);

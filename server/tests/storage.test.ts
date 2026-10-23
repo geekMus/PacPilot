@@ -2,14 +2,16 @@ import { describe, expect, it } from "vitest";
 import { createMemoryApplicationStorage } from "../storage/memory/application-storage";
 
 describe("memory storage adapter", () => {
-  it("keeps application repositories isolated and clears volatile state on close", () => {
+  it("keeps application repositories isolated and clears volatile state on close", async () => {
     const storage = createMemoryApplicationStorage();
     expect(storage.driver).toBe("memory");
 
-    storage.settings.update({ timezone: "UTC" });
-    storage.credentials.set({ passwordHash: "hash", salt: "salt", sessionSecret: "secret" });
-    storage.generationLogs.append(true, "custom", "custom.uncompressed", { compressed: false });
-    storage.monitoring.record({
+    await storage.settings.update({ timezone: "UTC" });
+    await storage.credentials.set({ passwordHash: "hash", salt: "salt", sessionSecret: "secret" });
+    await storage.generationLogs.append(true, "custom", "custom.uncompressed", {
+      compressed: false,
+    });
+    await storage.monitoring.record({
       created_at: new Date().toISOString(),
       method: "GET",
       path: "/proxy.pac",
@@ -28,60 +30,75 @@ describe("memory storage adapter", () => {
       request_headers: "{}",
       response_content_type: "text/plain",
     });
-    const workflowId = storage.workflows.create("manual", "custom");
-    storage.artifacts.write("proxy.pac", "PAC");
+    const workflowId = await storage.workflows.create("manual", "custom");
+    await storage.artifacts.write("proxy.pac", "PAC");
 
-    expect(storage.settings.get().timezone).toBe("UTC");
-    expect(storage.credentials.get()?.sessionSecret).toBe("secret");
-    expect(storage.generationLogs.count()).toBe(1);
-    expect(storage.monitoring.count()).toBe(1);
-    expect(storage.workflows.get(workflowId)?.status).toBe("pending");
-    expect(new TextDecoder().decode(storage.artifacts.read("proxy.pac"))).toBe("PAC");
-    expect(storage.maintenance.databaseBytes()).toBe(0);
+    expect((await storage.settings.get()).timezone).toBe("UTC");
+    expect((await storage.credentials.get())?.sessionSecret).toBe("secret");
+    expect(await storage.generationLogs.count()).toBe(1);
+    expect(await storage.monitoring.count()).toBe(1);
+    expect((await storage.workflows.get(workflowId))?.status).toBe("pending");
+    expect(new TextDecoder().decode(await storage.artifacts.read("proxy.pac"))).toBe("PAC");
+    expect(await storage.maintenance.databaseBytes()).toBe(0);
 
-    storage.close();
-    expect(storage.settings.get().timezone).toBe("Asia/Shanghai");
-    expect(storage.credentials.get()).toBeNull();
-    expect(storage.generationLogs.count()).toBe(0);
-    expect(storage.monitoring.count()).toBe(0);
-    expect(storage.workflows.count()).toBe(0);
-    expect(storage.artifacts.exists("proxy.pac")).toBe(false);
+    await storage.close();
+    expect((await storage.settings.get()).timezone).toBe("Asia/Shanghai");
+    expect(await storage.credentials.get()).toBeNull();
+    expect(await storage.generationLogs.count()).toBe(0);
+    expect(await storage.monitoring.count()).toBe(0);
+    expect(await storage.workflows.count()).toBe(0);
+    expect(await storage.artifacts.exists("proxy.pac")).toBe(false);
   });
 
-  it("uses the same normalized default settings as the SQLite adapter contract", () => {
+  it("uses the same normalized default settings as the SQLite adapter contract", async () => {
     const first = createMemoryApplicationStorage();
     const second = createMemoryApplicationStorage();
-    expect(first.settings.get()).toEqual(second.settings.get());
+    expect(await first.settings.get()).toEqual(await second.settings.get());
 
-    first.settings.update({ timezone: "UTC" });
-    expect(first.settings.get().timezone).toBe("UTC");
-    expect(second.settings.get().timezone).toBe("Asia/Shanghai");
+    await first.settings.update({ timezone: "UTC" });
+    expect((await first.settings.get()).timezone).toBe("UTC");
+    expect((await second.settings.get()).timezone).toBe("Asia/Shanghai");
 
-    first.close();
-    second.close();
+    await first.close();
+    await second.close();
   });
-  it("keeps workflow stages attached to existing runs and protects active history", () => {
+  it("keeps workflow stages attached to existing runs and protects active history", async () => {
     const storage = createMemoryApplicationStorage();
-    expect(() => storage.workflows.startStage(999, "prepare")).toThrow(/unknown workflow run/);
+    await expect(storage.workflows.startStage(999, "prepare")).rejects.toThrow(
+      /unknown workflow run/
+    );
 
-    const workflowId = storage.workflows.create("manual", "custom");
-    expect(storage.workflows.clearHistory()).toEqual({ deletedRuns: 0, activeRuns: 1 });
-    expect(storage.workflows.delete(workflowId)).toBe("active");
-    expect(storage.workflows.claim(workflowId, new Date().toISOString())).toBe(true);
+    const workflowId = await storage.workflows.create("manual", "custom");
+    expect(await storage.workflows.clearHistory()).toEqual({ deletedRuns: 0, activeRuns: 1 });
+    expect(await storage.workflows.delete(workflowId)).toBe("active");
+    expect(await storage.workflows.claim(workflowId, new Date().toISOString())).toBe(true);
 
-    const stageId = storage.workflows.startStage(workflowId, "prepare", "{}");
-    storage.workflows.finishStage(stageId, "succeeded");
-    expect(storage.workflows.stages(workflowId)).toMatchObject([
+    const stageId = await storage.workflows.startStage(workflowId, "prepare", "{}");
+    await storage.workflows.finishStage(stageId, "succeeded");
+    expect(await storage.workflows.stages(workflowId)).toMatchObject([
       { run_id: workflowId, stage_key: "prepare", status: "succeeded" },
     ]);
 
-    storage.workflows.update(workflowId, {
+    await storage.workflows.update(workflowId, {
       status: "succeeded",
       stage: "complete",
       finished_at: new Date().toISOString(),
     });
-    expect(storage.workflows.delete(workflowId)).toBe("deleted");
-    storage.close();
+    expect(await storage.workflows.delete(workflowId)).toBe("deleted");
+    await storage.close();
   });
+  it("exposes Promise-based operations and allows only one concurrent workflow claim", async () => {
+    const storage = createMemoryApplicationStorage();
+    const settingsPromise = storage.settings.get();
+    expect(settingsPromise).toBeInstanceOf(Promise);
+    await settingsPromise;
 
+    const workflowId = await storage.workflows.create("manual", "custom");
+    const claims = await Promise.all([
+      storage.workflows.claim(workflowId, "2026-10-23T10:00:00.000Z"),
+      storage.workflows.claim(workflowId, "2026-10-23T10:00:01.000Z"),
+    ]);
+    expect(claims.filter(Boolean)).toHaveLength(1);
+    await storage.close();
+  });
 });
