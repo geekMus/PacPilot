@@ -121,7 +121,7 @@ export function createSqliteWorkflowRepository(database: Database): WorkflowRepo
 
 export function createSqliteArtifactRepository(dataDir: string): ArtifactRepository {
   const filePath = (key: string) => {
-    let normalized = key.split("\\\\").join("/");
+    let normalized = key.split(String.fromCharCode(92)).join("/");
     while (normalized.startsWith("/")) normalized = normalized.slice(1);
     if (!normalized || normalized.split("/").some((part) => part === "." || part === "..")) {
       throw new Error("Artifact key must be a safe relative path.");
