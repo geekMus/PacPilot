@@ -21,8 +21,8 @@
 
 .timezone-options-scroll {
   width: 100%;
-  height: min(var(--timezone-list-height, 420px), var(--reka-combobox-content-available-height, 420px));
-  max-height: min(var(--timezone-list-height, 420px), var(--reka-combobox-content-available-height, 420px));
+  height: fit-content;
+  max-height: min(420px, var(--reka-combobox-content-available-height, 420px));
   min-height: 0;
   overflow: hidden;
 }
