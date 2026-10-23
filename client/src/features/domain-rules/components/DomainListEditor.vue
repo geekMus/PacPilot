@@ -338,7 +338,6 @@ watch(
       <AppScrollArea
         root-class="rule-diagnostic-list"
         viewport-class="rule-diagnostic-viewport"
-        :style="{ height: Math.min(220, diagnostics.length * 42 + 8) + 'px' }"
         orientation="vertical"
       >
         <button
@@ -430,6 +429,7 @@ watch(
 }
 .rule-diagnostic-list {
   display: flex;
+  height: fit-content;
   flex-direction: column;
   gap: 1px;
   max-height: 220px;
