@@ -25,6 +25,7 @@ const props = withDefaults(
     extensions?: Extension[];
     theme?: "app" | "one-dark";
     embedded?: boolean;
+    scrollbarMode?: "hover" | "always";
   }>(),
   {
     placeholder: "",
@@ -39,6 +40,7 @@ const props = withDefaults(
     extensions: () => [],
     theme: "app",
     embedded: false,
+    scrollbarMode: "hover",
   }
 );
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
@@ -197,7 +199,7 @@ watch(
       root-class="cm-field-scroll-area"
       viewport-class="cm-field-scroll-viewport"
       orientation="vertical"
-      type="auto"
+      :type="scrollbarMode"
     >
       <div ref="host" class="cm-field-host cm-field-host-scrollable"></div>
     </AppScrollArea>
