@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppHeader from "@/components/AppHeader.vue";
 import AppFooter from "@/components/AppFooter.vue";
-import RuleVirtualList from "@/components/RuleVirtualList.vue";
+import RuleVirtualList from "@/features/domain-rules/components/RuleVirtualList.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import { useStatusDashboard } from "@/composables/useStatusDashboard";
 
