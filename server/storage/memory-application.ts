@@ -8,6 +8,7 @@ import type {
   MonitorSummary,
 } from "./repositories";
 import { MemoryAdminCredentialRepository } from "./memory-credentials";
+import { normalizeArtifactKey } from "./artifact-key";
 
 function clone<T>(value: T): T {
   return structuredClone(value);
@@ -19,28 +20,20 @@ function safeLimit(value: number | undefined, fallback: number, max = 101): numb
 
 function createMemoryArtifacts() {
   const files = new Map<string, { bytes: Uint8Array; modifiedAt: string }>();
-  const keyOf = (key: string) => {
-    let normalized = key.split(String.fromCharCode(92)).join("/");
-    while (normalized.startsWith("/")) normalized = normalized.slice(1);
-    if (!normalized || normalized.split("/").some((part) => part === "." || part === "..")) {
-      throw new Error("Artifact key must be a safe relative path.");
-    }
-    return normalized;
-  };
   return {
-    read(key: string) { const item = files.get(keyOf(key)); return item ? new Uint8Array(item.bytes) : undefined; },
+    read(key: string) { const item = files.get(normalizeArtifactKey(key)); return item ? new Uint8Array(item.bytes) : undefined; },
     write(key: string, contents: Uint8Array | string) {
       const bytes = typeof contents === "string" ? new TextEncoder().encode(contents) : new Uint8Array(contents);
-      files.set(keyOf(key), { bytes, modifiedAt: new Date().toISOString() });
+      files.set(normalizeArtifactKey(key), { bytes, modifiedAt: new Date().toISOString() });
     },
-    delete(key: string) { return files.delete(keyOf(key)); },
-    exists(key: string) { return files.has(keyOf(key)); },
+    delete(key: string) { return files.delete(normalizeArtifactKey(key)); },
+    exists(key: string) { return files.has(normalizeArtifactKey(key)); },
     list(prefix = "") {
-      const normalized = prefix ? keyOf(prefix) : "";
+      const normalized = prefix ? normalizeArtifactKey(prefix) : "";
       return [...files.keys()].filter((key) => key.startsWith(normalized)).sort();
     },
     stat(key: string) {
-      const item = files.get(keyOf(key));
+      const item = files.get(normalizeArtifactKey(key));
       if (!item) return undefined;
       return { size: item.bytes.byteLength, modifiedAt: item.modifiedAt };
     },

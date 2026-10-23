@@ -42,6 +42,7 @@ import {
 } from "./workflows";
 import { getMonitorSummary, listAccessEvents, recordAccessEvent } from "./monitoring";
 import { SqliteAdminCredentialRepository } from "./credentials";
+import { normalizeArtifactKey } from "../artifact-key";
 
 export function createSqliteSettingsRepository(database: Database): SettingsRepository {
   return {
@@ -117,14 +118,7 @@ export function createSqliteWorkflowRepository(database: Database): WorkflowRepo
 }
 
 export function createSqliteArtifactRepository(dataDir: string): ArtifactRepository {
-  const filePath = (key: string) => {
-    let normalized = key.split(String.fromCharCode(92)).join("/");
-    while (normalized.startsWith("/")) normalized = normalized.slice(1);
-    if (!normalized || normalized.split("/").some((part) => part === "." || part === "..")) {
-      throw new Error("Artifact key must be a safe relative path.");
-    }
-    return path.join(dataDir, normalized);
-  };
+  const filePath = (key: string) => path.join(dataDir, normalizeArtifactKey(key));
   return {
     read(key) {
       const target = filePath(key);
