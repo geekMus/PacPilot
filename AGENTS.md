@@ -56,6 +56,7 @@
 - 实底按钮的文字色必须使用对应令牌：`--accent-contrast`、`--red-contrast`、`--green-contrast`。深色模式下 accent/red 为浅色，白字会看不清。
 - 响应式优先用 Tailwind 的 `sm:`/`md:` 等变体；确需媒体查询时写在样式块末尾，并保持既有断点语义（1050/900/720/650/620/560/480/360px）。
 - 共享组件（`AppButton`、`AppInput`、`AppSelect`、`AppDialog`、`AppScrollArea`、`TableFrame` 等）的样式由组件自身负责，业务页面只组合使用，不覆盖其内部样式。
+- **不要混用 `transform:` 与 Tailwind 的 `translate-*` / `rotate-*` / `scale-*` 工具类。** Tailwind v4 的这些工具类写入的是独立的 `translate` / `rotate` / `scale` 属性，而不是 `transform`。两者同时存在于同一元素时**不会互相覆盖**，只有 `transform` 生效。典型后果：移动端侧边栏关闭态写 `transform: translateX(-102%)`、展开态写 `@apply translate-x-0`，抽屉永远打不开。同一属性组必须统一用同一种机制表达。
 
 ## 前端滚动区域开发规范
 

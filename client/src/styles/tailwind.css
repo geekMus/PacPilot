@@ -184,6 +184,32 @@
   }
 }
 
+/* Link-shaped buttons (`<RouterLink class="app-button">`) must win over the
+   global unlayered `a { color: var(--accent) }` rule in theme.css. Unlayered
+   styles beat anything inside @layer, so the component-layer declaration never
+   applies — a primary button rendered as <a> painted accent text on an accent
+   background, i.e. invisible. Redeclaring the colours outside the layer keeps
+   the cascade honest without touching the global link styling. */
+a.app-button {
+  color: var(--text);
+}
+
+a.app-button--primary {
+  color: var(--accent-contrast);
+}
+
+a.app-button--ghost {
+  color: var(--accent);
+}
+
+a.app-button--danger {
+  color: var(--red-contrast);
+}
+
+a.app-button--danger-ghost {
+  color: var(--red);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-button,
   .app-icon-button {

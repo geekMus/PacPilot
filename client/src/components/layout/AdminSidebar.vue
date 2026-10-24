@@ -310,10 +310,13 @@ async function logout(): Promise<void> {
 }
 @media (max-width: 900px) {
   .admin-sidebar {
-    @apply fixed inset-y-0 left-0 z-50 h-dvh shadow-none transition-transform;
-    transform: translateX(-102%);
+    @apply fixed inset-y-0 left-0 z-50 h-dvh -translate-x-full shadow-none transition-transform;
   }
   .admin-sidebar.is-open {
+    /* Must resolve through the same `translate` property as the closed state
+       above. A raw `transform: translateX()` here would stay in effect,
+       because Tailwind's translate utilities write `translate`, not
+       `transform` — the drawer would then never slide in. */
     @apply translate-x-0;
     box-shadow: 18px 0 48px rgba(10, 20, 35, 0.18);
   }
