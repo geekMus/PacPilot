@@ -310,14 +310,18 @@ async function logout(): Promise<void> {
 }
 @media (max-width: 900px) {
   .admin-sidebar {
-    @apply fixed inset-y-0 left-0 z-50 h-dvh -translate-x-full shadow-none transition-transform;
+    /* Slide the drawer with `left` rather than `translate`/`transform`.
+       Mixing a raw `transform: translateX()` with Tailwind's `translate-*`
+       utilities is the classic failure: those write the separate `translate`
+       property, so the two never override each other and the drawer stays
+       stuck off-screen. Keeping the offset in `left` — the same property the
+       open state animates to — avoids that and interpolates reliably. */
+    @apply fixed inset-y-0 z-50 h-dvh shadow-none;
+    left: calc(var(--sidebar-width, 258px) * -1);
+    transition: left 0.2s ease;
   }
   .admin-sidebar.is-open {
-    /* Must resolve through the same `translate` property as the closed state
-       above. A raw `transform: translateX()` here would stay in effect,
-       because Tailwind's translate utilities write `translate`, not
-       `transform` — the drawer would then never slide in. */
-    @apply translate-x-0;
+    left: 0;
     box-shadow: 18px 0 48px rgba(10, 20, 35, 0.18);
   }
 }
