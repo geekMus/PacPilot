@@ -22,10 +22,10 @@ const {
 
 <template>
   <AdminLayout active="logs" :title="t('nav.logs')" :subtitle="t('logs.subtitle')">
-    <div class="logs-page">
+    <div class="monitor-page logs-page">
       <div v-if="monitorError" class="monitor-alert is-error" role="alert">{{ monitorError }}</div>
 
-<section class="monitor-panel">
+      <section class="monitor-panel">
           <div class="panel-heading">
             <div>
               <h2><AppIcon name="list-checks" :size="17" />{{ t("logs.accessTitle") }}</h2>

@@ -47,6 +47,10 @@
   --color-green-soft: var(--green-soft);
   --color-red: var(--red);
   --color-red-soft: var(--red-soft);
+  --color-violet: var(--violet);
+  --color-violet-soft: var(--violet-soft);
+  --color-teal: var(--teal);
+  --color-teal-soft: var(--teal-soft);
   --color-control-disabled-bg: var(--control-disabled-bg);
   --color-control-disabled-text: var(--control-disabled-text);
   --color-control-disabled-border: var(--control-disabled-border);

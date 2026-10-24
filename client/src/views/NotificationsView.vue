@@ -18,11 +18,13 @@ import CodeMirrorField from "@/components/CodeMirrorField.vue";
 import WebhookBodyEditor from "@/features/webhooks/components/WebhookBodyEditor.vue";
 import { api, type NotificationChannel, type NotificationRule, type WebhookConfig } from "@/api/client";
 import { useToast } from "@/composables/useToast";
+import { createAdminSettingsValidators } from "@/utils/admin-settings-validation";
 
 type ViewTab = "channels" | "rules" | "history";
 const { t, locale } = useI18n();
 const router = useRouter();
 const { notify } = useToast();
+const { validateWebhookDraft, webhookErrorMessages } = createAdminSettingsValidators(t);
 const loading = ref(true);
 const error = ref("");
 const tab = ref<ViewTab>("channels");
@@ -76,6 +78,10 @@ const failedDeliveries = computed(() => deliveries.value.filter((x) => x.status 
 const pendingDeliveries = computed(() => deliveries.value.filter((x) => x.status === "pending" || x.status === "sending"));
 const filteredDeliveries = computed(() => deliveryFilter.value === "all" ? deliveries.value : deliveries.value.filter((x) => x.status === deliveryFilter.value));
 const channelReady = computed(() => Boolean(ch.config.url.trim()) && (ch.config.provider !== "dingtalk" || Boolean(ch.config.dingTalkSecret.trim()) || Boolean(cid.value && channels.value.find((x) => x.id === cid.value)?.hasSecret)));
+/** 保存前的前端校验：与服务端一致地拦截非法 URL、JSON 与钉钉配置。 */
+const channelErrors = computed(() =>
+  webhookErrorMessages(validateWebhookDraft(ch.config, t("notifications.channelKickerEdit")))
+);
 const evName = (v: string) => {
   switch (v) {
     case "task.execution": return t("notifications.eventTaskExecution");
@@ -236,6 +242,10 @@ function editC(item: NotificationChannel) {
   Object.assign(ch, { name: item.name, enabled: item.enabled, config: { ...item.config } });
 }
 async function saveC() {
+  if (channelErrors.value.length) {
+    notify(channelErrors.value.join(" "), "error");
+    return;
+  }
   busy.value = true;
   try {
     const payload = { name: ch.name.trim(), enabled: ch.enabled, config: { ...ch.config } };
@@ -482,9 +492,10 @@ onMounted(() => {
                 <AppButton v-if="cid" variant="danger-ghost" @click="deleteC(channels.find(x => x.id === cid))"><AppIcon name="trash-2" :size="15" /> {{ t("common.delete") }}</AppButton>
                 <span class="footer-spacer"></span>
                 <AppButton variant="secondary" :disabled="!cid || (!!testingId && testingId === cid)" @click="testC(channels.find(x => x.id === cid))"><AppIcon :name="!!testingId && testingId === cid ? 'loader-circle' : 'activity'" :size="15" :class="{ spin: !!testingId && testingId === cid }" /> {{ !!testingId && testingId === cid ? t("notifications.buttonTesting") : t("notifications.buttonTest") }}</AppButton>
-                <AppButton type="submit" variant="primary" :disabled="busy || !ch.name.trim() || !ch.config.url.trim()"><AppIcon name="save" :size="15" /> {{ busy ? t("notifications.buttonSaving") : t("notifications.buttonSaveChannel") }}</AppButton>
+                <AppButton type="submit" variant="primary" :disabled="busy || !ch.name.trim() || !ch.config.url.trim() || channelErrors.length > 0"><AppIcon name="save" :size="15" /> {{ busy ? t("notifications.buttonSaving") : t("notifications.buttonSaveChannel") }}</AppButton>
               </footer>
-              <div v-if="cid && !channelReady" class="editor-note"><AppIcon name="info" :size="15" /> {{ t("notifications.hintChannelIncomplete") }}</div>
+              <div v-if="channelErrors.length" class="editor-note" role="alert"><AppIcon name="circle-alert" :size="15" /> {{ channelErrors.join(" ") }}</div>
+              <div v-else-if="cid && !channelReady" class="editor-note"><AppIcon name="info" :size="15" /> {{ t("notifications.hintChannelIncomplete") }}</div>
             </form>
             <section v-else class="editor-panel editor-placeholder" aria-live="polite"><div class="placeholder-icon"><AppIcon name="file-text" :size="22" /></div><p>{{ t("notifications.selectHint") }}</p></section>
           </section>

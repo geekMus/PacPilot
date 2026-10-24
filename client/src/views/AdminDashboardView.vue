@@ -536,14 +536,14 @@ onMounted(() => {
   color: var(--accent);
 }
 .metric-icon.is-rules {
-  color: #8b5cf6;
-  background: color-mix(in srgb, #8b5cf6 11%, var(--surface));
-  border-color: color-mix(in srgb, #8b5cf6 20%, var(--line));
+  color: var(--violet);
+  background: var(--violet-soft);
+  border-color: color-mix(in srgb, var(--violet) 20%, var(--line));
 }
 .metric-icon.is-activity {
-  color: #0e9f9a;
-  background: color-mix(in srgb, #0e9f9a 11%, var(--surface));
-  border-color: color-mix(in srgb, #0e9f9a 20%, var(--line));
+  color: var(--teal);
+  background: var(--teal-soft);
+  border-color: color-mix(in srgb, var(--teal) 20%, var(--line));
 }
 .metric-value {
   @apply block text-[clamp(20px,2.5vw,27px)] leading-tight tracking-[-0.04em];
