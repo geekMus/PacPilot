@@ -519,148 +519,128 @@ onMounted(() => void load());
   </AdminLayout>
 </template>
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .maintenance-status {
-  margin: 0 0 12px;
-  padding: 9px 11px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  @apply mb-3 mt-0 rounded-lg border px-[11px] py-[9px] text-[11px] leading-snug;
+  border-color: var(--line);
   background: var(--surface-2);
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.45;
   overflow-wrap: anywhere;
 }
-.system-password-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.system-password-form label { display: grid; gap: 7px; color: var(--muted); font-size: 12px; font-weight: 650; }
-
-.system-password-error { grid-column: 1 / -1; margin: 0; color: var(--red); font-size: 12px; }
-.system-password-help { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
-.system-password-help a { color: var(--accent); }
-.password-settings-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
-.password-settings-actions button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 1px solid var(--accent); border-radius: 8px; color: var(--accent-contrast); background: var(--accent); font: inherit; cursor: pointer; }
-.password-settings-actions button:disabled { opacity: .65; cursor: progress; }
-@media (max-width: 800px) { .system-password-form { grid-template-columns: minmax(0, 1fr); } }
+.system-password-form {
+  @apply grid grid-cols-3 gap-3.5;
+}
+.system-password-form label {
+  @apply grid gap-[7px] text-xs font-semibold;
+  color: var(--muted);
+}
+.system-password-error {
+  @apply col-span-full m-0 text-xs;
+  color: var(--red);
+}
+.system-password-help {
+  @apply col-span-full m-0 text-[11px] leading-normal;
+  color: var(--muted);
+}
+.system-password-help a {
+  color: var(--accent);
+}
+.password-settings-actions {
+  @apply col-span-full flex justify-end;
+}
+.password-settings-actions button {
+  @apply inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border px-3.5;
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+  background: var(--accent);
+}
+.password-settings-actions button:disabled {
+  @apply cursor-progress opacity-65;
+}
+@media (max-width: 800px) {
+  .system-password-form {
+    @apply grid-cols-1;
+  }
+}
 .system-settings {
-  display: grid;
-  gap: 18px;
+  @apply grid gap-[18px];
 }
 .settings-panel {
-  min-width: 0;
-  padding: 22px;
-  border: 1px solid var(--line);
-  border-radius: 13px;
+  @apply min-w-0 rounded-[13px] border p-[22px];
+  border-color: var(--line);
   background: var(--surface);
   box-shadow: var(--shadow-sm, 0 4px 18px #00000008);
 }
 .heading {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 18px;
+  @apply mb-[18px] flex items-center gap-3;
 }
 .heading > div {
-  flex: 1;
-  min-width: 0;
+  @apply min-w-0 flex-1;
 }
 .heading h2 {
-  margin: 0;
+  @apply m-0 text-base;
   color: var(--text);
-  font-size: 16px;
 }
 .heading p {
-  margin: 5px 0 0;
+  @apply mb-0 mt-[5px] text-xs leading-normal;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.55;
 }
 .icon-badge {
-  display: grid;
-  place-items: center;
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
+  @apply grid h-10 w-10 shrink-0 place-items-center rounded-[11px] border;
+  border-color: var(--line);
   color: var(--accent);
   background: var(--surface-2);
 }
 .metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  @apply grid grid-cols-3 gap-3;
 }
 .metric {
-  display: grid;
-  gap: 7px;
-  padding: 15px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  @apply grid min-w-0 gap-[7px] rounded-[10px] border p-[15px];
+  border-color: var(--line);
   background: var(--surface-2);
-  min-width: 0;
 }
 .metric span,
 .metric small {
+  @apply text-[11px];
   color: var(--muted);
-  font-size: 11px;
 }
 .metric strong {
-  font-size: 22px;
+  @apply text-[22px];
   color: var(--text);
   overflow-wrap: anywhere;
 }
 .counts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 18px;
-  margin-top: 14px;
+  @apply mt-3.5 flex flex-wrap gap-x-[18px] gap-y-2 text-[11px];
   color: var(--muted);
-  font-size: 11px;
 }
 .pac-files {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 14px;
+  @apply mb-3.5 grid grid-cols-2 gap-3;
 }
 .pac-file {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  @apply grid min-w-0 gap-2 rounded-[10px] border p-3.5;
+  border-color: var(--line);
   background: var(--surface-2);
 }
 .pac-file-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  @apply flex items-center justify-between gap-2.5;
 }
 .pac-file-head strong {
-  font-size: 13px;
+  @apply text-[13px];
   overflow-wrap: anywhere;
 }
 .pac-file p {
-  margin: 0;
+  @apply m-0 text-[11px] leading-normal;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.5;
 }
 .pac-file-meta {
-  display: grid;
-  gap: 5px;
+  @apply grid gap-[5px] text-[11px];
   color: var(--muted);
-  font-size: 11px;
   overflow-wrap: anywhere;
 }
 .file-state {
-  padding: 3px 7px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  white-space: nowrap;
+  @apply whitespace-nowrap rounded-full border px-[7px] py-[3px] text-[10px] font-bold;
+  border-color: var(--line);
 }
 .file-exists {
   color: var(--green);
@@ -670,58 +650,38 @@ onMounted(() => void load());
   color: var(--muted);
 }
 .empty-note {
-  margin: 0 0 14px;
-  padding: 12px;
-  border: 1px dashed var(--line);
-  border-radius: 9px;
+  @apply mb-3.5 mt-0 rounded-[9px] border border-dashed p-3 text-xs leading-normal;
+  border-color: var(--line);
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.6;
 }
 .history-count {
-  flex: 0 0 auto;
-  padding: 4px 9px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  @apply shrink-0 rounded-full border px-[9px] py-1 text-[11px];
+  border-color: var(--line);
   color: var(--muted);
-  font-size: 11px;
 }
 .maintenance-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  @apply flex flex-wrap gap-2.5;
 }
 .retention {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
+  @apply flex flex-wrap items-center gap-3;
 }
 .retention label {
-  font-size: 12px;
-  font-weight: 700;
+  @apply text-xs font-bold;
   color: var(--text);
 }
 .retention .app-select {
-  width: 145px;
-  min-width: 145px;
+  @apply w-[145px] min-w-[145px];
   flex: 0 0 145px;
 }
 .retention-status {
-  margin: 12px 0 0;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  @apply mb-0 mt-3 rounded-lg border px-2.5 py-2 text-[11px] leading-normal;
+  border-color: var(--line);
   background: var(--surface-2);
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.5;
 }
 .hint {
-  margin: 8px 0 0;
+  @apply mb-0 mt-2 text-[11px] leading-normal;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.6;
 }
 .danger-panel {
   border-color: color-mix(in srgb, var(--red) 24%, var(--line));
@@ -730,40 +690,28 @@ onMounted(() => void load());
   color: var(--red);
 }
 .state {
-  padding: 14px 0;
+  @apply px-0 py-3.5 text-[13px];
   color: var(--muted);
-  font-size: 13px;
 }
 .state.error {
   color: var(--red);
 }
 .state-loading {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  @apply flex items-start gap-3 rounded-[10px] border p-4;
+  border-color: var(--line);
   background: var(--surface-2);
 }
 .state-loading strong {
-  display: block;
+  @apply block text-[13px];
   color: var(--text);
-  font-size: 13px;
 }
 .state-loading p {
-  margin: 4px 0 0;
-  font-size: 12px;
-  line-height: 1.5;
+  @apply mb-0 mt-1 text-xs leading-normal;
 }
 .spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--line);
+  @apply h-[18px] w-[18px] shrink-0 animate-[sys-spin_0.8s_linear_infinite] rounded-full border-2;
+  border-color: var(--line);
   border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: sys-spin 0.8s linear infinite;
-  flex: 0 0 auto;
 }
 @keyframes sys-spin {
   to {
@@ -778,31 +726,28 @@ onMounted(() => void load());
 }
 @media (max-width: 650px) {
   .settings-panel {
-    padding: 15px;
+    @apply p-[15px];
   }
   .metrics {
-    grid-template-columns: 1fr;
+    @apply grid-cols-1;
   }
   .pac-files {
-    grid-template-columns: 1fr;
+    @apply grid-cols-1;
   }
   .metric strong {
-    font-size: 20px;
+    @apply text-xl;
   }
   .heading {
-    align-items: flex-start;
+    @apply items-start;
   }
   .retention {
-    align-items: stretch;
-    flex-direction: column;
+    @apply flex-col items-stretch;
   }
   .retention > * {
-    width: 100%;
+    @apply w-full;
   }
   .retention .app-select {
-    display: flex;
-    width: 100%;
-    min-width: 0;
+    @apply flex w-full min-w-0;
     flex: 1 1 auto;
   }
 }

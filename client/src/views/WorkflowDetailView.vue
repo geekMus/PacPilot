@@ -578,104 +578,68 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .detail-page {
-  display: grid;
-  gap: 18px;
+  @apply grid gap-[18px];
 }
 .detail-panel {
-  min-width: 0;
-  padding: 22px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  @apply min-w-0 rounded-[14px] border p-[22px];
+  border-color: var(--line);
   background: var(--surface);
 }
 .panel-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
+  @apply mb-4 flex items-start justify-between gap-3;
 }
 .eyebrow {
-  margin: 0 0 4px;
+  @apply mb-1 mt-0 text-[10px] font-extrabold tracking-[0.12em];
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
 }
 .panel-heading h2 {
-  margin: 0;
-  font-size: 1.15rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  @apply m-0 text-[1.15rem] font-extrabold tracking-tight;
 }
 .muted {
-  margin: 6px 0 0;
+  @apply mb-0 mt-1.5 text-xs leading-normal;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.5;
 }
 .meta-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 14px;
+  @apply mb-3.5 grid grid-cols-3 gap-3;
 }
 .meta-grid div {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
+  @apply grid min-w-0 gap-1;
 }
 .meta-grid span {
+  @apply text-[11px];
   color: var(--muted);
-  font-size: 11px;
 }
 .meta-grid strong {
-  font-size: 13px;
+  @apply text-[13px];
   overflow-wrap: anywhere;
 }
 .result-message,
 .failure-message {
-  display: grid;
-  gap: 6px;
-  margin-top: 12px;
+  @apply mt-3 grid gap-1.5;
 }
 .result-message strong,
 .failure-message strong {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  @apply inline-flex items-center gap-1.5 text-xs;
 }
 .result-message p,
 .failure-message pre {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.55;
+  @apply m-0 text-[13px] leading-normal;
 }
 .failure-message pre {
-  padding: 11px 12px;
-  border: 1px solid color-mix(in srgb, var(--red) 28%, var(--line));
-  border-radius: 10px;
+  @apply whitespace-pre-wrap rounded-[10px] border px-3 py-[11px];
+  border-color: color-mix(in srgb, var(--red) 28%, var(--line));
   background: var(--red-soft);
   color: var(--red);
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font: inherit;
 }
 .status {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 28px;
-  padding: 0 10px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  @apply inline-flex min-h-7 items-center gap-[5px] whitespace-nowrap rounded-full border px-2.5 text-[11px] font-bold;
+  border-color: var(--line);
   background: var(--surface-2);
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
 }
 .status.succeeded {
   color: var(--green);
@@ -697,37 +661,22 @@ onUnmounted(() => {
   border-color: color-mix(in srgb, var(--warn, #d97706) 30%, var(--line));
 }
 .stage-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+  @apply m-0 list-none p-0;
 }
 .stage-item {
-  display: flex;
-  gap: 12px;
-  position: relative;
-  padding-bottom: 22px;
+  @apply relative flex gap-3 pb-[22px];
 }
 .stage-item:last-child {
-  padding-bottom: 0;
+  @apply pb-0;
 }
 .stage-item:not(:last-child):before {
-  content: "";
-  position: absolute;
-  left: 15px;
-  top: 32px;
-  bottom: 0;
-  width: 1px;
+  @apply absolute bottom-0 left-[15px] top-8 w-px;
   background: var(--line);
+  content: "";
 }
 .stage-marker {
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  flex: 0 0 32px;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--line);
-  border-radius: 50%;
+  @apply z-[1] grid h-8 w-8 shrink-0 place-items-center rounded-full border;
+  border-color: var(--line);
   background: var(--surface-2);
   color: var(--muted);
 }
@@ -741,134 +690,69 @@ onUnmounted(() => {
   color: var(--accent);
 }
 .stage-body {
-  flex: 1;
-  min-width: 0;
-  padding: 2px 0 0;
+  @apply min-w-0 flex-1 pt-0.5;
 }
 .stage-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px 16px;
+  @apply flex items-start justify-between gap-x-4 gap-y-3;
 }
 .stage-heading-main {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-  flex: 1;
+  @apply grid min-w-0 flex-1 gap-1;
 }
 .stage-number {
+  @apply text-[10px] font-bold leading-tight tracking-[0.08em];
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  line-height: 1.2;
 }
 .stage-name-trigger {
-  display: inline;
-  width: fit-content;
-  max-width: 100%;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
+  @apply inline w-fit max-w-full cursor-pointer border-0 bg-none p-0 text-left text-sm font-bold tracking-tight no-underline transition-colors;
   color: var(--text);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 750;
-  letter-spacing: -0.02em;
   line-height: 1.35;
-  text-align: left;
-  cursor: pointer;
-  text-decoration: none;
   overflow-wrap: anywhere;
-  transition: color 0.15s;
 }
 .stage-name-trigger:hover,
 .stage-name-trigger:focus-visible {
+  @apply underline outline-none;
   color: var(--accent);
-  text-decoration: underline;
   text-underline-offset: 3px;
-  outline: none;
 }
 .stage-heading .status {
-  flex: 0 0 auto;
-  margin-top: 2px;
+  @apply mt-0.5 shrink-0;
 }
 .stage-body > p {
-  margin: 8px 0 0;
+  @apply mb-0 mt-2 text-xs leading-normal;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.6;
 }
 .stage-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  margin-top: 10px;
+  @apply mt-2.5 flex flex-wrap gap-x-3.5 gap-y-1.5 text-[11px] leading-snug;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.4;
 }
 .stage-error {
-  margin: 10px 0 0;
-  padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--red) 28%, var(--line));
-  border-radius: 10px;
+  @apply mb-0 mt-2.5 whitespace-pre-wrap rounded-[10px] border px-3 py-2.5 text-xs leading-normal;
+  border-color: color-mix(in srgb, var(--red) 28%, var(--line));
   background: var(--red-soft);
   color: var(--red);
-  font: inherit;
-  font-size: 12px;
-  line-height: 1.55;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 .no-stages,
 .loading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 20px;
+  @apply flex items-center gap-2.5 p-5 text-[13px];
   color: var(--muted);
-  font-size: 13px;
 }
 .error-panel {
-  display: grid;
-  gap: 8px;
-  padding: 14px;
-  border: 1px solid var(--red);
-  border-radius: 10px;
+  @apply grid gap-2 rounded-[10px] border p-3.5 text-xs;
+  border-color: var(--red);
   color: var(--red);
-  font-size: 12px;
 }
 .detail-page-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 4px 2px;
+  @apply flex flex-wrap items-center justify-between gap-3 px-0.5 py-1;
 }
 .detail-action-group {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  flex-wrap: wrap;
+  @apply flex flex-wrap items-center gap-[9px];
 }
 .back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  @apply inline-flex min-h-9 cursor-pointer items-center gap-[7px] rounded-lg border px-3 text-xs font-bold no-underline;
+  border-color: var(--line);
   color: var(--text);
-  text-decoration: none;
-  font-size: 12px;
-  font-weight: 700;
   background: var(--surface);
-  cursor: pointer;
 }
 .spinning {
   animation: spin 0.9s linear infinite;
@@ -885,25 +769,16 @@ onUnmounted(() => {
   }
 }
 .stage-detail-heading {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
+  @apply grid min-w-0 gap-1;
 }
 .stage-detail-title {
-  margin: 0;
+  @apply m-0 text-lg font-extrabold leading-snug tracking-tight;
   color: var(--text);
-  font-size: 18px;
-  font-weight: 800;
-  line-height: 1.35;
-  letter-spacing: -0.02em;
   overflow-wrap: anywhere;
 }
 .stage-detail-kicker {
-  margin: 0 0 4px;
+  @apply mb-1 mt-0 text-[10px] font-extrabold tracking-[0.12em];
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
 }
 .app-button.is-copy-success {
   border-color: color-mix(in srgb, var(--green) 55%, var(--line));
@@ -914,65 +789,43 @@ onUnmounted(() => {
   color: var(--red, #dc2626);
 }
 .stage-detail-body {
-  display: grid;
-  gap: 16px;
-  padding: 0;
+  @apply grid gap-4 p-0;
 }
 .stage-detail-message {
-  margin: 0;
+  @apply m-0 text-xs leading-normal;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.55;
   overflow-wrap: anywhere;
 }
 .stage-detail-section {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
+  @apply grid min-w-0 gap-2;
 }
 .stage-detail-section-title {
-  margin: 0;
+  @apply m-0 text-[11px] font-bold;
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
 }
 .stage-detail-hint {
-  margin: 0;
+  @apply m-0 text-[11px] leading-normal;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.5;
 }
 .stage-detail-meta {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  @apply grid grid-cols-2 gap-3;
 }
 .stage-detail-meta-card {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
+  @apply grid min-w-0 gap-1;
 }
 .stage-detail-meta-card span {
+  @apply text-[11px];
   color: var(--muted);
-  font-size: 11px;
 }
 .stage-detail-meta-card strong {
-  font-size: 12px;
+  @apply text-xs leading-snug;
   overflow-wrap: anywhere;
-  line-height: 1.45;
 }
 .stage-detail-pre {
-  margin: 0;
-  padding: 11px 12px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  @apply m-0 whitespace-pre-wrap rounded-[10px] border px-3 py-[11px] font-mono text-xs leading-normal;
+  border-color: var(--line);
   background: var(--surface-2);
   color: var(--text);
-  font: inherit;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1.55;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 .stage-detail-pre.is-error {
@@ -980,66 +833,57 @@ onUnmounted(() => {
   background: var(--red-soft);
   color: var(--red);
 }
-
 @media (max-width: 650px) {
   .detail-panel {
-    padding: 15px;
+    @apply p-[15px];
   }
   .meta-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    @apply grid-cols-2;
   }
   .stage-heading {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+    @apply flex-col items-start gap-2;
   }
   .stage-heading .status {
-    margin-top: 0;
+    @apply mt-0;
   }
   .stage-name-trigger {
-    font-size: 13px;
+    @apply text-[13px];
   }
   .stage-meta {
-    gap: 4px 12px;
-    margin-top: 8px;
+    @apply mt-2 gap-x-3 gap-y-1;
   }
   .detail-page-actions {
-    position: sticky;
-    bottom: 8px;
-    z-index: 10;
-    padding: 10px;
-    border: 1px solid var(--line);
-    border-radius: 12px;
+    @apply sticky bottom-2 z-10 rounded-xl border p-2.5;
+    border-color: var(--line);
     background: var(--surface);
     box-shadow: 0 6px 24px #00000012;
   }
   .detail-page-actions > .back-link {
-    flex: 1;
+    @apply flex-1;
   }
   .detail-action-group {
-    flex: 0 0 auto;
+    @apply shrink-0;
   }
   .stage-detail-body {
-    gap: 14px;
+    @apply gap-3.5;
   }
   .stage-detail-meta {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    @apply grid-cols-1 gap-2.5;
   }
   .stage-detail-pre {
+    @apply text-[11px];
     max-height: min(36vh, 240px);
-    font-size: 11px;
   }
 }
 .stage-detail-body {
-  padding: 0;
+  @apply p-0;
 }
 :deep(.stage-detail-dialog-body .app-scroll-area-viewport) {
-  padding: 16px 18px;
+  @apply px-[18px] py-4;
 }
 @media (max-width: 560px) {
   :deep(.stage-detail-dialog-body .app-scroll-area-viewport) {
-    padding: 14px;
+    @apply p-3.5;
   }
 }
 </style>
