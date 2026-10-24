@@ -6,7 +6,6 @@ import {
   api,
   type AdminSession,
   type AppSettings,
-  type GenerationLog,
   type PacPilotProbe,
   type MonitorSummary,
   type PacStatus,
@@ -17,10 +16,12 @@ import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import ResponsiveTrendChart from "@/components/ResponsiveTrendChart.vue";
-import GenerationLogTable from "@/components/GenerationLogTable.vue";
+import TableFrame from "@/components/TableFrame.vue";
+import { useWorkflowLabels } from "@/composables/useWorkflowLabels";
 
 const { t, locale } = useI18n();
 const router = useRouter();
+const { statusLabel, sourceLabel, durationLabel, dateLabel } = useWorkflowLabels();
 const loading = ref(true);
 const refreshing = ref(false);
 const generating = ref(false);
@@ -34,7 +35,7 @@ const notice = computed(() =>
 const noticeOkay = ref(true);
 const settings = ref<AppSettings | null>(null);
 const status = ref<PacStatus | null>(null);
-const logs = ref<GenerationLog[]>([]);
+const workflows = ref<WorkflowRun[]>([]);
 const monitor = ref<MonitorSummary | null>(null);
 const engine = ref<PacPilotProbe | null>(null);
 const currentWorkflow = ref<WorkflowRun | null>(null);
@@ -47,7 +48,6 @@ const modeLabel = computed(() =>
 const customRuleCount = computed(
   () => (settings.value?.directList.length ?? 0) + (settings.value?.blockList.length ?? 0)
 );
-const latestLog = computed(() => logs.value[0] ?? null);
 
 function formatStatusDate(value: string | undefined): string {
   if (!value) return t("common.noRecords");
@@ -69,18 +69,16 @@ async function loadOverview(): Promise<void> {
       return;
     }
 
-    const [nextSettings, nextStatus, nextLogs, nextMonitor, nextEngine, nextWorkflows] =
-      await Promise.all([
-        api.settings(),
-        api.status(),
-        api.logsPage(30, 0),
-        api.monitorSummary().catch(() => null),
-        api.pacpilotStatus().catch(() => null),
-        api.workflows(6).catch(() => null),
-      ]);
+    const [nextSettings, nextStatus, nextWorkflows, nextMonitor, nextEngine] = await Promise.all([
+      api.settings(),
+      api.status(),
+      api.workflows(6).catch(() => null),
+      api.monitorSummary().catch(() => null),
+      api.pacpilotStatus().catch(() => null),
+    ]);
     settings.value = nextSettings;
     status.value = nextStatus;
-    logs.value = nextLogs.items;
+    workflows.value = nextWorkflows?.runs.slice(0, 6) ?? [];
     monitor.value = nextMonitor;
     engine.value = nextEngine;
     currentWorkflow.value = nextWorkflows?.current ?? null;
@@ -318,16 +316,51 @@ onMounted(() => {
         <article class="dashboard-panel">
           <header class="panel-header">
             <div>
-              <h3>{{ t("dashboard.recentGenLogs") }}</h3>
-              <p>{{ t("dashboard.recentGenLogsDesc") }}</p>
+              <h3>{{ t("dashboard.recentWorkflows") }}</h3>
+              <p>{{ t("dashboard.recentWorkflowsDesc") }}</p>
             </div>
-            <RouterLink to="/admin/logs"
-              >{{ t("dashboard.viewLogs") }} <AppIcon name="arrow-up-right" :size="13"
+            <RouterLink to="/admin/workflows"
+              >{{ t("dashboard.viewWorkflows") }} <AppIcon name="arrow-up-right" :size="13"
             /></RouterLink>
           </header>
-          <GenerationLogTable v-if="logs.length" :items="logs" compact height="1246px" />
+          <TableFrame
+            v-if="workflows.length"
+            :height="260"
+            min-width="600px"
+            table-class="recent-table"
+            :row-height="40"
+          >
+            <template #columns>
+              <col style="width: 150px" /><col style="width: 110px" /><col style="width: 130px" /><col
+                style="width: 110px"
+              />
+            </template>
+            <template #header>
+              <tr>
+                <th>{{ t("workflowPage.k70") }}</th>
+                <th>{{ t("workflowPage.k71") }}</th>
+                <th>{{ t("workflowPage.k69") }}</th>
+                <th>{{ t("workflowPage.k72") }}</th>
+              </tr>
+            </template>
+            <template #body>
+              <tr v-for="run in workflows" :key="run.id">
+                <td class="nowrap">{{ dateLabel(run.created_at) }}</td>
+                <td>
+                  <span class="result-pill" :class="run.status === 'succeeded' ? 'good' : 'bad'"
+                    ><AppIcon
+                      :name="run.status === 'succeeded' ? 'circle-check' : 'circle-x'"
+                      :size="13"
+                    />{{ statusLabel(run.status) }}</span
+                  >
+                </td>
+                <td>{{ sourceLabel(run.source) }}</td>
+                <td class="log-message">{{ durationLabel(run) }}</td>
+              </tr>
+            </template>
+          </TableFrame>
           <div v-else class="panel-empty">
-            {{ loading ? t("dashboard.readingGenLogs") : t("dashboard.noGenLogs") }}
+            {{ loading ? t("dashboard.readingWorkflows") : t("dashboard.noWorkflows") }}
           </div>
         </article>
       </section>

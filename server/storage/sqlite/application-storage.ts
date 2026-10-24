@@ -9,7 +9,6 @@ import { checkpointDatabase, resetOperationalData, vacuumDatabase } from "./main
 import { SqliteAdminCredentialRepository } from "./credentials";
 import { createFilesystemArtifactRepository } from "../filesystem/artifact-repository";
 import { createSqliteSettingsRepository } from "./settings-repository";
-import { createSqliteGenerationLogRepository } from "./generation-log-repository";
 import { createSqliteMonitoringRepository } from "./monitoring-repository";
 import { createSqliteWorkflowRepository } from "./workflow-repository";
 import { createSqliteNotificationRepository } from "./notification-repository";
@@ -28,7 +27,6 @@ export function createSqliteApplicationStorage(
     driver: "sqlite",
     settings: asAsyncRepository(createSqliteSettingsRepository(database)),
     credentials: asAsyncRepository(new SqliteAdminCredentialRepository(database)),
-    generationLogs: asAsyncRepository(createSqliteGenerationLogRepository(database)),
     monitoring: asAsyncRepository(createSqliteMonitoringRepository(database)),
     workflows: asAsyncRepository(createSqliteWorkflowRepository(database)),
     notifications: asAsyncRepository(createSqliteNotificationRepository(database)),

@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
 
 /** SQLite schema migrations are additive and run atomically at startup. */
-export const CURRENT_SCHEMA_VERSION = 3;
+export const CURRENT_SCHEMA_VERSION = 4;
 
 export function initializeSchema(database: Database, ensureDefaultSettings: () => void): void {
   const version = Number(
@@ -27,16 +27,6 @@ export function initializeSchema(database: Database, ensureDefaultSettings: () =
       CREATE TABLE IF NOT EXISTS settings (
         key   TEXT PRIMARY KEY NOT NULL,
         value TEXT NOT NULL
-      );
-
-      CREATE TABLE IF NOT EXISTS generation_log (
-        id         INTEGER PRIMARY KEY AUTOINCREMENT,
-        success    INTEGER NOT NULL,
-        mode       TEXT NOT NULL,
-        result_code TEXT NOT NULL,
-        detail TEXT NOT NULL DEFAULT '{}',
-        error TEXT NOT NULL DEFAULT '',
-        created_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
 
       CREATE TABLE IF NOT EXISTS access_events (
@@ -103,14 +93,6 @@ export function initializeSchema(database: Database, ensureDefaultSettings: () =
     };
 
     const migrations: Record<string, Array<[string, string]>> = {
-      generation_log: [
-        ["success", "INTEGER NOT NULL DEFAULT 0"],
-        ["mode", "TEXT NOT NULL DEFAULT 'custom'"],
-        ["result_code", "TEXT NOT NULL DEFAULT ''"],
-        ["detail", "TEXT NOT NULL DEFAULT '{}'"],
-        ["error", "TEXT NOT NULL DEFAULT ''"],
-        ["created_at", "TEXT NOT NULL DEFAULT ''"],
-      ],
       access_events: [
         ["created_at", "TEXT NOT NULL DEFAULT ''"],
         ["method", "TEXT NOT NULL DEFAULT ''"],
@@ -166,10 +148,12 @@ export function initializeSchema(database: Database, ensureDefaultSettings: () =
     `);
 
     // Old rows may have received an empty placeholder during an additive migration.
-    database.run("UPDATE generation_log SET created_at = datetime('now') WHERE created_at = ''");
     database.run("UPDATE access_events SET created_at = datetime('now') WHERE created_at = ''");
     // Version 3 removes the retired proxy connectivity feature and its stored history.
     if (version < 3) database.run("DROP TABLE IF EXISTS proxy_probe_runs");
+    // Version 4 removes the generation-log feature; PAC is now served from /pac
+    // and workflow history in workflow_runs carries execution results instead.
+    if (version < 4) database.run("DROP TABLE IF EXISTS generation_log");
     database.run("UPDATE workflow_runs SET created_at = datetime('now') WHERE created_at = ''");
 
     const row = database.query("SELECT value FROM settings WHERE key = ?").get("config") as {

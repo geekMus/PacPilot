@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
-import { api, type GenerationLog } from "@/api/client";
+import { useI18n } from "vue-i18n";
+import { useMonitoringDashboard } from "@/composables/useMonitoringDashboard";
 import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AppDialog from "@/components/AppDialog.vue";
@@ -9,12 +8,8 @@ import AppSelect from "@/components/AppSelect.vue";
 import AppInput from "@/components/AppInput.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 import AppFooter from "@/components/AppFooter.vue";
-import GenerationLogTable from "@/components/GenerationLogTable.vue";
 import VirtualTable from "@/components/VirtualTable.vue";
-import { useMonitoringDashboard } from "@/composables/useMonitoringDashboard";
-import { useI18n } from "vue-i18n";
 
-const router = useRouter();
 const { t } = useI18n();
 const {
   accesses, accessHasMore, accessLoadingMore, accessLoadError, accessTotal,
@@ -23,59 +18,12 @@ const {
   formatAccessHeaders, copyAccessDetail, filteredAccesses, hasAccessFilters, resetAccessFilters,
   loadMoreAccesses, formatDate, formatDuration, formatBytes, categoryLabel, statusLabel, statusTone, error: monitorError,
 } = useMonitoringDashboard();
-const logs = ref<GenerationLog[]>([]);
-const logsLoading = ref(true);
-const logsError = ref("");
-const logHasMore = ref(false);
-const logLoadingMore = ref(false);
-const logTotal = ref(0);
-const pageSize = 50;
-
-async function refreshGenerationLogs(): Promise<void> {
-  logsLoading.value = true;
-  logsError.value = "";
-  try {
-    const session = await api.session();
-    if (!session.loggedIn) { await router.replace("/admin/login"); return; }
-    const page = await api.logsPage(pageSize, 0);
-    logs.value = page.items;
-    logHasMore.value = page.hasMore;
-    logTotal.value = page.total;
-  } catch (error) {
-    logsError.value = error instanceof Error ? error.message : String(error);
-  } finally { logsLoading.value = false; }
-}
-async function loadMoreGenerationLogs(): Promise<void> {
-  if (logLoadingMore.value || !logHasMore.value || !logs.value.length) return;
-  logLoadingMore.value = true;
-  try {
-    const cursor = logs.value[logs.value.length - 1]?.id ?? 0;
-    const page = await api.logsPage(pageSize, cursor);
-    const seen = new Set(logs.value.map((item) => item.id));
-    logs.value.push(...page.items.filter((item) => !seen.has(item.id)));
-    logHasMore.value = page.hasMore;
-    logTotal.value = page.total;
-  } catch (error) { logsError.value = error instanceof Error ? error.message : String(error); }
-  finally { logLoadingMore.value = false; }
-}
-onMounted(() => void refreshGenerationLogs());
 </script>
 
 <template>
   <AdminLayout active="logs" :title="t('nav.logs')" :subtitle="t('logs.subtitle')">
     <div class="logs-page">
       <div v-if="monitorError" class="monitor-alert is-error" role="alert">{{ monitorError }}</div>
-      <section class="monitor-panel generation-log-panel">
-        <div class="panel-heading">
-          <div><h2><AppIcon name="file-check" :size="17" />{{ t("logs.generationTitle") }}</h2>
-          <p>{{ t("settings.loadedLogs", { loaded: logs.length, total: logTotal }) }}</p></div>
-          <button class="app-button app-button--secondary" type="button" :disabled="logsLoading" @click="refreshGenerationLogs">
-            <AppIcon name="refresh-cw" :size="14" />{{ t("common.refresh") }}
-          </button>
-        </div>
-        <p v-if="logsError" class="monitor-state is-error" role="alert">{{ logsError }}</p>
-        <GenerationLogTable :items="logs" :height="480" :has-more="logHasMore" :loading="logLoadingMore" :error="logsError" :empty-text="t('settings.noLogs')" :load-more="loadMoreGenerationLogs" />
-      </section>
 
 <section class="monitor-panel">
           <div class="panel-heading">
@@ -354,7 +302,4 @@ onMounted(() => void refreshGenerationLogs());
   </AdminLayout>
 </template>
 
-<style scoped src="@/views/MonitoringView.css">.generation-log-row { cursor: pointer; }
-.generation-log-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-
-</style>
+<style scoped src="@/views/MonitoringView.css"></style>

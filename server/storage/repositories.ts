@@ -1,6 +1,5 @@
 import type {
   AppSettings,
-  GenerationMode,
   WorkflowRun,
   WorkflowStage,
   NotificationDocument,
@@ -83,31 +82,6 @@ export interface SyncAdminCredentialRepository {
   set(record: AdminCredentialRecord): void;
 }
 
-export interface GenerationLog {
-  id: number;
-  success: boolean;
-  mode: string;
-  result_code: string;
-  detail: Record<string, string | number | boolean>;
-  error: string;
-  created_at: string;
-}
-
-export interface SyncGenerationLogRepository {
-  append(
-    success: boolean,
-    mode: GenerationMode,
-    resultCode: string,
-    detail?: Record<string, string | number | boolean>,
-    error?: string
-  ): void;
-  list(limit?: number, offset?: number, beforeId?: number): GenerationLog[];
-  count(): number;
-  storageBytes(): number;
-  cleanup(retentionDays?: number): number;
-  clear(): number;
-}
-
 export interface SyncMonitoringRepository {
   record(event: AccessEventInput): void;
   list(limit?: number, beforeId?: number): AccessEvent[];
@@ -175,7 +149,6 @@ export type AsyncRepository<T> = {
 
 export type SettingsRepository = AsyncRepository<SyncSettingsRepository>;
 export type AdminCredentialRepository = AsyncRepository<SyncAdminCredentialRepository>;
-export type GenerationLogRepository = AsyncRepository<SyncGenerationLogRepository>;
 export type MonitoringRepository = AsyncRepository<SyncMonitoringRepository>;
 export type WorkflowRepository = AsyncRepository<SyncWorkflowRepository>;
 export type ArtifactRepository = AsyncRepository<SyncArtifactRepository>;
@@ -185,7 +158,6 @@ export interface ApplicationStorage {
   readonly driver: "sqlite" | "memory";
   readonly settings: SettingsRepository;
   readonly credentials: AdminCredentialRepository;
-  readonly generationLogs: GenerationLogRepository;
   readonly monitoring: MonitoringRepository;
   readonly workflows: WorkflowRepository;
   readonly notifications: NotificationRepository;

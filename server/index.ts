@@ -28,9 +28,8 @@ async function main(): Promise<void> {
   await storage.workflows.markInterrupted();
   const cleanupLogs = async (): Promise<void> => {
     const retentionDays = (await storage.settings.get()).logRetentionDays;
-    const deletedGenerationLogs = await storage.generationLogs.cleanup(retentionDays);
     const deletedAccessEvents = await storage.monitoring.cleanup(retentionDays);
-    if (deletedGenerationLogs + deletedAccessEvents > 0 && env.storageDriver === "sqlite") {
+    if (deletedAccessEvents > 0 && env.storageDriver === "sqlite") {
       await storage.maintenance.compact();
     }
   };

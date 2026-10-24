@@ -112,13 +112,7 @@ async function cleanupLogs() {
   cleaning.value = true;
   try {
     const r = await api.cleanupLogs();
-    notify(
-      t("systemPage.cleanupDone", {
-        g: r.deleted.generationLogs,
-        a: r.deleted.accessEvents,
-      }),
-      "success"
-    );
+    notify(t("systemPage.cleanupDone", { a: r.deleted.accessEvents }), "success");
     await refreshStorage();
   } catch (e) {
     notify(e instanceof Error ? e.message : String(e), "error");
@@ -132,13 +126,7 @@ async function clearAllLogs() {
   try {
     const r = await api.clearLogs();
     setConfirmation("clearLogs", false);
-    notify(
-      t("systemPage.clearedLogsKeepWorkflow", {
-        g: r.deleted.generationLogs,
-        a: r.deleted.accessEvents,
-      }),
-      "success"
-    );
+    notify(t("systemPage.clearedLogsKeepWorkflow", { a: r.deleted.accessEvents }), "success");
     await refreshStorage();
   } catch (e) {
     notify(e instanceof Error ? e.message : String(e), "error");
@@ -246,8 +234,7 @@ onMounted(() => void load());
           </div>
         </div>
         <div v-if="storage" class="counts">
-          <span>{{ t("systemPage.countGen", { n: storage.counts.generationLogs }) }}</span
-          ><span>{{ t("systemPage.countAccess", { n: storage.counts.accessEvents }) }}</span
+          <span>{{ t("systemPage.countAccess", { n: storage.counts.accessEvents }) }}</span
           ><span>{{ t("systemPage.countWorkflow", { n: storage.counts.workflows }) }}</span>
         </div>
       </section>

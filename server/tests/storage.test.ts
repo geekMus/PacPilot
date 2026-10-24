@@ -8,9 +8,6 @@ describe("memory storage adapter", () => {
 
     await storage.settings.update({ timezone: "UTC" });
     await storage.credentials.set({ passwordHash: "hash", salt: "salt", sessionSecret: "secret" });
-    await storage.generationLogs.append(true, "custom", "custom.uncompressed", {
-      compressed: false,
-    });
     await storage.monitoring.record({
       created_at: new Date().toISOString(),
       method: "GET",
@@ -35,7 +32,6 @@ describe("memory storage adapter", () => {
 
     expect((await storage.settings.get()).timezone).toBe("UTC");
     expect((await storage.credentials.get())?.sessionSecret).toBe("secret");
-    expect(await storage.generationLogs.count()).toBe(1);
     expect(await storage.monitoring.count()).toBe(1);
     expect((await storage.workflows.get(workflowId))?.status).toBe("pending");
     expect(new TextDecoder().decode(await storage.artifacts.read("proxy.pac"))).toBe("PAC");
@@ -44,7 +40,6 @@ describe("memory storage adapter", () => {
     await storage.close();
     expect((await storage.settings.get()).timezone).toBe("Asia/Shanghai");
     expect(await storage.credentials.get()).toBeNull();
-    expect(await storage.generationLogs.count()).toBe(0);
     expect(await storage.monitoring.count()).toBe(0);
     expect(await storage.workflows.count()).toBe(0);
     expect(await storage.artifacts.exists("proxy.pac")).toBe(false);

@@ -3,9 +3,12 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { api, type WorkflowRun } from "@/api/client";
 import { useToast } from "@/composables/useToast";
+import { useWorkflowLabels } from "@/composables/useWorkflowLabels";
 
 export function useWorkflowDashboard() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
+  const { statusLabel, stageLabel, sourceLabel, modeLabel, durationLabel, dateLabel } =
+    useWorkflowLabels();
 
   const router = useRouter();
   const { notify } = useToast();
@@ -61,41 +64,6 @@ export function useWorkflowDashboard() {
         (selectedSource.value === "all" || run.source === selectedSource.value)
     )
   );
-  const statusNames: Record<string, string> = {
-    pending: "workflowPage.k0",
-    running: "workflowPage.k1",
-    succeeded: "workflowPage.k2",
-    failed: "workflowPage.k3",
-    cancelled: "workflowPage.k4",
-  };
-  const sourceNames: Record<string, string> = {
-    startup: "workflowPage.k5",
-    scheduled: "workflowPage.k6",
-    manual: "workflowPage.k7",
-    "save-and-generate": "workflowPage.k8",
-  };
-  const statusLabel = (status: string) => (statusNames[status] ? t(statusNames[status]) : status);
-  const stageLabel = (stage: string) => t(`workflow.stageNames.${stage}`);
-  const sourceLabel = (source: string) => (sourceNames[source] ? t(sourceNames[source]) : source);
-  const modeLabel = (mode: string) =>
-    mode === "remote"
-      ? t("workflowPage.k9")
-      : mode === "custom"
-        ? t("workflowPage.k10")
-        : mode || "—";
-  const durationLabel = (run: WorkflowRun) => {
-    const ms =
-      run.duration_ms ?? (run.started_at ? Date.now() - new Date(run.started_at).getTime() : null);
-    if (ms === null) return "—";
-    if (ms < 1000) return ms + " ms";
-    if (ms < 60000) return t("workflowPage.sec", { n: (ms / 1000).toFixed(1) });
-    return t("workflowPage.minSec", {
-      m: Math.floor(ms / 60000),
-      s: Math.floor((ms % 60000) / 1000),
-    });
-  };
-  const dateLabel = (value: string | null) =>
-    value ? new Date(value).toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN") : "—";
 
   async function load(silent = false, resetHistory = false) {
     if (requestInFlight) return;
@@ -302,7 +270,6 @@ export function useWorkflowDashboard() {
 
   return {
     t,
-    locale,
     router,
     loading,
     refreshing,

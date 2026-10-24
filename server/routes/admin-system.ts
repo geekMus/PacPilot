@@ -21,7 +21,6 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
     const dataBytes = await storage.artifacts.totalBytes();
     const dbBytes = await storage.maintenance.databaseBytes();
     const counts = {
-      generationLogs: await storage.generationLogs.count(),
       accessEvents: await storage.monitoring.count(),
       workflows: await storage.workflows.count(),
       activeWorkflows: (await storage.workflows.listActive()).length,
@@ -38,8 +37,7 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
     res.json({
       dataBytes,
       dbBytes,
-      logBytes:
-        (await storage.generationLogs.storageBytes()) + (await storage.monitoring.storageBytes()),
+      logBytes: await storage.monitoring.storageBytes(),
       retentionDays: (await storage.settings.get()).logRetentionDays,
       counts,
       pac: {
@@ -136,10 +134,9 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
   router.post("/api/admin/logs/cleanup", requireAdmin(storage.credentials), async (_req, res) => {
     const retentionDays = (await storage.settings.get()).logRetentionDays;
     const deleted = {
-      generationLogs: await storage.generationLogs.cleanup(retentionDays),
       accessEvents: await storage.monitoring.cleanup(retentionDays),
     };
-    if (deleted.generationLogs + deleted.accessEvents > 0) {
+    if (deleted.accessEvents > 0) {
       if (env.storageDriver === "sqlite") await storage.maintenance.compact();
     }
     res.json({ deleted, retentionDays: (await storage.settings.get()).logRetentionDays });
@@ -147,7 +144,6 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
   router.post("/api/admin/logs/clear", requireAdmin(storage.credentials), async (_req, res) => {
     try {
       const deleted = {
-        generationLogs: await storage.generationLogs.clear(),
         accessEvents: await storage.monitoring.clear(),
       };
       if (env.storageDriver === "sqlite") await storage.maintenance.compact();
@@ -181,27 +177,6 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
     } catch (e) {
       res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
     }
-  });
-  router.get("/api/admin/logs", requireAdmin(storage.credentials), async (_req, res) => {
-    res.json(await storage.generationLogs.list(50));
-  });
-  router.get("/api/admin/logs/page", requireAdmin(storage.credentials), async (req, res) => {
-    res.setHeader("Cache-Control", "no-store");
-    const limit = Math.min(
-      100,
-      Math.max(1, Number.parseInt(String(req.query.limit ?? "50"), 10) || 50)
-    );
-    const beforeId = Math.max(0, Number.parseInt(String(req.query.beforeId ?? "0"), 10) || 0);
-    const rows = await storage.generationLogs.list(limit + 1, 0, beforeId);
-    const total = await storage.generationLogs.count();
-    const hasMore = rows.length > limit;
-    res.json({
-      items: rows.slice(0, limit),
-      nextCursor:
-        rows.length > limit ? (rows[limit - 1]?.id ?? null) : (rows[rows.length - 1]?.id ?? null),
-      total,
-      hasMore,
-    });
   });
   return router;
 }

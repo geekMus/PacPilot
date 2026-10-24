@@ -1,5 +1,4 @@
 import { minify } from "terser";
-import path from "path";
 import { isIP } from "node:net";
 import type { ApplicationStorage } from "../storage/repositories";
 import { APP_VERSION } from "../version";
@@ -28,7 +27,6 @@ export interface GenerateResult {
   message: string;
   resultCode: string;
   resultData?: Record<string, string | number | boolean>;
-  pacPath: string;
   /** Structured diagnostics for workflow stage detail panels. */
   detail?: Record<string, unknown>;
 }
@@ -221,13 +219,11 @@ export async function probePacPilot(): Promise<EngineProbe> {
 }
 
 export async function generatePac(
-  storage: Pick<ApplicationStorage, "settings" | "generationLogs" | "artifacts">,
-  dataDir: string
+  storage: Pick<ApplicationStorage, "settings" | "artifacts">
 ): Promise<GenerateResult> {
   const settings = await storage.settings.get();
   // No PAC files are written any more; the rendered body lives in memory and
   // the remote rule snapshot in the artifact store.
-  const pacPath = path.join(dataDir, "proxy.pac");
 
   try {
     const proxyError = validatePacProxyString(settings.pacProxy);
@@ -324,14 +320,12 @@ export async function generatePac(
       };
     }
 
-    await storage.generationLogs.append(true, settings.mode, resultCode, resultData);
     return {
       success: true,
       mode: settings.mode,
       message,
       resultCode,
       resultData,
-      pacPath,
       detail,
     };
   } catch (err: unknown) {
@@ -340,14 +334,12 @@ export async function generatePac(
       err && typeof err === "object" && "fetchMeta" in err
         ? (err as { fetchMeta?: unknown }).fetchMeta
         : undefined;
-    await storage.generationLogs.append(false, settings.mode, "failed", {}, message);
     runtimeLog("error", `PAC generation failed: ${message}`);
     return {
       success: false,
       mode: settings.mode,
       message,
       resultCode: "failed",
-      pacPath,
       detail: {
         mode: settings.mode,
         list_url: settings.listUrl || null,

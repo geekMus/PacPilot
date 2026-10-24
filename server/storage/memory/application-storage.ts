@@ -4,7 +4,6 @@ import type { ApplicationStorage } from "../repositories";
 import { asAsyncRepository } from "../async-repository";
 import { MemoryAdminCredentialRepository } from "./admin-credential-repository";
 import { createMemoryArtifactRepository } from "./artifact-repository";
-import { createMemoryGenerationLogRepository } from "./generation-log-repository";
 import { createMemoryMonitoringRepository } from "./monitoring-repository";
 import { createMemorySettingsRepository } from "./settings-repository";
 import { createMemoryWorkflowRepository } from "./workflow-repository";
@@ -14,7 +13,6 @@ export function createMemoryApplicationStorage(): ApplicationStorage {
   const settings = createMemorySettingsRepository();
   const credentials = new MemoryAdminCredentialRepository();
   const artifacts = createMemoryArtifactRepository();
-  const generationLogs = createMemoryGenerationLogRepository(() => settings.get().logRetentionDays);
   const monitoring = createMemoryMonitoringRepository(() => settings.get().logRetentionDays);
   const workflows = createMemoryWorkflowRepository();
   const notifications = createMemoryNotificationRepository();
@@ -24,7 +22,6 @@ export function createMemoryApplicationStorage(): ApplicationStorage {
     driver: "memory",
     settings: asAsyncRepository(settings),
     credentials: asAsyncRepository(credentials),
-    generationLogs: asAsyncRepository(generationLogs),
     monitoring: asAsyncRepository(monitoring),
     workflows: asAsyncRepository(workflows),
     notifications: asAsyncRepository(notifications),
@@ -34,7 +31,6 @@ export function createMemoryApplicationStorage(): ApplicationStorage {
       compact: () => {},
       checkpoint: () => {},
       resetOperationalData(value: AppSettings) {
-        generationLogs.clear();
         monitoring.clear();
         workflows.reset();
         notifications.reset();
@@ -47,7 +43,6 @@ export function createMemoryApplicationStorage(): ApplicationStorage {
       settings.set(DEFAULT_SETTINGS);
       credentials.clear();
       artifacts.clear();
-      generationLogs.clear();
       monitoring.clear();
       workflows.reset();
       notifications.reset();

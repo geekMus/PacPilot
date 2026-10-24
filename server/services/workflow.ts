@@ -34,7 +34,6 @@ const cancelledResult = (): GenerateResult => ({
   mode: "",
   message: t("zh_CN", "serverErrors.workflowCancelled"),
   resultCode: "cancelled",
-  pacPath: "",
 });
 
 export async function hasActivePacWorkflow(storage: ApplicationStorage): Promise<boolean> {
@@ -72,7 +71,7 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
     const generationStage = await storage.workflows.startStage(id, "generate-pac");
     await storage.workflows.update(id, { stage: "generate-pac" });
     activeStageId = generationStage;
-    const generation = await generatePac(storage, item.dataDir);
+    const generation = await generatePac(storage);
     const finishedAt = new Date();
     const generationDetail = encodeWorkflowStageDetail(generation.detail || {});
     await storage.workflows.finishStage(

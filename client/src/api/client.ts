@@ -60,22 +60,12 @@ export interface WebhookTestResult {
   message: string;
 }
 
-export interface GenerationLog {
-  id: number;
-  success: boolean;
-  mode: string;
-  result_code: string;
-  detail: Record<string, string | number | boolean>;
-  error: string;
-  created_at: string;
-}
 export interface GenerateResult {
   workflowId?: number;
   success: boolean;
   mode: string;
   message: string;
   resultCode: string;
-  pacPath: string;
 }
 
 export interface SaveAndGenerateResult {
@@ -137,7 +127,6 @@ export interface StorageSummary {
   logBytes: number;
   retentionDays: number;
   counts: {
-    generationLogs: number;
     accessEvents: number;
     workflows: number;
     activeWorkflows: number;
@@ -327,9 +316,6 @@ export const api = {
       body: JSON.stringify(body),
     }),
   generate: () => request<GenerateStartResult>("/api/admin/generate", { method: "POST" }),
-  logs: () => request<GenerationLog[]>("/api/admin/logs"),
-  logsPage: (limit = 50, beforeId = 0) =>
-    request<PagedResult<GenerationLog>>(`/api/admin/logs/page?limit=${limit}&beforeId=${beforeId}`),
   workflows: (limit = 50, beforeId = 0) =>
     request<WorkflowList>(`/api/admin/workflows?limit=${limit}&beforeId=${beforeId}`),
   clearWorkflowHistory: () =>
@@ -349,12 +335,12 @@ export const api = {
     ),
   cleanupLogs: () =>
     request<{
-      deleted: { generationLogs: number; accessEvents: number };
+      deleted: { accessEvents: number };
       retentionDays: number;
     }>("/api/admin/logs/cleanup", { method: "POST" }),
   clearLogs: () =>
     request<{
-      deleted: { generationLogs: number; accessEvents: number };
+      deleted: { accessEvents: number };
       retentionDays: number;
     }>("/api/admin/logs/clear", { method: "POST" }),
   factoryReset: () =>

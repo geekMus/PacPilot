@@ -25,16 +25,12 @@ describe("SQLite storage adapter", () => {
     await memoryStorage.settings.update({ timezone: "UTC" });
     expect(await storage.settings.get()).toEqual(await memoryStorage.settings.get());
     await storage.credentials.set({ passwordHash: "hash", salt: "salt", sessionSecret: "secret" });
-    await storage.generationLogs.append(true, "custom", "custom.uncompressed", {
-      compressed: false,
-    });
     const workflowId = await storage.workflows.create("manual", "custom");
     await storage.artifacts.write("proxy.pac", "PAC");
     await storage.artifacts.write("binary.bin", new Uint8Array([0, 255, 1]));
 
     expect(storage.driver).toBe("sqlite");
     expect((await storage.credentials.get())?.sessionSecret).toBe("secret");
-    expect(await storage.generationLogs.count()).toBe(1);
     expect((await storage.workflows.get(workflowId))?.status).toBe("pending");
     expect(new TextDecoder().decode(await storage.artifacts.read("proxy.pac"))).toBe("PAC");
     expect(await storage.artifacts.list()).toContain("proxy.pac");
