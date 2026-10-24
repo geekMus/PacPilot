@@ -703,7 +703,8 @@ onUnmounted(() => {
   color: var(--muted);
 }
 .stage-name-trigger {
-  @apply inline w-fit max-w-full cursor-pointer border-0 bg-none p-0 text-left text-sm font-bold tracking-tight no-underline transition-colors;
+  /* 无 Preflight 时 button 保留浏览器默认的 buttonface 底色，必须显式清除背景色。 */
+  @apply inline w-fit max-w-full cursor-pointer border-0 bg-transparent p-0 text-left text-sm font-bold tracking-tight no-underline transition-colors;
   color: var(--text);
   line-height: 1.35;
   overflow-wrap: anywhere;
