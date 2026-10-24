@@ -412,24 +412,23 @@ watch(
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .responsive-trend-chart {
-  min-width: 0;
-  width: 100%;
+  @apply w-full min-w-0;
 }
 .chart-host {
-  width: 100%;
-  height: 240px;
-  min-height: 160px;
+  @apply h-[240px] min-h-[160px] w-full;
 }
 .compact .chart-host {
-  height: 180px;
+  @apply h-[180px];
 }
 @media (max-width: 560px) {
   .chart-host {
-    height: 200px;
+    @apply h-[200px];
   }
   .compact .chart-host {
-    height: 160px;
+    @apply h-[160px];
   }
 }
 </style>

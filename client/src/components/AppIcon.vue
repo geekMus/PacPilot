@@ -141,9 +141,9 @@ const selectedIcon = computed(() => {
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .app-icon {
-  display: inline-block;
-  flex: 0 0 auto;
-  vertical-align: middle;
+  @apply inline-block shrink-0 align-middle;
 }
 </style>

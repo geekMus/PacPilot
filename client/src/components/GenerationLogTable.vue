@@ -80,10 +80,10 @@ function message(entry: GenerationLog): string {
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .log-message,
 .msg {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
 }
 </style>

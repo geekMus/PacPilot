@@ -23,14 +23,13 @@ const route = useRoute();
 </template>
 
 <style>
+@reference "@/styles/tailwind.css";
+
 .app-shell {
-  width: 100%;
-  height: 100dvh;
-  overflow: hidden;
+  @apply h-dvh w-full overflow-hidden;
 }
 
 .app-public-scroll {
-  width: 100%;
-  height: 100%;
+  @apply h-full w-full;
 }
 </style>

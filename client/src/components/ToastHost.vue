@@ -53,18 +53,16 @@ const toastOptions = {
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 :deep([data-sonner-toaster][data-x-position="center"]) {
+  @apply max-w-[calc(100vw-32px)] font-sans;
   width: min(420px, calc(100vw - 32px)) !important;
-  max-width: calc(100vw - 32px);
-  font-family: var(--font);
 }
 
 :deep([data-sonner-toast]) {
-  box-sizing: border-box;
-  width: 100%;
-  max-width: 100%;
+  @apply box-border w-full max-w-full tracking-[0.01em];
   overflow-wrap: anywhere;
-  letter-spacing: 0.01em;
 }
 
 :deep([data-sonner-toast] [data-close-button]) {
@@ -75,8 +73,8 @@ const toastOptions = {
 
 @media (max-width: 600px) {
   :deep([data-sonner-toaster][data-x-position="center"]) {
+    @apply max-w-[calc(100vw-24px)];
     width: calc(100vw - 24px) !important;
-    max-width: calc(100vw - 24px);
   }
 }
 </style>

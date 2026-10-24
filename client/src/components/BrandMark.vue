@@ -53,10 +53,10 @@ withDefaults(
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .brand-mark-svg {
-  display: block;
-  flex: 0 0 auto;
-  border-radius: 22%;
+  @apply block shrink-0 rounded-[22%];
   /* Soft edge on light surfaces without a second colored plate behind the mark. */
   box-shadow:
     0 1px 2px rgba(26, 35, 50, 0.06),
