@@ -24,8 +24,9 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       host: true,
       proxy: {
+        // 后端不再产出 PAC 文件，/pac 由后端实时渲染；开发时转发到后端端口。
         "/api": apiTarget,
-        "/proxy.pac": apiTarget,
+        "/pac": apiTarget,
       },
     },
     build: {
