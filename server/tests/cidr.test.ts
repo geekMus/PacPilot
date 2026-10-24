@@ -44,6 +44,21 @@ describe("isIpInCidr", () => {
     expect(isIpInCidr("1.2.3.4", "2400:cb00::/32")).toBe(false);
     expect(isIpInCidr("2400:cb00::1", "10.0.0.0/8")).toBe(false);
   });
+
+  it("rejects invalid input addresses", () => {
+    expect(isIpInCidr("not-an-ip", "10.0.0.0/8")).toBe(false);
+    expect(isIpInCidr("10.0.0.1", "not-a-cidr")).toBe(false);
+  });
+
+  it("matches IPv4-mapped IPv6 addresses through the embedded IPv4 value", () => {
+    expect(isIpInCidr("::ffff:172.17.0.5", "172.17.0.0/16")).toBe(false);
+    expect(isIpInCidr("::ffff:172.17.0.5", "::ffff:172.17.0.0/112")).toBe(true);
+  });
+
+  it("treats a bare IPv6 address as a full-length prefix", () => {
+    expect(isIpInCidr("2400:cb00::1", "2400:cb00::1")).toBe(true);
+    expect(isIpInCidr("2400:cb00::2", "2400:cb00::1")).toBe(false);
+  });
 });
 
 describe("isIpInAnyCidr", () => {

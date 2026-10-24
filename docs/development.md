@@ -56,6 +56,13 @@ bun run start
 
 `bun run check` 只执行代码正确性检查：类型检查、客户端构建和翻译检查，不运行单元测试。`bun run test` 先运行依赖 Bun 运行时的后端核心测试，再运行前端与后端 Vitest 测试，并分别强制检查覆盖率。前端与后端的语句、分支、函数、行覆盖率门槛均为 90%。这不是完整的 API/SQLite 集成测试或端到端测试。
 
+覆盖率统计范围由 `server/vitest.config.ts` 和 `client/vitest.config.ts` 的 `coverage.include` 明确列出，只纳入能在 Node + jsdom 下完整执行的模块，避免把 0% 的路由层和 Bun-only 驱动混进阈值里稀释结果：
+
+- 后端：`server/domain/`、`server/services/`、`server/storage/`、`server/utils/`。排除 `server/storage/repositories.ts`（纯类型契约）和 `server/storage/sqlite/`（依赖 `bun:sqlite`，只由 `bun test server/tests/storage-sqlite.bun.ts` 覆盖）。
+- 前端：`client/src/api/`、`client/src/utils/`，以及 `client/src/composables/` 中可独立驱动的 `useTheme`、`useToast`、`useAdminSession`、`useViewportPanel`、`useWorkflowLabels`、`useCopyFeedback`、`useAdminPassword`。视图组件和依赖真实 DOM 布局的 dashboard composable 不纳入该门槛。
+
+新增可测试模块时应把它加入对应的 `coverage.include` 并同步补齐测试，而不是只依赖编译通过。
+
 镜像发布工作流会先运行 `bun run check`，通过后才构建并发布镜像。`代码质量检查` 工作流会按阶段执行 `bun run check`、前后端单元测试和覆盖率报告，最终由 `前后端单测与覆盖率门槛` Job 汇总并决定检查是否通过。当前仓库没有独立的轻量 YAML 配置校验工作流。
 
 提交前 Husky 钩子会自动运行 `bun run check`。如果需要手动验证，也可以运行：
@@ -76,7 +83,6 @@ bun run format:check
 - `shared/`：客户端与服务端共享的契约和翻译类型。
 - `scripts/`：开发启动、翻译检查、生产启动和管理员密码重置脚本。
 - `docs/`：部署、配置、开发、运维和故障排查文档。
-
 
 ## 前端界面开发约定
 

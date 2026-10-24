@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Request } from "express";
-import { configureClientIp, isPrivateAddress, normalizeIp, resolveClientIp } from "../utils/client-ip";
+import {
+  configureClientIp,
+  getClientIpConfig,
+  isPrivateAddress,
+  normalizeIp,
+  resolveClientIp,
+} from "../utils/client-ip";
 
 function fakeRequest(options: {
   remoteAddress?: string;
@@ -46,6 +52,34 @@ describe("isPrivateAddress", () => {
   it("treats public addresses as public", () => {
     expect(isPrivateAddress("203.0.113.7")).toBe(false);
     expect(isPrivateAddress("8.8.8.8")).toBe(false);
+  });
+
+  it("treats public IPv6 and empty input as public", () => {
+    expect(isPrivateAddress("2001:db8::1")).toBe(false);
+    expect(isPrivateAddress(null)).toBe(false);
+    expect(isPrivateAddress("")).toBe(false);
+  });
+});
+
+describe("configureClientIp", () => {
+  it("merges partial updates into the current configuration", () => {
+    configureClientIp({
+      trustProxyHops: 3,
+      trustCloudflare: true,
+      trustedProxyCidrs: ["10.0.0.0/8"],
+    });
+    expect(getClientIpConfig()).toEqual({
+      trustProxyHops: 3,
+      trustCloudflare: true,
+      trustedProxyCidrs: ["10.0.0.0/8"],
+    });
+
+    configureClientIp({ trustCloudflare: false });
+    expect(getClientIpConfig()).toMatchObject({
+      trustProxyHops: 3,
+      trustCloudflare: false,
+      trustedProxyCidrs: ["10.0.0.0/8"],
+    });
   });
 });
 
@@ -140,5 +174,35 @@ describe("resolveClientIp", () => {
       headers: { "x-forwarded-for": "1.1.1.1, 203.0.113.7" },
     });
     expect(resolveClientIp(request)).toBe("203.0.113.7");
+  });
+
+  it("falls back to the Express ip when forwarded entries are unusable", () => {
+    configureClientIp({ trustProxyHops: 1, trustCloudflare: false, trustedProxyCidrs: [] });
+    const request = fakeRequest({
+      headers: { "x-forwarded-for": "garbage, also-garbage" },
+      ip: "203.0.113.42",
+    });
+    expect(resolveClientIp(request)).toBe("203.0.113.42");
+  });
+
+  it("falls back to the socket peer when nothing usable is available", () => {
+    configureClientIp({ trustProxyHops: 1, trustCloudflare: false, trustedProxyCidrs: [] });
+    const request = fakeRequest({ headers: {} });
+    expect(resolveClientIp(request)).toBe("172.17.0.2");
+  });
+
+  it("returns unknown when the peer address is not parseable", () => {
+    configureClientIp({ trustProxyHops: 0, trustCloudflare: false, trustedProxyCidrs: [] });
+    const request = fakeRequest({ remoteAddress: "not-an-ip" });
+    expect(resolveClientIp(request)).toBe("unknown");
+  });
+
+  it("ignores CF-Connecting-IP for a public peer without an allowlist", () => {
+    configureClientIp({ trustProxyHops: 0, trustCloudflare: true, trustedProxyCidrs: [] });
+    const request = fakeRequest({
+      remoteAddress: "198.51.100.20",
+      headers: { "cf-connecting-ip": "not-an-ip" },
+    });
+    expect(resolveClientIp(request)).toBe("198.51.100.20");
   });
 });

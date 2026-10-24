@@ -24,12 +24,17 @@ export default defineConfig({
       reporter: ["text", "json-summary", "lcov", "html"],
       reportsDirectory: "coverage/client",
       include: [
-        "client/src/utils/admin-settings-validation.ts",
-        "client/src/utils/domain-rules.ts",
-        "client/src/utils/time-zones.ts",
-        "client/src/utils/domain-matching.ts",
-        "client/src/utils/clipboard.ts",
+        // Utility and transport layers are pure and fully testable, so they are
+        // held to the same 90% bar as the rest of the shared code.
+        "client/src/api/**/*.ts",
+        "client/src/utils/**/*.ts",
         "client/src/composables/useTheme.ts",
+        "client/src/composables/useToast.ts",
+        "client/src/composables/useAdminSession.ts",
+        "client/src/composables/useViewportPanel.ts",
+        "client/src/composables/useWorkflowLabels.ts",
+        "client/src/composables/useCopyFeedback.ts",
+        "client/src/composables/useAdminPassword.ts",
       ],
       exclude: ["client/src/**/*.d.ts"],
       thresholds: { statements: 90, branches: 90, functions: 90, lines: 90 },
