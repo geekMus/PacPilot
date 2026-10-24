@@ -694,182 +694,115 @@ onMounted(() => {
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 /* ============================================================
-   Notification workspace — "quiet console" restyle.
+   Notification workspace — three-tier layout contract.
 
-   Layout contract (single owner per scroll region, three tiers):
+   1. Pinned tier (>620px tall, >900px wide): intro and overview scroll
+      away; the workspace sticks below the admin header, sized to the band
+      between header offset and footer reserve.
+   2. Shrink tier: only the middle row reacts, floored at 320px.
+   3. Flow tier: workspace unsticks and the document scrolls as one page.
 
-   1. Pinned tier (desktop, viewport height > 620px):
-      the intro and overview bands scroll away; the workspace sticks just
-      below the admin header and is exactly the band between the header
-      offset and the footer reserve. Tabs stay under the header, the middle
-      row stretches with the viewport, and the footer stays visible at the
-      bottom. Each panel scrolls only inside its own AppScrollArea.
-
-   2. Shrink tier: while pinned, only the middle row reacts to a shrinking
-      viewport. It stops at a 320px floor (the row's min-height) so the
-      panels always remain usable.
-
-   3. Flow tier (height < 620px, or width <= 900px): the pinned band can no
-      longer honour its floor, so the workspace stops sticking and the whole
-      content area scrolls as one document, like the dashboard overview
-      page. Panels keep bounded heights so their inner scrollbars survive.
-
-   Scrollbars come exclusively from the shared AppScrollArea component and
-   are tuned through its public CSS variables (--scrollbar-size /
-   --scrollbar-thumb / --scrollbar-thumb-hover), never with bespoke
-   scrollbar markup or duplicated thumb styling.
+   Scrollbars come exclusively from AppScrollArea and are tuned through its
+   public CSS variables.
    ============================================================ */
 
 .webhook-page {
-  /* Radius scale: card / panel / item / control. */
   --wh-radius-card: 16px;
   --wh-radius-panel: 14px;
   --wh-radius-item: 11px;
   --wh-radius-control: 10px;
 
-  /* Surfaces. */
   --wh-panel-bg: var(--surface);
   --wh-heading-bg: var(--surface-2);
   --wh-item-hover: color-mix(in srgb, var(--accent) 6%, var(--surface-2));
 
-  /* Shared scrollbar tuning (consumed by AppScrollArea.vue). */
   --scrollbar-size: 10px;
   --scrollbar-thumb: color-mix(in srgb, var(--text) 26%, transparent);
   --scrollbar-thumb-hover: color-mix(in srgb, var(--text) 46%, transparent);
 
-  /* Mobile-only bounded panel heights. */
   --wh-directory-height: clamp(300px, 46dvh, 540px);
   --wh-editor-height: clamp(360px, 56dvh, 680px);
   --wh-history-height: clamp(320px, 50dvh, 620px);
 
-  /* Sticky workspace geometry (desktop).
-     --wh-header-gap mirrors the 25px offset the admin layout uses between
-     the topbar and page content, so the pinned tabs sit exactly where they
-     would in normal flow.
-     --wh-footer-reserve must stay BELOW the real space under the region
-     (page gap 18 + footer ~53 + page bottom padding 40 = ~111). The slack
-     (111 - reserve) is exactly the scroll distance during which the region
-     is genuinely pinned, so a larger reserve silently kills the pin. */
   --wh-header-gap: 25px;
   --wh-footer-reserve: 100px;
 
-  display: flex;
-  /* Content-sized on purpose: the sticky workspace travels inside this box,
-     so clamping it to the viewport height would clamp the pin too. */
+  @apply flex w-full min-w-0 min-h-0 flex-col box-border gap-[clamp(12px,1.35vw,18px)];
   flex: 0 0 auto;
-  flex-direction: column;
-  gap: clamp(12px, 1.35vw, 18px);
-  width: 100%;
-  min-width: 0;
-  min-height: 0;
-  box-sizing: border-box;
   color: var(--text);
 }
 
 .webhook-page > :deep(.app-footer) {
-  flex: 0 0 auto;
-  /* The footer is a fixed band of the page column: the workspace above it
-     takes the remaining space, so the footer can never be pushed under the
-     workshop panels (no auto margin — that reintroduced the gap the flex
-     chain is supposed to own). */
-  margin-top: 0;
+  @apply m-0 shrink-0;
 }
 
 /* ---------- Page intro ---------- */
 
 .page-intro,
 .overview-grid {
-  flex: 0 0 auto;
+  @apply shrink-0;
 }
 
 .page-intro {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 23px 26px;
-  border: 1px solid color-mix(in srgb, var(--accent) 14%, var(--line));
-  border-radius: var(--wh-radius-card);
+  @apply relative flex items-center justify-between gap-6 overflow-hidden rounded-[var(--wh-radius-card)] border px-[26px] py-[23px];
+  border-color: color-mix(in srgb, var(--accent) 14%, var(--line));
   background:
     radial-gradient(120% 160% at 0% 0%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 55%),
     var(--wh-panel-bg);
   box-shadow: var(--shadow);
-  overflow: hidden;
 }
 
 .page-intro::before {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 3px;
+  @apply absolute bottom-0 left-0 top-0 w-[3px];
   background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 30%, transparent));
   content: "";
 }
 
 .intro-copy {
-  min-width: 0;
+  @apply min-w-0;
 }
 
 .eyebrow,
 .editor-kicker {
-  display: flex;
-  align-items: center;
-  gap: 7px;
+  @apply flex items-center gap-[7px] text-[9px] font-extrabold tracking-[0.13em];
   color: var(--accent);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.13em;
 }
 
 .page-intro h2 {
-  margin: 9px 0 5px;
+  @apply mb-[5px] mt-[9px] leading-tight tracking-[-0.035em];
   font-size: clamp(20px, 2vw, 25px);
-  line-height: 1.2;
-  letter-spacing: -0.035em;
 }
 
 .page-intro p {
-  margin: 0;
+  @apply m-0 text-xs leading-normal;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.6;
 }
 
 .intro-state {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 11px;
-  padding: 12px 15px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  @apply flex shrink-0 items-center gap-[11px] rounded-xl border px-[15px] py-3;
+  border-color: var(--line);
   background: var(--wh-heading-bg);
 }
 
 .intro-state strong,
 .intro-state small {
-  display: block;
+  @apply block;
 }
 
 .intro-state strong {
-  font-size: 11px;
+  @apply text-[11px];
 }
 
 .intro-state small {
-  margin-top: 4px;
+  @apply mt-1 text-[10px];
   color: var(--muted);
-  font-size: 10px;
 }
 
 .state-dot {
-  display: inline-block;
-  flex: 0 0 7px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+  @apply inline-block h-[7px] w-[7px] shrink-0 rounded-full;
   background: var(--muted);
 }
 
@@ -881,43 +814,31 @@ onMounted(() => {
 /* ---------- Overview cards ---------- */
 
 .overview-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  @apply grid grid-cols-4 gap-3;
 }
 
 .overview-card {
-  min-width: 0;
-  padding: 15px 17px 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--wh-radius-panel);
+  @apply min-w-0 rounded-[var(--wh-radius-panel)] border px-[17px] pb-3.5 pt-[15px] transition-[border-color,transform,box-shadow];
+  border-color: var(--line);
   background: var(--wh-panel-bg);
   box-shadow: var(--shadow);
-  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
 }
 
 .overview-card:hover {
+  @apply -translate-y-px;
   border-color: color-mix(in srgb, var(--accent) 26%, var(--line));
   box-shadow:
     0 2px 4px color-mix(in srgb, var(--text) 5%, transparent),
     0 10px 22px color-mix(in srgb, var(--text) 5%, transparent);
-  transform: translateY(-1px);
 }
 
 .overview-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
+  @apply flex items-start justify-between gap-2.5;
 }
 
 .overview-icon {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--line);
-  border-radius: var(--wh-radius-control);
+  @apply grid h-[34px] w-[34px] place-items-center rounded-[var(--wh-radius-control)] border;
+  border-color: var(--line);
   background: color-mix(in srgb, var(--accent-soft) 62%, var(--surface));
   color: var(--accent);
 }
@@ -942,84 +863,55 @@ onMounted(() => {
 }
 
 .overview-label {
-  margin-top: 12px;
+  @apply mt-3 text-[11px];
   color: var(--muted);
-  font-size: 11px;
 }
 
 .overview-value {
-  font-size: 24px;
-  font-weight: 800;
-  line-height: 1.25;
-  letter-spacing: -0.04em;
-  font-variant-numeric: tabular-nums;
+  @apply text-2xl font-extrabold leading-tight tracking-[-0.04em] tabular-nums;
 }
 
 .overview-value span {
+  @apply text-[13px] font-medium tracking-normal;
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 550;
-  letter-spacing: 0;
 }
 
 .overview-foot {
-  margin-top: 5px;
+  @apply mt-[5px] text-[10px] leading-snug;
   color: var(--muted);
-  font-size: 10px;
-  line-height: 1.4;
 }
 
 /* ---------- Loading / error states ---------- */
 
 .state-panel {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  gap: 11px;
-  min-height: 120px;
-  padding: 24px;
-  border: 1px solid var(--line);
-  border-radius: var(--wh-radius-panel);
+  @apply flex min-h-[120px] shrink-0 items-center justify-center gap-[11px] rounded-[var(--wh-radius-panel)] border p-6 text-xs;
+  border-color: var(--line);
   background: var(--wh-panel-bg);
   color: var(--muted);
-  font-size: 12px;
 }
 
-.state-error { justify-content: flex-start; color: var(--red); }
-.state-error div { flex: 1 1 auto; min-width: 0; }
-.state-error strong { font-size: 12px; }
-.state-error p { margin: 5px 0 0; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+.state-error {
+  @apply justify-start;
+  color: var(--red);
+}
+.state-error div {
+  @apply min-w-0 flex-auto;
+}
+.state-error strong {
+  @apply text-xs;
+}
+.state-error p {
+  @apply mb-0 mt-[5px] text-[11px];
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
 
-/* ---------- Workspace frame (header-anchored sticky) ---------- */
+/* ---------- Workspace frame ---------- */
 
-/*
-   Desktop scroll model: the intro and overview bands scroll away with the
-   document, while the workspace region sticks into the band between the
-   admin header and the footer. Once the page reaches its bottom, the
-   viewport shows exactly header → tabs → left/right panels → footer. The
-   sticky top keeps the same 25px rhythm as the page's natural content
-   offset below the header, so the gap never changes between free scroll
-   and the pinned state. The workspace height is derived from 100dvh minus
-   the header band and the footer reserve, so it adapts to any display
-   size; the two columns each own an independent AppScrollArea scrollbar.
-*/
 .workspace-region {
-  position: sticky;
-  z-index: 1;
-  top: calc(var(--admin-topbar-space, 104px) + var(--wh-header-gap, 25px));
-  display: flex;
-  /* Pinned tier: the region is exactly the band between the header offset
-     and the footer reserve, so the middle row stretches/shrinks with the
-     viewport while the footer always stays visible at the scroll bottom.
-     The height is explicit (not flex-grown) because the page column is
-     content-sized; a flex basis would not track the viewport. */
+  @apply sticky z-[1] flex w-full min-w-0 min-h-0 flex-col gap-3;
   flex: 0 0 auto;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-  min-width: 0;
-  min-height: 0;
+  top: calc(var(--admin-topbar-space, 104px) + var(--wh-header-gap, 25px));
   height: calc(
     100dvh - var(--admin-topbar-space, 104px) - var(--wh-header-gap, 25px) -
       var(--wh-footer-reserve, 100px)
@@ -1032,33 +924,15 @@ onMounted(() => {
 }
 
 .workspace-tabs {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--line);
-  border-radius: 13px;
+  @apply flex shrink-0 items-center gap-1 rounded-[13px] border p-1;
+  border-color: var(--line);
   background: var(--wh-heading-bg);
 }
 
 .workspace-tabs button {
-  position: relative;
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 8px;
+  @apply relative inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-[var(--wh-radius-control)] border border-transparent bg-transparent px-[15px] text-xs font-semibold transition-[color,background,border-color];
   min-height: 42px;
-  padding: 0 15px;
-  border: 1px solid transparent;
-  border-radius: var(--wh-radius-control);
-  background: transparent;
   color: var(--muted);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 650;
-  cursor: pointer;
-  transition: color 150ms ease, background 150ms ease, border-color 150ms ease;
 }
 
 .workspace-tabs button:hover {
@@ -1074,26 +948,14 @@ onMounted(() => {
 }
 
 .workspace-tabs button.active::after {
-  position: absolute;
-  right: 12px;
-  bottom: -1px;
-  left: 12px;
-  height: 2px;
-  border-radius: 2px 2px 0 0;
+  @apply absolute -bottom-px left-3 right-3 h-0.5 rounded-t-sm;
   background: var(--accent);
   content: "";
 }
 
 .tab-count,
 .tab-alert {
-  display: inline-grid;
-  place-items: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 5px;
-  border-radius: 6px;
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
+  @apply inline-grid h-5 min-w-5 place-items-center rounded-md px-[5px] text-[10px] tabular-nums;
 }
 
 .tab-count {
@@ -1111,144 +973,81 @@ onMounted(() => {
   color: var(--red);
 }
 
-/* The layout row is capped by the workspace height, so its panels can use
-   max-height:100% reliably on desktop. The 320px floor keeps panels usable
-   on very short viewports: beyond that the admin viewport scrolls instead
-   of crushing the editor. */
 .workspace-layout,
 .history-workspace {
-  display: flex;
+  @apply flex min-h-[320px] w-full min-w-0 items-stretch gap-3.5 overflow-hidden;
   flex: 1 1 0%;
-  align-items: stretch;
-  gap: 14px;
-  width: 100%;
-  min-width: 0;
-  min-height: 320px;
   max-height: 100%;
-  overflow: hidden;
 }
 
-/* ---------- Panels: "header band + scroll body (+ footer)" ----------
-   Every workspace panel uses the same skeleton. The header and the optional
-   footer are fixed bands that belong to the whole panel; only the body is a
-   scroll owner (AppScrollArea), so a panel's scrollbar never runs under its
-   own title. */
+/* ---------- Panels ---------- */
 
 .directory-panel,
 .editor-panel,
 .history-panel {
-  display: flex;
+  @apply flex min-w-0 min-h-0 flex-col overflow-hidden rounded-[var(--wh-radius-panel)] border;
   flex: 1 1 0%;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
   max-height: 100%;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: var(--wh-radius-panel);
+  border-color: var(--line);
   background: var(--wh-panel-bg);
   box-shadow: var(--shadow);
 }
 
-/* Header band — reads as the panel's own title, not as the first row. */
 .panel-heading {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 11px;
-  padding: 13px 15px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 16%, var(--line));
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--accent) 8%, var(--surface-2)),
-    var(--wh-heading-bg)
-  );
+  @apply flex shrink-0 items-center gap-[11px] border-b px-[15px] py-[13px];
+  border-color: color-mix(in srgb, var(--accent) 16%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, var(--surface-2)), var(--wh-heading-bg));
 }
 
 .panel-heading-icon {
-  display: grid;
-  flex: 0 0 30px;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
-  border-radius: 9px;
+  @apply grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[9px] border;
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--line));
   background: var(--accent-soft);
   color: var(--accent);
 }
 
 .panel-heading-copy {
-  display: grid;
-  flex: 1 1 auto;
-  gap: 3px;
-  min-width: 0;
+  @apply grid min-w-0 flex-auto gap-[3px];
 }
 
 .panel-heading-copy h3 {
-  margin: 0;
-  font-size: 12.5px;
-  font-weight: 780;
-  letter-spacing: -0.01em;
+  @apply m-0 text-[12.5px] font-bold tracking-tight;
 }
 
 .panel-heading-copy p {
-  margin: 0;
+  @apply m-0 overflow-hidden text-ellipsis whitespace-nowrap text-[10px] leading-snug;
   color: var(--muted);
-  font-size: 10px;
-  line-height: 1.45;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-/* Scroll body — the single scroll owner inside a panel. */
 .panel-scroll {
+  @apply w-full min-w-0 min-h-0;
   flex: 1 1 0%;
-  width: 100%;
-  min-width: 0;
-  min-height: 0;
 }
 
 .panel-scroll :deep(.app-scroll-area-viewport) {
-  height: 100%;
+  @apply h-full;
 }
 
-/* Footer band (optional) — status/summary strip, never scrolls. */
 .panel-footer {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 15px;
-  border-top: 1px solid var(--line);
+  @apply flex shrink-0 items-center gap-2 border-t px-[15px] py-2.5 text-[10px];
+  border-color: var(--line);
   background: var(--wh-heading-bg);
   color: var(--muted);
-  font-size: 10px;
 }
 
-/* ---------- Directory panel (channels / rules list) ---------- */
+/* ---------- Directory panel ---------- */
 
 .directory-panel {
+  @apply w-[min(32%,340px)];
   flex: 0 0 min(32%, 340px);
-  width: min(32%, 340px);
   border-color: color-mix(in srgb, var(--accent) 12%, var(--line));
 }
 
 .directory-item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  @apply relative flex cursor-pointer items-center gap-2.5 rounded-[var(--wh-radius-item)] border border-transparent bg-transparent px-2.5 py-[9px] text-left transition-[background,border-color,box-shadow];
   width: calc(100% - 16px);
   margin: 4px 8px;
-  padding: 9px 10px;
-  border: 1px solid transparent;
-  border-radius: var(--wh-radius-item);
-  background: transparent;
   color: var(--text);
-  text-align: left;
-  cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
 }
 
 .directory-item:hover {
@@ -1272,208 +1071,133 @@ onMounted(() => {
   color: var(--accent);
 }
 
-/* Quick delete — revealed on hover / keyboard focus so the row stays calm at
-   rest, and always available on touch devices that cannot hover. Visuals come
-   from AppIconButton; this block only controls the reveal behaviour. */
 .row-delete {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 140ms ease;
+  @apply pointer-events-none opacity-0 transition-opacity;
 }
 
 .directory-item:hover .row-delete,
 .directory-item:focus-within .row-delete,
 .row-delete:focus-visible {
-  opacity: 1;
-  pointer-events: auto;
+  @apply pointer-events-auto opacity-100;
 }
 
 @media (hover: none) {
   .row-delete {
-    opacity: 1;
-    pointer-events: auto;
-  }
-}
-
-@media (hover: none) {
-  .row-delete {
-    opacity: 1;
-    pointer-events: auto;
+    @apply pointer-events-auto opacity-100;
   }
 }
 
 .provider-icon {
-  display: grid;
-  flex: 0 0 34px;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--line);
-  border-radius: var(--wh-radius-control);
+  @apply grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[var(--wh-radius-control)] border;
+  border-color: var(--line);
   background: var(--wh-heading-bg);
   color: var(--accent);
 }
 
 .directory-content {
-  display: grid;
-  flex: 1 1 auto;
-  gap: 4px;
-  min-width: 0;
+  @apply grid min-w-0 flex-auto gap-1;
 }
 
 .directory-content strong,
 .directory-content small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
 }
 
 .directory-content strong {
+  @apply text-[11px] font-bold;
   color: var(--text);
-  font-size: 11px;
-  font-weight: 720;
 }
 
 .directory-content small {
+  @apply text-[10px] leading-snug;
   color: var(--muted);
-  font-size: 10px;
-  line-height: 1.4;
 }
 
 .directory-content .url-preview {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  opacity: 0.85;
+  @apply font-mono text-[9px] opacity-85;
 }
 
 .empty-directory,
 .empty-history {
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  gap: 8px;
-  padding: 28px 20px;
-  text-align: center;
+  @apply flex flex-col items-center gap-2 px-5 py-7 text-center;
 }
 
 .empty-icon,
 .placeholder-icon {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  margin-bottom: 3px;
-  border: 1px solid var(--line);
-  border-radius: 13px;
+  @apply mb-[3px] grid h-11 w-11 place-items-center rounded-[13px] border;
+  border-color: var(--line);
   background: var(--wh-heading-bg);
   color: var(--muted);
 }
 
 .empty-directory strong,
-.empty-history strong { font-size: 12px; }
+.empty-history strong {
+  @apply text-xs;
+}
 
 .empty-directory p,
 .empty-history p {
-  max-width: 260px;
-  margin: 0 0 6px;
+  @apply mb-1.5 mt-0 max-w-[260px] text-[10px] leading-normal;
   color: var(--muted);
-  font-size: 10px;
-  line-height: 1.6;
 }
 
 /* ---------- Editor panel ---------- */
 
 .editor-panel {
-  display: flex;
+  @apply flex w-0 flex-col;
   flex: 1 1 0%;
-  flex-direction: column;
-  width: 0;
   height: 100%;
   max-height: 100%;
 }
 
 .editor-heading {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 13px;
-  padding: 20px 23px;
-  border-bottom: 1px solid var(--line);
+  @apply flex shrink-0 items-center gap-[13px] border-b px-[23px] py-5;
+  border-color: var(--line);
   background: var(--wh-heading-bg);
 }
 
 .editor-title-mark {
-  display: grid;
-  flex: 0 0 42px;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
-  border-radius: 12px;
+  @apply grid h-[42px] w-[42px] shrink-0 place-items-center rounded-xl border;
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--line));
   background: var(--accent-soft);
   color: var(--accent);
 }
 
 .editor-heading-copy {
-  flex: 1 1 auto;
-  min-width: 0;
+  @apply min-w-0 flex-auto;
 }
 
 .editor-heading-tools {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-left: auto;
+  @apply ml-auto flex items-center gap-3;
 }
 
 .editor-heading h3 {
-  margin: 4px 0;
-  font-size: 15px;
-  font-weight: 790;
-  letter-spacing: -0.02em;
+  @apply my-1 text-[15px] font-extrabold tracking-tight;
 }
 
 .editor-heading p {
-  margin: 0;
+  @apply m-0 text-[10px] leading-normal;
   color: var(--muted);
-  font-size: 10px;
-  line-height: 1.5;
 }
 
 .editor-scroll {
-  display: block;
+  @apply block w-full min-w-0 min-h-0 overflow-hidden;
   flex: 1 1 0%;
-  width: 100%;
-  min-width: 0;
-  min-height: 0;
   max-height: 100%;
-  overflow: hidden;
 }
 
 .editor-scroll :deep(.app-scroll-area-viewport) {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  @apply h-full w-full min-h-0 overflow-x-hidden overflow-y-auto;
   scrollbar-gutter: stable;
 }
 
 /* ---------- Forms ---------- */
 
 .status-pill {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 9px;
-  border: 1px solid var(--line);
-  border-radius: 20px;
+  @apply inline-flex shrink-0 items-center gap-[7px] whitespace-nowrap rounded-[20px] border px-[9px] py-1.5 text-[10px] font-semibold;
+  border-color: var(--line);
   background: var(--wh-panel-bg);
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 650;
-  white-space: nowrap;
 }
 
 .pill-enabled {
@@ -1482,145 +1206,118 @@ onMounted(() => {
   color: var(--green);
 }
 
-.pill-disabled { color: var(--muted); }
+.pill-disabled {
+  color: var(--muted);
+}
 
 .editor-body {
-  display: grid;
-  align-content: start;
-  gap: 0;
-  padding: 0 23px;
+  @apply grid content-start gap-0 px-[23px];
 }
 
 .form-section {
-  display: grid;
-  gap: 17px;
-  padding: 22px 0 24px;
-  border-bottom: 1px solid var(--line);
+  @apply grid gap-[17px] border-b pb-6 pt-[22px];
+  border-color: var(--line);
 }
 
-.form-section:last-child { border-bottom: 0; }
+.form-section:last-child {
+  @apply border-b-0;
+}
 
 .section-title {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  @apply flex items-start gap-3;
 }
 
 .section-title > span {
-  display: grid;
-  flex: 0 0 27px;
-  place-items: center;
-  width: 27px;
-  height: 27px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  @apply grid h-[27px] w-[27px] shrink-0 place-items-center rounded-lg border text-[10px] font-extrabold tabular-nums;
+  border-color: var(--line);
   background: var(--wh-heading-bg);
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
 }
 
-.section-title h4 { margin: 1px 0 4px; font-size: 12px; font-weight: 760; }
-.section-title p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.section-title h4 {
+  @apply mb-1 mt-px text-xs font-bold;
+}
+.section-title p {
+  @apply m-0 text-[10px] leading-normal;
+  color: var(--muted);
+}
 
 .field-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  @apply grid grid-cols-2 gap-3.5;
 }
 
 .field {
-  display: grid;
-  gap: 7px;
-  min-width: 0;
+  @apply grid min-w-0 gap-[7px] text-[11px] font-semibold;
   color: var(--text);
-  font-size: 11px;
-  font-weight: 680;
 }
 
 .field > span:first-child {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 5px;
+  @apply flex flex-wrap items-center gap-[5px];
 }
 
-.field i { color: var(--red); font-style: normal; }
-.field em { color: var(--muted); font-size: 10px; font-weight: 500; font-style: normal; }
+.field i {
+  @apply not-italic;
+  color: var(--red);
+}
+.field em {
+  @apply text-[10px] font-medium not-italic;
+  color: var(--muted);
+}
 
 .field :deep(.CodeMirror),
 .field :deep(.app-select) {
-  width: 100%;
-  min-width: 0;
+  @apply w-full min-w-0;
 }
 
-.field :deep(.CodeMirror) { border-radius: var(--wh-radius-control); }
+.field :deep(.CodeMirror) {
+  @apply rounded-[var(--wh-radius-control)];
+}
 
 .field-hint {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  margin: 0;
+  @apply m-0 flex items-start gap-1.5 text-[10px] font-normal leading-normal;
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 450;
-  line-height: 1.55;
 }
 
 .field-hint code {
-  padding: 1px 4px;
-  border-radius: 4px;
+  @apply rounded-[4px] px-1 py-px font-mono text-[9px];
   background: var(--wh-heading-bg);
-  font-family: var(--font-mono);
-  font-size: 9px;
 }
 
-.secret-input { display: flex; gap: 7px; min-width: 0; }
-.secret-input input { flex: 1; min-width: 0; }
+.secret-input {
+  @apply flex min-w-0 gap-[7px];
+}
+.secret-input input {
+  @apply min-w-0 flex-1;
+}
 
 .field-static {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  @apply flex items-center gap-2 rounded-[var(--wh-radius-control)] border px-[11px] font-mono text-[10px] font-medium;
   min-height: 41px;
-  padding: 0 11px;
-  border: 1px solid var(--line);
-  border-radius: var(--wh-radius-control);
+  border-color: var(--line);
   background: var(--wh-heading-bg);
   color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 500;
 }
 
 .editor-footer {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 14px 23px;
-  border-top: 1px solid var(--line);
+  @apply flex shrink-0 flex-wrap items-center gap-2 border-t px-[23px] py-3.5;
+  border-color: var(--line);
   background: var(--wh-heading-bg);
 }
 
-.footer-spacer { flex: 1 1 auto; }
-
-.editor-note {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 11px 23px 15px;
-  border-top: 1px solid color-mix(in srgb, var(--red) 16%, var(--line));
-  background: color-mix(in srgb, var(--red-soft) 55%, var(--wh-panel-bg));
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1.5;
+.footer-spacer {
+  @apply flex-auto;
 }
 
-.editor-note :deep(svg) { color: var(--red); }
+.editor-note {
+  @apply flex shrink-0 items-start gap-2 border-t pb-[15px] pl-[23px] pr-[23px] pt-[11px] text-[10px] leading-normal;
+  border-color: color-mix(in srgb, var(--red) 16%, var(--line));
+  background: color-mix(in srgb, var(--red-soft) 55%, var(--wh-panel-bg));
+  color: var(--muted);
+}
+
+.editor-note :deep(svg) {
+  color: var(--red);
+}
 
 .workspace-tabs button:focus-visible,
 .directory-item:focus-visible {
@@ -1631,35 +1328,33 @@ onMounted(() => {
 /* ---------- Rules: channel multi-select ---------- */
 
 .condition-hint {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--line));
-  border-radius: var(--wh-radius-item);
+  @apply flex items-start gap-2.5 rounded-[var(--wh-radius-item)] border p-3;
+  border-color: color-mix(in srgb, var(--accent) 20%, var(--line));
   background: var(--accent-soft);
   color: var(--accent);
 }
 
-.condition-hint strong { font-size: 11px; }
-.condition-hint p { margin: 4px 0 0; color: var(--text); font-size: 10px; line-height: 1.55; }
-.channel-options { display: grid; gap: 8px; }
-
-.channel-option {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--wh-radius-item);
-  background: var(--wh-panel-bg);
-  cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+.condition-hint strong {
+  @apply text-[11px];
+}
+.condition-hint p {
+  @apply mb-0 mt-1 text-[10px] leading-normal;
+  color: var(--text);
 }
 
-.channel-option:hover { background: var(--wh-item-hover); }
+.channel-options {
+  @apply grid gap-2;
+}
+
+.channel-option {
+  @apply relative flex min-w-0 cursor-pointer items-center gap-2.5 rounded-[var(--wh-radius-item)] border p-3 transition-[background,border-color,box-shadow];
+  border-color: var(--line);
+  background: var(--wh-panel-bg);
+}
+
+.channel-option:hover {
+  background: var(--wh-item-hover);
+}
 
 .channel-option.checked {
   border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
@@ -1667,56 +1362,63 @@ onMounted(() => {
   box-shadow: inset 3px 0 0 var(--accent);
 }
 
-.channel-option.unavailable { opacity: 0.55; cursor: not-allowed; }
+.channel-option.unavailable {
+  @apply cursor-not-allowed opacity-55;
+}
 
 .option-icon {
-  display: grid;
-  flex: 0 0 33px;
-  place-items: center;
-  width: 33px;
-  height: 33px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
+  @apply grid h-[33px] w-[33px] shrink-0 place-items-center rounded-[9px] border;
+  border-color: var(--line);
   background: var(--wh-panel-bg);
   color: var(--accent);
 }
 
-.option-copy { display: grid; flex: 1 1 auto; min-width: 0; gap: 4px; }
-.option-copy strong { font-size: 11px; overflow-wrap: anywhere; }
-.option-copy small { color: var(--muted); font-size: 10px; }
-.option-check { color: var(--accent); }
+.option-copy {
+  @apply grid min-w-0 flex-auto gap-1;
+}
+.option-copy strong {
+  @apply text-[11px];
+  overflow-wrap: anywhere;
+}
+.option-copy small {
+  @apply text-[10px];
+  color: var(--muted);
+}
+.option-check {
+  color: var(--accent);
+}
 
 .inline-empty {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 13px;
-  border: 1px dashed var(--line);
-  border-radius: var(--wh-radius-item);
+  @apply flex items-center gap-2.5 rounded-[var(--wh-radius-item)] border border-dashed p-[13px];
+  border-color: var(--line);
   color: var(--muted);
 }
 
-.inline-empty div { flex: 1 1 auto; min-width: 0; }
-.inline-empty strong { color: var(--text); font-size: 11px; }
-.inline-empty p { margin: 4px 0 0; font-size: 10px; line-height: 1.5; }
+.inline-empty div {
+  @apply min-w-0 flex-auto;
+}
+.inline-empty strong {
+  @apply text-[11px];
+  color: var(--text);
+}
+.inline-empty p {
+  @apply mb-0 mt-1 text-[10px] leading-normal;
+}
 
 /* ---------- Records table ---------- */
 
 .history-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  @apply grid grid-cols-1;
 }
 
 .records-body {
-  display: grid;
+  @apply grid min-h-0;
   flex: 1 1 0%;
   grid-template-rows: minmax(0, 1fr);
-  min-height: 0;
 }
 
 .record-row {
-  cursor: pointer;
-  transition: background 140ms ease;
+  @apply cursor-pointer transition-colors;
 }
 
 .record-row:hover {
@@ -1728,114 +1430,91 @@ onMounted(() => {
   outline-offset: -2px;
 }
 
-.cell-strong { font-weight: 620; }
-.cell-muted { color: var(--muted); }
-.nowrap { white-space: nowrap; }
+.cell-strong {
+  @apply font-semibold;
+}
+.cell-muted {
+  color: var(--muted);
+}
+.nowrap {
+  @apply whitespace-nowrap;
+}
 
 .row-open-hint {
+  @apply whitespace-nowrap text-[10px];
   color: var(--muted);
-  font-size: 10px;
-  white-space: nowrap;
 }
 
 /* ---------- Notification detail dialog ---------- */
 
 .dialog-title {
-  margin: 4px 0 2px;
-  font-size: 17px;
-  font-weight: 780;
+  @apply mb-0.5 mt-1 text-[17px] font-extrabold;
 }
 
 .dialog-sub {
-  margin: 0;
+  @apply m-0 text-[11px];
   color: var(--muted);
-  font-size: 11px;
 }
 
 .record-detail {
-  display: grid;
-  gap: 16px;
+  @apply grid gap-4;
 }
 
 .record-detail-grid {
-  display: grid;
+  @apply grid gap-x-[18px] gap-y-[13px];
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 13px 18px;
 }
 
 .record-detail-grid > div {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
+  @apply grid min-w-0 gap-1;
 }
 
 .record-detail-grid span {
+  @apply text-[10px];
   color: var(--muted);
-  font-size: 10px;
 }
 
 .record-detail-grid strong {
-  font-size: 12px;
+  @apply text-xs;
   overflow-wrap: anywhere;
 }
 
 .record-detail-block {
-  display: grid;
-  gap: 8px;
-  padding-top: 13px;
-  border-top: 1px solid var(--line);
+  @apply grid gap-2 border-t pt-[13px];
+  border-color: var(--line);
 }
 
 .record-detail-block h3 {
-  margin: 0;
-  font-size: 11px;
-  font-weight: 720;
+  @apply m-0 text-[11px] font-bold;
 }
 
 .record-detail-block p {
-  margin: 0;
+  @apply m-0 text-[11px] leading-normal;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.6;
   overflow-wrap: anywhere;
 }
 
 .record-detail-block pre {
-  margin: 0;
-  padding: 10px;
-  border-radius: 8px;
+  @apply m-0 whitespace-pre-wrap rounded-lg p-2.5 font-mono text-[10px] leading-normal;
   background: var(--red-soft);
   color: var(--red);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  line-height: 1.6;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
 .record-detail-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+  @apply flex justify-end gap-2;
 }
 
 .neutral-count {
-  padding: 5px 8px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
+  @apply whitespace-nowrap rounded-[7px] border px-2 py-[5px] text-[10px];
+  border-color: var(--line);
   color: var(--muted);
-  font-size: 10px;
-  white-space: nowrap;
 }
 
 .event-row,
 .delivery-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 11px;
-  padding: 15px 19px;
-  border-top: 1px solid var(--line);
-  transition: background 150ms ease;
+  @apply flex items-start gap-[11px] border-t px-[19px] py-[15px] transition-colors;
+  border-color: var(--line);
 }
 
 .event-row:hover,
@@ -1845,13 +1524,8 @@ onMounted(() => {
 
 .timeline-marker,
 .delivery-status-icon {
-  display: grid;
-  flex: 0 0 32px;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--line);
-  border-radius: var(--wh-radius-control);
+  @apply grid h-8 w-8 shrink-0 place-items-center rounded-[var(--wh-radius-control)] border;
+  border-color: var(--line);
   background: var(--wh-heading-bg);
   color: var(--muted);
 }
@@ -1862,202 +1536,265 @@ onMounted(() => {
   color: var(--red);
 }
 
-.history-row-content { flex: 1 1 auto; min-width: 0; }
-.history-row-title { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
-.history-row-title strong { font-size: 11px; }
+.history-row-content {
+  @apply min-w-0 flex-auto;
+}
+.history-row-title {
+  @apply flex flex-wrap items-center gap-[7px];
+}
+.history-row-title strong {
+  @apply text-[11px];
+}
 
 .history-row-content > p {
-  margin: 6px 0;
+  @apply my-1.5 text-[10px] leading-normal;
   color: var(--muted);
-  font-size: 10px;
-  line-height: 1.55;
   overflow-wrap: anywhere;
 }
 
-.history-row-content > small { color: var(--muted); font-size: 9px; line-height: 1.5; }
+.history-row-content > small {
+  @apply text-[9px] leading-normal;
+  color: var(--muted);
+}
 
 .phase-tag,
 .outcome-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 6px;
-  border-radius: 5px;
+  @apply inline-flex items-center whitespace-nowrap rounded-[5px] px-1.5 py-[3px] text-[9px];
   background: var(--wh-heading-bg);
   color: var(--muted);
-  font-size: 9px;
-  white-space: nowrap;
 }
 
-.outcome-success { background: var(--green-soft); color: var(--green); }
-.outcome-failure { background: var(--red-soft); color: var(--red); }
+.outcome-success {
+  background: var(--green-soft);
+  color: var(--green);
+}
+.outcome-failure {
+  background: var(--red-soft);
+  color: var(--red);
+}
 
-.delivery-succeeded { border-color: color-mix(in srgb, var(--green) 22%, var(--line)); background: var(--green-soft); color: var(--green); }
-.delivery-failed { border-color: color-mix(in srgb, var(--red) 22%, var(--line)); background: var(--red-soft); color: var(--red); }
-.delivery-sending { background: var(--accent-soft); color: var(--accent); }
+.delivery-succeeded {
+  border-color: color-mix(in srgb, var(--green) 22%, var(--line));
+  background: var(--green-soft);
+  color: var(--green);
+}
+.delivery-failed {
+  border-color: color-mix(in srgb, var(--red) 22%, var(--line));
+  background: var(--red-soft);
+  color: var(--red);
+}
+.delivery-sending {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
 
-.small-pill { padding: 4px 7px; font-size: 9px; }
-.delivery-pill-succeeded { border-color: color-mix(in srgb, var(--green) 22%, var(--line)); background: var(--green-soft); color: var(--green); }
-.delivery-pill-failed { border-color: color-mix(in srgb, var(--red) 22%, var(--line)); background: var(--red-soft); color: var(--red); }
+.small-pill {
+  @apply px-[7px] py-1 text-[9px];
+}
+.delivery-pill-succeeded {
+  border-color: color-mix(in srgb, var(--green) 22%, var(--line));
+  background: var(--green-soft);
+  color: var(--green);
+}
+.delivery-pill-failed {
+  border-color: color-mix(in srgb, var(--red) 22%, var(--line));
+  background: var(--red-soft);
+  color: var(--red);
+}
 
 .records-filter {
-  flex: 0 0 auto;
-  width: 148px;
+  @apply w-[148px] shrink-0;
 }
 
-.delivery-error { padding: 8px 9px; border-radius: 7px; background: var(--red-soft); color: var(--red) !important; }
+.delivery-error {
+  @apply rounded-[7px] px-[9px] py-2;
+  background: var(--red-soft);
+  color: var(--red) !important;
+}
 
 /* ---------- Editor placeholder ---------- */
 
 .editor-placeholder {
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 28px;
-  text-align: center;
+  @apply items-center justify-center gap-3.5 p-7 text-center;
   color: var(--muted);
 }
 
-.editor-placeholder p { margin: 0; font-size: 13px; line-height: 1.7; }
+.editor-placeholder p {
+  @apply m-0 text-[13px] leading-[1.7];
+}
 
-.spin { animation: webhook-spin 0.9s linear infinite; }
-@keyframes webhook-spin { to { transform: rotate(360deg); } }
+.spin {
+  animation: webhook-spin 0.9s linear infinite;
+}
+@keyframes webhook-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* ---------- Responsive ---------- */
 
 @media (max-width: 1150px) {
-  .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .directory-panel { flex-basis: 34%; width: 34%; min-width: 210px; }
-  .editor-heading { padding-right: 17px; padding-left: 17px; }
-  .editor-body { padding-right: 17px; padding-left: 17px; }
-  .editor-footer { padding-right: 17px; padding-left: 17px; }
+  .overview-grid {
+    @apply grid-cols-2;
+  }
+  .directory-panel {
+    @apply min-w-[210px] w-[34%];
+    flex-basis: 34%;
+  }
+  .editor-heading,
+  .editor-body,
+  .editor-footer {
+    @apply px-[17px];
+  }
 }
 
-/* Short-viewport fallback (wide screens only — the narrow layout below has
-   its own bounded-panel model). The pinned tier needs, at minimum, the
-   topbar + header gap + tabs + 12px gap + the 320px row floor + the footer
-   reserve, which lands at roughly 620px of viewport height. Below that the
-   pinned layout could no longer honour its floor, so the workspace stops
-   sticking and the whole content area scrolls as one document, exactly
-   like the dashboard overview page. Keeping the switch here also prevents
-   the footer from ever being pushed under the panels. */
 @media (min-width: 901px) and (max-height: 620px) {
   .workspace-region {
-    position: static;
-    height: auto;
-    max-height: none;
+    @apply static h-auto max-h-none;
   }
-
   .workspace-layout,
   .history-workspace {
+    @apply min-h-0 max-h-none;
     flex: 0 0 auto;
-    /* Same 320px floor as the pinned tier, so the row stops shrinking at the
-       same point in both tiers; below that the document scrolls instead. */
     height: clamp(320px, 62dvh, 560px);
-    min-height: 0;
-    max-height: none;
   }
 }
 
 @media (max-width: 900px) {
-  /* Natural document flow: the admin viewport owns page scrolling, the
-     sticky workspace is released, and each panel becomes its own
-     height-bounded scroll owner. */
   .webhook-page {
+    @apply min-h-0;
     flex: 0 0 auto;
-    min-height: 0;
   }
-
   .webhook-page > :deep(.app-footer) {
-    margin-top: 0;
+    @apply mt-0;
   }
-
   .workspace-region {
-    position: static;
+    @apply static h-auto max-h-none;
     flex: 0 0 auto;
-    height: auto;
-    max-height: none;
   }
-
   .workspace-layout,
   .history-workspace {
+    @apply min-h-0 max-h-none flex-col overflow-visible;
     flex: 0 0 auto;
-    flex-direction: column;
-    min-height: 0;
-    max-height: none;
-    overflow: visible;
   }
-
   .directory-panel,
   .editor-panel,
   .history-panel {
-    max-height: none;
-    width: 100%;
-    min-width: 0;
+    @apply w-full min-w-0 max-h-none;
   }
-
   .directory-panel {
+    @apply h-[var(--wh-directory-height)];
     flex: 0 0 auto;
-    height: var(--wh-directory-height);
   }
-
   .editor-panel {
-    height: var(--wh-editor-height);
+    @apply h-[var(--wh-editor-height)];
   }
-
-  .history-workspace { display: flex; }
-
+  .history-workspace {
+    @apply flex;
+  }
   .history-panel {
+    @apply h-[var(--wh-history-height)];
     flex: 0 0 auto;
-    height: var(--wh-history-height);
   }
-
-  .editor-heading { padding-right: 17px; padding-left: 17px; }
-  .editor-body { padding-right: 17px; padding-left: 17px; }
-  .editor-footer { padding-right: 17px; padding-left: 17px; }
+  .editor-heading,
+  .editor-body,
+  .editor-footer {
+    @apply px-[17px];
+  }
 }
 
 @media (max-width: 640px) {
   .webhook-page {
-    gap: 14px;
+    @apply gap-3.5;
     --wh-directory-height: clamp(260px, 42dvh, 440px);
     --wh-editor-height: clamp(320px, 54dvh, 560px);
     --wh-history-height: clamp(280px, 44dvh, 480px);
   }
-
   .page-intro {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 15px;
-    padding: 20px;
+    @apply flex-col items-start gap-[15px] p-5;
   }
-
-  .intro-state { width: 100%; box-sizing: border-box; }
-  .overview-grid { gap: 9px; }
-  .overview-card { padding: 13px; }
-  .overview-icon { width: 30px; height: 30px; }
-  .overview-label { margin-top: 10px; }
-  .overview-value { font-size: 21px; }
-  .workspace-tabs { gap: 2px; overflow-x: auto; }
-  .workspace-tabs button { min-height: 39px; padding: 0 9px; gap: 6px; font-size: 10px; }
-  .workspace-tabs button > svg { display: none; }
-  .workspace-tabs button.active::after { right: 8px; left: 8px; }
-  .editor-heading { align-items: flex-start; flex-wrap: wrap; padding: 16px; }
-  .editor-title-mark { flex-basis: 36px; width: 36px; height: 36px; }
-  .editor-heading-tools { width: 100%; justify-content: space-between; margin-left: 0; }
-  .editor-body { padding: 0 16px; }
-  .form-section { gap: 14px; padding: 18px 0; }
-  .field-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
-  .editor-footer { gap: 7px; padding: 12px 16px; }
-  .editor-footer .footer-spacer { display: none; }
-  .editor-footer :deep(.app-button) { flex: 1 1 auto; }
-  .editor-footer :deep(.app-button--primary) { flex: 1 0 100%; }
-  .editor-note { padding-right: 16px; padding-left: 16px; }
-  .inline-empty { flex-wrap: wrap; }
-  .panel-heading { align-items: flex-start; flex-wrap: wrap; }
-  .panel-heading-copy p { white-space: normal; }
-  .records-filter { width: 100%; }
+  .intro-state {
+    @apply box-border w-full;
+  }
+  .overview-grid {
+    @apply gap-[9px];
+  }
+  .overview-card {
+    @apply p-[13px];
+  }
+  .overview-icon {
+    @apply h-[30px] w-[30px];
+  }
+  .overview-label {
+    @apply mt-2.5;
+  }
+  .overview-value {
+    @apply text-[21px];
+  }
+  .workspace-tabs {
+    @apply gap-0.5 overflow-x-auto;
+  }
+  .workspace-tabs button {
+    @apply gap-1.5 px-[9px] text-[10px];
+    min-height: 39px;
+  }
+  .workspace-tabs button > svg {
+    @apply hidden;
+  }
+  .workspace-tabs button.active::after {
+    @apply left-2 right-2;
+  }
+  .editor-heading {
+    @apply flex-wrap items-start p-4;
+  }
+  .editor-title-mark {
+    @apply h-9 w-9;
+    flex-basis: 36px;
+  }
+  .editor-heading-tools {
+    @apply ml-0 w-full justify-between;
+  }
+  .editor-body {
+    @apply px-4;
+  }
+  .form-section {
+    @apply gap-3.5 py-[18px];
+  }
+  .field-grid {
+    @apply grid-cols-1 gap-3.5;
+  }
+  .editor-footer {
+    @apply gap-[7px] px-4 py-3;
+  }
+  .editor-footer .footer-spacer {
+    @apply hidden;
+  }
+  .editor-footer :deep(.app-button) {
+    @apply flex-auto;
+  }
+  .editor-footer :deep(.app-button--primary) {
+    flex: 1 0 100%;
+  }
+  .editor-note {
+    @apply px-4;
+  }
+  .inline-empty {
+    @apply flex-wrap;
+  }
+  .panel-heading {
+    @apply flex-wrap items-start;
+  }
+  .panel-heading-copy p {
+    @apply whitespace-normal;
+  }
+  .records-filter {
+    @apply w-full;
+  }
   .event-row,
-  .delivery-row { gap: 9px; padding: 13px; }
+  .delivery-row {
+    @apply gap-[9px] p-[13px];
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
