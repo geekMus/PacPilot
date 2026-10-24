@@ -2,6 +2,7 @@ import { computed, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { api, ApiError } from "@/api/client";
+import { clearSessionToken } from "@/api/session-token";
 import { useToast } from "@/composables/useToast";
 
 export function useAdminPassword() {
@@ -36,6 +37,9 @@ export function useAdminPassword() {
     passwordSaving.value = true;
     try {
       await api.changePassword({ currentPassword: passwordForm.currentPassword, newPassword: passwordForm.newPassword });
+      // Changing the password rotates the server-side session secret, which
+      // invalidates every issued token (including this browser's).
+      clearSessionToken();
       const { invalidateAdminSessionCache } = await import("@/composables/useAdminSession");
       invalidateAdminSessionCache();
       notify(t("settings.passwordChangedOk"), "success");

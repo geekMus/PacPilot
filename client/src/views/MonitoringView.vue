@@ -4,6 +4,11 @@ import AppIcon from "@/components/AppIcon.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import ResponsiveTrendChart from "@/components/ResponsiveTrendChart.vue";
 import { useMonitoringDashboard } from "@/composables/useMonitoringDashboard";
+import { resolveApiUrl } from "@/api/runtime-config";
+
+// The PAC endpoint lives on the backend host, which may differ from the
+// static frontend host in split deployments.
+const pacUrl = resolveApiUrl("/proxy.pac");
 
 const {
   t,
@@ -66,7 +71,7 @@ const {
               <h2 id="pac-overview-title">
                 <AppIcon name="route" :size="17" />{{ t("monitor.k66") }}
               </h2>
-              <p>{{ t("monitor.k67") }} <code>/proxy.pac</code> {{ t("monitor.k68") }}</p>
+              <p>{{ t("monitor.k67") }} <code>{{ pacUrl }}</code> {{ t("monitor.k68") }}</p>
             </div>
             <span class="panel-count">{{ t("monitor.k69") }}</span>
           </div>
@@ -159,7 +164,7 @@ const {
               </div>
             </div>
             <div v-else class="pac-no-latest">
-              {{ t("monitor.k81") }} <code>/proxy.pac</code> {{ t("monitor.k82") }}
+              {{ t("monitor.k81") }} <code>{{ pacUrl }}</code> {{ t("monitor.k82") }}
             </div>
           </div>
         </section>
