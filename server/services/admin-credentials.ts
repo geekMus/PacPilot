@@ -55,15 +55,36 @@ export async function isAdminCredentialsMissing(
   return (await readRecord(repository)) === null;
 }
 
+export type InitialCredentialSource = "configured" | "generated";
+
+export interface InitialCredentialResult {
+  /** The password that was written; null when credentials already existed. */
+  password: string | null;
+  /** Where the initial password came from. */
+  source: InitialCredentialSource | null;
+}
+
+/** Minimum length accepted for a configured initial password. */
+export const MIN_CONFIGURED_PASSWORD_LENGTH = 8;
+
 export async function createInitialAdminCredentials(
   repository: AdminCredentialRepository,
   configuredPassword?: string,
   configuredSessionSecret?: string
-): Promise<string | null> {
-  if (await readRecord(repository)) return null;
-  const initialPassword = configuredPassword || randomBytes(18).toString("base64url");
+): Promise<InitialCredentialResult> {
+  if (await readRecord(repository)) return { password: null, source: null };
+
+  const trimmed = configuredPassword?.trim() ?? "";
+  if (trimmed && trimmed.length < MIN_CONFIGURED_PASSWORD_LENGTH) {
+    throw new Error(
+      `DEFAULT_ADMIN_PASSWORD is too short: use at least ${MIN_CONFIGURED_PASSWORD_LENGTH} characters.`
+    );
+  }
+
+  const source: InitialCredentialSource = trimmed ? "configured" : "generated";
+  const initialPassword = trimmed || randomBytes(18).toString("base64url");
   await writeRecord(repository, passwordRecord(initialPassword, configuredSessionSecret));
-  return initialPassword;
+  return { password: initialPassword, source };
 }
 
 async function getRecord(repository: AdminCredentialRepository): Promise<AdminAuthRecord> {

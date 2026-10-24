@@ -51,7 +51,7 @@ describe("isPrivateAddress", () => {
 
 describe("resolveClientIp", () => {
   beforeEach(() => {
-    configureClientIp({ trustProxyHops: 1, trustCloudflare: false });
+    configureClientIp({ trustProxyHops: 1, trustCloudflare: false, trustedProxyCidrs: [] });
   });
 
   it("uses the socket address when no proxy headers are trusted", () => {
@@ -94,11 +94,51 @@ describe("resolveClientIp", () => {
   });
 
   it("ignores CF-Connecting-IP from a public peer to prevent spoofing", () => {
-    configureClientIp({ trustCloudflare: true, trustProxyHops: 0 });
+    configureClientIp({ trustCloudflare: true, trustProxyHops: 0, trustedProxyCidrs: [] });
     const request = fakeRequest({
       remoteAddress: "198.51.100.20",
       headers: { "cf-connecting-ip": "203.0.113.99" },
     });
     expect(resolveClientIp(request)).toBe("198.51.100.20");
+  });
+
+  it("ignores forwarded headers from peers outside the allowlist", () => {
+    configureClientIp({
+      trustProxyHops: 1,
+      trustCloudflare: true,
+      trustedProxyCidrs: ["172.17.0.0/16"],
+    });
+    // Public peer: both CF and XFF headers are attacker-controlled.
+    const request = fakeRequest({
+      remoteAddress: "198.51.100.20",
+      headers: { "cf-connecting-ip": "203.0.113.99", "x-forwarded-for": "203.0.113.7" },
+    });
+    expect(resolveClientIp(request)).toBe("198.51.100.20");
+  });
+
+  it("trusts forwarded headers from peers inside the allowlist", () => {
+    configureClientIp({
+      trustProxyHops: 1,
+      trustCloudflare: true,
+      trustedProxyCidrs: ["172.17.0.0/16"],
+    });
+    const request = fakeRequest({
+      remoteAddress: "172.17.0.9",
+      headers: { "cf-connecting-ip": "203.0.113.99" },
+    });
+    expect(resolveClientIp(request)).toBe("203.0.113.99");
+  });
+
+  it("falls back to X-Forwarded-For for allowlisted peers without CF header", () => {
+    configureClientIp({
+      trustProxyHops: 1,
+      trustCloudflare: true,
+      trustedProxyCidrs: ["172.17.0.0/16"],
+    });
+    const request = fakeRequest({
+      remoteAddress: "172.17.0.9",
+      headers: { "x-forwarded-for": "1.1.1.1, 203.0.113.7" },
+    });
+    expect(resolveClientIp(request)).toBe("203.0.113.7");
   });
 });

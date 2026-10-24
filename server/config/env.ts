@@ -2,6 +2,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { loadDevelopmentDotEnv } from "./load-dotenv";
+import { isValidCidr } from "../utils/cidr";
 
 export interface EnvConfig {
   dataDir: string;
@@ -20,6 +21,10 @@ export interface EnvConfig {
   trustProxyHops: number;
   /** Trust the CF-Connecting-IP header written by Cloudflare / cloudflared. */
   trustCloudflareIp: boolean;
+  /** Networks the reverse proxies live in; forwarded headers from other peers are ignored. */
+  trustedProxyCidrs: string[];
+  /** Initial administrator password for a first start; random when unset. */
+  defaultAdminPassword?: string;
 }
 
 function str(name: string, fallback?: string): string | undefined {
@@ -130,6 +135,25 @@ export function loadEnv(): EnvConfig {
   const trustCloudflareRaw = (str("TRUST_CLOUDFLARE_IP", "0") || "0").toLowerCase();
   const trustCloudflareIp = ["1", "true", "yes", "on"].includes(trustCloudflareRaw);
 
+  // Comma-separated list of proxy networks. When present, forwarded headers are
+  // ignored for any peer outside these ranges, which blocks spoofing.
+  const trustedProxyCidrs = (str("TRUSTED_PROXY_CIDRS", "") || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  for (const cidr of trustedProxyCidrs) {
+    if (!isValidCidr(cidr)) {
+      throw new Error("Invalid TRUSTED_PROXY_CIDRS entry: " + cidr);
+    }
+  }
+  if (trustCloudflareIp && trustedProxyCidrs.length === 0) {
+    // Without an allowlist the CF header would be honoured from any private
+    // peer; require an explicit decision so the trust boundary stays visible.
+    throw new Error(
+      "TRUST_CLOUDFLARE_IP requires TRUSTED_PROXY_CIDRS (e.g. 172.17.0.0/16 for the Docker bridge)."
+    );
+  }
+
   return {
     ...resolved,
     port,
@@ -137,5 +161,7 @@ export function loadEnv(): EnvConfig {
     corsMode: corsModeRaw,
     trustProxyHops,
     trustCloudflareIp,
+    trustedProxyCidrs,
+    defaultAdminPassword: str("DEFAULT_ADMIN_PASSWORD"),
   };
 }

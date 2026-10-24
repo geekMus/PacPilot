@@ -23,6 +23,7 @@ export function createApp(env: EnvConfig, storage: ApplicationStorage): express.
   configureClientIp({
     trustProxyHops: env.trustProxyHops,
     trustCloudflare: env.trustCloudflareIp,
+    trustedProxyCidrs: env.trustedProxyCidrs,
   });
 
   const openCors = env.corsMode === "open";

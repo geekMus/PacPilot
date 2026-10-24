@@ -16,9 +16,11 @@ async function main(): Promise<void> {
   process.env.PACPILOT_RUNTIME_PROFILE = env.runtimeProfile;
   const storage = await createApplicationStorage(env);
   const firstStart = await isAdminCredentialsMissing(storage.credentials);
-  const initialAdminPassword = await createInitialAdminCredentials(
+  // DEFAULT_ADMIN_PASSWORD only applies on the very first start; once a record
+  // exists it is ignored so a redeploy never silently resets the password.
+  const initialAdmin = await createInitialAdminCredentials(
     storage.credentials,
-    process.env.ADMIN_PASSWORD,
+    env.defaultAdminPassword ?? process.env.ADMIN_PASSWORD,
     process.env.ADMIN_SESSION_SECRET
   );
   const adminCredentialsMissing = await isAdminCredentialsMissing(storage.credentials);
@@ -35,12 +37,20 @@ async function main(): Promise<void> {
   const logCleanupTimer = setInterval(cleanupLogs, 24 * 60 * 60 * 1000);
   logCleanupTimer.unref();
 
-  if (initialAdminPassword) {
+  if (initialAdmin.password) {
     // 终端运行日志统一使用英文，避免 Windows 终端代码页不一致导致乱码。
-    runtimeLog(
-      "warn",
-      `Initial administrator password (change it in the admin panel): ${initialAdminPassword}`
-    );
+    if (initialAdmin.source === "configured") {
+      // Never print a user-supplied password; it is known to the operator.
+      runtimeLog(
+        "info",
+        "Administrator credentials initialized from DEFAULT_ADMIN_PASSWORD. Change it in the admin panel after signing in."
+      );
+    } else {
+      runtimeLog(
+        "warn",
+        `Initial administrator password (change it in the admin panel): ${initialAdmin.password}`
+      );
+    }
   } else if (adminCredentialsMissing) {
     runtimeLog(
       "error",

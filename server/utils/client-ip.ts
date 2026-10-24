@@ -1,5 +1,6 @@
 import { isIP } from "node:net";
 import type { Request } from "express";
+import { isIpInAnyCidr } from "./cidr";
 
 export interface ClientIpConfig {
   /**
@@ -9,10 +10,15 @@ export interface ClientIpConfig {
   trustProxyHops: number;
   /**
    * Trust `CF-Connecting-IP` (set by Cloudflare, including cloudflared tunnel).
-   * Only honoured when the direct peer is a private/loopback address, which is
-   * the case for a tunnel sidecar or a local proxy.
+   * Honoured only when the direct peer is a trusted proxy (see
+   * `trustedProxyCidrs`) or, without an allowlist, a private/loopback address.
    */
   trustCloudflare: boolean;
+  /**
+   * Networks the reverse proxies live in, e.g. `172.17.0.0/16` for the Docker
+   * bridge. When configured, forwarded headers from any other peer are ignored.
+   */
+  trustedProxyCidrs: string[];
 }
 
 const PRIVATE_V4 = [
@@ -48,7 +54,11 @@ function headerValue(req: Request, name: string): string {
   return typeof value === "string" ? value : "";
 }
 
-let config: ClientIpConfig = { trustProxyHops: 1, trustCloudflare: false };
+let config: ClientIpConfig = {
+  trustProxyHops: 1,
+  trustCloudflare: false,
+  trustedProxyCidrs: [],
+};
 
 export function configureClientIp(next: Partial<ClientIpConfig>): void {
   config = { ...config, ...next };
@@ -61,17 +71,28 @@ export function getClientIpConfig(): ClientIpConfig {
 /**
  * Resolve the originating client address.
  *
- * Order matters: `CF-Connecting-IP` is authoritative behind Cloudflare Tunnel
- * (the tunnel peer is always a private docker/loopback address, and the header
- * is written by the edge). Plain `X-Forwarded-For` is only read when hops are
- * configured, counting from the right so a client cannot prepend fake hops.
+ * Forwarded headers are only honoured when the direct peer is a trusted proxy:
+ *
+ * - `TRUSTED_PROXY_CIDRS` lists the networks our proxies live in (e.g. the
+ *   cloudflared/docker subnet). When it is set, any other peer is treated as a
+ *   direct client and its headers are ignored — this is what prevents a plain
+ *   internet client from spoofing `CF-Connecting-IP` / `X-Forwarded-For`.
+ * - `CF-Connecting-IP` additionally requires `TRUST_CLOUDFLARE_IP=1` **and** a
+ *   trusted peer; without a configured allowlist it is never trusted.
+ * - `X-Forwarded-For` is read from the right, counting trusted hops, so a client
+ *   cannot prepend fake entries.
  */
 export function resolveClientIp(req: Request): string {
   const peer = normalizeIp(req.socket.remoteAddress ?? "");
+  const hasAllowlist = config.trustedProxyCidrs.length > 0;
+  const peerTrusted = peer !== null && hasAllowlist && isIpInAnyCidr(peer, config.trustedProxyCidrs);
 
-  if (config.trustCloudflare) {
+  // With an allowlist configured, headers from untrusted peers are ignored.
+  if (hasAllowlist && !peerTrusted) return peer ?? "unknown";
+
+  if (config.trustCloudflare && (peerTrusted || (!hasAllowlist && isPrivateAddress(peer)))) {
     const cloudflareIp = normalizeIp(headerValue(req, "cf-connecting-ip"));
-    if (cloudflareIp && (peer === null || isPrivateAddress(peer))) return cloudflareIp;
+    if (cloudflareIp) return cloudflareIp;
   }
 
   if (config.trustProxyHops > 0) {
