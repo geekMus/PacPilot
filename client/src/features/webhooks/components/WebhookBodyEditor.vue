@@ -96,14 +96,12 @@ function insertSample() {
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .json-editor {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
+  @apply overflow-hidden rounded-[var(--radius-sm)] border transition-colors;
+  border-color: var(--line);
   background: var(--bg);
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
 }
 .json-editor:focus-within {
   border-color: var(--accent);
@@ -114,43 +112,27 @@ function insertSample() {
   box-shadow: 0 0 0 3px var(--red-soft);
 }
 .json-editor-toolbar {
-  min-height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--line);
+  @apply flex min-h-10 items-center justify-between gap-2.5 border-b px-[10px] py-1.5;
+  border-color: var(--line);
   background: var(--surface-2);
 }
 .json-editor-language,
 .json-editor-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  @apply flex items-center gap-2;
 }
 .json-editor-language {
+  @apply font-mono text-[11px] font-semibold tracking-[0.06em];
   color: var(--muted);
-  font: 600 11px var(--font-mono);
-  letter-spacing: 0.06em;
 }
 .language-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+  @apply h-[7px] w-[7px] rounded-full;
   background: var(--accent);
 }
 .editor-action {
-  appearance: none;
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  @apply min-h-7 cursor-pointer rounded-md border px-[9px] py-[3px] text-[11px] font-semibold appearance-none;
+  border-color: var(--line);
   background: var(--surface);
   color: var(--text);
-  min-height: 28px;
-  padding: 3px 9px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
 }
 .editor-action:hover:not(:disabled) {
   border-color: var(--accent);
@@ -163,28 +145,18 @@ function insertSample() {
   background: var(--accent-soft);
 }
 .editor-action:disabled {
-  opacity: 1;
+  @apply cursor-not-allowed opacity-100;
   color: var(--control-disabled-text);
   background: var(--control-disabled-bg);
   border-color: var(--control-disabled-border);
-  cursor: not-allowed;
 }
 .json-editor-status {
-  min-height: 30px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-top: 1px solid var(--line);
+  @apply flex min-h-[30px] items-center gap-2 border-t px-[10px] py-1.5 text-[11px] leading-snug;
+  border-color: var(--line);
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.4;
 }
 .status-indicator {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex: 0 0 auto;
+  @apply h-[7px] w-[7px] shrink-0 rounded-full;
   background: var(--muted);
 }
 .json-editor-status.valid .status-indicator {
@@ -198,12 +170,10 @@ function insertSample() {
 }
 @media (max-width: 720px) {
   .json-editor-toolbar {
-    align-items: flex-start;
-    flex-direction: column;
+    @apply flex-col items-start;
   }
   .json-editor-actions {
-    width: 100%;
-    justify-content: flex-end;
+    @apply w-full justify-end;
   }
 }
 </style>

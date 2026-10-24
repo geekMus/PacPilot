@@ -226,7 +226,7 @@ onMounted(() => {
   </footer>
 </template>
 <style>
-@reference "../styles/tailwind.css";
+@reference "@/styles/tailwind.css";
 
 .app-footer {
   @apply flex items-center justify-start gap-3.5 mt-7 border-t px-0.5 pt-3.5 pb-1 text-xs;

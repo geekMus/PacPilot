@@ -43,7 +43,7 @@ const fieldId = useId();
 </template>
 
 <style>
-@reference "../styles/tailwind.css";
+@reference "@/styles/tailwind.css";
 
 .app-toggle {
   @apply relative flex items-center gap-[13px] min-h-[60px] rounded-[11px] border px-[14px] py-3 cursor-pointer transition-colors;

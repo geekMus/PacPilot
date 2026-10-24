@@ -94,7 +94,7 @@ function onCloseAutoFocus(event: Event): void {
 </template>
 
 <style>
-@reference "../styles/tailwind.css";
+@reference "@/styles/tailwind.css";
 
 .app-dialog-overlay {
   @apply fixed inset-0 z-[1000];

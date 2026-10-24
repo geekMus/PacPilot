@@ -154,7 +154,7 @@ async function onSubmit() {
 </template>
 
 <style scoped>
-@reference "../styles/tailwind.css";
+@reference "@/styles/tailwind.css";
 
 .auth-page {
   @apply flex min-h-dvh flex-col;

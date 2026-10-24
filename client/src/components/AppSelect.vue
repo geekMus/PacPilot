@@ -106,7 +106,7 @@ function onValueChange(value: string): void {
 </template>
 
 <style>
-@reference "../styles/tailwind.css";
+@reference "@/styles/tailwind.css";
 
 .app-select {
   @apply inline-flex min-w-0 max-w-full align-middle;

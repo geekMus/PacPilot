@@ -32,7 +32,7 @@ const emit = defineEmits<{
 </template>
 
 <style>
-@reference "../styles/tailwind.css";
+@reference "@/styles/tailwind.css";
 
 .app-checkbox {
   @apply relative inline-grid h-4 w-4 shrink-0 place-items-center;

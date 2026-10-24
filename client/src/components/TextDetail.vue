@@ -86,68 +86,42 @@ async function copyContent(): Promise<void> {
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .text-detail-trigger {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  border: 0;
-  background: transparent;
+  @apply m-0 block w-full min-w-0 max-w-full overflow-hidden border-0 bg-transparent p-0 text-left underline decoration-dotted underline-offset-[3px] cursor-pointer;
   color: inherit;
-  font: inherit;
-  line-height: inherit;
-  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-decoration-line: underline;
-  text-decoration-style: dotted;
   text-decoration-color: color-mix(in srgb, var(--muted) 52%, transparent);
-  text-underline-offset: 3px;
-  cursor: pointer;
 }
-
 .text-detail-trigger:hover,
 .text-detail-trigger:focus-visible {
   color: var(--accent);
   text-decoration-color: currentColor;
 }
-
 .text-detail-trigger:focus-visible,
 .text-detail-button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
-
 .text-detail-heading {
-  min-width: 0;
+  @apply min-w-0;
 }
 .text-detail-heading p {
-  margin: 0 0 5px;
+  @apply mb-[5px] mt-0 text-xs;
   color: var(--muted);
-  font-size: 12px;
   overflow-wrap: anywhere;
 }
 .text-detail-title {
-  margin: 0;
-  font-size: 18px;
-  letter-spacing: -0.02em;
+  @apply m-0 text-lg tracking-tight;
 }
 .text-detail-content {
-  margin: 0;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  @apply m-0 rounded-[10px] border p-3.5 text-xs leading-[1.7] whitespace-pre-wrap;
+  border-color: var(--line);
   background: var(--surface-2);
   color: var(--text);
-  font:
-    12px/1.7 ui-monospace,
-    SFMono-Regular,
-    Consolas,
-    monospace;
-  white-space: pre-wrap;
+  font-family: var(--font-mono);
   overflow-wrap: anywhere;
   word-break: break-word;
   user-select: text;
@@ -162,7 +136,7 @@ async function copyContent(): Promise<void> {
 }
 @media (max-width: 560px) {
   .text-detail-content {
-    padding: 12px;
+    @apply p-3;
   }
 }
 </style>

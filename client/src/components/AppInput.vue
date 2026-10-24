@@ -58,7 +58,7 @@ function onInput(event: Event): void {
 </template>
 
 <style>
-@reference "../styles/tailwind.css";
+@reference "@/styles/tailwind.css";
 
 .app-input {
   @apply block w-full min-w-0 min-h-10 rounded-lg border px-3 py-2 text-xs leading-snug transition-colors;

@@ -82,7 +82,7 @@ onUnmounted(() => resizeObserver?.disconnect());
 </template>
 
 <style scoped>
-@reference "../styles/tailwind.css";
+@reference "@/styles/tailwind.css";
 
 .app-table-frame {
   @apply flex w-full min-w-0 max-w-full flex-col overflow-hidden rounded-[10px] border;

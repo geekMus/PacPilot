@@ -99,7 +99,7 @@ function onScroll(event: Event): void {
 </template>
 
 <style>
-@reference "../styles/tailwind.css";
+@reference "@/styles/tailwind.css";
 
 .app-scroll-area {
   @apply relative overflow-hidden min-w-0 min-h-0;

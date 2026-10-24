@@ -365,7 +365,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-@reference "../styles/tailwind.css";
+@reference "@/styles/tailwind.css";
 .dashboard-view {
   min-width: 0;
 }
