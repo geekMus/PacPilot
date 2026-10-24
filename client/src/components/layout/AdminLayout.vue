@@ -71,119 +71,69 @@ watch(
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .admin-layout {
+  @apply flex h-dvh w-full min-h-0 overflow-hidden;
   --sidebar-width: 258px;
   --admin-topbar-space: 104px;
-  display: flex;
-  width: 100%;
-  height: 100dvh;
-  min-height: 0;
-  overflow: hidden;
   color: var(--text);
   background: var(--bg);
 }
 .admin-main {
-  position: relative;
-  display: flex;
+  @apply relative flex h-full min-w-0 min-h-0 flex-col;
   flex: 1 1 auto;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  height: 100%;
 }
 .admin-topbar {
-  position: absolute;
-  z-index: 30;
-  top: 0;
-  right: 0;
-  left: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  min-height: 88px;
-  padding: 15px clamp(20px, 3vw, 42px);
+  @apply absolute inset-x-0 top-0 z-30 flex min-h-[88px] items-center justify-between gap-6 px-[clamp(20px,3vw,42px)] py-[15px];
   border-bottom: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
   background: color-mix(in srgb, var(--bg) 58%, transparent);
   -webkit-backdrop-filter: saturate(180%) blur(24px);
   backdrop-filter: saturate(180%) blur(24px);
 }
 .topbar-title {
-  min-width: 0;
+  @apply min-w-0;
 }
 .topbar-kicker {
-  display: block;
-  margin-bottom: 4px;
+  @apply mb-1 block text-[9px] font-extrabold tracking-[0.15em];
   color: var(--accent);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.15em;
 }
 .topbar-title h1 {
-  margin: 0;
+  @apply m-0 text-[21px] font-extrabold leading-tight tracking-[-0.035em];
   color: var(--text);
-  font-size: 21px;
-  line-height: 1.2;
-  letter-spacing: -0.035em;
-  font-weight: 800;
 }
 .topbar-title p {
-  margin: 5px 0 0;
+  @apply mb-0 mt-[5px] text-[11px] leading-snug;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.45;
 }
 .topbar-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  flex: 0 0 auto;
-  min-width: 0;
+  @apply flex min-w-0 shrink-0 items-center justify-end gap-2;
 }
-
 .admin-topbar :deep(.app-button.app-button) {
-  min-height: 38px;
-  padding-right: 13px;
-  padding-left: 13px;
-  font-size: 12px;
+  @apply min-h-[38px] px-[13px] text-xs;
 }
 .admin-content {
-  position: absolute;
-  inset: 0;
-  width: 100%;
+  @apply absolute inset-0 w-full min-h-0;
   /* Let the absolute insets determine the scroll area's height. Combining
      top/bottom insets with height: 100% over-constrains this positioned
      element and can make the shared admin viewport collapse in some layouts. */
-  min-height: 0;
-
   --radius: 12px;
   --admin-panel-padding: 20px;
   --admin-section-gap: 20px;
 }
 
-/* The notifications page owns a sticky workspace that must be able to
-   travel inside its own page box. The wrapper therefore provides a full
-   height floor but must not clamp the page to the viewport height, and the
-   page itself stays content-sized. */
+/* The notifications page owns a sticky workspace that must be able to travel
+   inside its own page box. The wrapper therefore provides a full height floor
+   but must not clamp the page to the viewport height. */
 .admin-content-inner--notifications {
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
+  @apply flex flex-col min-h-full;
 }
 .admin-content-inner--notifications > :deep(.webhook-page) {
+  @apply min-h-0;
   flex: 0 0 auto;
-  min-height: 0;
 }
 .admin-content-inner {
-  width: 100%;
-  /* The scroll viewport fills the admin pane, so its content wrapper must
-     also establish a full-height layout box. Otherwise short pages leave the
-     shared content surface ending early while the viewport continues below. */
-  min-height: 100%;
-  box-sizing: border-box;
-  max-width: 1680px;
-  margin: 0 auto;
+  @apply mx-auto box-border w-full max-w-[1680px] min-h-full;
   padding: calc(var(--admin-topbar-space) + 25px) clamp(20px, 3vw, 42px) 40px;
 }
 
@@ -191,15 +141,14 @@ watch(
 .admin-content :deep(.card.card),
 .admin-content :deep(.dashboard-panel.dashboard-panel),
 .admin-content :deep(.monitor-panel.monitor-panel) {
-  padding: var(--admin-panel-padding);
-  border-radius: 12px;
+  @apply rounded-xl p-[var(--admin-panel-padding)];
   box-shadow: var(--shadow);
 }
 .admin-content :deep(.stack.stack) {
   gap: var(--admin-section-gap);
 }
 .admin-content :deep(.dashboard-panel.dashboard-panel) {
-  margin-bottom: 0;
+  @apply mb-0;
 }
 .admin-content :deep(.monitor-panel.monitor-panel) {
   margin-bottom: var(--admin-section-gap);
@@ -210,85 +159,72 @@ watch(
 }
 .admin-content :deep(.overview-metrics),
 .admin-content :deep(.metric-grid) {
-  gap: 12px;
-  margin-bottom: 20px;
+  @apply mb-5 gap-3;
 }
 .admin-content :deep(.overview-metric.overview-metric),
 .admin-content :deep(.metric-card.metric-card) {
-  gap: 7px;
-  padding: 16px;
-  border-radius: 12px;
+  @apply gap-[7px] rounded-xl p-4;
 }
 .admin-content :deep(.metric-label.metric-label) {
-  font-size: 12px;
-  line-height: 1.45;
+  @apply text-xs leading-snug;
 }
 .admin-content :deep(.metric-value.metric-value) {
+  @apply leading-tight;
   font-size: clamp(22px, 2.1vw, 28px);
-  line-height: 1.2;
 }
 .admin-content :deep(.metric-note.metric-note) {
-  min-height: 0;
-  font-size: 11px;
-  line-height: 1.5;
+  @apply min-h-0 text-[11px] leading-normal;
 }
 .admin-content :deep(.panel-header h3),
 .admin-content :deep(.panel-heading h2) {
-  font-size: 15px;
-  line-height: 1.35;
+  @apply text-[15px] leading-snug;
 }
 .admin-content :deep(.panel-header p),
 .admin-content :deep(.panel-heading p) {
-  font-size: 11px;
-  line-height: 1.55;
+  @apply text-[11px] leading-normal;
 }
 .admin-content :deep(.config-detail > span) {
-  font-size: 11px;
+  @apply text-[11px];
 }
 .admin-content :deep(.config-detail strong),
 .admin-content :deep(.config-detail code) {
-  font-size: 12px;
+  @apply text-xs;
 }
 .admin-content :deep(.recent-table),
 .admin-content :deep(.table-wrap table) {
+  @apply text-xs;
   min-width: 560px;
-  font-size: 12px;
 }
 .admin-content :deep(.recent-table th),
 .admin-content :deep(.recent-table td),
 .admin-content :deep(.table-wrap th),
 .admin-content :deep(.table-wrap td) {
-  padding: 10px 12px;
+  @apply px-3 py-2.5;
 }
-
 .admin-content :deep(.app-button.app-button) {
-  min-height: 40px;
-  padding-right: 14px;
-  padding-left: 14px;
-  font-size: 12px;
+  @apply min-h-10 px-[14px] text-xs;
 }
 .admin-content :deep(.chip.chip) {
-  min-height: 36px;
+  @apply min-h-9;
 }
 .mobile-menu-toggle {
-  display: none;
+  @apply hidden;
 }
 .sidebar-backdrop {
-  display: none;
+  @apply hidden;
 }
 @media (max-width: 1050px) {
   .admin-layout {
     --sidebar-width: 238px;
   }
   .admin-topbar {
-    gap: 16px;
+    @apply gap-4;
   }
   .admin-topbar :deep(.monitor-top-updated) {
-    display: none;
+    @apply hidden;
   }
   .admin-content-inner {
-    padding-right: 24px;
-    padding-left: 24px;
+    @apply px-6;
   }
 }
 @media (max-width: 900px) {
@@ -296,47 +232,34 @@ watch(
     --admin-topbar-space: 92px;
   }
   .sidebar-backdrop {
-    display: block;
-    position: fixed;
-    z-index: 45;
-    inset: 0;
-    border: 0;
+    @apply fixed inset-0 z-[45] block border-0;
     background: rgba(12, 18, 30, 0.45);
   }
   .admin-topbar {
-    min-height: 72px;
-    padding: 12px 18px;
-    gap: 10px;
+    @apply min-h-[72px] gap-2.5 px-[18px] py-3;
   }
   .mobile-menu-toggle {
-    display: grid;
-    place-items: center;
+    @apply grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-[9px] border p-0;
     flex: 0 0 36px;
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    border: 1px solid var(--line);
-    border-radius: 9px;
+    border-color: var(--line);
     background: var(--surface);
     color: var(--text);
-    cursor: pointer;
   }
   .mobile-menu-toggle svg {
-    width: 18px;
-    height: 18px;
+    @apply h-[18px] w-[18px];
     fill: none;
     stroke: currentColor;
     stroke-width: 2;
     stroke-linecap: round;
   }
   .topbar-title {
-    flex: 1;
+    @apply flex-1;
   }
   .topbar-title h1 {
-    font-size: 18px;
+    @apply text-lg;
   }
   .admin-content-inner {
-    padding: 20px 18px 32px;
+    @apply px-[18px] pt-5 pb-8;
   }
 }
 @media (max-width: 620px) {
@@ -344,86 +267,61 @@ watch(
     --admin-topbar-space: 64px;
   }
   .admin-topbar {
-    display: grid;
+    @apply grid min-h-0 items-center gap-x-2.5 gap-y-[5px] py-2.5 pl-[13px] pr-4;
     grid-template-columns: 32px minmax(0, 1fr) auto;
-    gap: 5px 10px;
-    align-items: center;
-    min-height: 0;
-    padding: 10px 16px 10px 13px;
   }
   .mobile-menu-toggle {
-    grid-column: 1;
-    grid-row: 1;
-    width: 32px;
-    height: 32px;
+    @apply col-start-1 row-start-1 h-8 w-8;
   }
   .topbar-title {
-    grid-column: 2;
-    grid-row: 1;
+    @apply col-start-2 row-start-1;
   }
   .topbar-kicker,
   .topbar-title p {
-    display: none;
+    @apply hidden;
   }
   .topbar-title h1 {
-    font-size: 16px;
-    line-height: 1.25;
+    @apply text-base leading-tight;
   }
   .topbar-actions {
-    grid-column: 3;
-    grid-row: 1;
-    width: auto;
-    gap: 0;
-    flex-wrap: nowrap;
-    justify-content: flex-end;
-    justify-self: end;
-    padding-left: 2px;
+    @apply col-start-3 row-start-1 w-auto flex-nowrap justify-end justify-self-end gap-0 pl-0.5;
   }
   .topbar-actions :deep(.monitor-top-updated) {
-    display: none;
+    @apply hidden;
   }
-  .topbar-actions :deep(.app-button.app-button),
   .topbar-actions :deep(.app-button.app-button) {
-    min-height: 36px;
-    padding: 0 9px;
-    border-radius: 8px;
-    font-size: 11px;
+    @apply min-h-9 rounded-lg px-[9px] text-[11px];
   }
   .admin-content {
     --admin-panel-padding: 14px;
     --admin-section-gap: 16px;
   }
   .admin-content-inner {
-    padding: 16px 16px 28px;
+    @apply px-4 pt-4 pb-7;
   }
   .admin-content :deep(.overview-metrics),
   .admin-content :deep(.metric-grid) {
-    gap: 10px;
-    margin-bottom: 18px;
+    @apply mb-[18px] gap-2.5;
   }
   .admin-content :deep(.overview-metric.overview-metric),
   .admin-content :deep(.metric-card.metric-card) {
-    padding: 13px 12px;
+    @apply px-3 py-[13px];
   }
   .admin-content :deep(.metric-value.metric-value) {
-    font-size: 22px;
+    @apply text-[22px];
   }
   .admin-content :deep(.admin-page input:not([type="checkbox"]):not([type="radio"])),
   .admin-content :deep(.admin-page select),
   .admin-content :deep(.admin-page textarea:not(.CodeMirror)) {
-    min-height: 44px;
-    font-size: 16px;
+    @apply min-h-11 text-base;
   }
 }
 @media (max-width: 360px) {
   .admin-topbar {
-    padding-right: 10px;
-    padding-left: 10px;
+    @apply px-2.5;
   }
-  .topbar-actions :deep(.app-button),
   .topbar-actions :deep(.app-button) {
-    padding: 0 7px;
-    font-size: 9px;
+    @apply px-[7px] text-[9px];
   }
 }
 </style>

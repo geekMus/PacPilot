@@ -110,65 +110,44 @@ function onOpenChange(open: boolean) {
 </template>
 
 <style>
+@reference "@/styles/tailwind.css";
+
 .confirm-anchor {
-  position: relative;
-  display: inline-flex;
-  max-width: 100%;
+  @apply relative inline-flex max-w-full;
 }
 .confirm-popover {
-  position: relative;
-  z-index: 1200;
-  box-sizing: border-box;
-  display: grid;
-  width: max-content;
+  @apply relative z-[1200] box-border grid w-max gap-3.5 rounded-xl border p-[15px] outline-none;
   min-width: min(280px, calc(100vw - 24px));
   max-width: min(360px, calc(100vw - 24px));
-  gap: 14px;
-  padding: 15px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  border-color: var(--line);
   background: var(--surface);
   color: var(--text);
   box-shadow: var(--dialog-panel-shadow, 0 12px 36px rgb(0 0 0 / 18%));
-  outline: none;
   transform-origin: var(--reka-popover-content-transform-origin);
 }
 .confirm-popover[data-state="open"] {
   animation: confirm-popover-in 120ms ease-out;
 }
 .confirm-popover-heading {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
+  @apply grid min-w-0 gap-1.5;
 }
 .confirm-popover-title {
-  margin: 0;
+  @apply m-0 text-sm font-bold leading-snug;
   color: var(--text);
-  font-size: 14px;
-  font-weight: 750;
-  line-height: 1.4;
 }
 .confirm-popover-description {
-  margin: 0;
+  @apply m-0 text-xs leading-normal;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.6;
   overflow-wrap: anywhere;
 }
 .confirm-disabled-reason {
-  padding: 9px 10px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
+  @apply rounded-[9px] border px-2.5 py-[9px] text-xs leading-normal;
+  border-color: var(--line);
   color: var(--muted);
   background: var(--surface-2);
-  font-size: 12px;
-  line-height: 1.5;
 }
 .confirm-popover-actions {
-  display: flex;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 8px;
+  @apply flex flex-wrap justify-end gap-2;
 }
 /* Buttons reuse the shared app-button system; only the danger tone needs the
    red surface, which the shared variant does not cover. */
@@ -181,23 +160,22 @@ function onOpenChange(open: boolean) {
   filter: brightness(0.96);
 }
 .confirm-popover-arrow {
-  position: absolute;
-  top: -5px;
-  right: 20px;
-  width: 8px;
-  height: 8px;
-  border-top: 1px solid var(--line);
-  border-left: 1px solid var(--line);
+  @apply absolute -top-[5px] right-5 h-2 w-2 rotate-45 border-l border-t;
+  border-color: var(--line);
   background: var(--surface);
-  transform: rotate(45deg);
 }
 .confirm-popover[data-align="start"] .confirm-popover-arrow {
-  right: auto;
-  left: 20px;
+  @apply left-5 right-auto;
 }
 @keyframes confirm-popover-in {
-  from { opacity: 0; transform: translateY(-3px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .confirm-popover[data-state="open"] {
