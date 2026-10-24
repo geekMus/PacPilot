@@ -225,78 +225,49 @@ onMounted(() => {
     </AppDialog>
   </footer>
 </template>
-<style scoped>
+<style>
+@reference "../styles/tailwind.css";
+
 .app-footer {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 14px;
-  margin-top: 28px;
-  padding: 14px 2px 4px;
-  border-top: 1px solid var(--line);
+  @apply flex items-center justify-start gap-3.5 mt-7 border-t px-0.5 pt-3.5 pb-1 text-xs;
+  border-color: var(--line);
   color: var(--muted);
-  font-size: 12px;
 }
 .footer-project {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  @apply flex items-center gap-3;
 }
 .github-project-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
+  @apply inline-flex items-center justify-center gap-[7px] rounded-full border px-[11px] font-semibold no-underline transition-colors;
   min-height: 34px;
-  padding: 0 11px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  border-color: var(--line);
   color: var(--text);
   background: var(--surface);
-  text-decoration: none;
-  font-weight: 650;
-  transition:
-    color 0.15s,
-    border-color 0.15s,
-    transform 0.15s;
 }
 .github-project-link:hover {
+  @apply -translate-y-px;
   color: var(--accent);
   border-color: var(--accent);
   background: var(--surface-2);
-  transform: translateY(-1px);
 }
 .github-project-link:active {
+  @apply translate-y-0;
   color: var(--accent);
   border-color: var(--accent);
   background: var(--accent-soft);
-  transform: translateY(0);
 }
 .version-badge {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
+  @apply relative inline-flex items-center rounded-full border px-3 text-xs font-bold tabular-nums cursor-pointer transition-transform;
   min-height: 31px;
-  padding: 0 12px;
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
-  border-radius: 999px;
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
   background: var(--accent-soft);
   color: var(--accent);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 750;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-  transition:
-    transform 0.15s,
-    box-shadow 0.15s;
 }
 .version-badge:hover {
-  transform: translateY(-1px);
+  @apply -translate-y-px;
   box-shadow: 0 3px 10px rgba(30, 64, 175, 0.12);
 }
 .version-badge:active {
-  transform: translateY(0);
+  @apply translate-y-0;
   box-shadow: inset 0 1px 2px rgba(30, 40, 60, 0.12);
 }
 .version-badge.is-update {
@@ -305,59 +276,35 @@ onMounted(() => {
   color: var(--text);
 }
 .new-badge {
-  position: absolute;
-  top: -8px;
-  right: -10px;
-  padding: 2px 5px;
-  border: 2px solid var(--surface);
-  border-radius: 999px;
+  @apply absolute -top-2 -right-2.5 rounded-full border-2 px-[5px] py-0.5 text-[9px] font-extrabold leading-[1.15];
+  border-color: var(--surface);
   background: var(--warn);
   color: var(--accent-contrast);
-  font-size: 9px;
-  font-weight: 800;
-  line-height: 1.15;
   letter-spacing: 0.02em;
 }
 .version-dialog-title {
-  margin: 0;
-  font-size: 20px;
-  letter-spacing: -0.02em;
+  @apply m-0 text-xl tracking-tight;
 }
 .version-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin: 0 0 15px;
+  @apply mb-4 grid grid-cols-2 gap-2.5;
 }
 .version-item {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  min-width: 0;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  @apply flex min-w-0 flex-col gap-[7px] rounded-xl border p-3.5;
+  border-color: var(--line);
   background: var(--surface-2);
 }
 .version-item span {
+  @apply text-[11px];
   color: var(--muted);
-  font-size: 11px;
 }
 .version-item strong {
+  @apply text-[15px] tabular-nums;
   overflow-wrap: anywhere;
-  font-size: 15px;
-  font-variant-numeric: tabular-nums;
 }
 .latest-version-item {
-  width: 100%;
+  @apply w-full cursor-pointer border text-left transition-colors;
   border-color: var(--line);
   color: var(--text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    border-color 0.15s,
-    background 0.15s;
 }
 .latest-version-item:hover:not(:disabled) {
   border-color: var(--accent);
@@ -367,23 +314,21 @@ onMounted(() => {
   outline-offset: 2px;
 }
 .latest-version-item:disabled {
-  cursor: not-allowed;
+  @apply cursor-not-allowed;
   color: var(--control-disabled-text);
   border-color: var(--control-disabled-border);
   background: var(--control-disabled-bg);
 }
 .latest-version-item.is-loading:disabled {
-  cursor: progress;
+  @apply cursor-progress;
   color: var(--text);
   -webkit-text-fill-color: var(--text);
   border-color: var(--line);
   background: var(--surface);
 }
 .latest-version-item span small {
-  margin-left: 4px;
+  @apply ml-1 text-[10px] font-semibold;
   color: var(--accent);
-  font-size: 10px;
-  font-weight: 650;
 }
 .version-item.version-new {
   border-color: color-mix(in srgb, var(--warn) 55%, var(--line));
@@ -391,45 +336,29 @@ onMounted(() => {
   color: var(--text);
 }
 .dialog-update-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin: 15px 0 0;
-  padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--warn) 55%, var(--line));
-  border-radius: 12px;
+  @apply mt-3.5 flex items-start gap-2.5 rounded-xl border p-3;
+  border-color: color-mix(in srgb, var(--warn) 55%, var(--line));
   background: var(--warn-soft);
   color: var(--text);
 }
 .dialog-update-dot {
-  flex: 0 0 8px;
-  width: 8px;
-  height: 8px;
-  margin-top: 5px;
-  border-radius: 50%;
+  @apply mt-[5px] h-2 w-2 shrink-0 rounded-full;
   background: var(--warn);
 }
 .dialog-update-note strong {
-  font-size: 13px;
+  @apply text-[13px];
 }
 .dialog-update-note p {
-  margin: 4px 0 0;
+  @apply mt-1 text-xs leading-normal;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.55;
 }
 .dialog-status {
-  margin: 15px 0 0;
+  @apply mt-3.5 text-xs leading-normal;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.55;
 }
 @media (max-width: 560px) {
   .app-footer {
-    align-items: flex-start;
-    flex-direction: column;
-    margin-top: 22px;
-    padding-top: 12px;
+    @apply mt-[22px] flex-col items-start pt-3;
   }
 }
 </style>

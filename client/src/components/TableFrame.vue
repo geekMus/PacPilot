@@ -82,64 +82,49 @@ onUnmounted(() => resizeObserver?.disconnect());
 </template>
 
 <style scoped>
+@reference "../styles/tailwind.css";
+
 .app-table-frame {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  @apply flex w-full min-w-0 max-w-full flex-col overflow-hidden rounded-[10px] border;
   max-height: var(--table-max-height, 480px);
   height: var(--table-max-height, 480px);
-  overflow: hidden;
+  border-color: var(--line);
   background: var(--surface);
   /* Do not trap wheel/touch gestures at this non-scrolling frame. */
   overscroll-behavior: auto;
 }
 .app-table-header-viewport {
+  @apply w-full max-w-full shrink-0 overflow-hidden;
   flex: 0 0 44px;
-  width: 100%;
   height: 44px;
-  max-width: 100%;
-  overflow: hidden;
   background: var(--surface-2);
 }
 .app-table {
-  width: 100%;
+  @apply w-full border-separate text-xs;
   min-width: var(--table-min-width);
-  border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
-  font-size: 12px;
 }
 .app-table :deep(thead th) {
-  box-sizing: border-box;
+  @apply box-border overflow-hidden border-b px-3 py-2.5 text-left font-bold whitespace-nowrap;
   height: 44px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--line);
+  border-color: var(--line);
   background: var(--surface-2);
   color: var(--muted);
-  text-align: left;
-  font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
   text-overflow: ellipsis;
 }
 .app-table-frame.is-empty .app-table-body-scroll {
-  min-height: 98px;
+  @apply min-h-[98px];
 }
 .app-table-body-scroll {
   /* A zero flex-basis lets the fixed-height frame allocate the remaining body
      space instead of letting intrinsic table content dictate the scroll area. */
+  @apply min-w-0 min-h-0 flex-auto;
   height: 0;
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 0;
   max-height: calc(var(--table-max-height, 480px) - 44px);
 }
 .app-table-body-scroll :deep(.app-scroll-area-viewport) {
-  height: 100%;
+  @apply h-full;
   max-height: calc(var(--table-max-height, 480px) - 44px);
   overflow-anchor: none;
   /* Let vertical wheel/touch gestures chain to the page when the table cannot scroll. */
@@ -147,50 +132,38 @@ onUnmounted(() => resizeObserver?.disconnect());
   overscroll-behavior-x: contain;
 }
 .app-table :deep(tbody td) {
-  box-sizing: border-box;
+  @apply box-border overflow-hidden border-b px-3 py-2.5 align-middle whitespace-nowrap;
   height: var(--virtual-row-height);
   max-height: var(--virtual-row-height);
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--line);
-  vertical-align: middle;
-  white-space: nowrap;
-  overflow: hidden;
+  border-color: var(--line);
   text-overflow: ellipsis;
 }
 .app-table :deep(tbody tr:last-child td) {
-  border-bottom: 0;
+  @apply border-b-0;
 }
 .app-table :deep(tbody tr:hover td) {
   background: color-mix(in srgb, var(--accent) 4%, transparent);
 }
 .app-table :deep(.actions-cell) {
-  overflow: visible;
+  @apply overflow-visible;
 }
 .app-table :deep(.virtual-spacer td) {
-  height: auto;
-  max-height: none;
-  padding: 0 !important;
-  border: 0 !important;
-  line-height: 0;
+  @apply h-auto max-h-none border-0 p-0 leading-none;
 }
 .app-table :deep(.virtual-state-row td) {
+  @apply border-b-0 px-3 py-2.5 text-center;
   height: 42px;
   max-height: none;
-  padding: 10px 12px;
-  text-align: center;
   color: var(--muted);
-  border-bottom: 0;
 }
 .app-table.recent-table {
-  font-size: 10px;
+  @apply text-[10px];
 }
 .app-table.recent-table :deep(thead th) {
-  padding: 10px;
-  font-size: 10px;
-  font-weight: 800;
+  @apply px-2.5 py-2.5 text-[10px] font-extrabold;
 }
 .app-table.recent-table :deep(tbody td) {
-  padding: 10px;
+  @apply px-2.5 py-2.5;
   height: 40px;
   max-height: 40px;
 }

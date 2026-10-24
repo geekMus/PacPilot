@@ -94,78 +94,43 @@ function onCloseAutoFocus(event: Event): void {
 </template>
 
 <style>
+@reference "../styles/tailwind.css";
+
 .app-dialog-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
+  @apply fixed inset-0 z-[1000];
   background: var(--dialog-overlay-bg);
   -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
 }
 .app-dialog-shell {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  z-index: 1001;
-  display: grid;
+  @apply fixed top-1/2 left-1/2 z-[1001] grid w-max max-w-[calc(100vw-16px)] min-w-0 overflow-hidden rounded-[14px] border outline-none;
   grid-template-rows: auto minmax(0, 1fr) auto;
   box-sizing: border-box;
-  width: max-content;
-  max-width: calc(100vw - 16px);
   height: fit-content;
   max-height: min(85dvh, 800px);
-  min-width: 0;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  border-color: var(--line);
   background: var(--surface);
   color: var(--text);
   box-shadow: var(--dialog-panel-shadow);
   transform: translate(-50%, -50%);
-  outline: none;
 }
 .app-dialog-header {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 10px 12px;
-  min-width: 0;
-  padding: 16px 18px;
-  border-bottom: 1px solid var(--line);
+  @apply flex shrink-0 flex-wrap items-start justify-between gap-x-3 gap-y-2.5 min-w-0 px-[18px] py-4 border-b;
+  border-color: var(--line);
   background: var(--surface);
 }
 .app-dialog-heading {
-  flex: 1 1 180px;
-  min-width: 0;
+  @apply min-w-0 flex-[1_1_180px];
   overflow-wrap: anywhere;
 }
 .app-dialog-header-actions {
-  display: inline-flex;
-  flex: 0 1 auto;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-left: auto;
-  max-width: 100%;
-  min-width: 0;
+  @apply ml-auto inline-flex max-w-full min-w-0 flex-[0_1_auto] flex-wrap items-center justify-end gap-2;
 }
 .app-dialog-close {
-  display: inline-grid;
-  flex: 0 0 auto;
-  place-items: center;
-  width: 32px;
-  height: 32px;
+  @apply inline-grid shrink-0 place-items-center w-8 h-8 p-0 rounded-lg border border-transparent bg-transparent transition-colors;
   margin: -4px -6px -4px 0;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: transparent;
   color: var(--muted);
   cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
 }
 .app-dialog-close:hover {
   border-color: var(--line);
@@ -178,85 +143,32 @@ function onCloseAutoFocus(event: Event): void {
   outline-offset: 2px;
 }
 .app-dialog-body {
-  min-height: 0;
-  width: 100%;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
+  @apply min-h-0 w-full min-w-0 overflow-hidden;
 }
 .app-dialog-body .app-scroll-area-viewport {
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;
+  @apply box-border h-full w-full min-w-0 min-h-0 overflow-x-hidden p-[18px];
   max-height: none;
-  min-width: 0;
-  min-height: 0;
-  padding: 18px;
-  overflow-x: hidden;
   /* Chaining is blocked by the `overscroll="contain"` prop on the component
      so the page behind the modal never scrolls. */
 }
 .app-dialog-footer {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 14px 18px;
-  border-top: 1px solid var(--line);
+  @apply flex shrink-0 flex-wrap items-center justify-end gap-2 px-[18px] py-3.5 border-t;
+  border-color: var(--line);
   background: var(--surface);
 }
 .app-dialog-footer button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 36px;
-  padding: 0 13px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  @apply inline-flex items-center justify-center gap-[7px] min-h-9 px-[13px] rounded-lg border text-xs font-bold cursor-pointer;
+  border-color: var(--line);
   background: var(--surface-2);
   color: var(--text);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
 }
 .app-dialog-footer button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+  @apply opacity-55 cursor-not-allowed;
 }
 .app-dialog-visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
+  @apply absolute w-px h-px p-0 -m-px overflow-hidden;
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-}
-@media (max-width: 560px) {
-  .app-dialog-shell {
-    max-width: calc(100vw - 16px);
-    max-height: 90dvh;
-  }
-  .app-dialog-header {
-    padding: 14px;
-  }
-  .app-dialog-body .app-scroll-area-viewport {
-    max-height: none;
-    padding: 14px;
-  }
-  .app-dialog-footer {
-    padding: 12px 14px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .app-dialog-close {
-    transition: none;
-  }
 }
 </style>

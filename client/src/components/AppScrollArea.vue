@@ -99,17 +99,15 @@ function onScroll(event: Event): void {
 </template>
 
 <style>
+@reference "../styles/tailwind.css";
+
 .app-scroll-area {
-  position: relative;
-  overflow: hidden;
-  min-width: 0;
-  min-height: 0;
+  @apply relative overflow-hidden min-w-0 min-h-0;
   --scrollbar-size: 8px;
 }
 
 .app-scroll-area-viewport {
-  width: 100%;
-  height: 100%;
+  @apply w-full h-full;
   border-radius: inherit;
   /* Chaining is the default so a nested area can hand the wheel back to the
      page once it reaches its edge. Overlays override this via the
@@ -124,17 +122,10 @@ function onScroll(event: Event): void {
 }
 
 .app-scrollbar {
-  position: relative;
-  z-index: 10;
-  display: flex;
+  @apply relative z-10 flex p-0.5 bg-transparent transition-colors;
   pointer-events: auto;
   touch-action: none;
   user-select: none;
-  padding: 2px;
-  background: transparent;
-  transition:
-    background-color 150ms ease,
-    opacity 150ms ease;
 }
 
 .app-scrollbar[data-orientation="vertical"] {
@@ -142,12 +133,11 @@ function onScroll(event: Event): void {
 }
 
 .app-scrollbar[data-orientation="horizontal"] {
-  height: var(--scrollbar-size);
-  flex-direction: column;
+  @apply h-[var(--scrollbar-size)] flex-col;
 }
 
 .app-scrollbar[data-state="hidden"] {
-  opacity: 0;
+  @apply opacity-0;
 }
 
 .app-scrollbar:hover,
@@ -156,9 +146,7 @@ function onScroll(event: Event): void {
 }
 
 .app-scrollbar-thumb {
-  position: relative;
-  flex: 1;
-  border-radius: 999px;
+  @apply relative flex-1 rounded-full;
   background: var(--scrollbar-thumb, color-mix(in srgb, var(--text) 26%, transparent));
 }
 
@@ -167,13 +155,12 @@ function onScroll(event: Event): void {
 }
 
 .app-scrollbar-thumb::before {
-  position: absolute;
-  inset: -4px;
+  @apply absolute -inset-1;
   content: "";
 }
 
 .app-scrollbar-corner {
-  background: transparent;
+  @apply bg-transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {

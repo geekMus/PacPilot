@@ -106,37 +106,22 @@ function onValueChange(value: string): void {
 </template>
 
 <style>
+@reference "../styles/tailwind.css";
+
 .app-select {
-  display: inline-flex;
-  vertical-align: middle;
-  min-width: 0;
-  max-width: 100%;
+  @apply inline-flex min-w-0 max-w-full align-middle;
   width: max-content;
 }
 .app-select.is-block {
-  display: flex;
-  width: 100%;
+  @apply flex w-full;
 }
 .app-select-trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  box-sizing: border-box;
-  width: 100%;
-  min-width: 0;
+  @apply box-border inline-flex w-full min-w-0 items-center justify-between gap-2.5 rounded-lg border px-3 py-2 text-left text-xs leading-snug transition-colors;
   min-height: 40px;
-  padding: 9px 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border-color: var(--line);
   background: var(--surface);
   color: var(--text);
-  font: inherit;
-  font-size: 12px;
-  line-height: 1.4;
-  text-align: left;
   cursor: pointer;
-  transition: border-color 150ms ease, background-color 150ms ease;
 }
 .app-select-trigger:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--accent) 48%, var(--line));
@@ -152,82 +137,59 @@ function onValueChange(value: string): void {
   border-color: var(--red);
 }
 .app-select-trigger:disabled {
+  @apply cursor-not-allowed;
   background: var(--control-disabled-bg);
   color: var(--control-disabled-text);
   border-color: var(--control-disabled-border);
-  cursor: not-allowed;
 }
 .app-select-chevron {
-  flex: 0 0 auto;
+  @apply shrink-0 transition-transform;
   color: var(--muted);
-  transition: transform 160ms ease, color 160ms ease;
 }
 .app-select-trigger[data-state="open"] .app-select-chevron {
   color: var(--accent);
   transform: rotate(180deg);
 }
 .app-select-content {
-  z-index: 1200;
-  box-sizing: border-box;
+  @apply z-[1200] box-border overflow-hidden rounded-[10px] border;
   min-width: min(var(--reka-select-trigger-width), calc(100vw - 16px));
   width: max-content;
   max-width: calc(100vw - 16px);
   max-height: var(--reka-select-content-available-height);
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  border-color: var(--line);
   background: var(--surface);
   color: var(--text);
   box-shadow: var(--shadow);
 }
 .app-select-scroll-area {
-  width: 100%;
+  @apply w-full min-h-0 overflow-hidden;
   height: fit-content;
   max-height: min(360px, var(--reka-select-content-available-height, 360px));
-  min-height: 0;
-  overflow: hidden;
 }
 .app-select-viewport {
-  width: 100%;
+  @apply w-full min-h-0 p-1;
   height: fit-content;
   max-height: min(360px, var(--reka-select-content-available-height, 360px));
-  min-height: 0;
-  padding: 4px;
 }
 .app-select-item {
-  position: relative;
-  box-sizing: border-box;
-  min-width: 0;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  @apply relative box-border flex min-w-0 max-w-full items-center justify-between gap-3 rounded-md px-[9px] py-[7px] text-xs leading-snug outline-none cursor-pointer select-none;
   min-height: 34px;
-  padding: 7px 9px;
-  border-radius: 6px;
+  overflow-wrap: anywhere;
   color: var(--text);
-  font-size: 12px;
-  line-height: 1.4;
-  outline: none;
-  cursor: pointer;
-  user-select: none;
 }
 .app-select-item[data-highlighted] {
   background: var(--accent-soft);
   color: var(--accent);
 }
 .app-select-item[data-state="checked"] {
-  font-weight: 650;
+  @apply font-semibold;
 }
 .app-select-item[data-disabled] {
+  @apply cursor-not-allowed;
   color: var(--control-disabled-text);
-  cursor: not-allowed;
 }
 .app-select-item-indicator {
-  display: inline-flex;
-  align-items: center;
+  @apply inline-flex items-center;
   color: var(--accent);
 }
 @media (prefers-reduced-motion: reduce) {
@@ -237,15 +199,3 @@ function onValueChange(value: string): void {
   }
 }
 </style>
-/* On touch screens, scrolling across an option must not look like changing selection. */
-@media (hover: none) and (pointer: coarse) {
-  .app-select-item[data-highlighted]:not([data-state="checked"]) {
-    background: transparent;
-    color: var(--text);
-  }
-
-  .app-select-item[data-state="checked"] {
-    background: var(--accent-soft);
-    color: var(--accent);
-  }
-}
