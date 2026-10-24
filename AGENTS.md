@@ -49,6 +49,14 @@
 - 内存实现只放在 `server/storage/memory/`；SQLite 的连接、schema/migrations 和 SQL 查询只放在 `server/storage/sqlite/`；文件/对象存储等非数据库持久化实现应与具体数据库目录分离。
 - 新增适配器时必须同步更新驱动配置与组合入口、实现契约测试，并验证现有数据迁移；不能只通过 TypeScript 编译就认为实现完成。
 
+## 前端样式开发规范
+
+- **样式统一用 Tailwind CSS 编写。** 组件与页面的 `<style>` 块必须以 `@reference "@/styles/tailwind.css";` 开头，规则体使用 `@apply` 组合工具类；不要新增手写的 `display`/`padding`/`border-radius` 等原始声明。
+- 颜色、圆角、阴影、字体等设计令牌保留为 CSS 变量（见 `client/src/styles/theme.css`），在 `@apply` 之外以 `color: var(--muted)` 形式引用，确保明暗主题正确切换；不要在业务代码里硬编码 `#fff`/`white`。
+- 实底按钮的文字色必须使用对应令牌：`--accent-contrast`、`--red-contrast`、`--green-contrast`。深色模式下 accent/red 为浅色，白字会看不清。
+- 响应式优先用 Tailwind 的 `sm:`/`md:` 等变体；确需媒体查询时写在样式块末尾，并保持既有断点语义（1050/900/720/650/620/560/480/360px）。
+- 共享组件（`AppButton`、`AppInput`、`AppSelect`、`AppDialog`、`AppScrollArea`、`TableFrame` 等）的样式由组件自身负责，业务页面只组合使用，不覆盖其内部样式。
+
 ## 前端滚动区域开发规范
 
 - 普通页面、弹窗、表格、下拉菜单、列表等需要独立滚动的区域，优先使用共享组件 `client/src/components/AppScrollArea.vue`，或使用已经在内部集成该组件的布局/业务组件；不要在业务页面中重复实现滚动条结构。
