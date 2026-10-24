@@ -106,9 +106,6 @@ async function copyStageDetail(): Promise<void> {
     }),
     t("workflowDetailPage.stageKey", { key: stage.stage_key }),
     `${t("workflowDetailPage.k33")}：${label(stage.status)}`,
-    t("workflowDetailPage.stageMsg", {
-      msg: label(stage.status),
-    }),
     t("workflowDetailPage.stageErr", {
       err: stage.error || "—",
     }),
@@ -337,12 +334,6 @@ onUnmounted(() => {
             </strong>
           </div>
         </div>
-        <div class="result-message">
-          <strong>{{ t("workflow.result") }}</strong>
-          <p>
-            {{ label(detail.run.status) }}
-          </p>
-        </div>
         <div v-if="detail.run.error" class="failure-message">
           <strong
             ><AppIcon name="circle-alert" :size="16" /> {{ t("workflowDetailPage.k26") }}</strong
@@ -390,9 +381,6 @@ onUnmounted(() => {
                 </div>
                 <span class="status" :class="stage.status">{{ label(stage.status) }}</span>
               </div>
-              <p>
-                {{ label(stage.status) }}
-              </p>
               <div class="stage-meta">
                 <span>{{
                   t("workflowDetailPage.stageStart", { time: dateLabel(stage.started_at) })
@@ -452,9 +440,6 @@ onUnmounted(() => {
         </template>
         <template #body>
           <div v-if="selectedStage" class="stage-detail-body">
-            <p class="stage-detail-message">
-              {{ label(selectedStage.status) }}
-            </p>
             <section class="stage-detail-section">
               <h3 class="stage-detail-section-title">{{ t("workflowDetailPage.k32") }}</h3>
               <div class="stage-detail-meta">
@@ -616,15 +601,12 @@ onUnmounted(() => {
   @apply text-[13px];
   overflow-wrap: anywhere;
 }
-.result-message,
 .failure-message {
   @apply mt-3 grid gap-1.5;
 }
-.result-message strong,
 .failure-message strong {
   @apply inline-flex items-center gap-1.5 text-xs;
 }
-.result-message p,
 .failure-message pre {
   @apply m-0 text-[13px] leading-normal;
 }
@@ -718,10 +700,6 @@ onUnmounted(() => {
 .stage-heading .status {
   @apply mt-0.5 shrink-0;
 }
-.stage-body > p {
-  @apply mb-0 mt-2 text-xs leading-normal;
-  color: var(--muted);
-}
 .stage-meta {
   @apply mt-2.5 flex flex-wrap gap-x-3.5 gap-y-1.5 text-[11px] leading-snug;
   color: var(--muted);
@@ -791,11 +769,6 @@ onUnmounted(() => {
 }
 .stage-detail-body {
   @apply grid gap-4 p-0;
-}
-.stage-detail-message {
-  @apply m-0 text-xs leading-normal;
-  color: var(--muted);
-  overflow-wrap: anywhere;
 }
 .stage-detail-section {
   @apply grid min-w-0 gap-2;

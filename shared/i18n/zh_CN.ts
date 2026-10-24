@@ -466,7 +466,6 @@ export default {
     startTime: "开始时间",
     endTime: "结束时间",
     totalDuration: "总耗时",
-    result: "执行结果",
   },
   dashboard: {
     title: "系统总览",
@@ -1005,7 +1004,6 @@ export default {
     minSec: "{m} 分 {s} 秒",
     stageName: "阶段：{name}",
     stageKey: "键：{key}",
-    stageMsg: "说明：{msg}",
     stageErr: "错误：{err}",
     stageStart: "开始：{time}",
     stageEnd: "结束：{time}",

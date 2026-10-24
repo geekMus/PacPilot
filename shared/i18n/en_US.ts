@@ -466,7 +466,6 @@ export default {
     startTime: "Started",
     endTime: "Finished",
     totalDuration: "Duration",
-    result: "Result",
   },
   dashboard: {
     title: "Overview",
@@ -1005,7 +1004,6 @@ export default {
     minSec: "{m}m {s}s",
     stageName: "Stage: {name}",
     stageKey: "Key: {key}",
-    stageMsg: "Message: {msg}",
     stageErr: "Error: {err}",
     stageStart: "Started: {time}",
     stageEnd: "Finished: {time}",

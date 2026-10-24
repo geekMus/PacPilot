@@ -556,7 +556,6 @@ const {
               </article>
             </section>
             <div v-if="selectedRun.error" class="run-detail-error"><strong>{{ t("workflowPage.k57") }}</strong><pre>{{ selectedRun.error }}</pre></div>
-            <div v-if="selectedRun.error" class="run-detail-error"><strong>{{ t("workflowPage.k57") }}</strong><pre>{{ selectedRun.error }}</pre></div>
             <div class="run-detail-actions"><RouterLink class="app-button app-button--secondary" :to="`/admin/workflows/${selectedRun.id}`" @click="runDetailOpen = false"><AppIcon name="external-link" :size="14" />{{ t("workflowPage.k53") }}</RouterLink></div>
           </div>
         </template>
