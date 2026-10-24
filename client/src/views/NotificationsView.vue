@@ -333,7 +333,7 @@ onMounted(() => {
     <main class="webhook-page">
       <section class="page-intro">
         <div class="intro-copy">
-          <div class="eyebrow"><AppIcon name="workflow" :size="14" /> {{ t("notifications.workspace") }}</div>
+          <div class="eyebrow"><AppIcon name="workflow" :size="14" /> {{ t("notifications.eventDriven") }}</div>
           <h2>{{ t("notifications.workspace") }}</h2>
           <p>{{ t("notifications.workspaceHint") }}</p>
         </div>
@@ -773,7 +773,7 @@ onMounted(() => {
 
 .page-intro h2 {
   @apply mb-[5px] mt-[9px] leading-tight tracking-[-0.035em];
-  font-size: clamp(20px, 2vw, 25px);
+  font-size: clamp(18px, 1.6vw, 21px);
 }
 
 .page-intro p {

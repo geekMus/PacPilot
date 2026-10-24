@@ -405,7 +405,9 @@ onMounted(() => {
   @apply mb-[18px] flex flex-wrap items-end justify-between gap-[18px];
 }
 .toolbar-copy h2 {
-  @apply m-0 text-[clamp(20px,2.2vw,24px)] leading-tight tracking-[-0.03em];
+  /* Sits at the same level as the other panel headings on this page (15px),
+     not as a page title — the page title already lives in the admin header. */
+  @apply m-0 text-[15px] font-extrabold leading-snug tracking-[-0.02em];
   color: var(--text);
 }
 .toolbar-copy p {
