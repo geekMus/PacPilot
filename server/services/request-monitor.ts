@@ -3,6 +3,7 @@ import type { Socket } from "node:net";
 import { performance } from "node:perf_hooks";
 import type { MonitoringRepository } from "../storage/repositories";
 import { runtimeLog } from "../utils/runtime-log";
+import { resolveClientIp } from "../utils/client-ip";
 
 const tcpSockets = new Set<Socket>();
 let activeRequests = 0;
@@ -39,7 +40,7 @@ export function requestMonitoringMiddleware(repository: MonitoringRepository) {
 
       const elapsed = Math.max(0, performance.now() - startedAt);
       const contentLength = Number(res.getHeader("content-length") ?? 0);
-      const remoteAddress = normalizeAddress(req.socket.remoteAddress || "");
+      const remoteAddress = resolveClientIp(req).slice(0, 64);
       const agent = headerValue(req, "user-agent").slice(0, 512);
       const statusCode = aborted && !res.writableFinished ? 499 : res.statusCode;
       const responseType = String(res.getHeader("content-type") || "")
@@ -106,14 +107,6 @@ function categorize(path: string): string {
 function safePath(path: string): string {
   // req.path 不包含 query string；保留较长路径，同时限制长度避免异常请求放大数据库。
   return path.slice(0, 1024) || "/";
-}
-
-function normalizeAddress(address: string): string {
-  const value = address.trim();
-  if (!value) return "unknown";
-  if (value.startsWith("::ffff:")) return value.slice(7);
-  if (value === "::1") return "127.0.0.1";
-  return value.slice(0, 64);
 }
 
 function headerValue(req: Request, name: string): string {

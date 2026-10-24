@@ -10,15 +10,23 @@ import { adminRoutes } from "./routes/admin";
 import { requestMonitoringMiddleware } from "./services/request-monitor";
 import { resumePendingNotificationDeliveries } from "./services/notifications";
 import { getLocalInterfaceAddresses, isTrustedOrigin, normalizeOrigin } from "./utils/origin-policy";
+import { configureClientIp } from "./utils/client-ip";
 
 export function createApp(env: EnvConfig, storage: ApplicationStorage): express.Application {
   const app = express();
   void resumePendingNotificationDeliveries(storage);
 
   app.disable("x-powered-by");
-  // Honour X-Forwarded-* from a single reverse-proxy hop so Secure cookies and
-  // client IPs are correct when TLS terminates upstream.
-  app.set("trust proxy", 1);
+  // Honour X-Forwarded-* from the configured number of proxy hops so Secure
+  // cookies and client IPs are correct behind a reverse proxy or tunnel.
+  app.set("trust proxy", env.trustProxyHops > 0 ? env.trustProxyHops : false);
+  configureClientIp({
+    trustProxyHops: env.trustProxyHops,
+    trustCloudflare: env.trustCloudflareIp,
+  });
+
+  const openCors = env.corsMode === "open";
+  const allowedMethods = "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS";
 
   // Explicit origins remain available for separately hosted frontends. Origins
   // using this host's current interface IPs are also recognized dynamically.
@@ -39,23 +47,34 @@ export function createApp(env: EnvConfig, storage: ApplicationStorage): express.
     const isAdminMutation =
       _req.path.startsWith("/api/admin/") && !["GET", "HEAD", "OPTIONS"].includes(_req.method);
 
-    if (isAdminMutation && !trustedOrigin) {
-      res.status(403).json({ error: "untrusted_origin" });
-      return;
-    }
-
-    const corsAllowed = Boolean(normalizedOrigin && trustedOrigin);
-
-    if (corsAllowed) {
-      res.setHeader("Access-Control-Allow-Origin", normalizedOrigin!);
-      res.setHeader("Access-Control-Allow-Credentials", "true");
-      res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS");
+    if (openCors) {
+      // Any origin may call the API; admin access is authenticated by bearer
+      // token only, so cookies are never involved and `*` stays valid.
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", allowedMethods);
       const requestedHeaders = _req.get("Access-Control-Request-Headers");
-      if (requestedHeaders) {
-        res.setHeader("Access-Control-Allow-Headers", requestedHeaders);
-        res.vary("Access-Control-Request-Headers");
+      res.setHeader(
+        "Access-Control-Allow-Headers",
+        requestedHeaders || "Authorization, Content-Type, Accept-Language"
+      );
+      res.setHeader("Access-Control-Max-Age", "600");
+      if (requestedHeaders) res.vary("Access-Control-Request-Headers");
+    } else {
+      if (isAdminMutation && !trustedOrigin) {
+        res.status(403).json({ error: "untrusted_origin" });
+        return;
       }
-      res.vary("Origin");
+      if (normalizedOrigin && trustedOrigin) {
+        res.setHeader("Access-Control-Allow-Origin", normalizedOrigin);
+        res.setHeader("Access-Control-Allow-Credentials", "true");
+        res.setHeader("Access-Control-Allow-Methods", allowedMethods);
+        const requestedHeaders = _req.get("Access-Control-Request-Headers");
+        if (requestedHeaders) {
+          res.setHeader("Access-Control-Allow-Headers", requestedHeaders);
+          res.vary("Access-Control-Request-Headers");
+        }
+        res.vary("Origin");
+      }
     }
 
     if (_req.method === "OPTIONS") {

@@ -2,9 +2,10 @@ import type { Request, Response, NextFunction } from "express";
 import crypto from "crypto";
 import { getAdminSessionSecret, isAdminCredentialsMissing } from "../services/admin-credentials";
 import type { AdminCredentialRepository } from "../storage/repositories";
+import { resolveClientIp } from "../utils/client-ip";
 
-const COOKIE_NAME = "pacpilot_admin_session";
-const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+export const COOKIE_NAME = "pacpilot_admin_session";
+export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** Sliding window login throttle (per client address). */
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -48,13 +49,26 @@ export function clearSessionCookie(res: Response): void {
   res.clearCookie(COOKIE_NAME, { path: "/" });
 }
 
+/**
+ * Session token from either transport:
+ * - `Authorization: Bearer <token>` for cross-origin (static frontend) deployments
+ * - `pacpilot_admin_session` cookie for same-origin deployments
+ */
+function readSessionToken(req: Request): string | undefined {
+  const header = req.get("authorization") ?? "";
+  const match = /^Bearer\s+(.+)$/i.exec(header.trim());
+  if (match) return match[1].trim();
+  const cookie = req.cookies?.[COOKIE_NAME];
+  return typeof cookie === "string" ? cookie : undefined;
+}
+
 export function requireAdmin(repository: AdminCredentialRepository) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     if (await isAdminCredentialsMissing(repository)) {
       res.status(401).json({ error: "unauthorized" });
       return;
     }
-    const token = req.cookies?.[COOKIE_NAME] as string | undefined;
+    const token = readSessionToken(req);
     if (!verifySessionToken(token, await getAdminSessionSecret(repository))) {
       res.status(401).json({ error: "unauthorized" });
       return;
@@ -68,16 +82,14 @@ export async function isLoggedIn(
   repository: AdminCredentialRepository
 ): Promise<boolean> {
   if (await isAdminCredentialsMissing(repository)) return false;
-  const token = req.cookies?.[COOKIE_NAME] as string | undefined;
+  const token = readSessionToken(req);
   return verifySessionToken(token, await getAdminSessionSecret(repository));
 }
 
 export function clientKey(req: Request): string {
-  const forwarded = String(req.headers["x-forwarded-for"] || "")
-    .split(",")[0]
-    ?.trim();
-  const raw = forwarded || req.socket.remoteAddress || "unknown";
-  return raw.replace(/^::ffff:/, "").slice(0, 64);
+  // Resolved through the configured proxy/tunnel chain so throttling and audit
+  // logs see the real client instead of the tunnel's docker address.
+  return resolveClientIp(req).slice(0, 64);
 }
 
 function pruneFailures(key: string, now: number): number[] {
@@ -108,5 +120,3 @@ export function recordLoginFailure(req: Request): void {
 export function clearLoginFailures(req: Request): void {
   loginFailures.delete(clientKey(req));
 }
-
-export { COOKIE_NAME };

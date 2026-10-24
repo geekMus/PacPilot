@@ -9,6 +9,17 @@ export interface EnvConfig {
   runtimeProfile: "docker" | "production" | "development";
   port: number;
   host: string;
+  /**
+   * "strict" keeps the historical allowlist behaviour (same-origin / listed
+   * origins only). "open" allows any browser origin, which is what a purely
+   * static frontend on another host needs; admin access is then guarded by
+   * bearer tokens instead of cookies.
+   */
+  corsMode: "strict" | "open";
+  /** Trusted reverse-proxy hops used when resolving the client IP. */
+  trustProxyHops: number;
+  /** Trust the CF-Connecting-IP header written by Cloudflare / cloudflared. */
+  trustCloudflareIp: boolean;
 }
 
 function str(name: string, fallback?: string): string | undefined {
@@ -104,5 +115,27 @@ export function loadEnv(): EnvConfig {
   if (!Number.isFinite(port) || port <= 0 || port > 65535) {
     throw new Error("Invalid PORT: " + portRaw);
   }
-  return { ...resolved, port, host: str("HOST", "0.0.0.0")! };
+
+  const corsModeRaw = (str("CORS_MODE", "strict") || "strict").toLowerCase();
+  if (corsModeRaw !== "strict" && corsModeRaw !== "open") {
+    throw new Error('Invalid CORS_MODE: expected "strict" or "open".');
+  }
+
+  const trustProxyRaw = str("TRUST_PROXY_HOPS", "1")!;
+  const trustProxyHops = Number(trustProxyRaw);
+  if (!Number.isInteger(trustProxyHops) || trustProxyHops < 0 || trustProxyHops > 10) {
+    throw new Error("Invalid TRUST_PROXY_HOPS: expected an integer between 0 and 10.");
+  }
+
+  const trustCloudflareRaw = (str("TRUST_CLOUDFLARE_IP", "0") || "0").toLowerCase();
+  const trustCloudflareIp = ["1", "true", "yes", "on"].includes(trustCloudflareRaw);
+
+  return {
+    ...resolved,
+    port,
+    host: str("HOST", "0.0.0.0")!,
+    corsMode: corsModeRaw,
+    trustProxyHops,
+    trustCloudflareIp,
+  };
 }

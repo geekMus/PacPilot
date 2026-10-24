@@ -1,4 +1,7 @@
 import { i18n, resolveLocale } from "@/i18n";
+import { resolveApiUrl, isCrossOriginApi } from "@/api/runtime-config";
+import { readSessionToken, saveSessionToken, clearSessionToken } from "@/api/session-token";
+import { emitUnauthorized } from "@/api/auth-events";
 import type {
   AppSettings,
   WebhookConfig,
@@ -189,14 +192,20 @@ export class ApiError extends Error {
 }
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      "Accept-Language": resolveLocale(i18n.global.locale.value) === "en_US" ? "en-US" : "zh-CN",
-      ...(init?.headers || {}),
-    },
+  const token = readSessionToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "Accept-Language": resolveLocale(i18n.global.locale.value) === "en_US" ? "en-US" : "zh-CN",
+    ...((init?.headers as Record<string, string> | undefined) ?? {}),
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(resolveApiUrl(url), {
+    // Cross-origin deployments authenticate with the bearer token, and must not
+    // request credentials (the backend answers with `Access-Control-Allow-Origin: *`).
+    credentials: isCrossOriginApi() ? "omit" : "include",
     ...init,
+    headers,
     // A stalled API request must not leave admin pages in a permanent loading state.
     signal: init?.signal ?? AbortSignal.timeout(20_000),
   });
@@ -229,6 +238,13 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
       msg = i18n.global.t("login.adminCredentialsMissing");
     }
 
+    // A revoked session (password changed elsewhere, token expired) must drop
+    // the local credential and bounce the user back to the login screen.
+    if (res.status === 401 && !url.startsWith("/api/admin/login")) {
+      clearSessionToken();
+      emitUnauthorized();
+    }
+
     throw new ApiError(msg, code, detail);
   }
   return (await res.json()) as T;
@@ -243,12 +259,21 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
-  login: (password: string) =>
-    request<{ ok: boolean }>("/api/admin/login", {
-      method: "POST",
-      body: JSON.stringify({ password }),
-    }),
-  logout: () => request<{ ok: boolean }>("/api/admin/logout", { method: "POST" }),
+  login: async (password: string) => {
+    const result = await request<{ ok: boolean; token?: string; expiresAt?: number }>(
+      "/api/admin/login",
+      { method: "POST", body: JSON.stringify({ password }) }
+    );
+    saveSessionToken(result.token, result.expiresAt);
+    return result;
+  },
+  logout: async () => {
+    try {
+      return await request<{ ok: boolean }>("/api/admin/logout", { method: "POST" });
+    } finally {
+      clearSessionToken();
+    }
+  },
   settings: () => request<AppSettings>("/api/admin/settings"),
   saveSettings: (body: AppSettings) =>
     request<AppSettings>("/api/admin/settings", {

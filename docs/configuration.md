@@ -46,6 +46,9 @@ PAC 会按代理列表顺序选择策略；请填写客户端实际能够访问�
 | `HOST`                 | `0.0.0.0`      | 非容器运行时的监听地址。                                     |
 | `DATA_DIR`             | 按运行环境决定 | 非容器运行时的数据目录。                                     |
 | `CORS_ALLOWED_ORIGINS` | 空             | 显式允许访问管理 API 的跨域 Origin，多个来源以英文逗号分隔。 |
+| `CORS_MODE`            | `strict`       | `strict` 只允许白名单/同源；`open` 允许任意前端来源，管理接口改用 Bearer 令牌鉴权。 |
+| `TRUST_PROXY_HOPS`     | `1`            | 信任的反向代理跳数；`0` 表示完全忽略转发头。                 |
+| `TRUST_CLOUDFLARE_IP`  | `0`            | 设为 `1` 时优先使用 Cloudflare / cloudflared 写入的 `CF-Connecting-IP`。 |
 
 数据目录按运行方式确定：
 
@@ -72,6 +75,39 @@ CORS_ALLOWED_ORIGINS=https://admin.example.com,https://ops.example.com
 ```
 
 请只添加自己控制的可信来源，不要使用通配符。管理 API 的状态变更请求会校验 Origin；跨域凭据请求可能携带管理员会话 Cookie，因此不要将不可信网站加入白名单。若服务放在反向代理后，请正确配置代理转发头，并避免直接暴露不必要的管理入口。
+
+### 纯静态前端（`CORS_MODE=open`）
+
+当后端只服务于"独立部署在别处的静态前端"（例如 Cloudflare Pages、Vercel、对象存储）时，跨站 Cookie 会被 Safari/Firefox 拦截，因此改用 Bearer 令牌：
+
+```text
+CORS_MODE=open
+```
+
+该模式的行为：
+
+- 响应 `Access-Control-Allow-Origin: *`，不发送 `Access-Control-Allow-Credentials`；
+- 不再对管理写请求做 Origin 白名单校验，改由令牌鉴权；
+- `POST /api/admin/login` 返回 `{ token, expiresAt }`，且不下发会话 Cookie；
+- 前端把令牌放在 `Authorization: Bearer <token>` 中访问管理接口。
+
+> 安全提示：`open` 模式下任何网页都能向该服务发起请求，因此务必使用强管理员密码，并让服务仅通过 HTTPS 暴露。修改管理员密码会轮换 `sessionSecret`，所有已发放令牌立即失效。
+
+### 真实客户端 IP（反向代理与 Cloudflare Tunnel）
+
+限流与访问日志需要真实来源 IP。默认信任 1 跳代理；若链路是 `Cloudflare → cloudflared → Nginx → 应用`，按实际层数调整：
+
+```text
+TRUST_PROXY_HOPS=2
+```
+
+通过 Cloudflare Tunnel 暴露时，cloudflared 的请求来自私有网段，应用看到的对端地址是容器地址。开启以下选项后会优先读取 Cloudflare 写入的 `CF-Connecting-IP`：
+
+```text
+TRUST_CLOUDFLARE_IP=1
+```
+
+只有当对端是私有/回环地址时才信任该头，避免直连公网时被伪造。启用后请确保服务本身不要被直接暴露在公网。
 
 ## 管理员密码重置
 

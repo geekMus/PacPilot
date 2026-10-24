@@ -94,3 +94,52 @@ volumes:
 | 系统设置与维护 | `http://<服务器地址>:17321/admin/system-settings` |
 
 公共状态页与 PAC 地址无需管理员登录。管理后台及管理 API 需要管理员会话。
+
+## 前后端分离部署（纯静态前端）
+
+前端是纯静态站点，可以单独部署在 Cloudflare Pages、Vercel、Netlify 或任意静态托管上，后端继续运行在另一台主机（含 Docker、Cloudflare Tunnel 暴露的实例）。
+
+### 1. 后端准备
+
+```text
+CORS_MODE=open
+TRUST_PROXY_HOPS=1        # Cloudflare Tunnel 直连 1 跳；前面还有 Nginx 时为 2
+TRUST_CLOUDFLARE_IP=1     # 通过 Cloudflare / cloudflared 暴露时开启
+```
+
+`CORS_MODE=open` 后管理接口改用 Bearer 令牌鉴权，登录接口返回 `{ token, expiresAt }` 且不下发 Cookie。
+
+后端必须通过 **HTTPS** 对外提供服务：浏览器会拦截 `https` 页面请求 `http` 接口（混合内容），公网无法访问局域网地址。
+
+### 2. 前端构建与配置
+
+```bash
+bun run build:client
+```
+
+产物在 `dist/client`。部署后在该目录放置 `config.json`：
+
+```json
+{ "apiBaseUrl": "https://api.example.com" }
+```
+
+- `apiBaseUrl` 为空字符串表示同源（默认自建部署），无需修改。
+- 也可以改用构建期变量：`VITE_API_BASE_URL=https://api.example.com bun run build:client`（优先级高于 `config.json`）。
+- 该文件在运行时读取，修改后刷新页面即可生效，不需要重新构建。
+
+### 3. 平台注意事项
+
+| 平台 | 方式 |
+| --- | --- |
+| Cloudflare Pages | 直接上传 `dist/client`；`config.json` 与 `index.html` 同目录 |
+| Vercel | 静态站点，Output Directory 指向 `dist/client` |
+| Netlify | Publish directory 指向 `dist/client` |
+| 对象存储 / Nginx | 需要为 SPA 回退到 `index.html` |
+
+### 4. 校验清单
+
+1. 打开前端站点，进入 `/admin/login` 并登录。
+2. 浏览器开发者工具确认请求发往 `apiBaseUrl`，且请求头带 `Authorization: Bearer …`。
+3. 修改任一设置后刷新页面，数据仍然存在。
+4. 在另一台设备上修改管理员密码后，本机下一次操作应提示重新登录（令牌随 `sessionSecret` 轮换失效）。
+5. 在后端日志中确认记录的是真实客户端 IP，而不是 `172.x` 网段地址。

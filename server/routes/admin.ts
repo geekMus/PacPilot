@@ -15,7 +15,7 @@ export function adminRoutes(env: EnvConfig, storage: ApplicationStorage): Router
   router.use(adminNotificationRoutes(storage));
   router.use(adminMonitorRoutes(storage));
   router.use(adminSystemRoutes(env, storage));
-  router.use(adminAuthRoutes(storage));
+  router.use(adminAuthRoutes(env, storage));
   router.use(adminSettingsRoutes(env, storage));
   router.use(adminGenerationRoutes(env.dataDir, storage));
   return router;
