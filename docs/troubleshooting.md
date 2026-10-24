@@ -35,7 +35,26 @@
 
 ## 跨域管理 API 请求失败
 
-- 默认不开放跨域浏览器访问管理 API。
-- 仅在前端确实部署于其他 Origin 时配置 `CORS_ALLOWED_ORIGINS`。
+- 默认不开放跨域浏览器访问管理 API（`CORS_MODE=strict`）。
+- **同站子域**（如 `app.example.com` 调 `api.example.com`）走 Cookie：把前端来源加进 `CORS_ALLOWED_ORIGINS`。
+- **独立静态前端**（Cloudflare Pages / Vercel 等任意源）走令牌：设置 `CORS_MODE=open`，并确认前端 `config.json` 的 `apiBaseUrl` 指向后端；预检响应应含 `Access-Control-Allow-Origin: *`。
+- `open` 模式下浏览器请求不能带凭据，前端会自动使用 `credentials: "omit"` 并携带 `Authorization`。若手动联调，请勿同时发送 Cookie。
 - 检查 Origin 是否完整匹配白名单中的来源，且不要使用通配符。
 - 参考[配置说明中的跨域与访问安全](configuration.md#跨域与访问安全)。
+
+## 登录返回 403 `untrusted_origin`
+
+- 出现在 `CORS_MODE=strict`：管理写请求的 Origin 不在白名单内。
+- 把前端来源加入 `CORS_ALLOWED_ORIGINS`，或改用 `CORS_MODE=open`（纯静态前端场景）。
+
+## 访问日志里的 IP 是 172.x / 127.0.0.1
+
+- 说明请求经过反向代理或 Cloudflare Tunnel，但应用没有读取转发头。
+- 配置 `TRUSTED_PROXY_CIDRS` 为代理所在网段（`docker network inspect` 确认）。
+- 走 Cloudflare Tunnel 时再加上 `TRUST_CLOUDFLARE_IP=1`；只写该项而不写 `TRUSTED_PROXY_CIDRS` 会导致启动失败。
+- 反向代理层数与 `TRUST_PROXY_HOPS` 不一致时，取到的是中间跳的地址。
+
+## 修改 `DEFAULT_ADMIN_PASSWORD` 后密码没有变化
+
+- 该变量只在**数据库尚无管理员凭据**时生效。重新部署不会重置已有密码。
+- 需要重置请使用[管理员密码重置](configuration.md#管理员密码重置)中的脚本。

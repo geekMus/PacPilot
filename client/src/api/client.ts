@@ -31,6 +31,8 @@ export interface Meta {
 export interface AdminSession {
   loggedIn: boolean;
   adminCredentialsMissing: boolean;
+  /** Transport the backend expects: cookie for same-origin, bearer for split deployments. */
+  authMode?: "cookie" | "bearer";
 }
 
 export interface PacStatus {

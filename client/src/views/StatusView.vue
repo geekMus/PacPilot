@@ -8,8 +8,9 @@ import { useStatusDashboard } from "@/composables/useStatusDashboard";
 import { resolveApiUrl } from "@/api/runtime-config";
 
 // PAC links must follow the configured backend origin: a purely static
-// frontend is served from a different host than `/proxy.pac`.
-const pacUrl = resolveApiUrl("/proxy.pac");
+// frontend is served from a different host than `/proxy.pac`. Resolved lazily
+// so it always reflects the loaded runtime config.
+const pacUrl = () => resolveApiUrl("/proxy.pac");
 
 const {
   t,
@@ -74,13 +75,13 @@ const {
       <div class="pac-access-actions">
         <a
           class="pac-access-link primary"
-          :href="pacUrl"
+          :href="pacUrl()"
           target="_blank"
           rel="noopener noreferrer"
         >
           <AppIcon name="external-link" :size="17" />{{ t("status.viewPac") }}
         </a>
-        <a class="pac-access-link secondary" :href="pacUrl + '?download=1'">
+        <a class="pac-access-link secondary" :href="pacUrl() + '?download=1'">
           <AppIcon name="download" :size="17" />{{ t("status.downloadPac") }}
         </a>
         <button
@@ -130,7 +131,7 @@ const {
           {{ t("statusPage.emptyHint") }}
         </p>
         <p class="empty-pac-note">
-          {{ t("statusPage.k17") }}<code>{{ pacUrl }}</code>
+          {{ t("statusPage.k17") }}<code>{{ pacUrl() }}</code>
           {{ t("statusPage.k18") }}
         </p>
         <RouterLink class="app-button app-button--primary" :to="adminEntry">{{ t("nav.admin") }}</RouterLink>
