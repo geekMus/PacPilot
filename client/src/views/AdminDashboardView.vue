@@ -179,7 +179,9 @@ onMounted(() => {
       <div v-if="error" class="dashboard-alert is-error" role="alert">
         <strong>{{ t("dashboard.loadFailed") }}</strong
         ><span>{{ error }}</span>
-        <button type="button" @click="loadOverview">{{ t("dashboard.reload") }}</button>
+        <button type="button" class="dashboard-alert-action" @click="loadOverview">
+          {{ t("dashboard.reload") }}
+        </button>
       </div>
       <div
         v-if="notice"
@@ -428,10 +430,13 @@ onMounted(() => {
   @apply font-bold no-underline;
   color: var(--accent);
 }
-.dashboard-alert button {
-  @apply ml-auto cursor-pointer border-0 bg-transparent font-bold;
+.dashboard-alert-action {
+  @apply ml-auto cursor-pointer border-0 bg-transparent font-bold transition-colors;
   color: var(--accent);
   font: inherit;
+}
+.dashboard-alert-action:hover {
+  text-decoration: underline;
 }
 .dashboard-alert.is-error {
   border-color: color-mix(in srgb, var(--red) 30%, var(--line));
