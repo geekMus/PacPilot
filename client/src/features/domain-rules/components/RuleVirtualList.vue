@@ -125,68 +125,47 @@ watch(
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .virtual-list {
-  position: relative;
+  @apply relative rounded-lg border;
   height: fit-content;
   min-height: 108px;
   max-height: var(--rule-list-max-height, 300px);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border-color: var(--line);
   background: var(--bg);
 }
 .virtual-list :deep(.virtual-list-viewport) {
-  position: relative;
+  @apply relative;
   height: auto;
   max-height: var(--rule-list-max-height, 300px);
 }
 .virtual-canvas {
-  position: relative;
-  min-width: 0;
+  @apply relative min-w-0;
 }
 .virtual-window {
-  position: absolute;
-  inset: 0 0 auto;
+  @apply absolute inset-x-0 top-0;
 }
 .virtual-row {
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  padding: 0 10px;
-  border-bottom: 1px solid var(--line);
+  @apply box-border flex min-w-0 items-center gap-2.5 border-b px-2.5;
+  border-color: var(--line);
 }
 .virtual-row:last-child {
-  border-bottom: 0;
+  @apply border-b-0;
 }
 .virtual-row > .domain-detail {
-  flex: 1 1 auto;
-  font-size: 12px;
+  @apply flex-auto text-xs;
 }
 .virtual-row > .domain-detail :deep(code) {
-  display: inline;
-  padding: 0;
-  border: 0;
-  background: transparent;
+  @apply inline border-0 bg-transparent p-0 text-xs;
   color: var(--text);
-  font-size: 12px;
 }
 .row-source {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
+  @apply inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border px-[7px] py-[3px] text-center text-[10px] font-bold leading-snug;
   max-width: min(124px, 40%);
-  overflow: hidden;
-  padding: 3px 7px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  border-color: var(--line);
   background: var(--surface-2);
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1.35;
-  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -206,14 +185,8 @@ watch(
   color: var(--red);
 }
 .virtual-empty {
-  display: grid;
-  place-items: center;
-  height: 100%;
+  @apply box-border grid h-full place-items-center p-3 text-center text-[11px];
   min-height: 88px;
-  padding: 12px;
-  box-sizing: border-box;
   color: var(--muted);
-  text-align: center;
-  font-size: 11px;
 }
 </style>

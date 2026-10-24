@@ -365,60 +365,40 @@ watch(
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .domain-editor {
-  min-width: 0;
+  @apply min-w-0;
 }
 .rule-diagnostic-panel {
-  margin-top: 8px;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md, 10px);
+  @apply mt-2 overflow-hidden rounded-[var(--radius-md,10px)] border;
+  border-color: var(--line);
   background: var(--surface);
 }
 .rule-diagnostic-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--line);
+  @apply flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b px-2.5 py-2;
+  border-color: var(--line);
   background: var(--surface-2);
 }
 .rule-diagnostic-title,
 .rule-diagnostic-summary {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 7px;
-  min-width: 0;
+  @apply flex min-w-0 flex-wrap items-center gap-[7px];
 }
 .rule-diagnostic-title {
+  @apply text-xs;
   color: var(--text);
-  font-size: 12px;
 }
 .rule-diagnostic-title-icon {
-  display: inline-grid;
-  width: 18px;
-  height: 18px;
-  place-items: center;
-  border-radius: 6px;
+  @apply inline-grid h-[18px] w-[18px] place-items-center rounded-md text-xs font-extrabold;
   background: var(--warn-soft);
   color: var(--warn);
-  font-size: 12px;
-  font-weight: 800;
 }
 .rule-diagnostic-total {
+  @apply text-[11px] font-medium;
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 500;
 }
 .diagnostic-count {
-  padding: 3px 7px;
-  border-radius: 999px;
-  font-size: 10px;
-  line-height: 1.2;
-  white-space: nowrap;
+  @apply whitespace-nowrap rounded-full px-[7px] py-[3px] text-[10px] leading-tight;
 }
 .diagnostic-count.is-error {
   color: var(--red);
@@ -433,39 +413,19 @@ watch(
   background: var(--accent-soft);
 }
 .rule-diagnostic-list {
-  display: flex;
+  @apply flex flex-col gap-px p-0;
   height: fit-content;
-  flex-direction: column;
-  gap: 1px;
   max-height: 220px;
-  padding: 0;
   overscroll-behavior: contain;
 }
 .rule-diagnostic-list :deep(.rule-diagnostic-viewport) {
-  padding: 4px;
+  @apply p-1;
 }
 .rule-diagnostic-item {
-  display: grid;
+  @apply grid w-full cursor-pointer items-start gap-1.5 rounded-md border border-transparent bg-transparent px-1.5 py-[5px] text-left text-xs leading-snug transition-colors;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 6px;
-  width: 100%;
-  padding: 5px 6px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
   color: var(--text);
-  font: inherit;
-  font-size: 12px;
-  line-height: 1.45;
-  text-align: left;
   overflow-wrap: anywhere;
-  cursor: pointer;
-  transition:
-    background-color 100ms ease,
-    border-color 100ms ease;
-}
-.rule-diagnostic-item {
   -webkit-tap-highlight-color: transparent;
 }
 .rule-diagnostic-item:focus-visible {
@@ -494,17 +454,9 @@ watch(
   }
 }
 .rule-diagnostic-line {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 22px;
-  padding: 2px 7px;
-  border-radius: 5px;
+  @apply inline-flex min-h-[22px] items-center justify-center whitespace-nowrap rounded-[5px] px-[7px] py-0.5 text-[10px] font-bold;
   background: var(--surface-2);
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 750;
-  white-space: nowrap;
 }
 .rule-diagnostic-item.is-error .rule-diagnostic-line {
   color: var(--red);
@@ -519,7 +471,7 @@ watch(
   background: var(--accent-soft);
 }
 .rule-diagnostic-message {
-  min-width: 0;
+  @apply min-w-0;
 }
 .rule-diagnostic-item.is-error .rule-diagnostic-message {
   color: var(--red);
@@ -531,102 +483,69 @@ watch(
   color: var(--text);
 }
 .rule-diagnostic-jump {
-  align-self: center;
+  @apply self-center whitespace-nowrap text-[10px];
   color: var(--muted);
-  font-size: 10px;
-  white-space: nowrap;
 }
 .rule-diagnostic-footer {
-  margin: 0;
-  padding: 8px 12px;
-  border-top: 1px solid var(--line);
+  @apply m-0 border-t px-3 py-2 text-[11px] leading-snug;
+  border-color: var(--line);
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.45;
 }
 @media (max-width: 600px) {
   .rule-diagnostic-panel {
-    margin-top: 5px;
-    border-radius: 8px;
+    @apply mt-[5px] rounded-lg;
   }
   .rule-diagnostic-heading {
-    align-items: flex-start;
-    flex-direction: row;
-    gap: 5px 8px;
-    padding: 6px 8px;
+    @apply flex-row items-start gap-x-2 gap-y-[5px] px-2 py-1.5;
   }
   .rule-diagnostic-title,
   .rule-diagnostic-summary {
-    gap: 5px;
+    @apply gap-[5px];
   }
   .rule-diagnostic-title {
-    font-size: 11px;
+    @apply text-[11px];
   }
   .rule-diagnostic-title-icon {
-    width: 15px;
-    height: 15px;
-    border-radius: 4px;
-    font-size: 10px;
+    @apply h-[15px] w-[15px] rounded-[4px] text-[10px];
   }
   .rule-diagnostic-total {
-    font-size: 10px;
+    @apply text-[10px];
   }
   .diagnostic-count {
-    padding: 2px 5px;
-    font-size: 9px;
+    @apply px-[5px] py-0.5 text-[9px];
   }
   .rule-diagnostic-list {
     max-height: 150px;
-    gap: 1px;
   }
   .rule-diagnostic-list :deep(.rule-diagnostic-viewport) {
-    padding: 3px;
+    @apply p-[3px];
   }
   .rule-diagnostic-item {
+    @apply gap-[5px] rounded-[5px] px-[5px] py-1 text-[11px] leading-tight;
     grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 5px;
-    padding: 4px 5px;
-    border-radius: 5px;
-    font-size: 11px;
-    line-height: 1.35;
   }
   .rule-diagnostic-item:active {
     border-color: var(--line);
     background: var(--accent-soft);
   }
   .rule-diagnostic-line {
-    min-height: 18px;
-    padding: 1px 5px;
-    border-radius: 4px;
-    font-size: 9px;
+    @apply min-h-[18px] rounded-[4px] px-[5px] py-px text-[9px];
   }
-  .rule-diagnostic-message {
-    grid-row: auto;
-    grid-column: auto;
+  .rule-diagnostic-message,
+  .rule-diagnostic-jump {
+    @apply col-auto row-auto;
   }
   .rule-diagnostic-jump {
-    grid-row: auto;
-    grid-column: auto;
-    align-self: center;
-    padding-top: 0;
-    font-size: 9px;
+    @apply self-center pt-0 text-[9px];
   }
   .rule-diagnostic-footer {
-    padding: 5px 8px;
-    font-size: 10px;
-    line-height: 1.35;
+    @apply px-2 py-[5px] text-[10px] leading-tight;
   }
 }
 .ph {
-  position: absolute;
+  @apply pointer-events-none absolute left-12 top-3 whitespace-pre-line font-mono text-[13px];
   z-index: 2;
-  top: 12px;
-  left: 48px;
   color: var(--muted);
-  font-size: 13px;
-  font-family: ui-monospace, Consolas, monospace;
-  pointer-events: none;
-  white-space: pre-line;
   opacity: 0.75;
 }
 </style>

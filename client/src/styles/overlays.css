@@ -3,59 +3,36 @@
  * Reka UI renders Portal content outside the originating Vue component subtree,
  * so view-scoped selectors cannot reliably style these nodes.
  */
+@reference "@/styles/tailwind.css";
+
 .timezone-options-menu {
-  z-index: 1200;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+  @apply z-[1200] box-border flex flex-col overflow-hidden rounded-[10px] border p-1;
   width: min(var(--reka-combobox-trigger-width, 100%), calc(100vw - 16px));
   min-width: min(var(--reka-combobox-trigger-width, 100%), calc(100vw - 16px));
   max-width: calc(100vw - 16px);
   max-height: min(320px, var(--reka-combobox-content-available-height, calc(100dvh - 24px)));
-  overflow: hidden;
-  padding: 4px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  border-color: var(--line);
   background: var(--surface);
   color: var(--text);
   box-shadow: var(--shadow);
 }
 
 .timezone-options-scroll-area {
+  @apply box-border w-full min-h-0 overflow-hidden;
   flex: 0 1 auto;
-  box-sizing: border-box;
-  width: 100%;
   height: min(320px, var(--reka-combobox-content-available-height, calc(100dvh - 24px)));
   max-height: min(320px, var(--reka-combobox-content-available-height, calc(100dvh - 24px)));
-  min-height: 0;
-  overflow: hidden;
 }
 
 .timezone-options-viewport {
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;
+  @apply box-border h-full w-full min-h-0 p-1;
   max-height: 100%;
-  min-height: 0;
-  padding: 4px;
 }
 
 .timezone-option {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  box-sizing: border-box;
-  width: 100%;
-  min-width: 0;
+  @apply box-border flex w-full min-w-0 cursor-pointer items-center justify-between gap-3 rounded-[7px] border-0 bg-transparent px-2.5 py-[9px] text-left;
   min-height: 44px;
-  padding: 9px 10px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
   color: var(--text);
-  text-align: left;
-  cursor: pointer;
 }
 
 .timezone-option[data-highlighted],
@@ -71,35 +48,28 @@
 }
 
 .timezone-option span {
-  min-width: 0;
-  font-size: 12px;
+  @apply min-w-0 text-xs;
   overflow-wrap: anywhere;
 }
 
 .timezone-option code {
-  flex: 0 0 auto;
+  @apply shrink-0 whitespace-nowrap text-[11px];
   color: var(--muted);
-  font-size: 11px;
-  white-space: nowrap;
 }
 
 .timezone-no-results {
-  margin: 0;
-  padding: 12px 10px;
+  @apply m-0 px-2.5 py-3 text-xs;
   color: var(--muted);
-  font-size: 12px;
 }
 
 @media (max-width: 720px) {
   .timezone-option {
-    min-height: 48px;
+    @apply min-h-12;
   }
 
   .timezone-option code {
-    max-width: 50%;
+    @apply max-w-1/2 whitespace-normal text-right;
     overflow-wrap: anywhere;
-    white-space: normal;
-    text-align: right;
   }
 }
 
@@ -108,7 +78,7 @@
 @media (hover: none) and (pointer: coarse) {
   .timezone-option[data-highlighted]:not([aria-selected="true"]):not([data-state="checked"]),
   .timezone-option:active:not(:disabled):not([aria-selected="true"]):not([data-state="checked"]) {
-    background: transparent;
+    @apply bg-transparent;
     color: var(--text);
   }
 }

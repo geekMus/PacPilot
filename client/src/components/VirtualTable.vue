@@ -218,29 +218,21 @@ onUnmounted(() => resizeObserver?.disconnect());
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .virtual-table :deep(.actions-cell) {
-  overflow: visible;
+  @apply overflow-visible;
 }
 .virtual-table :deep(.virtual-spacer td) {
-  height: auto;
-  max-height: none;
-  padding: 0 !important;
-  border: 0 !important;
-  line-height: 0;
+  @apply h-auto max-h-none border-0 p-0 leading-none;
 }
 .virtual-table :deep(.virtual-state-row td) {
+  @apply border-b-0 px-3 py-2.5 text-center;
   height: 42px;
-  padding: 10px 12px;
-  text-align: center;
   color: var(--muted);
-  border-bottom: 0;
 }
 .virtual-state {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 11px;
+  @apply inline-flex items-center justify-center gap-2 text-[11px];
 }
 .virtual-state.is-error {
   color: var(--red);
@@ -250,13 +242,10 @@ onUnmounted(() => resizeObserver?.disconnect());
 }
 .virtual-state button,
 .virtual-empty-state button {
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 5px 9px;
+  @apply cursor-pointer rounded-md border px-[9px] py-[5px];
+  border-color: var(--line);
   background: var(--surface);
   color: var(--text);
-  cursor: pointer;
-  font: inherit;
 }
 .virtual-state button:hover,
 .virtual-empty-state button:hover {
@@ -264,24 +253,22 @@ onUnmounted(() => resizeObserver?.disconnect());
   color: var(--accent);
 }
 .virtual-empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  @apply flex flex-wrap items-center justify-center gap-2;
 }
 .virtual-spinner {
-  width: 13px;
-  height: 13px;
-  border: 2px solid var(--line);
+  @apply h-[13px] w-[13px] animate-[virtual-spin_0.8s_linear_infinite] rounded-full border-2;
+  border-color: var(--line);
   border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: virtual-spin 0.8s linear infinite;
 }
 @keyframes virtual-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .virtual-spinner { animation-duration: 0.01ms; animation-iteration-count: 1; }
+  .virtual-spinner {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
 }
 </style>

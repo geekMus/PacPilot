@@ -208,27 +208,18 @@ watch(
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .cm-field-frame {
-  box-sizing: border-box;
-  width: 100%;
-  min-width: 0;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  @apply box-border w-full min-w-0 overflow-hidden rounded-lg border transition-[border-color,box-shadow];
+  border-color: var(--line);
   background: var(--bg);
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
 }
 .cm-field-frame.embedded {
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  transition: none;
+  @apply rounded-none border-0 shadow-none transition-none;
 }
 .cm-field-frame.embedded:focus-within {
-  border: 0;
-  box-shadow: none;
+  @apply border-0 shadow-none;
 }
 .cm-field-frame:focus-within {
   border-color: var(--accent);
@@ -241,59 +232,45 @@ watch(
 }
 .cm-field-frame.embedded.invalid,
 .cm-field-frame.embedded.invalid:focus-within {
-  border: 0;
-  box-shadow: none;
+  @apply border-0 shadow-none;
 }
 .cm-field-frame.single-line {
-  height: 40px;
+  @apply h-10;
 }
 .cm-field-scroll-area {
-  width: 100%;
-  max-width: 100%;
-  height: 100%;
-  min-width: 0;
+  @apply h-full w-full max-w-full min-w-0;
 }
 :deep(.cm-field-scroll-viewport) {
-  position: relative;
-  overflow: auto;
+  @apply relative overflow-auto;
   /* Chain vertical gestures to the page when the editor has no remaining scroll. */
   overscroll-behavior-y: auto;
   overscroll-behavior-x: contain;
 }
 .cm-field-host-scrollable {
-  min-height: 100%;
+  @apply min-h-full;
 }
 .cm-field-frame.single-line .cm-field-host {
-  height: 100%;
-  min-height: 0;
+  @apply h-full min-h-0;
 }
 
 /* A one-line field is a single-line control, not a scroll container. */
 .cm-field-frame.single-line .cm-field-host :deep(.cm-editor),
 .cm-field-frame.single-line .cm-field-host :deep(.cm-scroller) {
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;
-  max-height: 100%;
-  min-height: 0;
-  overflow: hidden !important;
+  @apply box-border h-full max-h-full w-full min-h-0 overflow-hidden;
 }
-
 .cm-field-frame.single-line .cm-field-host :deep(.cm-content) {
-  white-space: nowrap;
+  @apply whitespace-nowrap;
 }
 .cm-field-host {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
+  @apply w-full min-w-0 max-w-full;
 }
 .cm-field-host :deep(.cm-editor) {
-  width: 100%;
-  background: transparent;
+  @apply w-full bg-transparent;
 }
 .cm-field-host :deep(.cm-gutters) {
+  @apply border-r;
   background: var(--surface-2);
-  border-right: 1px solid var(--line);
+  border-color: var(--line);
   color: var(--muted);
 }
 </style>
