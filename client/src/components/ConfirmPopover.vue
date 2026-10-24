@@ -191,7 +191,7 @@ function onOpenChange(open: boolean) {
 .confirm-popover-actions .confirm-danger {
   background: var(--red);
   border-color: var(--red);
-  color: white;
+  color: var(--red-contrast);
 }
 .confirm-popover-actions .confirm-warning {
   background: var(--amber-soft, #fff3dc);

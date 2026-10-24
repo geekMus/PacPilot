@@ -19,6 +19,7 @@
   --green: #056b43;
   --green-soft: color-mix(in srgb, var(--green) 12%, transparent);
   --red: #b4233a;
+  --red-contrast: #ffffff;
   --red-soft: color-mix(in srgb, var(--red) 12%, transparent);
   --warn: #805300;
   --warn-soft: color-mix(in srgb, var(--warn) 14%, transparent);
@@ -62,7 +63,9 @@ html.theme-dark {
   --control-disabled-text: #a1aec0;
   --control-disabled-border: #404b5b;
   --green: #4ecf9a;
+  --green-contrast: #06231a;
   --red: #f08a98;
+  --red-contrast: #2a0b10;
   --warn: #e0b35a;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 10px 28px rgba(0, 0, 0, 0.28);
 }

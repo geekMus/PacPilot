@@ -537,7 +537,7 @@ onMounted(() => void load());
 .system-password-help { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
 .system-password-help a { color: var(--accent); }
 .password-settings-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
-.password-settings-actions button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 1px solid var(--accent); border-radius: 8px; color: white; background: var(--accent); font: inherit; cursor: pointer; }
+.password-settings-actions button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 1px solid var(--accent); border-radius: 8px; color: var(--accent-contrast); background: var(--accent); font: inherit; cursor: pointer; }
 .password-settings-actions button:disabled { opacity: .65; cursor: progress; }
 @media (max-width: 800px) { .system-password-form { grid-template-columns: minmax(0, 1fr); } }
 .system-settings {
