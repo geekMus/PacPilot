@@ -89,12 +89,13 @@ function onOpenChange(open: boolean) {
           {{ resolvedDisabledReason }}
         </div>
         <div class="confirm-popover-actions">
-          <button type="button" class="confirm-cancel" :disabled="props.busy" @click="close">
+          <button type="button" class="app-button app-button--sm app-button--secondary" :disabled="props.busy" @click="close">
             {{ resolvedCancelText }}
           </button>
           <button
             type="button"
-            :class="props.tone === 'warning' ? 'confirm-warning' : 'confirm-danger'"
+            class="app-button app-button--sm"
+            :class="props.tone === 'warning' ? 'app-button--danger-ghost' : 'confirm-danger'"
             :disabled="props.disabled || props.busy"
             :title="props.busy ? resolvedBusyText : props.disabled ? resolvedDisabledReason : resolvedConfirmText"
             @click="emit('confirm')"
@@ -169,44 +170,15 @@ function onOpenChange(open: boolean) {
   flex-wrap: wrap;
   gap: 8px;
 }
-.confirm-popover-actions button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 32px;
-  padding: 0 11px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-2);
-  color: var(--text);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.confirm-popover-actions button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
+/* Buttons reuse the shared app-button system; only the danger tone needs the
+   red surface, which the shared variant does not cover. */
 .confirm-popover-actions .confirm-danger {
-  background: var(--red);
   border-color: var(--red);
+  background: var(--red);
   color: var(--red-contrast);
-}
-.confirm-popover-actions .confirm-warning {
-  background: var(--amber-soft, #fff3dc);
-  border-color: color-mix(in srgb, var(--amber, #d97706) 40%, var(--line));
-  color: var(--amber, #b45309);
-}
-.confirm-popover-actions .confirm-warning:hover:not(:disabled) {
-  filter: brightness(0.98);
 }
 .confirm-popover-actions .confirm-danger:hover:not(:disabled) {
   filter: brightness(0.96);
-}
-.confirm-popover-actions .confirm-cancel:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
 }
 .confirm-popover-arrow {
   position: absolute;
