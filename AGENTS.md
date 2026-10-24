@@ -56,6 +56,7 @@
 - 实底按钮的文字色必须使用对应令牌：`--accent-contrast`、`--red-contrast`、`--green-contrast`。深色模式下 accent/red 为浅色，白字会看不清。
 - 响应式优先用 Tailwind 的 `sm:`/`md:` 等变体；确需媒体查询时写在样式块末尾，并保持既有断点语义（1050/900/720/650/620/560/480/360px）。
 - 共享组件（`AppButton`、`AppInput`、`AppSelect`、`AppDialog`、`AppScrollArea`、`TableFrame` 等）的样式由组件自身负责，业务页面只组合使用，不覆盖其内部样式。
+- **用 headless 浏览器验证动画类交互时，注意它会冻结 CSS 过渡。** headless Chrome/Edge 在页面不绘制时不会推进动画时间线：`element.getAnimations()` 显示 `state: "running"` 但 `currentTime` 恒为 0，`getComputedStyle` 一直返回起始值，注入 `!important` 覆盖也无效。实测现象：移动端点抽屉按钮，前几次正常、之后永久停在关闭态。这不是产品缺陷——判定方法是在读取状态前执行 `el.getAnimations().forEach((a) => a.finish())`，若这样之后值正确即可确认是环境问题。
 - **不要混用 `transform:` 与 Tailwind 的 `translate-*` / `rotate-*` / `scale-*` 工具类。** Tailwind v4 的这些工具类写入的是独立的 `translate` / `rotate` / `scale` 属性，而不是 `transform`。两者同时存在于同一元素时**不会互相覆盖**，只有 `transform` 生效。典型后果：移动端侧边栏关闭态写 `transform: translateX(-102%)`、展开态写 `@apply translate-x-0`，抽屉永远打不开。同一属性组必须统一用同一种机制表达。
 
 ## 前端滚动区域开发规范
