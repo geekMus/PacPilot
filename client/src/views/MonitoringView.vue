@@ -66,6 +66,107 @@ const {
           {{ t("monitor.autoRefreshError", { error: refreshError }) }}
         </div>
 
+        <div id="overall-stats" class="overall-stats-heading">
+          <h2><AppIcon name="activity" :size="17" />{{ t("monitor.k31") }}</h2>
+          <p>{{ t("monitor.k91") }}</p>
+        </div>
+        <section class="metric-grid" :aria-label="t('monitor.k31')">
+          <article class="metric-card">
+            <span class="metric-label"
+              ><AppIcon name="activity" :size="15" />{{ t("monitor.k92") }}</span
+            >
+            <strong class="metric-value">{{ summary?.activeRequests ?? 0 }}</strong>
+            <span class="metric-note">{{ t("monitor.k93") }}</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label"
+              ><AppIcon name="network" :size="15" />{{ t("monitor.k94") }}</span
+            >
+            <strong class="metric-value">{{ summary?.tcpConnections ?? 0 }}</strong>
+            <span class="metric-note">{{ t("monitor.k95") }}</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label"
+              ><AppIcon name="clock" :size="15" />{{ t("monitor.k96") }}</span
+            >
+            <strong class="metric-value">{{ summary?.requestsLastHour ?? 0 }}</strong>
+            <span class="metric-note">{{ t("monitor.k97") }}</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label"
+              ><AppIcon name="globe" :size="15" />{{ t("monitor.k98") }}</span
+            >
+            <strong class="metric-value">{{ summary?.uniqueSourcesLast24h ?? 0 }}</strong>
+            <span class="metric-note">{{ t("monitor.k99") }}</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label"
+              ><AppIcon name="chart" :size="15" />{{ t("monitor.k100") }}</span
+            >
+            <strong class="metric-value">{{ summary?.requestsLast24h ?? 0 }}</strong>
+            <span class="metric-note">{{ t("monitor.k101") }}</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label"
+              ><AppIcon name="circle-alert" :size="15" />{{ t("monitor.k102") }}</span
+            >
+            <strong
+              class="metric-value"
+              :class="(summary?.errorRate ?? 0) >= 5 ? 'value-warn' : ''"
+            >
+              {{ summary ? summary.errorRate.toFixed(1) + "%" : "0.0%" }}
+            </strong>
+            <span class="metric-note"
+              >HTTP 4xx/5xx · 5xx {{ summary?.serverErrorsLast24h ?? 0 }}</span
+            >
+          </article>
+          <article class="metric-card">
+            <span class="metric-label"
+              ><AppIcon name="timer" :size="15" />{{ t("monitor.k103") }}</span
+            >
+            <strong class="metric-value">{{ formatDuration(summary?.averageResponseMs) }}</strong>
+            <span class="metric-note">{{ t("monitor.k76") }}</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label"
+              ><AppIcon name="gauge" :size="15" />{{ t("monitor.k104") }}</span
+            >
+            <strong class="metric-value">{{ formatDuration(summary?.p95ResponseMs) }}</strong>
+            <span class="metric-note">{{ t("monitor.k105") }}</span>
+          </article>
+        </section>
+
+        <section class="monitor-panel trend-panel">
+          <div class="panel-heading">
+            <div>
+              <h2><AppIcon name="chart" :size="17" />{{ t("monitor.k106") }}</h2>
+              <p>
+                {{ t("monitor.k107") }}
+              </p>
+            </div>
+            <span class="panel-count">{{
+              t("monitor.peakPerHour", {
+                n: Math.max(0, ...(summary?.requestTrend ?? []).map((item) => item.requests)),
+              })
+            }}</span>
+          </div>
+          <ResponsiveTrendChart
+            v-if="summary?.requestTrend?.length"
+            mode="count"
+            :points="summary.requestTrend"
+            :time-zone="timeZone"
+            :aria-label="t('monitor.k32')"
+          />
+          <div v-else class="monitor-empty">
+            {{ t("monitor.k108") }}
+          </div>
+          <div class="trend-legend">
+            <span><i class="legend-swatch request-swatch"></i>{{ t("monitor.k109") }}</span>
+            <span><i class="legend-swatch error-swatch"></i>{{ t("monitor.k110") }}</span>
+            <span class="trend-sample-note">{{ t("monitor.k111") }}</span>
+          </div>
+        </section>
+
         <section class="monitor-panel pac-overview-panel" aria-labelledby="pac-overview-title">
           <div class="panel-heading">
             <div>
@@ -169,7 +270,6 @@ const {
             </div>
           </div>
         </section>
-
         <section id="pac-trends" class="monitor-panel pac-trend-panel">
           <div class="panel-heading">
             <div>
@@ -211,109 +311,7 @@ const {
             {{ t("monitor.k90") }}
           </div>
         </section>
-
-        <div id="overall-stats" class="overall-stats-heading">
-          <h2><AppIcon name="activity" :size="17" />{{ t("monitor.k31") }}</h2>
-          <p>{{ t("monitor.k91") }}</p>
-        </div>
-        <section class="metric-grid" :aria-label="t('monitor.k31')">
-          <article class="metric-card">
-            <span class="metric-label"
-              ><AppIcon name="activity" :size="15" />{{ t("monitor.k92") }}</span
-            >
-            <strong class="metric-value">{{ summary?.activeRequests ?? 0 }}</strong>
-            <span class="metric-note">{{ t("monitor.k93") }}</span>
-          </article>
-          <article class="metric-card">
-            <span class="metric-label"
-              ><AppIcon name="network" :size="15" />{{ t("monitor.k94") }}</span
-            >
-            <strong class="metric-value">{{ summary?.tcpConnections ?? 0 }}</strong>
-            <span class="metric-note">{{ t("monitor.k95") }}</span>
-          </article>
-          <article class="metric-card">
-            <span class="metric-label"
-              ><AppIcon name="clock" :size="15" />{{ t("monitor.k96") }}</span
-            >
-            <strong class="metric-value">{{ summary?.requestsLastHour ?? 0 }}</strong>
-            <span class="metric-note">{{ t("monitor.k97") }}</span>
-          </article>
-          <article class="metric-card">
-            <span class="metric-label"
-              ><AppIcon name="globe" :size="15" />{{ t("monitor.k98") }}</span
-            >
-            <strong class="metric-value">{{ summary?.uniqueSourcesLast24h ?? 0 }}</strong>
-            <span class="metric-note">{{ t("monitor.k99") }}</span>
-          </article>
-          <article class="metric-card">
-            <span class="metric-label"
-              ><AppIcon name="chart" :size="15" />{{ t("monitor.k100") }}</span
-            >
-            <strong class="metric-value">{{ summary?.requestsLast24h ?? 0 }}</strong>
-            <span class="metric-note">{{ t("monitor.k101") }}</span>
-          </article>
-          <article class="metric-card">
-            <span class="metric-label"
-              ><AppIcon name="circle-alert" :size="15" />{{ t("monitor.k102") }}</span
-            >
-            <strong
-              class="metric-value"
-              :class="(summary?.errorRate ?? 0) >= 5 ? 'value-warn' : ''"
-            >
-              {{ summary ? summary.errorRate.toFixed(1) + "%" : "0.0%" }}
-            </strong>
-            <span class="metric-note"
-              >HTTP 4xx/5xx · 5xx {{ summary?.serverErrorsLast24h ?? 0 }}</span
-            >
-          </article>
-          <article class="metric-card">
-            <span class="metric-label"
-              ><AppIcon name="timer" :size="15" />{{ t("monitor.k103") }}</span
-            >
-            <strong class="metric-value">{{ formatDuration(summary?.averageResponseMs) }}</strong>
-            <span class="metric-note">{{ t("monitor.k76") }}</span>
-          </article>
-          <article class="metric-card">
-            <span class="metric-label"
-              ><AppIcon name="gauge" :size="15" />{{ t("monitor.k104") }}</span
-            >
-            <strong class="metric-value">{{ formatDuration(summary?.p95ResponseMs) }}</strong>
-            <span class="metric-note">{{ t("monitor.k105") }}</span>
-          </article>
-        </section>
-
-        <section class="monitor-panel trend-panel">
-          <div class="panel-heading">
-            <div>
-              <h2><AppIcon name="chart" :size="17" />{{ t("monitor.k106") }}</h2>
-              <p>
-                {{ t("monitor.k107") }}
-              </p>
-            </div>
-            <span class="panel-count">{{
-              t("monitor.peakPerHour", {
-                n: Math.max(0, ...(summary?.requestTrend ?? []).map((item) => item.requests)),
-              })
-            }}</span>
-          </div>
-          <ResponsiveTrendChart
-            v-if="summary?.requestTrend?.length"
-            mode="count"
-            :points="summary.requestTrend"
-            :time-zone="timeZone"
-            :aria-label="t('monitor.k32')"
-          />
-          <div v-else class="monitor-empty">
-            {{ t("monitor.k108") }}
-          </div>
-          <div class="trend-legend">
-            <span><i class="legend-swatch request-swatch"></i>{{ t("monitor.k109") }}</span>
-            <span><i class="legend-swatch error-swatch"></i>{{ t("monitor.k110") }}</span>
-            <span class="trend-sample-note">{{ t("monitor.k111") }}</span>
-          </div>
-        </section>
-
-              </template>
+      </template>
 
       <AppFooter />
     </div>
