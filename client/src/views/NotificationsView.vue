@@ -481,7 +481,7 @@ onMounted(() => {
                 <AppButton variant="secondary" @click="resetC">{{ t("notifications.buttonNewBlank") }}</AppButton>
                 <AppButton v-if="cid" variant="danger-ghost" @click="deleteC(channels.find(x => x.id === cid))"><AppIcon name="trash-2" :size="15" /> {{ t("common.delete") }}</AppButton>
                 <span class="footer-spacer"></span>
-                <AppButton variant="secondary" :disabled="!cid || testingId === cid" @click="testC(channels.find(x => x.id === cid))"><AppIcon :name="testingId === cid ? 'loader-circle' : 'activity'" :size="15" :class="{ spin: testingId === cid }" /> {{ testingId === cid ? t("notifications.buttonTesting") : t("notifications.buttonTest") }}</AppButton>
+                <AppButton variant="secondary" :disabled="!cid || (!!testingId && testingId === cid)" @click="testC(channels.find(x => x.id === cid))"><AppIcon :name="!!testingId && testingId === cid ? 'loader-circle' : 'activity'" :size="15" :class="{ spin: !!testingId && testingId === cid }" /> {{ !!testingId && testingId === cid ? t("notifications.buttonTesting") : t("notifications.buttonTest") }}</AppButton>
                 <AppButton type="submit" variant="primary" :disabled="busy || !ch.name.trim() || !ch.config.url.trim()"><AppIcon name="save" :size="15" /> {{ busy ? t("notifications.buttonSaving") : t("notifications.buttonSaveChannel") }}</AppButton>
               </footer>
               <div v-if="cid && !channelReady" class="editor-note"><AppIcon name="info" :size="15" /> {{ t("notifications.hintChannelIncomplete") }}</div>

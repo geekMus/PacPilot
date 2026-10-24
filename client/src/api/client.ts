@@ -26,6 +26,11 @@ export interface Meta {
   adminEnabled: boolean;
   version: string;
   repositoryUrl: string;
+  /** Backend storage driver; lets the UI show what actually stores the data. */
+  storageDriver?: "sqlite" | "memory" | string;
+  runtimeProfile?: string;
+  mode?: "custom" | "remote";
+  timezone?: string;
 }
 
 export interface AdminSession {

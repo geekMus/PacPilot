@@ -76,11 +76,16 @@ export function publicRoutes(storage: ApplicationStorage): Router {
 
   router.get("/pac", (req, res) => void sendPac(req, res, storage));
 
-  router.get("/api/meta", (_req, res) => {
+  router.get("/api/meta", async (_req, res) => {
+    const settings = await storage.settings.get();
     res.json({
       adminEnabled: true,
       version: APP_VERSION,
       repositoryUrl: PROJECT_URL,
+      storageDriver: (process.env.STORAGE_DRIVER || "sqlite").toLowerCase(),
+      runtimeProfile: process.env.PACPILOT_RUNTIME_PROFILE || "production",
+      mode: settings.mode,
+      timezone: settings.timezone,
     });
   });
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { api } from "@/api/client";
+import { api, type Meta } from "@/api/client";
 import { invalidateAdminSessionCache } from "@/composables/useAdminSession";
 import AppIcon from "@/components/AppIcon.vue";
 import { useI18n } from "vue-i18n";
@@ -13,6 +13,26 @@ const props = defineProps<{ active: AdminSection; open: boolean }>();
 const { t } = useI18n();
 const router = useRouter();
 const logoutBusy = ref(false);
+
+// Backend identity shown above the logout button: a deployment may be pointing
+// at a remote instance, so the storage driver and version must come from the
+// backend we actually talk to rather than being assumed locally.
+const backendInfo = ref<Meta | null>(null);
+const backendOnline = ref(true);
+const storageLabel = computed(() => {
+  const driver = backendInfo.value?.storageDriver;
+  if (!driver) return "—";
+  return driver === "memory" ? t("layout.storageMemory") : "SQLite";
+});
+
+onMounted(async () => {
+  try {
+    backendInfo.value = await api.meta();
+    backendOnline.value = true;
+  } catch {
+    backendOnline.value = false;
+  }
+});
 
 async function logout(): Promise<void> {
   if (logoutBusy.value) return;
@@ -127,9 +147,19 @@ async function logout(): Promise<void> {
 
       <div class="sidebar-bottom">
         <div class="sidebar-status">
-          <span class="status-dot"></span><span>{{ t("layout.adminConnected") }}</span>
+          <span class="status-dot" :class="{ offline: !backendOnline }"></span>
+          <span>{{ backendOnline ? t("layout.adminConnected") : t("layout.backendUnreachable") }}</span>
         </div>
-        <span class="sidebar-note">{{ t("layout.settingsStoredLocal") }}</span>
+        <dl class="sidebar-backend">
+          <div>
+            <dt>{{ t("layout.backendVersion") }}</dt>
+            <dd>{{ backendInfo?.version || "—" }}</dd>
+          </div>
+          <div>
+            <dt>{{ t("layout.backendStorage") }}</dt>
+            <dd>{{ storageLabel }}</dd>
+          </div>
+        </dl>
         <div class="sidebar-controls">
           <button
             type="button"
@@ -332,12 +362,38 @@ async function logout(): Promise<void> {
   background: var(--green);
   box-shadow: 0 0 0 3px var(--green-soft);
 }
-.sidebar-note {
-  display: block;
-  margin-top: 7px;
+.status-dot.offline {
+  background: var(--red);
+  box-shadow: 0 0 0 3px var(--red-soft);
+}
+/* Backend identity: which instance this console is actually attached to. */
+.sidebar-backend {
+  display: grid;
+  gap: 5px;
+  margin: 8px 0 0;
+}
+.sidebar-backend > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+.sidebar-backend dt {
+  flex: 0 0 auto;
   color: var(--muted);
   font-size: 10px;
-  line-height: 1.5;
+}
+.sidebar-backend dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 900px) {
