@@ -6,10 +6,26 @@
    `bg-surface`, `text-muted`, `border-line`, `rounded-panel` resolve
    to the same values the rest of the app already uses.
 
-   Preflight is intentionally NOT imported: the project still ships a
-   large amount of hand-written CSS, and a global reset would change
-   existing pages before they are migrated. Utilities + the component
-   layer are imported instead.
+   Preflight is intentionally NOT imported. All hand-written CSS has been
+   migrated to @apply, so the original "wait until migration finishes"
+   reason no longer applies; the decision is now based on measured
+   regressions:
+
+   - 37 `<p>` elements across AdminView / LogsView / MonitoringView rely on
+     the browser's default paragraph margins. Preflight zeroes them, which
+     collapses vertical rhythm in those views. (A scoped `p:not([class])`
+     fallback cannot fix this: the scoped attribute is appended to the
+     selector, so `:not([class])` no longer matches what it appears to.)
+   - 12 headings rely on user-agent sizing where a layout wrapper
+     (AdminLayout) styles them indirectly; Preflight resets heading
+     font-size/weight to inherit.
+   - Form controls draw their own tokens; Preflight's control reset would
+     need re-auditing on every AppInput / AppSelect / AppTextarea.
+
+   Tailwind v4 puts Preflight in `layer(base)`, so unlayered scoped styles
+   still win. The risk is therefore limited to elements with no explicit
+   rule — which is exactly the set listed above. Revisit only together with
+   a real browser pass (light + dark, desktop + mobile).
    ============================================================ */
 
 @import "tailwindcss/theme.css" layer(theme);
