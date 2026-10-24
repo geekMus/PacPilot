@@ -1,6 +1,7 @@
 import { loadEnv } from "./config/env";
 import { createApp } from "./app";
 import { runPacWorkflow } from "./services/workflow";
+import { warmPacCache } from "./services/pac-generator";
 
 import { reschedule, stopScheduler } from "./services/scheduler";
 import {
@@ -59,6 +60,13 @@ async function main(): Promise<void> {
   }
 
   const app = createApp(env, storage);
+
+  // Warm the in-memory PAC so the very first `/pac` request after a restart is
+  // served instantly. Remote mode rebuilds from the persisted rule snapshot;
+  // if none exists yet it is fetched on demand when settings are saved.
+  void warmPacCache(storage).catch((error) =>
+    runtimeLog("error", "PAC cache warm-up failed: ", error)
+  );
 
   const server = app.listen(env.port, env.host, () => {
     if (!firstStart && !adminCredentialsMissing) {

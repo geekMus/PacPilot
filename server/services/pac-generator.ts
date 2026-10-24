@@ -7,6 +7,20 @@ import { t } from "../../shared/i18n";
 import type { AppSettings } from "../../shared/contracts";
 import { buildRemoteListPac, fetchAndParseRemoteList } from "./remote-list";
 import { runtimeLog } from "../utils/runtime-log";
+import {
+  computeEtag,
+  computeSourceVersion,
+  getRenderedPac,
+  invalidateRenderedPac,
+  isRenderFresh,
+  readRuleSource,
+  renderPacSource,
+  setRenderedPac,
+  withPacBuildLock,
+  writeRuleSource,
+  type PacRuleSource,
+  type RenderedPac,
+} from "./pac-runtime";
 
 export interface GenerateResult {
   success: boolean;
@@ -206,87 +220,13 @@ export async function probePacPilot(): Promise<EngineProbe> {
   };
 }
 
-async function runRemoteMode(
-  settings: AppSettings,
-  outFile: string,
-  artifacts: ApplicationStorage["artifacts"]
-): Promise<{
-  message: string;
-  resultCode: string;
-  resultData: Record<string, number | boolean>;
-  detail: Record<string, unknown>;
-}> {
-  if (!settings.listUrl) {
-    throw new Error("Remote list mode requires listUrl to be configured.");
-  }
-  const parsed = await fetchAndParseRemoteList(settings.listUrl);
-  // 内部源文件始终保留未压缩版本，状态页只解析该文件。
-  const pac = buildRemoteListPac(
-    settings.pacProxy,
-    parsed.proxyHosts,
-    parsed.directHosts,
-    settings.blockList,
-    settings.directList,
-    false
-  );
-  const generatedAt = new Date();
-  const source = withPacVersionHeader(pac, generatedAt, settings.timezone);
-  const output = settings.pacCompress
-    ? withPacVersionHeader(await compressPac(pac), generatedAt, settings.timezone)
-    : source;
-  const sourcePath = path.join(path.dirname(outFile), "proxy.source.pac");
-  artifacts.write("proxy.source.pac", source);
-  artifacts.write("proxy.pac", output);
-  const formatKey =
-    parsed.format === "gfwlist-base64"
-      ? "format.gfwlist"
-      : parsed.format === "abp"
-        ? "format.abp"
-        : "format.plain";
-  const formatSuffix =
-    parsed.format === "gfwlist-base64" ? "gfwlist" : parsed.format === "abp" ? "abp" : "plain";
-  const resultCode = `remote.${formatSuffix}`;
-  const resultData = {
-    proxy: parsed.proxyHosts.length,
-    direct: parsed.directHosts.length,
-  };
-  const formatLabel = t("zh_CN", formatKey);
-  const message = t("zh_CN", `gen.success.${resultCode}`, resultData);
-  return {
-    message,
-    resultCode,
-    resultData,
-    detail: {
-      mode: "remote",
-      pac_proxy: settings.pacProxy,
-      list_url: settings.listUrl,
-      compressed: Boolean(settings.pacCompress),
-      fetch: parsed.fetch || null,
-      parse: {
-        format: parsed.format,
-        format_label: formatLabel,
-        proxy_hosts: parsed.proxyHosts.length,
-        direct_hosts: parsed.directHosts.length,
-        raw_line_count: parsed.rawLineCount,
-        custom_block_list: settings.blockList.length,
-        custom_direct_list: settings.directList.length,
-      },
-      output: {
-        pac_path: outFile,
-        source_path: sourcePath,
-        pac_bytes: Buffer.byteLength(output, "utf8"),
-        source_bytes: Buffer.byteLength(source, "utf8"),
-        generated_at: generatedAt.toISOString(),
-      },
-    },
-  };
-}
-
 export async function generatePac(
   storage: Pick<ApplicationStorage, "settings" | "generationLogs" | "artifacts">,
   dataDir: string
 ): Promise<GenerateResult> {
   const settings = await storage.settings.get();
+  // No PAC files are written any more; the rendered body lives in memory and
+  // the remote rule snapshot in the artifact store.
   const pacPath = path.join(dataDir, "proxy.pac");
 
   try {
@@ -297,22 +237,72 @@ export async function generatePac(
     let resultCode: string;
     let resultData: Record<string, string | number | boolean> = {};
     let detail: Record<string, unknown>;
+
     if (settings.mode === "remote") {
-      const remote = await runRemoteMode(settings, pacPath, storage.artifacts);
-      message = remote.message;
-      resultCode = remote.resultCode;
-      resultData = remote.resultData;
-      detail = remote.detail;
+      if (!settings.listUrl) {
+        throw new Error("Remote list mode requires listUrl to be configured.");
+      }
+      const parsed = await fetchAndParseRemoteList(settings.listUrl);
+      const fetchedAt = new Date().toISOString();
+      await writeRuleSource(storage, {
+        fetchedAt,
+        url: settings.listUrl,
+        format: parsed.format,
+        proxyHosts: parsed.proxyHosts,
+        directHosts: parsed.directHosts,
+        fetchMeta: parsed.fetch
+          ? {
+              status: parsed.fetch.status,
+              duration_ms: parsed.fetch.duration_ms,
+              response_bytes: parsed.fetch.response_bytes,
+              attempts: parsed.fetch.attempts,
+            }
+          : undefined,
+      });
+      invalidateRenderedPac();
+      const rendered = await getRenderedPacBody(storage, { force: true });
+
+      const formatSuffix =
+        parsed.format === "gfwlist-base64" ? "gfwlist" : parsed.format === "abp" ? "abp" : "plain";
+      resultCode = `remote.${formatSuffix}`;
+      resultData = { proxy: parsed.proxyHosts.length, direct: parsed.directHosts.length };
+      const formatKey =
+        parsed.format === "gfwlist-base64"
+          ? "format.gfwlist"
+          : parsed.format === "abp"
+            ? "format.abp"
+            : "format.plain";
+      message = t("zh_CN", `gen.success.${resultCode}`, {
+        proxy: parsed.proxyHosts.length,
+        direct: parsed.directHosts.length,
+      });
+      detail = {
+        mode: "remote",
+        pac_proxy: settings.pacProxy,
+        list_url: settings.listUrl,
+        compressed: Boolean(settings.pacCompress),
+        fetch: parsed.fetch || null,
+        parse: {
+          format: parsed.format,
+          format_label: t("zh_CN", formatKey),
+          proxy_hosts: parsed.proxyHosts.length,
+          direct_hosts: parsed.directHosts.length,
+          raw_line_count: parsed.rawLineCount,
+          custom_block_list: settings.blockList.length,
+          custom_direct_list: settings.directList.length,
+        },
+        output: {
+          pac_path: "/pac",
+          pac_bytes: Buffer.byteLength(rendered.body, "utf8"),
+          source_bytes: Buffer.byteLength(rendered.source, "utf8"),
+          generated_at: rendered.builtAt,
+          etag: rendered.etag,
+          rule_fetched_at: fetchedAt,
+        },
+      };
     } else {
-      const customPac = buildCustomPac(settings);
-      const generatedAt = new Date();
-      const source = withPacVersionHeader(customPac, generatedAt, settings.timezone);
-      const output = settings.pacCompress
-        ? withPacVersionHeader(await compressPac(customPac), generatedAt, settings.timezone)
-        : source;
-      const sourcePath = path.join(dataDir, "proxy.source.pac");
-      await storage.artifacts.write("proxy.source.pac", source);
-      await storage.artifacts.write("proxy.pac", output);
+      invalidateRenderedPac();
+      const rendered = await getRenderedPacBody(storage, { force: true });
       resultCode = settings.pacCompress ? "custom.compressed" : "custom.uncompressed";
       resultData = { compressed: Boolean(settings.pacCompress) };
       message = t("zh_CN", `gen.success.${resultCode}`);
@@ -325,11 +315,11 @@ export async function generatePac(
           custom_direct_list: settings.directList.length,
         },
         output: {
-          pac_path: pacPath,
-          source_path: sourcePath,
-          pac_bytes: Buffer.byteLength(output, "utf8"),
-          source_bytes: Buffer.byteLength(source, "utf8"),
-          generated_at: generatedAt.toISOString(),
+          pac_path: "/pac",
+          pac_bytes: Buffer.byteLength(rendered.body, "utf8"),
+          source_bytes: Buffer.byteLength(rendered.source, "utf8"),
+          generated_at: rendered.builtAt,
+          etag: rendered.etag,
         },
       };
     }
@@ -369,47 +359,112 @@ export async function generatePac(
   }
 }
 
-export async function readPacFile(storage: Pick<ApplicationStorage, "artifacts">): Promise<string> {
+/**
+ * Render (or reuse) the PAC served at `/pac`.
+ *
+ * The rendered body lives in process memory; the remote rule list is persisted
+ * so a restart can rebuild without touching the network. Nothing is written to
+ * the artifact store for the PAC body itself any more.
+ */
+export async function getRenderedPacBody(
+  storage: Pick<ApplicationStorage, "settings" | "artifacts">,
+  options: { force?: boolean } = {}
+): Promise<RenderedPac> {
+  const settings = await storage.settings.get();
+  const source = settings.mode === "remote" ? await readRuleSource(storage) : null;
+
+  const cached = getRenderedPac();
+  if (!options.force && cached && isRenderFresh(settings, source)) return cached;
+
+  return withPacBuildLock(async () => {
+    // Re-check inside the lock: a concurrent request may have finished first.
+    const freshSettings = await storage.settings.get();
+    const freshSource = freshSettings.mode === "remote" ? await readRuleSource(storage) : null;
+    const existing = getRenderedPac();
+    if (!options.force && existing && isRenderFresh(freshSettings, freshSource)) return existing;
+
+    const raw = renderPacSource(freshSettings, freshSource, buildCustomPac);
+    const generatedAt = new Date();
+    const sourceBody = withPacVersionHeader(raw, generatedAt, freshSettings.timezone);
+    const body = freshSettings.pacCompress
+      ? withPacVersionHeader(await compressPac(raw), generatedAt, freshSettings.timezone)
+      : sourceBody;
+
+    const value: RenderedPac = {
+      body,
+      source: sourceBody,
+      etag: computeEtag(body),
+      builtAt: generatedAt.toISOString(),
+      sourceVersion: computeSourceVersion(freshSettings, freshSource),
+      stale: false,
+    };
+    setRenderedPac(value);
+    return value;
+  });
+}
+
+/** Remote-mode rule refresh: fetch, persist and re-render in one step. */
+export async function refreshRemoteRules(
+  storage: Pick<ApplicationStorage, "settings" | "artifacts">
+): Promise<{ ok: boolean; message: string; fetchedAt?: string }> {
+  const settings = await storage.settings.get();
+  if (settings.mode !== "remote") {
+    return { ok: false, message: "当前不是远程规则模式，无需刷新。" };
+  }
+  if (!settings.listUrl) {
+    return { ok: false, message: "远程规则模式需要先配置列表 URL。" };
+  }
   try {
-    const bytes = await storage.artifacts.read("proxy.pac");
-    if (!bytes) return "";
-    const original = new TextDecoder().decode(bytes);
-    const versioned = withPacVersionHeader(original);
-    if (versioned !== original) {
-      try {
-        await storage.artifacts.write("proxy.pac", versioned);
-      } catch {
-        /* read-only adapter */
-      }
-    }
-    return versioned;
-  } catch {
-    return "";
+    const parsed = await fetchAndParseRemoteList(settings.listUrl);
+    const fetchedAt = new Date().toISOString();
+    await writeRuleSource(storage, {
+      fetchedAt,
+      url: settings.listUrl,
+      format: parsed.format,
+      proxyHosts: parsed.proxyHosts,
+      directHosts: parsed.directHosts,
+      fetchMeta: parsed.fetch
+        ? {
+            status: parsed.fetch.status,
+            duration_ms: parsed.fetch.duration_ms,
+            response_bytes: parsed.fetch.response_bytes,
+            attempts: parsed.fetch.attempts,
+          }
+        : undefined,
+    });
+    invalidateRenderedPac();
+    await getRenderedPacBody(storage, { force: true });
+    return { ok: true, message: "远程规则已刷新。", fetchedAt };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    runtimeLog("error", "Remote rule refresh failed: " + message);
+    return { ok: false, message };
   }
 }
 
 /**
- * 读取始终未压缩的内部 PAC 源文件供状态页解析。
- * 兼容升级前的数据目录：源文件尚不存在时回退到现有 proxy.pac。
+ * Best-effort cache warm-up at startup. Never fetches remotely: a deployment
+ * that has not saved remote settings yet simply renders the custom rules.
  */
-export async function readPacSourceFile(
-  storage: Pick<ApplicationStorage, "artifacts">
-): Promise<string> {
-  const clientBytes = await storage.artifacts.read("proxy.pac");
-  if (!clientBytes) return "";
-  const clientPac = new TextDecoder().decode(clientBytes);
-  if (!clientPac.trim()) return "";
-  const sourceBytes = await storage.artifacts.read("proxy.source.pac");
-  if (!sourceBytes) return clientPac;
-  const sourcePac = new TextDecoder().decode(sourceBytes);
-  return sourcePac.trim() ? sourcePac : clientPac;
+export async function warmPacCache(
+  storage: Pick<ApplicationStorage, "settings" | "artifacts">
+): Promise<void> {
+  try {
+    const settings = await storage.settings.get();
+    if (settings.mode === "remote") {
+      const source = await readRuleSource(storage);
+      if (!source) {
+        runtimeLog(
+          "warn",
+          "Remote mode is active but no rule snapshot exists yet; PAC will fall back to DIRECT until the rules are fetched."
+        );
+        return;
+      }
+    }
+    await getRenderedPacBody(storage, { force: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    runtimeLog("error", "Unable to warm the PAC cache: " + message);
+  }
 }
 
-export async function pacFileMtime(
-  storage: Pick<ApplicationStorage, "artifacts">
-): Promise<Date | null> {
-  const pac = await storage.artifacts.stat("proxy.pac");
-  if (!pac || pac.size === 0) return null;
-  const source = await storage.artifacts.stat("proxy.source.pac");
-  return source && source.size > 0 ? new Date(source.modifiedAt) : new Date(pac.modifiedAt);
-}

@@ -8,9 +8,9 @@ import { useStatusDashboard } from "@/composables/useStatusDashboard";
 import { resolveApiUrl } from "@/api/runtime-config";
 
 // PAC links must follow the configured backend origin: a purely static
-// frontend is served from a different host than `/proxy.pac`. Resolved lazily
+// frontend is served from a different host than `/pac`. Resolved lazily
 // so it always reflects the loaded runtime config.
-const pacUrl = () => resolveApiUrl("/proxy.pac");
+const pacUrl = () => resolveApiUrl("/pac");
 
 const {
   t,
@@ -48,7 +48,7 @@ const {
       <h1 class="page-title">{{ t("status.title") }}</h1>
       <p class="page-intro">
         {{ t("statusPage.k11") }}
-        <code>proxy.pac</code>
+        <code>/pac</code>
         {{ t("statusPage.k12") }}
       </p>
       <div v-if="status" class="hero-meta">

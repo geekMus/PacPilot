@@ -112,7 +112,7 @@ export function getMonitorSummary(
     )
     .all(dayAgo) as Array<{ hour_key: string; total: number; errors: number | null }>;
 
-  // PAC 文件本身是本服务的核心指标，独立统计 /proxy.pac，避免网页和管理 API 混入。
+  // PAC 文件本身是本服务的核心指标，独立统计 /pac，避免网页和管理 API 混入。
   const pacDay = database
     .query(
       "SELECT COUNT(*) AS total, " +

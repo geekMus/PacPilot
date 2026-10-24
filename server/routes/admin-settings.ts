@@ -8,6 +8,8 @@ import { requireAdmin } from "../middleware/auth";
 import { validatePacProxyString } from "../services/pac-generator";
 import { startPacWorkflow } from "../services/workflow";
 import { reschedule } from "../services/scheduler";
+import { invalidateRenderedPac, readRuleSource } from "../services/pac-runtime";
+import { refreshRemoteRules } from "../services/pac-generator";
 import { sendWebhookTest, validateWebhookConfig } from "../services/webhook";
 import cron from "node-cron";
 import { resolveLocale, t as serverT } from "../../shared/i18n";
@@ -91,6 +93,22 @@ async function persistSettings(
   }
   const settings = await storage.settings.update(p);
   reschedule(storage, env.dataDir);
+  // Any render input may have changed (mode, proxy string, compression, rule
+  // lists, remote URL); drop the cached body so the next request rebuilds it.
+  invalidateRenderedPac();
+  // Switching to remote mode must fetch the list before a PAC can be built.
+  if (settings.mode === "remote" && settings.listUrl) {
+    const previousSource = await readRuleSource(storage);
+    const needsFetch = !previousSource || previousSource.url !== settings.listUrl;
+    if (needsFetch) {
+      const refreshed = await refreshRemoteRules(storage);
+      if (!refreshed.ok) {
+        return { error: refreshed.message };
+      }
+    } else {
+      void refreshRemoteRules(storage).catch(() => undefined);
+    }
+  }
   return { settings };
 }
 

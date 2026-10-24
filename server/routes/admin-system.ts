@@ -6,6 +6,8 @@ import { DEFAULT_SETTINGS } from "../domain/settings";
 import { requireAdmin } from "../middleware/auth";
 import { hasActivePacWorkflow } from "../services/workflow";
 import { reschedule } from "../services/scheduler";
+import { getRenderedPac } from "../services/pac-runtime";
+import { readRuleSource, invalidateRenderedPac, clearRuleSource } from "../services/pac-runtime";
 import { resolveLocale, t as serverT } from "../../shared/i18n";
 
 function requestLocale(req: import("express").Request): "zh_CN" | "en_US" {
@@ -30,6 +32,9 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
         ? { exists: true, sizeBytes: stat.size, modifiedAt: stat.modifiedAt }
         : { exists: false, sizeBytes: 0, modifiedAt: null };
     };
+    // The PAC body is rendered in memory now; report that instead of files.
+    const rendered = getRenderedPac();
+    const ruleSource = await readRuleSource(storage);
     res.json({
       dataBytes,
       dbBytes,
@@ -37,9 +42,48 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
         (await storage.generationLogs.storageBytes()) + (await storage.monitoring.storageBytes()),
       retentionDays: (await storage.settings.get()).logRetentionDays,
       counts,
+      pac: {
+        rendered: rendered
+          ? {
+              exists: true,
+              sizeBytes: Buffer.byteLength(rendered.body, "utf8"),
+              sourceBytes: Buffer.byteLength(rendered.source, "utf8"),
+              builtAt: rendered.builtAt,
+              etag: rendered.etag,
+              compressed: (await storage.settings.get()).pacCompress,
+            }
+          : { exists: false, sizeBytes: 0, sourceBytes: 0, builtAt: null, etag: "", compressed: false },
+        ruleSource: ruleSource
+          ? {
+              exists: true,
+              fetchedAt: ruleSource.fetchedAt,
+              url: ruleSource.url,
+              format: ruleSource.format,
+              proxyHosts: ruleSource.proxyHosts.length,
+              directHosts: ruleSource.directHosts.length,
+            }
+          : { exists: false, fetchedAt: null, url: "", format: "", proxyHosts: 0, directHosts: 0 },
+      },
+      // Retained for older clients; both entries describe the in-memory render.
       pacFiles: {
-        proxyPac: pacFileInfo("proxy.pac"),
-        proxySourcePac: pacFileInfo("proxy.source.pac"),
+        proxyPac: rendered
+          ? {
+              exists: true,
+              sizeBytes: Buffer.byteLength(rendered.body, "utf8"),
+              modifiedAt: rendered.builtAt,
+            }
+          : { exists: false, sizeBytes: 0, modifiedAt: null },
+        proxySourcePac: ruleSource
+          ? {
+              exists: true,
+              sizeBytes: Buffer.byteLength(JSON.stringify(ruleSource), "utf8"),
+              modifiedAt: ruleSource.fetchedAt,
+            }
+          : { exists: false, sizeBytes: 0, modifiedAt: null },
+      },
+      legacyPacFiles: {
+        proxyPac: await pacFileInfo("proxy.pac"),
+        proxySourcePac: await pacFileInfo("proxy.source.pac"),
       },
     });
   });
@@ -52,19 +96,38 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
     }
     const deleted: string[] = [];
     try {
-      for (const name of ["proxy.pac", "proxy.source.pac"]) {
-        if (await storage.artifacts.delete(name)) deleted.push(name);
+      // The PAC body is no longer stored on disk. Clearing means dropping the
+      // persisted remote rule snapshot and the in-memory render, so the next
+      // request rebuilds from the current settings.
+      if (await storage.artifacts.exists("pac.rule-source.json")) {
+        await clearRuleSource(storage);
+        deleted.push("pac.rule-source.json");
       }
-      const fileInfo = async (name: string) => {
-        const stat = await storage.artifacts.stat(name);
-        return stat
-          ? { exists: true, sizeBytes: stat.size, modifiedAt: stat.modifiedAt }
-          : { exists: false, sizeBytes: 0, modifiedAt: null };
-      };
+      invalidateRenderedPac();
+      deleted.push("rendered");
+      if (await storage.artifacts.delete("proxy.pac")) deleted.push("proxy.pac");
+      if (await storage.artifacts.delete("proxy.source.pac")) deleted.push("proxy.source.pac");
+      const rendered = getRenderedPac();
+      const ruleSource = await readRuleSource(storage);
       res.json({
         ok: true,
         deleted,
-        pacFiles: { proxyPac: fileInfo("proxy.pac"), proxySourcePac: fileInfo("proxy.source.pac") },
+        pac: {
+          rendered: rendered ? { exists: true, builtAt: rendered.builtAt } : { exists: false, builtAt: null },
+          ruleSource: ruleSource ? { exists: true, fetchedAt: ruleSource.fetchedAt } : { exists: false, fetchedAt: null },
+        },
+        pacFiles: {
+          proxyPac: rendered
+            ? {
+                exists: true,
+                sizeBytes: Buffer.byteLength(rendered.body, "utf8"),
+                modifiedAt: rendered.builtAt,
+              }
+            : { exists: false, sizeBytes: 0, modifiedAt: null },
+          proxySourcePac: ruleSource
+            ? { exists: true, sizeBytes: 0, modifiedAt: ruleSource.fetchedAt }
+            : { exists: false, sizeBytes: 0, modifiedAt: null },
+        },
       });
     } catch (error) {
       res.status(500).json({ error: error instanceof Error ? error.message : String(error) });

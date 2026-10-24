@@ -2,7 +2,7 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-**PacPilot** is a PAC generation and management service with a web-based admin interface. It generates `proxy.pac` from custom rules or a remote domain list, and provides workflow history, scheduled updates, webhook notifications, request monitoring, and data maintenance.
+**PacPilot** is a PAC generation and management service with a web-based admin interface. It generates `/pac` from custom rules or a remote domain list, and provides workflow history, scheduled updates, webhook notifications, request monitoring, and data maintenance.
 
 The project uses Bun, TypeScript, Vue 3, and SQLite. For deployment, use the prebuilt Docker image; you do not need to clone the source code or install build tools on the server.
 

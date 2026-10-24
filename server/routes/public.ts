@@ -1,20 +1,64 @@
 import { Router } from "express";
-import { pacFileMtime, readPacFile, readPacSourceFile } from "../services/pac-generator";
+import { getRenderedPacBody } from "../services/pac-generator";
 import { parsePacStatus } from "../services/pac-parser";
 import type { ApplicationStorage } from "../storage/repositories";
 import { APP_VERSION, PROJECT_URL } from "../version";
+import { runtimeLog } from "../utils/runtime-log";
 
-function sendPac(
+const FALLBACK_PAC =
+  "// PacPilot 尚未能构建 PAC（可能是远程规则未拉取）；临时回退策略为所有请求直连\n" +
+  "function FindProxyForURL(url, host){return 'DIRECT';}\n";
+
+/**
+ * ETag comparison supporting the weak validator prefix and comma-separated
+ * lists, as browsers may send either form.
+ */
+function etagMatches(header: string | undefined, etag: string): boolean {
+  if (!header) return false;
+  if (header.trim() === "*") return true;
+  return header
+    .split(",")
+    .map((part) => part.trim().replace(/^W\//, ""))
+    .some((part) => part === etag);
+}
+
+async function sendPac(
   req: import("express").Request,
   res: import("express").Response,
   storage: ApplicationStorage
-) {
-  const fallback =
-    "// 尚未生成 PAC；临时回退策略为所有请求直连\nfunction FindProxyForURL(url, host){return 'DIRECT';}\n";
-  const pac = readPacFile(storage) || fallback;
+): Promise<void> {
+  let body: string;
+  let etag: string;
+  let cacheState: string;
 
-  // 公共状态页是 PAC 文件的主要 UI 入口；默认在浏览器中查看，?download=1 时才触发下载。
+  try {
+    const rendered = await getRenderedPacBody(storage);
+    body = rendered.body;
+    etag = rendered.etag;
+    cacheState = rendered.stale ? "stale" : "hit";
+  } catch (error) {
+    // Rendering can only fail before the first remote fetch; serve a DIRECT
+    // fallback instead of an empty response so clients stay online.
+    runtimeLog("error", "PAC rendering failed: ", error);
+    body = FALLBACK_PAC;
+    etag = '"fallback"';
+    cacheState = "fallback";
+  }
+
+  // The public status page is the main UI entry for the PAC body: show it
+  // inline by default, and only trigger a download with ?download=1.
   const asDownload = req.query.download === "1" || req.query.download === "true";
+
+  res.setHeader("ETag", etag);
+  // `no-cache` lets clients keep a copy but always revalidate, which is how the
+  // ETag turns into a 304 instead of a full body transfer.
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("X-Pac-Cache", cacheState);
+
+  if (etagMatches(req.get("if-none-match"), etag)) {
+    res.status(304).end();
+    return;
+  }
 
   if (asDownload) {
     res.setHeader("Content-Type", "application/x-ns-proxy-autoconfig; charset=utf-8");
@@ -24,14 +68,13 @@ function sendPac(
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.setHeader("Content-Disposition", "inline");
   }
-  res.setHeader("Cache-Control", "no-store");
-  res.send(pac);
+  res.send(body);
 }
 
 export function publicRoutes(storage: ApplicationStorage): Router {
   const router = Router();
 
-  router.get("/proxy.pac", (req, res) => sendPac(req, res, storage));
+  router.get("/pac", (req, res) => void sendPac(req, res, storage));
 
   router.get("/api/meta", (_req, res) => {
     res.json({
@@ -42,13 +85,17 @@ export function publicRoutes(storage: ApplicationStorage): Router {
   });
 
   router.get("/api/status", async (_req, res) => {
-    const pacSource = await readPacSourceFile(storage);
+    let source = "";
+    let builtAt: Date | null = null;
+    try {
+      const rendered = await getRenderedPacBody(storage);
+      source = rendered.source;
+      builtAt = new Date(rendered.builtAt);
+    } catch {
+      source = "";
+    }
     res.json(
-      parsePacStatus(
-        pacSource,
-        (await storage.settings.get()).timezone,
-        await pacFileMtime(storage)
-      )
+      parsePacStatus(source, (await storage.settings.get()).timezone, builtAt)
     );
   });
 

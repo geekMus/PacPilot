@@ -98,7 +98,7 @@ function shouldRecord(path: string): boolean {
 }
 
 function categorize(path: string): string {
-  if (path === "/proxy.pac") return "pac";
+  if (path === "/pac") return "pac";
   if (path.startsWith("/api/admin/")) return "admin-api";
   if (path.startsWith("/api/")) return "public-api";
   return "page";

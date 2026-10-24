@@ -9,7 +9,7 @@ import { resolveApiUrl } from "@/api/runtime-config";
 // The PAC endpoint lives on the backend host, which may differ from the
 // static frontend host in split deployments. Resolved lazily so it reflects
 // the loaded runtime config.
-const pacUrl = () => resolveApiUrl("/proxy.pac");
+const pacUrl = () => resolveApiUrl("/pac");
 
 const {
   t,

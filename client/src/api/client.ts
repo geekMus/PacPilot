@@ -107,6 +107,25 @@ export interface PacFileStatus {
   sizeBytes: number;
   modifiedAt: string | null;
 }
+/** In-memory PAC render reported by the backend (no PAC files on disk). */
+export interface PacRenderStatus {
+  rendered: {
+    exists: boolean;
+    sizeBytes: number;
+    sourceBytes: number;
+    builtAt: string | null;
+    etag: string;
+    compressed: boolean;
+  };
+  ruleSource: {
+    exists: boolean;
+    fetchedAt: string | null;
+    url: string;
+    format: string;
+    proxyHosts: number;
+    directHosts: number;
+  };
+}
 export interface StorageSummary {
   dataBytes: number;
   dbBytes: number;
@@ -118,6 +137,7 @@ export interface StorageSummary {
     workflows: number;
     activeWorkflows: number;
   };
+  pac?: PacRenderStatus;
   pacFiles: { proxyPac: PacFileStatus; proxySourcePac: PacFileStatus };
 }
 export interface PacPilotProbe {
