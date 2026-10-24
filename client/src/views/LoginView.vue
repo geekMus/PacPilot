@@ -154,93 +154,59 @@ async function onSubmit() {
 </template>
 
 <style scoped>
+@reference "../styles/tailwind.css";
+
 .auth-page {
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
+  @apply flex min-h-dvh flex-col;
 }
 .auth-layout {
-  display: grid;
+  @apply grid flex-1 items-center gap-[clamp(24px,6vw,72px)] px-0 pt-6 pb-14;
   grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.8fr);
-  align-items: center;
-  gap: clamp(24px, 6vw, 72px);
-  flex: 1;
-  padding: 24px 0 56px;
 }
 .auth-intro .page-kicker {
   color: var(--accent);
 }
 .auth-intro .page-title {
+  @apply mb-4 mt-[9px] text-[clamp(30px,5vw,44px)];
   max-width: 9em;
-  font-size: clamp(30px, 5vw, 44px);
-  margin: 9px 0 16px;
 }
 .auth-intro > p {
-  max-width: 32em;
+  @apply max-w-[32em] text-[15px] leading-[1.7];
   color: var(--muted);
-  font-size: 15px;
-  line-height: 1.7;
 }
 .security-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  max-width: 34em;
-  margin-top: 26px;
+  @apply mt-[26px] flex max-w-[34em] items-start gap-2.5 text-xs leading-normal;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.6;
 }
 .security-note-icon {
-  display: grid;
-  place-items: center;
-  flex: 0 0 28px;
-  width: 28px;
-  height: 28px;
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
-  border-radius: 9px;
+  @apply grid h-7 w-7 shrink-0 place-items-center rounded-[9px] border;
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--line));
   background: var(--accent-soft);
   color: var(--accent);
 }
 .login-card {
-  width: 100%;
-  max-width: 390px;
-  justify-self: end;
-  padding: clamp(22px, 4vw, 30px);
+  @apply w-full max-w-[390px] justify-self-end p-[clamp(22px,4vw,30px)] rounded-[var(--radius)] border;
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-color: var(--line);
   box-shadow: var(--shadow);
 }
 .login-mark {
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+  @apply mb-[18px] grid h-12 w-12 place-items-center rounded-[14px];
   background: var(--accent-soft);
   color: var(--accent);
-  margin-bottom: 18px;
 }
 .login-card h2 {
-  margin: 0;
-  font-size: 20px;
+  @apply m-0 text-xl;
 }
 .login-subtitle {
-  margin: 5px 0 22px;
+  @apply mb-[22px] mt-[5px] text-[13px];
   color: var(--muted);
-  font-size: 13px;
 }
 .login-card label {
-  display: block;
-  margin-bottom: 7px;
-  font-size: 12px;
-  font-weight: 650;
+  @apply mb-[7px] block text-xs font-semibold;
 }
 .login-card .app-input {
-  min-height: 44px;
-  margin-bottom: 13px;
-  border-radius: 9px;
+  @apply mb-[13px] min-h-11 rounded-[9px];
 }
 .login-card .app-input:disabled {
   -webkit-text-fill-color: var(--control-disabled-text);
@@ -252,19 +218,11 @@ async function onSubmit() {
   opacity: 1;
 }
 .login-submit {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
+  @apply flex w-full items-center justify-between rounded-[9px] border px-[14px] text-[13px] font-semibold cursor-pointer;
   min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid var(--accent);
-  border-radius: 9px;
+  border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-contrast);
-  font-size: 13px;
-  font-weight: 650;
-  cursor: pointer;
 }
 .login-submit:hover:not(:disabled) {
   background: var(--accent-hover);
@@ -277,19 +235,18 @@ async function onSubmit() {
   color: var(--accent-contrast);
 }
 .login-submit:disabled {
-  opacity: 1;
+  @apply cursor-not-allowed opacity-100;
   color: var(--control-disabled-text);
   -webkit-text-fill-color: var(--control-disabled-text);
   background: var(--control-disabled-bg);
   border-color: var(--control-disabled-border);
-  cursor: not-allowed;
 }
 .login-submit.is-loading:disabled {
+  @apply cursor-progress;
   color: var(--accent-contrast);
   -webkit-text-fill-color: var(--accent-contrast);
   background: var(--accent);
   border-color: var(--accent);
-  cursor: progress;
 }
 .icon-spinning {
   animation: login-icon-spin 0.9s linear infinite;
@@ -300,142 +257,96 @@ async function onSubmit() {
   }
 }
 .login-footnote {
-  margin: 14px 0 0;
+  @apply mt-3.5 text-[11px] leading-normal;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.55;
   overflow-wrap: anywhere;
 }
 .login-footnote a {
+  @apply font-bold no-underline;
   color: var(--accent);
-  font-weight: 700;
-  text-decoration: none;
 }
 .login-footnote a:hover {
-  text-decoration: underline;
+  @apply underline;
 }
 .alert {
-  padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--red) 35%, var(--line));
-  border-radius: 9px;
+  @apply mb-3.5 rounded-[9px] border p-2.5 text-xs leading-normal;
+  border-color: color-mix(in srgb, var(--red) 35%, var(--line));
   background: var(--red-soft);
-  margin-bottom: 14px;
-  font-size: 12px;
-  line-height: 1.5;
 }
 .alert.warning {
   border-color: color-mix(in srgb, var(--warn) 35%, var(--line));
   background: var(--warn-soft);
 }
-@media (max-width: 680px) {
-  .auth-page {
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    padding: 0 18px;
-    box-sizing: border-box;
-    background: linear-gradient(180deg, var(--accent-soft) 0, var(--bg) 230px);
-  }
-  .auth-page :deep(.topbar) {
-    gap: 10px;
-    margin: 0;
-    padding: 18px 0 14px;
-  }
-  .auth-page :deep(.brand-mark) {
-    width: 40px;
-    height: 40px;
-    border-radius: 13px;
-  }
-  .auth-page :deep(.brand-copy .name) {
-    font-size: 15px;
-  }
-  .auth-page :deep(.brand-copy small) {
-    font-size: 9px;
-    letter-spacing: 0.1em;
-  }
-  .auth-layout {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: flex-start;
-    gap: 0;
-    flex: 1;
-    padding: clamp(26px, 8vh, 64px) 0 28px;
-  }
-  .auth-intro {
-    display: none;
-  }
-  .login-card {
-    width: 100%;
-    max-width: 440px;
-    align-self: center;
-    justify-self: stretch;
-    padding: 26px 22px 22px;
-    border: 1px solid color-mix(in srgb, var(--accent) 13%, var(--line));
-    border-radius: 20px;
-    box-shadow: 0 16px 44px color-mix(in srgb, var(--text) 8%, transparent);
-  }
-  .login-mark {
-    width: 52px;
-    height: 52px;
-    margin: 0 auto 18px;
-    border-radius: 16px;
-  }
-  .login-card h2 {
-    text-align: center;
-    font-size: 22px;
-    letter-spacing: -0.025em;
-  }
-  .login-subtitle {
-    margin: 7px 0 24px;
-    text-align: center;
-    font-size: 13px;
-  }
-  .login-card label {
-    margin-bottom: 9px;
-    font-size: 13px;
-  }
-  .login-card .app-input {
-    min-height: 50px;
-    margin-bottom: 16px;
-    padding: 12px 14px;
-    border-radius: 11px;
-    font-size: 16px;
-  }
-  .login-submit {
-    min-height: 50px;
-    padding: 0 16px;
-    border-radius: 11px;
-    font-size: 14px;
-  }
-  .login-footnote {
-    margin-top: 15px;
-    font-size: 11px;
-    line-height: 1.65;
-  }
-  .login-footnote + .login-footnote {
-    text-align: center;
-  }
-  .auth-page :deep(.app-footer) {
-    margin-top: 20px;
-    padding: 14px 0 18px;
-  }
-}
-@media (max-width: 380px) {
-  .auth-page {
-    padding: 0 13px;
-  }
-  .login-card {
-    padding: 23px 17px 19px;
-    border-radius: 17px;
-  }
-  .auth-layout {
-    padding-top: clamp(20px, 5vh, 38px);
-  }
-}
 .success-alert {
   border-color: var(--green);
   background: var(--green-soft);
   color: var(--green);
+}
+@media (max-width: 680px) {
+  .auth-page {
+    @apply mx-0 w-full max-w-none box-border px-[18px];
+    background: linear-gradient(180deg, var(--accent-soft) 0, var(--bg) 230px);
+  }
+  .auth-page :deep(.topbar) {
+    @apply m-0 gap-2.5 px-0 pt-[18px] pb-3.5;
+  }
+  .auth-page :deep(.brand-mark) {
+    @apply h-10 w-10 rounded-[13px];
+  }
+  .auth-page :deep(.brand-copy .name) {
+    @apply text-[15px];
+  }
+  .auth-page :deep(.brand-copy small) {
+    @apply text-[9px] tracking-[0.1em];
+  }
+  .auth-layout {
+    @apply flex flex-1 flex-col items-stretch justify-start gap-0 px-0 pt-[clamp(26px,8vh,64px)] pb-7;
+  }
+  .auth-intro {
+    @apply hidden;
+  }
+  .login-card {
+    @apply w-full max-w-[440px] self-center justify-self-stretch rounded-[20px] border px-[22px] pt-[26px] pb-[22px];
+    border-color: color-mix(in srgb, var(--accent) 13%, var(--line));
+    box-shadow: 0 16px 44px color-mix(in srgb, var(--text) 8%, transparent);
+  }
+  .login-mark {
+    @apply mx-auto mb-[18px] h-[52px] w-[52px] rounded-2xl;
+  }
+  .login-card h2 {
+    @apply text-center text-[22px] tracking-tight;
+  }
+  .login-subtitle {
+    @apply mb-6 mt-[7px] text-center text-[13px];
+  }
+  .login-card label {
+    @apply mb-[9px] text-[13px];
+  }
+  .login-card .app-input {
+    @apply mb-4 min-h-[50px] rounded-[11px] px-[14px] py-3 text-base;
+  }
+  .login-submit {
+    @apply min-h-[50px] rounded-[11px] px-4 text-sm;
+  }
+  .login-footnote {
+    @apply mt-[15px] text-[11px] leading-relaxed;
+  }
+  .login-footnote + .login-footnote {
+    @apply text-center;
+  }
+  .auth-page :deep(.app-footer) {
+    @apply mt-5 px-0 pt-3.5 pb-[18px];
+  }
+}
+@media (max-width: 380px) {
+  .auth-page {
+    @apply px-[13px];
+  }
+  .login-card {
+    @apply rounded-[17px] px-[17px] pt-[23px] pb-[19px];
+  }
+  .auth-layout {
+    @apply pt-[clamp(20px,5vh,38px)];
+  }
 }
 </style>
