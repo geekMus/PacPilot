@@ -11,3 +11,5 @@ coverage/
 .idea/
 .vscode/
 bun.lock
+# Local visual-verification screenshots (see AGENTS.md 前端样式开发规范)
+.visual/
