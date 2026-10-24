@@ -4,6 +4,10 @@ export type WebhookProvider = "custom" | "dingtalk";
 export type WebhookMethod = "POST" | "PUT" | "PATCH";
 export type DingTalkMessageType = "text" | "markdown";
 
+/** GFWList 官方发布地址，作为远程规则列表的默认值。 */
+export const DEFAULT_LIST_URL =
+  "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt";
+
 export interface WebhookConfig {
   provider: WebhookProvider;
   url: string;

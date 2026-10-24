@@ -8,6 +8,7 @@ import {
   type WebhookConfig,
 } from "@/api/client";
 import { analyzeDomainRules } from "@/utils/domain-rules";
+import { DEFAULT_LIST_URL } from "@shared/contracts";
 import { createAdminSettingsValidators } from "@/utils/admin-settings-validation";
 import { commonTimeZones, isValidTimeZone } from "@/utils/time-zones";
 import { useToast } from "@/composables/useToast";
@@ -55,7 +56,7 @@ export function useAdminSettings() {
     mode: "custom" as "custom" | "remote",
     pacProxy: "",
     pacCompress: true,
-    listUrl: "",
+    listUrl: DEFAULT_LIST_URL,
     directListText: "",
     blockListText: "",
     cronSchedule: "",

@@ -1,4 +1,5 @@
 import { t, type AppLocale } from "../../shared/i18n";
+import { DEFAULT_LIST_URL } from "../../shared/contracts";
 import type { AppSettings, GenerationMode, WebhookConfig } from "../../shared/contracts";
 export type {
   AppSettings,
@@ -67,7 +68,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   mode: "custom",
   pacProxy: "SOCKS5 127.0.0.1:1080; DIRECT",
   pacCompress: true,
-  listUrl: "",
+  listUrl: DEFAULT_LIST_URL,
   blockList: [],
   directList: [],
   cronSchedule: "",
