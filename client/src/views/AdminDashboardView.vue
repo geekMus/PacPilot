@@ -366,37 +366,27 @@ onMounted(() => {
 
 <style scoped>
 @reference "@/styles/tailwind.css";
+
 .dashboard-view {
-  min-width: 0;
+  @apply min-w-0;
 }
 .dash-loading {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 18px;
-  margin-bottom: 18px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  @apply mb-[18px] flex items-start gap-3.5 rounded-xl border p-[18px];
+  border-color: var(--line);
   background: var(--surface);
   color: var(--muted);
 }
 .dash-loading strong {
-  display: block;
+  @apply block text-sm;
   color: var(--text);
-  font-size: 14px;
 }
 .dash-loading p {
-  margin: 5px 0 0;
-  font-size: 13px;
+  @apply mb-0 mt-[5px] text-[13px];
 }
 .spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--line);
+  @apply h-[18px] w-[18px] shrink-0 animate-[dash-spin_0.8s_linear_infinite] rounded-full border-2;
+  border-color: var(--line);
   border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: dash-spin 0.8s linear infinite;
-  flex: 0 0 auto;
 }
 @keyframes dash-spin {
   to {
@@ -410,14 +400,14 @@ onMounted(() => {
   }
 }
 .dashboard-toolbar {
-  @apply flex flex-wrap items-end justify-between gap-[18px] mb-[18px];
+  @apply mb-[18px] flex flex-wrap items-end justify-between gap-[18px];
 }
 .toolbar-copy h2 {
   @apply m-0 text-[clamp(20px,2.2vw,24px)] leading-tight tracking-[-0.03em];
   color: var(--text);
 }
 .toolbar-copy p {
-  @apply m-0 mt-1 text-[11px] leading-snug;
+  @apply mb-0 mt-1 text-[11px] leading-snug;
   color: var(--muted);
 }
 .toolbar-actions {
@@ -427,34 +417,21 @@ onMounted(() => {
   color: var(--muted);
 }
 .dashboard-alert {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 9px;
-  padding: 11px 13px;
-  margin-bottom: 14px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
+  @apply mb-3.5 flex flex-wrap items-center gap-[9px] rounded-[9px] border px-[13px] py-[11px] text-xs leading-normal;
+  border-color: var(--line);
   background: var(--surface);
-  font-size: 12px;
-  line-height: 1.5;
 }
 .dashboard-alert strong {
-  font-weight: 800;
+  @apply font-extrabold;
 }
 .dashboard-alert a {
+  @apply font-bold no-underline;
   color: var(--accent);
-  font-weight: 700;
-  text-decoration: none;
 }
 .dashboard-alert button {
-  margin-left: auto;
-  border: 0;
+  @apply ml-auto cursor-pointer border-0 bg-transparent font-bold;
   color: var(--accent);
-  background: none;
   font: inherit;
-  font-weight: 700;
-  cursor: pointer;
 }
 .dashboard-alert.is-error {
   border-color: color-mix(in srgb, var(--red) 30%, var(--line));
@@ -470,40 +447,42 @@ onMounted(() => {
   background: var(--green-soft);
 }
 .overview-metrics {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 13px;
-  margin-bottom: 18px;
+  @apply mb-[18px] grid grid-cols-4 gap-[13px];
 }
 .overview-metric {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding: 17px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  @apply flex min-w-0 cursor-pointer flex-col gap-[7px] rounded-xl border p-[17px] no-underline transition-[border-color,box-shadow,transform];
+  border-color: var(--line);
   background: var(--surface);
   box-shadow: var(--shadow);
+  color: inherit;
+}
+.overview-metric:hover {
+  @apply -translate-y-px;
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+  box-shadow: var(--shadow-sm, 0 5px 18px #0000000a);
+}
+.overview-metric:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .overview-metric {
+    transition: none;
+  }
+  .overview-metric:hover {
+    transform: none;
+  }
 }
 .metric-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  @apply flex items-center justify-between gap-2.5;
 }
 .metric-label {
+  @apply text-[11px] font-bold;
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
 }
 .metric-icon {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--line));
-  border-radius: 11px;
+  @apply grid h-[34px] w-[34px] place-items-center rounded-[11px] border;
+  border-color: color-mix(in srgb, var(--accent) 18%, var(--line));
   background: var(--accent-soft);
   color: var(--accent);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
@@ -527,10 +506,7 @@ onMounted(() => {
   border-color: color-mix(in srgb, #0e9f9a 20%, var(--line));
 }
 .metric-value {
-  display: block;
-  font-size: clamp(20px, 2.5vw, 27px);
-  line-height: 1.2;
-  letter-spacing: -0.04em;
+  @apply block text-[clamp(20px,2.5vw,27px)] leading-tight tracking-[-0.04em];
   overflow-wrap: anywhere;
 }
 .value-good {
@@ -540,126 +516,75 @@ onMounted(() => {
   color: var(--warn);
 }
 .metric-note {
-  min-height: 29px;
+  @apply min-h-[29px] text-[10px] leading-normal;
   color: var(--muted);
-  font-size: 10px;
-  line-height: 1.5;
 }
 .overview-grid {
-  display: grid;
+  @apply mb-4 grid gap-4;
   grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
   align-items: stretch;
-  gap: 16px;
-  margin-bottom: 16px;
 }
 .dashboard-panel {
-  min-width: 0;
-  padding: 19px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  @apply min-w-0 rounded-xl border p-[19px];
+  border-color: var(--line);
   background: var(--surface);
   box-shadow: var(--shadow);
 }
 .panel-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 15px;
+  @apply mb-[15px] flex items-start justify-between gap-3;
 }
 .panel-header h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  @apply m-0 text-sm font-extrabold tracking-tight;
 }
 .panel-header p {
-  margin: 5px 0 0;
+  @apply mb-0 mt-[5px] text-[10px] leading-normal;
   color: var(--muted);
-  font-size: 10px;
-  line-height: 1.5;
 }
 .panel-header > a {
-  flex: 0 0 auto;
+  @apply shrink-0 whitespace-nowrap text-[10px] font-bold no-underline;
   color: var(--accent);
-  font-size: 10px;
-  font-weight: 750;
-  text-decoration: none;
-  white-space: nowrap;
 }
 .config-details {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 24px;
-  align-content: start;
+  @apply grid grid-cols-2 content-start gap-x-6;
 }
 .config-detail {
-  display: grid;
+  @apply grid min-w-0 items-baseline gap-3 border-b bg-transparent px-0 py-[13px];
   grid-template-columns: minmax(86px, 0.78fr) minmax(0, 1.22fr);
-  align-items: baseline;
-  gap: 12px;
-  min-width: 0;
-  padding: 13px 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
-  background: transparent;
+  border-color: color-mix(in srgb, var(--line) 72%, transparent);
 }
 .config-detail > span {
+  @apply text-[11px] leading-normal;
   color: var(--muted);
-  font-size: 11px;
   font-weight: 550;
-  line-height: 1.5;
 }
 .config-detail strong,
 .config-detail code {
-  display: block;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
+  @apply m-0 block min-w-0 rounded-none border-0 bg-transparent p-0 text-xs leading-normal shadow-none;
   color: var(--text);
-  font-size: 12px;
   font-weight: 650;
   overflow-wrap: anywhere;
-  line-height: 1.6;
-  box-shadow: none;
 }
 .config-detail code {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  @apply font-mono text-[11px];
   font-weight: 500;
 }
 .panel-footer-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 9px 16px;
-  margin-top: 15px;
+  @apply mt-[15px] flex flex-wrap gap-x-4 gap-y-[9px];
 }
 .panel-footer-links a {
+  @apply text-[10px] font-bold no-underline;
   color: var(--accent);
-  font-size: 10px;
-  font-weight: 700;
-  text-decoration: none;
 }
 .nowrap {
-  white-space: nowrap;
+  @apply whitespace-nowrap;
 }
 .log-message {
-  min-width: 135px;
-  max-width: 220px;
+  @apply min-w-[135px] max-w-[220px];
   color: var(--muted);
 }
 .result-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 4px 8px;
-  font-size: 10px;
-  font-weight: 800;
-  white-space: nowrap;
+  @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-1 text-[10px] font-extrabold;
+  border-color: var(--line);
 }
 .result-pill.good {
   color: var(--green);
@@ -672,35 +597,29 @@ onMounted(() => {
   border-color: color-mix(in srgb, var(--red) 24%, var(--line));
 }
 .panel-empty {
-  padding: 24px 12px;
-  border: 1px dashed var(--line);
-  border-radius: 8px;
+  @apply rounded-lg border border-dashed px-3 py-6 text-center text-[11px];
+  border-color: var(--line);
   color: var(--muted);
-  text-align: center;
-  font-size: 11px;
 }
 .activity-panel {
-  margin-bottom: 16px;
+  @apply mb-4;
 }
 .trend-legend {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 13px;
-  margin-top: 15px;
+  @apply mt-[15px] flex flex-wrap items-center gap-[13px] text-[10px];
   color: var(--muted);
-  font-size: 10px;
 }
 .trend-legend > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  @apply inline-flex items-center gap-1.5;
 }
 .trend-swatch {
-  width: 8px;
-  height: 8px;
-  border-radius: 3px;
+  @apply h-2 w-2 rounded-[3px];
   background: var(--accent);
+}
+.trend-swatch.errors {
+  background: var(--red);
+}
+.trend-note {
+  @apply ml-auto;
 }
 .icon-spinning {
   animation: icon-spin 0.9s linear infinite;
@@ -710,119 +629,82 @@ onMounted(() => {
     transform: rotate(360deg);
   }
 }
-.trend-swatch.errors {
-  background: var(--red);
-}
-.trend-note {
-  margin-left: auto;
-}
 @media (max-width: 1050px) {
   .overview-grid {
-    grid-template-columns: 1fr;
+    @apply grid-cols-1;
   }
   .overview-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    @apply grid-cols-2;
   }
 }
 @media (max-width: 760px) {
   .dashboard-toolbar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+    @apply flex-col items-start gap-3;
   }
   .toolbar-actions {
-    width: 100%;
+    @apply w-full;
   }
   .toolbar-actions .app-button {
-    flex: 1;
+    @apply flex-1;
   }
   .config-details {
-    gap: 0 11px;
+    @apply gap-x-[11px];
   }
 }
 @media (max-width: 500px) {
   .overview-metrics {
-    gap: 8px;
+    @apply gap-2;
   }
   .overview-metric {
-    padding: 12px;
+    @apply p-3;
   }
   .metric-value {
-    font-size: 18px;
+    @apply text-lg;
   }
   .metric-note {
-    font-size: 9px;
+    @apply text-[9px];
   }
   .dashboard-panel {
-    padding: 13px;
+    @apply p-[13px];
   }
   .toolbar-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 7px;
+    @apply grid grid-cols-2 gap-[7px];
   }
   .toolbar-actions .app-button {
-    min-width: 0;
-    width: 100%;
-    padding: 0 7px;
+    @apply w-full min-w-0 px-[7px];
   }
   .trend-note {
-    margin-left: 0;
-    flex-basis: 100%;
+    @apply ml-0 basis-full;
   }
   .panel-header {
-    align-items: flex-start;
+    @apply items-start;
   }
 }
 .workflow-running {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  @apply flex items-center gap-3 no-underline;
   color: var(--accent);
-  text-decoration: none;
   border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
 }
 .workflow-running span {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
+  @apply grid min-w-0 gap-1;
 }
 .workflow-running strong {
-  font-size: 12px;
+  @apply text-xs;
 }
 .workflow-running small {
+  @apply text-[11px];
   color: var(--muted);
-  font-size: 11px;
   overflow-wrap: anywhere;
 }
-
-/* Metric cards are real links, with keyboard focus and hover states matching the UI. */
-.overview-metric {
-  color: inherit;
-  text-decoration: none;
-  cursor: pointer;
-  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+.recent-log-row {
+  @apply cursor-pointer;
 }
-.overview-metric:hover {
-  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
-  box-shadow: var(--shadow-sm, 0 5px 18px #0000000a);
-  transform: translateY(-1px);
-}
-.overview-metric:focus-visible {
+.recent-log-row:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 3px;
+  outline-offset: -2px;
 }
-@media (prefers-reduced-motion: reduce) {
-  .overview-metric {
-    transition: none;
-  }
-  .overview-metric:hover {
-    transform: none;
-  }
+.detail-kicker {
+  @apply mb-[5px] mt-0 text-[10px] font-extrabold tracking-[0.08em];
+  color: var(--muted);
 }
-
-.recent-log-row { cursor: pointer; }
-.recent-log-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.detail-kicker { margin: 0 0 5px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .08em; }
-
 </style>

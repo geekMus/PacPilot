@@ -25,48 +25,39 @@ const { t } = useI18n();
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .not-found-page {
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
+  @apply flex min-h-dvh flex-col;
 }
 .not-found-card {
-  max-width: 620px;
-  width: 100%;
-  margin: auto;
-  padding: clamp(26px, 6vw, 48px);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  @apply m-auto w-full max-w-[620px] rounded-[var(--radius)] border p-[clamp(26px,6vw,48px)];
+  border-color: var(--line);
   background: var(--surface);
   box-shadow: var(--shadow);
 }
 .not-found-code {
-  margin-bottom: 22px;
+  @apply mb-[22px] font-mono font-bold tracking-tighter;
   color: var(--accent);
-  font: 750 clamp(55px, 10vw, 82px) / 1 var(--font-mono);
-  letter-spacing: -0.07em;
+  font-size: clamp(55px, 10vw, 82px);
+  line-height: 1;
 }
 .not-found-card .page-title {
-  margin: 8px 0 10px;
+  @apply mb-2.5 mt-2;
 }
 .not-found-card > p {
-  max-width: 39em;
+  @apply max-w-[39em] text-sm leading-[1.7];
   color: var(--muted);
-  font-size: 14px;
-  line-height: 1.7;
 }
 .not-found-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 9px;
-  margin-top: 24px;
+  @apply mt-6 flex flex-wrap gap-[9px];
 }
 @media (max-width: 520px) {
   .not-found-actions {
-    flex-direction: column;
+    @apply flex-col;
   }
   .not-found-actions > * {
-    width: 100%;
+    @apply w-full;
   }
 }
 </style>
