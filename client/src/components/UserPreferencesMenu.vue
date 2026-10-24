@@ -96,22 +96,16 @@ const languages: { value: AppLocale; label: string }[] = [
 </template>
 
 <style>
+@reference "@/styles/tailwind.css";
+
 .preferences-menu {
-  position: relative;
-  display: inline-flex;
-  flex: 0 0 auto;
+  @apply relative inline-flex shrink-0;
 }
 .preferences-trigger {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  @apply grid h-[38px] w-[38px] place-items-center rounded-[10px] border p-0 cursor-pointer;
+  border-color: var(--line);
   color: var(--text);
   background: var(--surface);
-  cursor: pointer;
 }
 .preferences-trigger:hover,
 .preferences-trigger[data-state="open"] {
@@ -120,48 +114,28 @@ const languages: { value: AppLocale; label: string }[] = [
   background: var(--accent-soft);
 }
 .preferences-panel {
-  z-index: 1100;
-  box-sizing: border-box;
+  @apply z-[1100] box-border rounded-[14px] border p-4 outline-none;
   width: min(280px, calc(100vw - 16px));
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  border-color: var(--line);
   background: var(--surface);
   color: var(--text);
   box-shadow: var(--shadow);
-  outline: none;
 }
 .preferences-group + .preferences-group {
-  margin-top: 16px;
+  @apply mt-4;
 }
 .preferences-group h2 {
-  margin: 0 0 8px;
+  @apply mb-2 mt-0 text-[11px] font-bold;
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
 }
 .preferences-options {
-  display: flex;
-  gap: 4px;
-  padding: 3px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  @apply flex gap-1 rounded-[10px] border p-[3px];
+  border-color: var(--line);
   background: var(--bg);
 }
 .preferences-option {
-  flex: 1;
-  min-width: 0;
-  min-height: 34px;
-  padding: 0 7px;
-  border: 0;
-  border-radius: 7px;
+  @apply min-h-[34px] min-w-0 flex-1 cursor-pointer whitespace-nowrap rounded-[7px] border-0 bg-transparent px-[7px] text-[11px] font-semibold;
   color: var(--muted);
-  background: transparent;
-  font: inherit;
-  font-size: 11px;
-  font-weight: 650;
-  white-space: nowrap;
-  cursor: pointer;
 }
 .preferences-option:hover {
   color: var(--text);

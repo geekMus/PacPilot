@@ -24,66 +24,34 @@ const { t } = useI18n();
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  margin-bottom: var(--space-5);
+  @apply mb-[var(--space-5)] flex items-center justify-between gap-5;
 }
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  @apply flex shrink-0 items-center gap-2.5 no-underline;
   color: var(--text);
-  text-decoration: none;
-  flex: 0 0 auto;
 }
 .brand-copy .name {
-  display: block;
-  font-size: 14px;
-  font-weight: 750;
-  letter-spacing: -0.02em;
+  @apply block text-sm font-bold tracking-tight;
 }
 .brand-copy small {
-  display: block;
-  margin-top: 1px;
+  @apply mt-px block text-[10px] font-bold uppercase tracking-[0.12em];
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 .header-tools {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  min-width: 0;
+  @apply flex min-w-0 items-center justify-end gap-2.5;
 }
 .nav {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 6px;
+  @apply flex flex-wrap items-center justify-end gap-1.5;
 }
 .nav :deep(a),
 .nav :deep(button.linkish) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
+  @apply inline-flex min-h-9 cursor-pointer items-center justify-center whitespace-nowrap rounded-[9px] border px-3 text-xs font-semibold no-underline;
+  border-color: var(--line);
   background: var(--surface);
   color: var(--text);
-  font-size: 12px;
-  font-weight: 650;
-  text-decoration: none;
-  white-space: nowrap;
-  cursor: pointer;
 }
 .nav :deep(a:hover),
 .nav :deep(button.linkish:hover) {
@@ -109,12 +77,10 @@ const { t } = useI18n();
 }
 @media (max-width: 720px) {
   .topbar {
-    flex-wrap: wrap;
-    gap: 12px;
+    @apply flex-wrap gap-3;
   }
   .header-tools {
-    width: 100%;
-    justify-content: space-between;
+    @apply w-full justify-between;
   }
 }
 </style>
