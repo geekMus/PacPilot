@@ -125,11 +125,12 @@ onMounted(() => {
         </div>
       </section>
 
-      <div class="welcome-row">
-        <div>
+      <div class="dashboard-toolbar">
+        <div class="toolbar-copy">
           <h2>{{ t("dashboard.quickActions") }}</h2>
+          <p>{{ t("dashboard.toolbarHint") }}</p>
         </div>
-        <div class="quick-actions">
+        <div class="toolbar-actions">
           <button
             type="button"
             class="app-button app-button--secondary"
@@ -145,18 +146,6 @@ onMounted(() => {
             />
             {{ refreshing ? t("common.refreshing") : t("common.refresh") }}
           </button>
-          <RouterLink to="/admin/settings" class="app-button app-button--secondary"
-            ><AppIcon name="settings" :size="16" />{{ t("dashboard.openSettings") }}</RouterLink
-          >
-          <RouterLink to="/admin/monitor#overall-stats" class="app-button app-button--secondary"
-            ><AppIcon name="activity" :size="16" />{{ t("dashboard.viewMonitor") }}</RouterLink
-          >
-          <RouterLink to="/admin/workflows" class="app-button app-button--secondary"
-            ><AppIcon name="workflow" :size="16" />{{ t("dashboard.viewWorkflow") }}</RouterLink
-          >
-          <RouterLink to="/admin/notifications" class="app-button app-button--secondary"
-            ><AppIcon name="bell-ring" :size="16" />{{ t("dashboard.viewNotifications") }}</RouterLink
-          >
           <button
             type="button"
             class="app-button app-button--primary"
@@ -218,7 +207,7 @@ onMounted(() => {
       <section class="overview-metrics" :aria-label="t('dashboard.keyStatus')">
         <RouterLink class="overview-metric" to="/">
           <div class="metric-top">
-            <span class="metric-label">{{ t("dashboard.pacFileStatus") }}</span
+            <span class="metric-label">{{ t("dashboard.pacStatus") }}</span
             ><span class="metric-icon is-file"
               ><AppIcon name="file-check" :size="18" :stroke-width="1.8"
             /></span>
@@ -227,11 +216,11 @@ onMounted(() => {
             loading
               ? t("common.reading")
               : status?.hasPac
-                ? t("common.generated")
+                ? t("common.available")
                 : t("common.notYetGenerated")
           }}</strong>
           <span class="metric-note">{{
-            status?.hasPac ? t("dashboard.hasPacNote") : t("dashboard.noPacNote")
+            status?.hasPac ? t("dashboard.pacReadyNote") : t("dashboard.pacMissingNote")
           }}</span>
         </RouterLink>
         <RouterLink class="overview-metric" to="/admin/settings#mode">
@@ -279,66 +268,42 @@ onMounted(() => {
         <article class="dashboard-panel">
           <header class="panel-header">
             <div>
-              <h3>{{ t("dashboard.currentConfig") }}</h3>
-              <p>{{ t("dashboard.currentConfigDesc") }}</p>
+              <h3>{{ t("dashboard.runtimeState") }}</h3>
+              <p>{{ t("dashboard.runtimeStateDesc") }}</p>
             </div>
-            <RouterLink to="/admin/settings"
-              >{{ t("dashboard.editConfig") }} <AppIcon name="arrow-up-right" :size="13"
+            <RouterLink to="/admin/system-settings"
+              >{{ t("dashboard.systemSettings") }} <AppIcon name="arrow-up-right" :size="13"
             /></RouterLink>
           </header>
           <div class="config-details">
             <div class="config-detail">
-              <span>{{ t("dashboard.generateMode") }}</span
-              ><strong>{{ modeLabel }}</strong>
+              <span>{{ t("dashboard.pacEndpoint") }}</span><code>/pac</code>
             </div>
             <div class="config-detail">
-              <span>{{ t("dashboard.timezone") }}</span
-              ><strong>{{ settings?.timezone || "—" }}</strong>
+              <span>{{ t("dashboard.ruleSource") }}</span
+              ><strong :class="settings?.mode === 'remote' ? '' : 'value-muted'">{{
+                settings?.mode === "remote" ? t("dashboard.ruleSourceRemote") : t("dashboard.ruleSourceCustom")
+              }}</strong>
             </div>
             <div class="config-detail">
-              <span>{{ t("dashboard.defaultProxy") }}</span
-              ><code>{{ settings?.pacProxy || "—" }}</code>
-            </div>
-            <div class="config-detail">
-              <span>{{ t("dashboard.scheduledGen") }}</span
-              ><strong>{{
+              <span>{{ t("dashboard.autoRefresh") }}</span
+              ><strong :class="settings?.cronSchedule ? 'value-good' : 'value-warning'">{{
                 settings?.cronSchedule ? settings.cronSchedule : t("dashboard.closed")
               }}</strong>
             </div>
             <div class="config-detail">
-              <span>{{ t("dashboard.remoteRuleUrl") }}</span
-              ><code>{{
-                settings?.mode === "remote" ? settings.listUrl : t("dashboard.notEnabled")
-              }}</code>
+              <span>{{ t("dashboard.trend24hShort") }}</span
+              ><strong>{{ monitor ? monitor.requestsLast24h : "—" }}</strong>
             </div>
             <div class="config-detail">
-              <span>{{ t("dashboard.engine") }}</span
-              ><strong :class="engine?.available ? 'value-good' : 'value-warning'">{{
-                engine
-                  ? engine.available
-                    ? t("common.available")
-                    : t("common.needCheck")
-                  : t("common.notDetected")
+              <span>{{ t("dashboard.activeRequests") }}</span
+              ><strong>{{ monitor?.activeRequests ?? "—" }}</strong>
+            </div>
+            <div class="config-detail">
+              <span>{{ t("dashboard.errorRate") }}</span
+              ><strong :class="monitor && monitor.errorRate > 5 ? 'value-warning' : 'value-good'">{{
+                monitor ? monitor.errorRate.toFixed(1) + "%" : "—"
               }}</strong>
-            </div>
-            <div class="config-detail">
-              <span>{{ t("dashboard.lastGenerated") }}</span
-              ><strong>{{
-                latestLog ? latestLog.created_at : formatStatusDate(status?.updatedAt)
-              }}</strong>
-            </div>
-            <div class="config-detail">
-              <span>{{ t("dashboard.genResult") }}</span
-              ><strong
-                :class="latestLog?.success ? 'value-good' : latestLog ? 'value-warning' : ''"
-                >{{
-                  latestLog
-                    ? latestLog.success
-                      ? t("common.success")
-                      : t("common.failed")
-                    : t("common.noRecords")
-                }}</strong
-              >
             </div>
           </div>
           <div class="panel-footer-links">
@@ -400,6 +365,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
+@reference "../styles/tailwind.css";
 .dashboard-view {
   min-width: 0;
 }
@@ -443,23 +409,22 @@ onMounted(() => {
     animation-iteration-count: 1;
   }
 }
-.welcome-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 18px;
+.dashboard-toolbar {
+  @apply flex flex-wrap items-end justify-between gap-[18px] mb-[18px];
 }
-.welcome-row h2 {
-  margin: 0;
-  font-size: clamp(22px, 2.5vw, 28px);
-  line-height: 1.2;
-  letter-spacing: -0.04em;
+.toolbar-copy h2 {
+  @apply m-0 text-[clamp(20px,2.2vw,24px)] leading-tight tracking-[-0.03em];
+  color: var(--text);
 }
-.quick-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.toolbar-copy p {
+  @apply m-0 mt-1 text-[11px] leading-snug;
+  color: var(--muted);
+}
+.toolbar-actions {
+  @apply flex flex-wrap gap-2;
+}
+.value-muted {
+  color: var(--muted);
 }
 .dashboard-alert {
   display: flex;
@@ -760,15 +725,15 @@ onMounted(() => {
   }
 }
 @media (max-width: 760px) {
-  .welcome-row {
+  .dashboard-toolbar {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
-  .quick-actions {
+  .toolbar-actions {
     width: 100%;
   }
-  .quick-actions .app-button {
+  .toolbar-actions .app-button {
     flex: 1;
   }
   .config-details {
@@ -791,20 +756,15 @@ onMounted(() => {
   .dashboard-panel {
     padding: 13px;
   }
-.quick-actions {
+  .toolbar-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 7px;
   }
-  .quick-actions .app-button {
+  .toolbar-actions .app-button {
     min-width: 0;
     width: 100%;
     padding: 0 7px;
-    white-space: normal;
-    line-height: 1.25;
-  }
-  .quick-actions .app-button:last-child {
-    grid-column: 1 / -1;
   }
   .trend-note {
     margin-left: 0;
