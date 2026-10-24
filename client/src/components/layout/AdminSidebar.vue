@@ -181,94 +181,52 @@ async function logout(): Promise<void> {
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .admin-sidebar {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  display: flex;
-  flex: 0 0 var(--sidebar-width);
-  flex-direction: column;
-  width: var(--sidebar-width);
-  height: 100dvh;
-  padding: 22px 14px 16px;
-  border-right: 1px solid var(--line);
+  @apply sticky top-0 z-50 flex h-dvh w-[var(--sidebar-width)] flex-[0_0_var(--sidebar-width)] flex-col border-r px-[14px] pt-[22px] pb-4;
+  border-color: var(--line);
   background: var(--surface);
 }
 .sidebar-brand {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  margin: 0 8px 26px;
+  @apply mx-2 mb-[26px] flex items-center gap-[11px] no-underline;
   color: var(--text);
-  text-decoration: none;
 }
-
 .brand-copy {
-  min-width: 0;
+  @apply min-w-0;
 }
 .brand-copy strong {
-  display: block;
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: -0.035em;
+  @apply block text-sm font-extrabold tracking-tight;
 }
 .brand-copy small {
-  display: block;
-  margin-top: 3px;
+  @apply mt-[3px] block text-[10px] font-bold tracking-[0.12em];
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
 }
 .sidebar-nav {
-  flex: 1;
-  min-height: 0;
-  padding: 0;
+  @apply min-h-0 flex-1 p-0;
 }
 .sidebar-nav :deep(.app-scroll-area-viewport) {
-  padding: 0 2px 10px;
+  @apply px-0.5 pb-2.5;
 }
 .nav-group + .nav-group {
-  margin-top: 20px;
-  padding-top: 17px;
-  border-top: 1px solid var(--line);
+  @apply mt-5 border-t pt-[17px];
+  border-color: var(--line);
 }
 .nav-caption {
-  margin: 0 10px 7px;
+  @apply mx-2.5 mb-[7px] mt-0 text-[10px] font-extrabold tracking-[0.13em];
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.13em;
 }
 .sidebar-link {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 42px;
-  margin: 3px 0;
-  padding: 0 11px;
-  border: 1px solid transparent;
-  border-radius: 10px;
+  @apply my-[3px] flex min-h-[42px] w-full cursor-pointer items-center gap-3 rounded-[10px] border border-transparent bg-transparent px-[11px] text-left text-xs font-semibold no-underline transition-colors;
   color: var(--muted);
-  text-decoration: none;
-  font-size: 12px;
-  font-weight: 650;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s;
-  background: transparent;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
 }
 .sidebar-link :deep(.app-icon) {
-  flex: 0 0 18px;
+  @apply flex-[0_0_18px];
 }
 .sidebar-link:hover {
+  @apply no-underline;
   color: var(--text);
   background: var(--surface-2);
-  text-decoration: none;
 }
 .sidebar-link:active:not(.active):not(.is-disabled) {
   color: var(--accent);
@@ -283,49 +241,25 @@ async function logout(): Promise<void> {
 }
 .sidebar-link.is-disabled,
 .sidebar-link.is-disabled:hover {
+  @apply cursor-not-allowed border-transparent bg-transparent opacity-50;
   color: var(--muted);
-  background: transparent;
-  border-color: transparent;
-  opacity: 0.48;
-  cursor: not-allowed;
 }
 .sidebar-bottom {
-  padding: 14px 10px 0;
-  border-top: 1px solid var(--line);
+  @apply border-t px-2.5 pt-3.5;
+  border-color: var(--line);
 }
 .sidebar-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-top: 16px;
-  padding-top: 15px;
-  border-top: 1px solid var(--line);
+  @apply mt-4 flex flex-col gap-3.5 border-t pt-[15px];
+  border-color: var(--line);
 }
 .sidebar-logout-button {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  width: 100%;
-  min-height: 44px;
-  margin-top: 14px;
-  padding: 0 12px;
-  border: 1px solid color-mix(in srgb, var(--red) 28%, var(--line));
-  border-radius: 10px;
+  @apply mt-3.5 flex min-h-11 w-full cursor-pointer items-center justify-start gap-2.5 rounded-[10px] border px-3 text-xs font-bold transition-colors;
+  border-color: color-mix(in srgb, var(--red) 28%, var(--line));
   color: var(--red);
   background: var(--red-soft);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 750;
-  cursor: pointer;
-  transition:
-    background-color 150ms ease,
-    border-color 150ms ease,
-    box-shadow 150ms ease,
-    transform 150ms ease;
 }
 .sidebar-logout-button :deep(.app-icon) {
-  flex: 0 0 auto;
+  @apply flex-none;
   color: var(--red);
 }
 .sidebar-logout-button:hover:not(:disabled) {
@@ -338,9 +272,7 @@ async function logout(): Promise<void> {
   outline-offset: 2px;
 }
 .sidebar-logout-button:disabled {
-  opacity: 0.72;
-  cursor: progress;
-  box-shadow: none;
+  @apply cursor-progress opacity-70 shadow-none;
 }
 @media (prefers-reduced-motion: reduce) {
   .sidebar-logout-button {
@@ -348,17 +280,11 @@ async function logout(): Promise<void> {
   }
 }
 .sidebar-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  @apply flex items-center gap-2 text-[11px] font-bold;
   color: var(--text);
-  font-size: 11px;
-  font-weight: 700;
 }
 .status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+  @apply h-[7px] w-[7px] rounded-full;
   background: var(--green);
   box-shadow: 0 0 0 3px var(--green-soft);
 }
@@ -368,52 +294,33 @@ async function logout(): Promise<void> {
 }
 /* Backend identity: which instance this console is actually attached to. */
 .sidebar-backend {
-  display: grid;
-  gap: 5px;
-  margin: 8px 0 0;
+  @apply m-0 mt-2 grid gap-[5px];
 }
 .sidebar-backend > div {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  min-width: 0;
+  @apply flex min-w-0 items-baseline justify-between gap-2.5;
 }
 .sidebar-backend dt {
-  flex: 0 0 auto;
+  @apply shrink-0 text-[10px];
   color: var(--muted);
-  font-size: 10px;
 }
 .sidebar-backend dd {
-  min-width: 0;
-  margin: 0;
+  @apply m-0 min-w-0 overflow-hidden text-right font-mono text-[10px] whitespace-nowrap;
   color: var(--text);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  text-align: right;
-  overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
-
 @media (max-width: 900px) {
   .admin-sidebar {
-    position: fixed;
-    z-index: 50;
-    inset: 0 auto 0 0;
-    height: 100dvh;
-    box-shadow: none;
+    @apply fixed inset-y-0 left-0 z-50 h-dvh shadow-none transition-transform;
     transform: translateX(-102%);
-    transition:
-      transform 0.2s ease,
-      box-shadow 0.2s ease;
   }
   .admin-sidebar.is-open {
-    transform: translateX(0);
+    @apply translate-x-0;
     box-shadow: 18px 0 48px rgba(10, 20, 35, 0.18);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .admin-sidebar { transition: none; }
+  .admin-sidebar {
+    transition: none;
+  }
 }
 </style>
