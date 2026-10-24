@@ -567,53 +567,41 @@ const {
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .workflow-page {
-  display: grid;
-  gap: 18px;
+  @apply grid gap-[18px];
 }
 .catalog-item {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  @apply flex items-center gap-[13px] rounded-[10px] border p-3.5;
+  border-color: var(--line);
   background: var(--surface-2);
 }
 .catalog-copy {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-  flex: 1;
+  @apply grid min-w-0 flex-1 gap-[5px];
 }
 .catalog-copy strong {
+  @apply text-sm;
   color: var(--text);
-  font-size: 14px;
 }
 .catalog-copy span,
 .catalog-copy small {
+  @apply text-xs leading-normal;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.5;
   overflow-wrap: anywhere;
 }
 .read-only-pill {
-  padding: 4px 8px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  @apply whitespace-nowrap rounded-full border px-2 py-1 text-[11px];
+  border-color: var(--line);
   color: var(--muted);
-  font-size: 11px;
-  white-space: nowrap;
 }
 .panel-footnote {
-  margin: 12px 0 0;
+  @apply mb-0 mt-3 text-xs leading-normal;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.5;
   overflow-wrap: anywhere;
 }
 .workflow-run-row {
-  cursor: pointer;
+  @apply cursor-pointer;
   outline-offset: -2px;
 }
 .workflow-run-row:focus-visible {
@@ -623,107 +611,71 @@ const {
   background: var(--surface-2);
 }
 .actions-cell {
-  width: 104px;
-  min-width: 104px;
-  text-align: center;
-  white-space: nowrap;
+  @apply w-[104px] min-w-[104px] whitespace-nowrap text-center;
 }
 .ellipsis {
-  display: block;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  @apply block overflow-hidden text-ellipsis whitespace-nowrap;
 }
 .name-trigger {
-  max-width: 150px;
+  @apply max-w-[150px];
 }
 .date-trigger {
-  max-width: 170px;
+  @apply max-w-[170px];
 }
 .duration-trigger {
-  max-width: 95px;
+  @apply max-w-[95px];
 }
 .result-trigger {
-  max-width: 130px;
+  @apply max-w-[130px];
 }
 .id-trigger {
-  max-width: 65px;
+  @apply max-w-[65px];
 }
 .current-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 16px;
+  @apply mt-4 flex flex-wrap gap-2;
 }
 .workflow-queue .panel-heading {
-  margin-bottom: 12px;
+  @apply mb-3;
 }
 .history-heading-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 8px;
-  min-width: 0;
+  @apply flex min-w-0 flex-wrap items-center justify-end gap-2;
 }
 .history-disabled-hint {
-  margin: 8px 0 0;
+  @apply mb-0 mt-2 text-[11px] leading-snug;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.45;
   overflow-wrap: anywhere;
 }
-
 .queue-list {
-  display: grid;
-  gap: 8px;
+  @apply grid gap-2;
 }
 .queue-item {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  min-width: 0;
-  padding: 11px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
+  @apply flex min-w-0 items-center gap-[11px] rounded-[9px] border p-[11px];
+  border-color: var(--line);
   background: var(--surface-2);
 }
 .queue-icon {
-  display: grid;
-  place-items: center;
-  flex: 0 0 34px;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  @apply grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[9px];
   color: var(--accent);
   background: var(--accent-soft);
 }
 .queue-copy {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-  flex: 1;
+  @apply grid min-w-0 flex-1 gap-[5px];
 }
 .queue-copy > div {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  @apply flex flex-wrap items-center gap-2;
 }
 .queue-copy strong {
+  @apply text-xs;
   color: var(--text);
-  font-size: 12px;
 }
 .queue-copy p {
-  margin: 0;
+  @apply m-0 text-[11px];
   color: var(--muted);
-  font-size: 11px;
   overflow-wrap: anywhere;
 }
 @media (max-width: 700px) {
   .queue-item {
-    align-items: flex-start;
-    flex-wrap: wrap;
+    @apply flex-wrap items-start;
   }
   .queue-copy {
     flex-basis: calc(100% - 50px);
@@ -734,7 +686,7 @@ const {
   outline-offset: 2px;
 }
 .status-pill {
-  gap: 5px;
+  @apply gap-[5px];
 }
 @media (prefers-reduced-motion: reduce) {
   .spinning {
@@ -743,99 +695,64 @@ const {
   }
 }
 .history-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: -3px 0 16px;
+  @apply my-0 mb-4 flex flex-wrap gap-3;
+  margin-top: -3px;
 }
 .history-filters label {
-  display: grid;
-  gap: 6px;
+  @apply grid gap-1.5 text-[11px];
   color: var(--muted);
-  font-size: 11px;
 }
 .history-filters .app-select {
-  min-width: 150px;
-  max-width: 100%;
+  @apply min-w-[150px] max-w-full;
 }
 .history-filters .app-select :deep(.app-select-trigger) {
-  min-width: 0;
+  @apply min-w-0 px-3 py-[9px];
   min-height: 40px;
-  padding: 9px 12px;
   background: var(--surface-2);
 }
 .history-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 16px;
+  @apply mt-4 flex items-center justify-between gap-3 text-xs;
   color: var(--muted);
-  font-size: 12px;
 }
 .history-pagination div {
-  display: flex;
-  gap: 8px;
+  @apply flex gap-2;
 }
 .history-pagination button {
-  min-height: 34px;
-  padding: 0 11px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
+  @apply min-h-[34px] cursor-pointer rounded-[7px] border px-[11px];
+  border-color: var(--line);
   background: var(--surface-2);
   color: var(--text);
-  font: inherit;
-  cursor: pointer;
 }
 .history-pagination button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+  @apply cursor-not-allowed opacity-45;
 }
 .panel {
-  min-width: 0;
-  padding: 22px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  @apply min-w-0 rounded-[14px] border p-[22px];
+  border-color: var(--line);
   background: var(--surface);
   box-shadow: var(--shadow-sm, 0 4px 18px rgba(0, 0, 0, 0.03));
 }
 .panel-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
+  @apply mb-[18px] flex items-start justify-between gap-4;
 }
 .panel-heading h2 {
-  margin: 0;
+  @apply m-0 text-[19px];
   color: var(--text);
-  font-size: 19px;
 }
 .eyebrow {
-  margin: 0 0 6px;
+  @apply mb-1.5 mt-0 text-[10px] font-extrabold tracking-[0.13em];
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.13em;
 }
 .panel-subtitle {
-  margin: 7px 0 0;
+  @apply mb-0 mt-[7px] text-xs;
   color: var(--muted);
-  font-size: 12px;
 }
 .status-pill,
 .count-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 5px 9px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  @apply inline-flex items-center justify-center whitespace-nowrap rounded-full border px-[9px] py-[5px] text-[11px] font-extrabold;
+  border-color: var(--line);
   background: var(--surface-2);
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
-  white-space: nowrap;
 }
 .status-pill.running,
 .status-pill.pending {
@@ -854,183 +771,134 @@ const {
   color: var(--muted);
 }
 .current-main {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  @apply flex items-center gap-3;
 }
 .current-icon {
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
+  @apply grid h-[46px] w-[46px] place-items-center rounded-xl;
   background: var(--accent-soft);
   color: var(--accent);
 }
 .current-copy {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
+  @apply grid min-w-0 gap-[5px];
 }
 .current-copy strong {
+  @apply text-[15px];
   color: var(--text);
-  font-size: 15px;
 }
 .current-copy span,
 .current-message {
+  @apply text-xs;
   color: var(--muted);
-  font-size: 12px;
   overflow-wrap: anywhere;
 }
 .current-message {
-  margin: 16px 0;
+  @apply my-4;
 }
 .current-meta {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
+  @apply grid grid-cols-4 gap-3 border-t pt-4;
+  border-color: var(--line);
 }
 .current-meta div {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
+  @apply grid min-w-0 gap-1.5;
 }
 .current-meta span {
+  @apply text-[11px];
   color: var(--muted);
-  font-size: 11px;
 }
 .current-meta strong {
+  @apply text-xs;
   color: var(--text);
-  font-size: 12px;
   overflow-wrap: anywhere;
 }
 .empty-current {
-  display: grid;
-  justify-items: center;
-  gap: 10px;
-  padding: 28px 10px;
+  @apply grid justify-items-center gap-2.5 px-2.5 py-7 text-center;
   color: var(--muted);
-  text-align: center;
 }
 .empty-current strong {
+  @apply text-sm;
   color: var(--text);
-  font-size: 14px;
 }
 .empty-current span {
-  max-width: 500px;
-  font-size: 12px;
-  line-height: 1.6;
+  @apply max-w-[500px] text-xs leading-normal;
 }
 .empty-current a {
-  margin-top: 3px;
+  @apply mt-[3px] text-xs font-bold;
   color: var(--accent);
-  font-size: 12px;
-  font-weight: 700;
 }
 table {
-  width: 100%;
+  @apply w-full border-collapse text-left text-xs;
   min-width: 720px;
-  border-collapse: collapse;
-  text-align: left;
-  font-size: 12px;
   table-layout: fixed;
 }
 thead th:nth-child(1) {
-  width: 70px;
+  @apply w-[70px];
 }
 thead th:nth-child(2) {
-  width: 160px;
+  @apply w-[160px];
 }
 thead th:nth-child(3) {
-  width: 190px;
+  @apply w-[190px];
 }
 thead th:nth-child(4) {
-  width: 130px;
+  @apply w-[130px];
 }
 thead th:nth-child(5) {
-  width: 100px;
+  @apply w-[100px];
 }
 thead th:nth-child(6) {
-  width: 125px;
-}
-thead th:nth-child(6) {
-  text-align: center;
+  @apply w-[125px] text-center;
 }
 th {
-  padding: 10px 12px;
+  @apply whitespace-nowrap px-3 py-2.5 text-[10px];
   color: var(--muted);
   background: var(--surface-2);
-  font-size: 10px;
-  white-space: nowrap;
 }
 td {
-  padding: 13px 12px;
-  border-bottom: 1px solid var(--line);
+  @apply border-b px-3 py-[13px] align-top;
+  border-color: var(--line);
   color: var(--text);
-  vertical-align: top;
 }
 .task-id,
 .date-cell,
 .duration-cell {
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
+  @apply whitespace-nowrap tabular-nums;
 }
 .result-cell {
-  min-width: 0;
-  max-width: 160px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  @apply min-w-0 max-w-[160px] overflow-hidden text-ellipsis whitespace-nowrap;
 }
 .empty-row {
-  padding: 30px 12px;
+  @apply px-3 py-[30px] text-center;
   color: var(--muted);
-  text-align: center;
 }
 .workflow-error-detail {
-  margin-top: 16px;
-  padding: 13px;
-  border: 1px solid color-mix(in srgb, var(--red) 30%, var(--line));
-  border-radius: 8px;
+  @apply mt-4 rounded-lg border p-[13px];
+  border-color: color-mix(in srgb, var(--red) 30%, var(--line));
   background: var(--red-soft);
   color: var(--red);
 }
 .workflow-error-detail pre {
-  margin: 8px 0 0;
-  font: inherit;
-  font-size: 12px;
-  white-space: pre-wrap;
+  @apply mb-0 mt-2 text-xs whitespace-pre-wrap;
   overflow-wrap: anywhere;
 }
 .workflow-alert {
-  display: grid;
-  gap: 6px;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  font-size: 12px;
+  @apply grid gap-1.5 rounded-[10px] border p-3.5 text-xs;
+  border-color: var(--line);
 }
 .workflow-alert.error {
   border-color: var(--red);
   color: var(--red);
 }
 .workflow-alert button {
-  justify-self: start;
+  @apply justify-self-start;
   color: inherit;
 }
 .spinning {
   animation: spin 0.9s linear infinite;
 }
 .spinner {
-  width: 22px;
-  height: 22px;
-  border: 2px solid var(--line);
+  @apply h-[22px] w-[22px] shrink-0 animate-[spin_0.8s_linear_infinite] rounded-full border-2;
+  border-color: var(--line);
   border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  flex: 0 0 auto;
 }
 @keyframes spin {
   to {
@@ -1045,60 +913,107 @@ td {
 }
 @media (max-width: 700px) {
   .workflow-history .panel-heading {
-    flex-wrap: wrap;
+    @apply flex-wrap;
   }
   .workflow-history .panel-heading > div:first-child {
-    min-width: 0;
+    @apply min-w-0;
   }
   .history-heading-actions {
-    width: 100%;
-    justify-content: space-between;
+    @apply w-full justify-between;
   }
   .panel {
-    padding: 15px;
+    @apply p-[15px];
   }
   .current-meta {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    @apply grid-cols-2;
   }
   .panel-heading h2 {
-    font-size: 17px;
+    @apply text-[17px];
   }
   table {
     min-width: 680px;
   }
   .name-trigger {
-    max-width: 105px;
+    @apply max-w-[105px];
   }
   .date-trigger {
-    max-width: 135px;
+    @apply max-w-[135px];
   }
   .duration-trigger {
-    max-width: 72px;
+    @apply max-w-[72px];
   }
   .result-trigger {
-    max-width: 105px;
+    @apply max-w-[105px];
   }
   .actions-cell {
-    width: 100px;
-    min-width: 100px;
+    @apply w-[100px] min-w-[100px];
   }
 }
-
-.run-detail-content { display: grid; gap: 18px; min-width: 0; }
-.run-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.run-detail-grid > div { display: grid; gap: 6px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); }
-.run-detail-grid > div > span:first-child { color: var(--muted); font-size: 11px; }
-.run-detail-grid strong { min-width: 0; overflow-wrap: anywhere; font-size: 13px; }
-.run-detail-error { display: grid; gap: 8px; }
-.run-detail-error pre { margin: 0; padding: 12px; border: 1px solid color-mix(in srgb, var(--red) 25%, var(--line)); border-radius: 8px; background: var(--red-soft); color: var(--red); white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.6 var(--font-mono); }
-.run-detail-actions { display: flex; justify-content: flex-end; }
-@media (max-width: 520px) { .run-detail-grid { grid-template-columns: 1fr; } }
-.run-detail-stages { display: grid; gap: 10px; }
-.run-detail-stages h3 { margin: 0; font-size: 13px; }
-.run-detail-stage { display: grid; gap: 8px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 9px; }
-.run-detail-stage-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.run-detail-stage-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; color: var(--muted); font-size: 11px; }
-.run-detail-stage-detail { margin: 0; padding: 10px; background: var(--surface-2); border-radius: 7px; white-space: pre-wrap; overflow-wrap: anywhere; font: 11px/1.6 var(--font-mono); }
-.run-detail-state, .run-detail-error-message { margin: 0; color: var(--muted); font-size: 12px; }
-.run-detail-error-message { color: var(--red); }
+.run-detail-content {
+  @apply grid min-w-0 gap-[18px];
+}
+.run-detail-grid {
+  @apply grid grid-cols-2 gap-3;
+}
+.run-detail-grid > div {
+  @apply grid min-w-0 gap-1.5 rounded-[9px] border p-3;
+  border-color: var(--line);
+  background: var(--surface-2);
+}
+.run-detail-grid > div > span:first-child {
+  @apply text-[11px];
+  color: var(--muted);
+}
+.run-detail-grid strong {
+  @apply min-w-0 text-[13px];
+  overflow-wrap: anywhere;
+}
+.run-detail-error {
+  @apply grid gap-2;
+}
+.run-detail-error pre {
+  @apply m-0 rounded-lg border p-3 font-mono text-xs leading-normal whitespace-pre-wrap;
+  border-color: color-mix(in srgb, var(--red) 25%, var(--line));
+  background: var(--red-soft);
+  color: var(--red);
+  overflow-wrap: anywhere;
+}
+.run-detail-actions {
+  @apply flex justify-end;
+}
+@media (max-width: 520px) {
+  .run-detail-grid {
+    @apply grid-cols-1;
+  }
+}
+.run-detail-stages {
+  @apply grid gap-2.5;
+}
+.run-detail-stages h3 {
+  @apply m-0 text-[13px];
+}
+.run-detail-stage {
+  @apply grid min-w-0 gap-2 rounded-[9px] border p-3;
+  border-color: var(--line);
+}
+.run-detail-stage-heading {
+  @apply flex items-center justify-between gap-2.5;
+}
+.run-detail-stage-meta {
+  @apply flex flex-wrap gap-x-3.5 gap-y-2 text-[11px];
+  color: var(--muted);
+}
+.run-detail-stage-detail {
+  @apply m-0 rounded-[7px] p-2.5 font-mono text-[11px] leading-normal whitespace-pre-wrap;
+  background: var(--surface-2);
+  overflow-wrap: anywhere;
+}
+.run-detail-state,
+.run-detail-error-message {
+  @apply m-0 text-xs;
+  color: var(--muted);
+}
+.run-detail-error-message {
+  color: var(--red);
+}
 </style>
