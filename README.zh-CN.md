@@ -43,6 +43,7 @@ docker logs pacpilot
 - [中文文档目录](docs/README.zh-CN.md)
 - [部署指南（部署方式、环境参数参考、备份）](docs/deployment.md)
 - [配置说明（规则、定时生成、数据文件、管理员密码）](docs/configuration.md)
+- [Webhook 通知（事件、规则、投递语义）](docs/webhook-notifications.md)
 - [开发指南（环境、命令、检查）](docs/development.md)
 - [运维与发布（工作流、日志、版本、升级）](docs/operations.md)
 - [故障排查](docs/troubleshooting.md)

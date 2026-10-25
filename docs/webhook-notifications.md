@@ -1,7 +1,44 @@
-# Event-driven Webhook notifications
+# Webhook 通知
 
-Channels store provider configuration; rules match event type, lifecycle phase, optional outcome and subject type and target one or more channels. Rule predicates are ANDed; one event can match multiple rules. Stable domain events (such as `task.execution`) describe business semantics rather than the current PAC-file implementation, allowing a future live configuration/request-processing backend.
+PacPilot 内置事件驱动的通知服务：**渠道**保存接收方配置（自定义 HTTP Webhook 或钉钉机器人），**规则**决定哪些事件投递到哪些渠道。事件先持久化、再投递，投递结果可在后台查看与重试。
 
-Supported events: `task.execution` (started, finished), `config.publish` (started, finished, state_changed), `request.process` (started, finished), and `system.error` (state_changed). A start event has no final outcome.
+## 后台入口
 
-Events are persisted before dispatch. Each delivery is retried up to three times with exponential backoff; 4xx errors are permanent except 429. History is bounded to 200 events and 500 deliveries. External delivery is at-least-once best effort and duplicates remain possible if a receiver accepts a request but its response is lost. Secret-bearing URL parameters, custom headers and DingTalk signing keys are redacted from channel reads. First access migrates legacy success/failure settings to rules.
+管理后台的 **Webhook** 页面分为四个区块：
+
+- **渠道**：配置自定义 HTTP Webhook（URL、方法、请求头、请求体模板）或钉钉机器人（Webhook 地址、加签密钥、消息类型），保存前可发送测试消息验证连通性；
+- **规则**：按事件类型、生命周期阶段、可选结果与主体类型过滤事件，并指定一个或多个目标渠道；
+- **投递历史**：查看每次投递的状态、尝试次数、响应与错误详情，失败的可手动重试；
+- **总览**：渠道与规则的启停状态汇总。
+
+## 支持的事件
+
+| 事件             | 业务语义         | 生命周期阶段                                  |
+| ---------------- | ---------------- | --------------------------------------------- |
+| `task.execution` | 工作流执行       | `started`、`finished`                         |
+| `config.publish` | 配置发布         | `started`、`finished`、`state_changed`        |
+| `request.process`| 请求处理         | `started`、`finished`                         |
+| `system.error`   | 系统错误         | `state_changed`                               |
+
+`started` 阶段的事件没有最终结果（outcome）；`finished` 事件携带成功/失败结果。事件名描述的是**业务语义**而非当前 PAC 文件的实现细节，便于未来扩展到实时配置或请求处理后端。
+
+## 规则匹配
+
+规则的谓词（事件类型、阶段、结果、主体类型）之间是 **AND** 关系——全部条件满足才命中；同一条事件可以同时命中多条规则并分别投递。
+
+## 投递语义
+
+- 事件先写入存储，再异步投递；服务重启不会丢失已记录的事件。
+- 每条投递最多尝试 **3 次**，采用指数退避（250ms 起步、逐次翻倍并附加随机抖动）。
+- **4xx 响应视为永久失败**（HTTP 429 限流除外），不再重试；其他错误按次数上限重试。
+- 投递是 **at-least-once**：接收方已处理请求但响应在网络中丢失时，可能收到重复通知，接收端应做好幂等处理。
+
+## 历史容量与迁移
+
+- 事件历史保留最近 **200** 条，投递记录保留最近 **500** 条，超出后淘汰最旧记录。
+- 从旧版本升级时，首次访问通知服务会把历史上的「生成成功/失败 Webhook」设置自动迁移为等价的规则，无需手动重建。
+
+## 安全
+
+- 渠道配置中的敏感信息（含密钥的 URL 参数、自定义请求头、钉钉加签密钥）在通过管理 API 读取时**一律脱敏**，不会原样回显。
+- 通知可能携带工作流错误详情，请将 Webhook 接收端点设置为只有自己控制的服务。

@@ -35,6 +35,6 @@ The memory and SQLite adapters implement the same contracts. Routes and services
 4. Preserve existing runtime behavior and data formats during structural moves. Treat schema changes and persistence behavior changes as separate changes.
 5. Every structural refactor must update imports and tests, then pass typecheck, backend tests, client tests when shared code is touched, build, and i18n checks as applicable.
 
-## 异步存储契约
+## Asynchronous storage contract
 
-`server/storage/repositories.ts` 是唯一的服务层存储契约来源。`ApplicationStorage` 中所有 repository、maintenance 与 `close()` 操作统一返回 Promise；路由、服务和后台任务必须显式 `await`。同步实现细节仅允许留在 `server/storage/` 内，并由组合根转换为统一的异步公开接口。当前 SQLite 仍使用同步 `bun:sqlite` 驱动，异步 API 不代表 SQL 已脱离事件循环；适配器语义与新增数据库要求见 `docs/storage-adapter-contract.md`。
+`server/storage/repositories.ts` is the single source of the service-facing storage contract. Every repository, maintenance, and `close()` operation on `ApplicationStorage` returns a `Promise`; routes, services, and background jobs must always `await` them. Synchronous implementation details stay inside `server/storage/` and are converted into the uniform asynchronous public surface by the composition root. SQLite still uses the synchronous `bun:sqlite` driver, so the asynchronous API does not mean SQL runs off the event loop; normative adapter semantics and requirements for new drivers live in `docs/storage-adapter-contract.md`.

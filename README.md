@@ -45,6 +45,7 @@ The documentation index is available in English and Chinese. The detailed deploy
 - [Documentation index](docs/README.md) · [中文文档目录](docs/README.zh-CN.md)
 - [Deployment guide (methods & environment-parameter reference)](docs/deployment.md)
 - [Configuration (in-app rules, scheduled generation, data files, admin password)](docs/configuration.md)
+- [Webhook notifications (events, rules, delivery semantics)](docs/webhook-notifications.md)
 - [Development guide (environment, commands, checks)](docs/development.md)
 - [Operations and releases (workflows, logs, versions, upgrades)](docs/operations.md)
 - [Troubleshooting](docs/troubleshooting.md)
