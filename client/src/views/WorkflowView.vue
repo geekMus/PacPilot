@@ -48,13 +48,9 @@ const {
   historyTotal,
   selectedStatus,
   selectedSource,
-  deletingId,
-  confirmingHistoryDeleteId,
   confirmingCurrentCancel,
   confirmingQueueCancelId,
   confirmingHistoryCancelId,
-  confirmingHistoryClear,
-  clearingHistory,
   cancellingId,
   active,
   otherActiveRuns,
@@ -67,15 +63,9 @@ const {
   dateLabel,
   load,
   loadMoreHistory,
-  resetConfirmations,
   toggleCurrentCancel,
   toggleQueueCancel,
   toggleHistoryCancel,
-  toggleHistoryDelete,
-  toggleHistoryClear,
-  historyClearDisabledReason,
-  clearWorkflowHistory,
-  deleteRun,
   cancelRun,
 } = useWorkflowDashboard();
 </script>
@@ -315,56 +305,8 @@ const {
             <span class="count-pill">{{
               t("workflowPage.matchLoaded", { filtered: filteredRuns.length, loaded: runs.length })
             }}</span>
-            <ConfirmPopover
-              :open="confirmingHistoryClear"
-              :title="t('workflowPage.k30')"
-              :description="t('workflowPage.k31')"
-              :confirm-text="t('workflowPage.k32')"
-              :busy-text="t('workflowPage.k33')"
-              align="end"
-              :disabled="
-                loading ||
-                clearingHistory ||
-                activeRuns.length > 0 ||
-                runs.length === 0 ||
-                deletingId !== null ||
-                cancellingId !== null
-              "
-              :disabled-reason="historyClearDisabledReason"
-              :busy="clearingHistory"
-              @update:open="confirmingHistoryClear = $event"
-              @confirm="clearWorkflowHistory"
-            >
-              <template #trigger="{ toggle, open }"
-                ><button
-                  class="app-button app-button--danger-ghost"
-                  type="button"
-                  :aria-expanded="open"
-                  :disabled="
-                    loading ||
-                    clearingHistory ||
-                    activeRuns.length > 0 ||
-                    runs.length === 0 ||
-                    deletingId !== null ||
-                    cancellingId !== null
-                  "
-                  :title="historyClearDisabledReason"
-                  @click="toggleHistoryClear(toggle, open)"
-                >
-                  <AppIcon
-                    :name="clearingHistory ? 'loader-circle' : 'trash-2'"
-                    :size="15"
-                    :class="{ spinning: clearingHistory }"
-                  />
-                  {{ clearingHistory ? t("workflowPage.k33") : t("workflowPage.k34") }}
-                </button></template
-              >
-            </ConfirmPopover>
           </div>
         </div>
-        <p v-if="historyClearDisabledReason" class="history-disabled-hint" aria-live="polite">
-          {{ historyClearDisabledReason }}
-        </p>
         <div class="history-filters" :aria-label="t('workflowPage.k36')">
           <label
             >{{ t("workflowPage.k64") }}
@@ -494,37 +436,6 @@ const {
                     </button>
                   </template>
                 </ConfirmPopover>
-                <ConfirmPopover
-                  v-else-if="run.status !== 'running'"
-                  :open="confirmingHistoryDeleteId === run.id"
-                  :title="t('workflowPage.k74')"
-                  :description="t('workflowPage.k75')"
-                  :confirm-text="t('workflowPage.k48')"
-                  :cancel-text="t('workflowPage.k76')"
-                  :busy-text="t('workflowPage.k47')"
-                  :busy="deletingId === run.id"
-                  @update:open="confirmingHistoryDeleteId = $event ? run.id : null"
-                  @confirm="deleteRun(run)"
-                >
-                  <template #trigger="{ toggle, open }">
-                    <button
-                      type="button"
-                      class="app-button app-button--sm app-button--danger-ghost"
-                      :disabled="deletingId !== null"
-                      :aria-label="t('workflowPage.k42')"
-                      :title="
-                        deletingId === run.id
-                          ? t('workflowPage.k43')
-                          : deletingId !== null
-                            ? t('workflowPage.k44')
-                            : t('workflowPage.k45')
-                      "
-                      @click.stop="toggleHistoryDelete(toggle, open)"
-                    >
-                      <AppIcon name="trash-2" :size="15" />
-                    </button>
-                  </template>
-                </ConfirmPopover>
               </td>
             </tr>
           </template>
@@ -552,7 +463,7 @@ const {
           <div v-if="selectedRun" class="run-detail-content">
             <div class="run-detail-grid">
               <div>
-                <span>{{ t("workflowPage.k69") }}</span
+                <span>{{ t("workflow.trigger") }}</span
                 ><strong>{{ sourceLabel(selectedRun.source) }}</strong>
               </div>
               <div>
@@ -576,11 +487,11 @@ const {
                 ><strong>{{ modeLabel(selectedRun.mode) }}</strong>
               </div>
               <div>
-                <span>{{ t("workflowPage.k61") }}</span
+                <span>{{ t("workflowPage.stageField") }}</span
                 ><strong>{{ stageLabel(selectedRun.stage) || "—" }}</strong>
               </div>
               <div>
-                <span>{{ t("workflowPage.k75") }}</span
+                <span>{{ t("workflow.endTime") }}</span
                 ><strong>{{
                   selectedRun.finished_at ? dateLabel(selectedRun.finished_at) : "—"
                 }}</strong>
@@ -591,7 +502,7 @@ const {
               {{ runDetailError }}
             </p>
             <section v-if="selectedRunStages.length" class="run-detail-stages">
-              <h3>{{ t("workflowPage.k61") }}</h3>
+              <h3>{{ t("workflowPage.stagesTitle") }}</h3>
               <article v-for="stage in selectedRunStages" :key="stage.id" class="run-detail-stage">
                 <div class="run-detail-stage-heading">
                   <strong>{{ stageLabel(stage.stage_key) }}</strong
@@ -703,11 +614,6 @@ const {
 }
 .history-heading-actions {
   @apply flex min-w-0 flex-wrap items-center justify-end gap-2;
-}
-.history-disabled-hint {
-  @apply mb-0 mt-2 text-[11px] leading-snug;
-  color: var(--muted);
-  overflow-wrap: anywhere;
 }
 .queue-list {
   @apply grid gap-2;

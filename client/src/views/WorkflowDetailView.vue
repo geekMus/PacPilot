@@ -20,8 +20,6 @@ const { notify } = useToast();
 const detail = ref<WorkflowDetail | null>(null);
 const loading = ref(true);
 const error = ref("");
-const deleting = ref(false);
-const confirmingDelete = ref(false);
 const cancelling = ref(false);
 const confirmingCancel = ref(false);
 
@@ -200,26 +198,6 @@ async function load() {
   }
 }
 
-async function deleteRun() {
-  if (!detail.value || deleting.value || !confirmingDelete.value) return;
-  const run = detail.value.run;
-  if (run.status === "running" || run.status === "pending") {
-    notify(t("workflowDetailPage.k15"), "warning");
-    return;
-  }
-  deleting.value = true;
-  try {
-    await api.deleteWorkflow(run.id);
-    notify(t("workflowDetailPage.deletedRun", { id: run.id }), "success");
-    await router.replace("/admin/workflows");
-  } catch (e) {
-    notify(e instanceof Error ? e.message : String(e), "error");
-  } finally {
-    deleting.value = false;
-    confirmingDelete.value = false;
-  }
-}
-
 async function cancelRun() {
   if (
     !detail.value ||
@@ -251,7 +229,6 @@ watch(
     resetCopyState();
     loading.value = true;
     error.value = "";
-    confirmingDelete.value = false;
     confirmingCancel.value = false;
     void load();
   }
@@ -529,46 +506,9 @@ onUnmounted(() => {
                     ? t('workflowDetailPage.cancellingTitle')
                     : t('workflowDetailPage.cancelQueuedTitle')
                 "
-                @click="
-                  confirmingDelete = false;
-                  toggle();
-                "
+                @click="toggle()"
               >
                 <AppIcon name="x" :size="15" /> {{ t("workflowDetailPage.k39") }}
-              </button>
-            </template>
-          </ConfirmPopover>
-          <ConfirmPopover
-            :open="confirmingDelete"
-            :title="t('workflowDetailPage.k45')"
-            :description="t('workflowDetailPage.k46')"
-            :confirm-text="t('workflowDetailPage.k47')"
-            :cancel-text="t('workflowDetailPage.k42')"
-            :busy-text="t('workflowDetailPage.k24')"
-            :busy="deleting"
-            @update:open="confirmingDelete = $event"
-            @confirm="deleteRun"
-          >
-            <template #trigger="{ toggle }">
-              <button
-                class="app-button app-button--danger"
-                type="button"
-                :disabled="
-                  deleting || detail.run.status === 'running' || detail.run.status === 'pending'
-                "
-                :title="
-                  detail.run.status === 'running' || detail.run.status === 'pending'
-                    ? t('workflowDetailPage.k23')
-                    : deleting
-                      ? t('workflowDetailPage.k24')
-                      : t('workflowDetailPage.k25')
-                "
-                @click="
-                  confirmingCancel = false;
-                  toggle();
-                "
-              >
-                <AppIcon name="trash-2" :size="15" /> {{ t("workflowDetailPage.k44") }}
               </button>
             </template>
           </ConfirmPopover>

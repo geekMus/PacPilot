@@ -363,11 +363,7 @@ export const api = {
   generate: () => request<GenerateStartResult>("/api/admin/generate", { method: "POST" }),
   workflows: (limit = 50, beforeId = 0) =>
     request<WorkflowList>(`/api/admin/workflows?limit=${limit}&beforeId=${beforeId}`),
-  clearWorkflowHistory: () =>
-    request<{ ok: boolean; deletedRuns: number }>("/api/admin/workflows", { method: "DELETE" }),
   workflowDetail: (id: number) => request<WorkflowDetail>(`/api/admin/workflows/${id}`),
-  deleteWorkflow: (id: number) =>
-    request<{ ok: boolean; id: number }>(`/api/admin/workflows/${id}`, { method: "DELETE" }),
   cancelWorkflow: (id: number) =>
     request<{ ok: boolean; id: number; status: "cancelled" }>(`/api/admin/workflows/${id}/cancel`, {
       method: "POST",

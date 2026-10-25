@@ -2,11 +2,9 @@ import type { Database } from "bun:sqlite";
 import type { SyncWorkflowRepository } from "../repositories";
 import {
   cancelPendingWorkflow,
-  clearWorkflowHistory,
   claimWorkflowRun,
   countWorkflowRuns,
   createWorkflowRun,
-  deleteWorkflowRun,
   finishWorkflowStage,
   getCurrentWorkflow,
   getWorkflowRun,
@@ -34,7 +32,5 @@ export function createSqliteWorkflowRepository(database: Database): SyncWorkflow
     get: (id) => getWorkflowRun(database, id),
     stages: (runId) => listWorkflowStages(database, runId),
     cancelPending: (id) => cancelPendingWorkflow(database, id),
-    clearHistory: () => clearWorkflowHistory(database),
-    delete: (id) => deleteWorkflowRun(database, id),
   };
 }

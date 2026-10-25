@@ -354,7 +354,7 @@ onMounted(() => {
               <tr>
                 <th>{{ t("workflowPage.k70") }}</th>
                 <th>{{ t("workflowPage.k71") }}</th>
-                <th>{{ t("workflowPage.k69") }}</th>
+                <th>{{ t("workflowPage.k66") }}</th>
                 <th>{{ t("workflowPage.k72") }}</th>
               </tr>
             </template>

@@ -156,22 +156,6 @@ export function createMemoryWorkflowRepository(): MemorySyncWorkflowRepository {
       });
       return "cancelled" as const;
     },
-    clearHistory() {
-      const activeRuns = this.listActive().length;
-      if (activeRuns) return { deletedRuns: 0, activeRuns };
-      const deletedRuns = runs.size;
-      runs.clear();
-      stages.clear();
-      return { deletedRuns, activeRuns: 0 };
-    },
-    delete(id: number) {
-      const run = runs.get(id);
-      if (!run) return "not-found" as const;
-      if (run.status === "pending" || run.status === "running") return "active" as const;
-      runs.delete(id);
-      for (const [stageId, stage] of stages) if (stage.run_id === id) stages.delete(stageId);
-      return "deleted" as const;
-    },
   };
   return Object.assign(workflows, {
     reset() {

@@ -57,15 +57,13 @@ describe("memory storage adapter", () => {
     await first.close();
     await second.close();
   });
-  it("keeps workflow stages attached to existing runs and protects active history", async () => {
+  it("keeps workflow stages attached to existing runs", async () => {
     const storage = createMemoryApplicationStorage();
     await expect(storage.workflows.startStage(999, "prepare")).rejects.toThrow(
       /unknown workflow run/
     );
 
     const workflowId = await storage.workflows.create("manual", "custom");
-    expect(await storage.workflows.clearHistory()).toEqual({ deletedRuns: 0, activeRuns: 1 });
-    expect(await storage.workflows.delete(workflowId)).toBe("active");
     expect(await storage.workflows.claim(workflowId, new Date().toISOString())).toBe(true);
 
     const stageId = await storage.workflows.startStage(workflowId, "prepare", "{}");
@@ -79,7 +77,7 @@ describe("memory storage adapter", () => {
       stage: "complete",
       finished_at: new Date().toISOString(),
     });
-    expect(await storage.workflows.delete(workflowId)).toBe("deleted");
+    expect(await storage.workflows.get(workflowId)).toMatchObject({ status: "succeeded" });
     await storage.close();
   });
   it("exposes Promise-based operations and allows only one concurrent workflow claim", async () => {

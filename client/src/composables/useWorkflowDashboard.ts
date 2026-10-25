@@ -25,13 +25,9 @@ export function useWorkflowDashboard() {
   const historyTotal = ref(0);
   const selectedStatus = ref("all");
   const selectedSource = ref("all");
-  const deletingId = ref<number | null>(null);
-  const confirmingHistoryDeleteId = ref<number | null>(null);
   const confirmingCurrentCancel = ref(false);
   const confirmingQueueCancelId = ref<number | null>(null);
   const confirmingHistoryCancelId = ref<number | null>(null);
-  const confirmingHistoryClear = ref(false);
-  const clearingHistory = ref(false);
   const cancellingId = ref<number | null>(null);
   let previousStatuses = new Map<number, string>();
   let statusSnapshotReady = false;
@@ -157,8 +153,6 @@ export function useWorkflowDashboard() {
     confirmingCurrentCancel.value = false;
     confirmingQueueCancelId.value = null;
     confirmingHistoryCancelId.value = null;
-    confirmingHistoryDeleteId.value = null;
-    confirmingHistoryClear.value = false;
   }
   function toggleCurrentCancel(toggle: () => void, isOpen: boolean) {
     if (!isOpen) resetConfirmations();
@@ -171,78 +165,6 @@ export function useWorkflowDashboard() {
   function toggleHistoryCancel(toggle: () => void, isOpen: boolean) {
     if (!isOpen) resetConfirmations();
     toggle();
-  }
-  function toggleHistoryDelete(toggle: () => void, isOpen: boolean) {
-    if (!isOpen) resetConfirmations();
-    toggle();
-  }
-  function toggleHistoryClear(toggle: () => void, isOpen: boolean) {
-    // Closing keeps the component's normal behavior; opening first closes any
-    // per-row confirmation that might otherwise remain visible beside this one.
-    if (!isOpen) resetConfirmations();
-    toggle();
-  }
-  const historyClearDisabledReason = computed(() => {
-    if (loading.value) return t("workflowPage.k12");
-    if (clearingHistory.value) return t("workflowPage.k13");
-    if (activeRuns.value.length > 0) return t("workflowPage.k14");
-    if (runs.value.length === 0) return t("workflowPage.k15");
-    if (deletingId.value !== null) return t("workflowPage.k16");
-    if (cancellingId.value !== null) return t("workflowPage.k17");
-    return "";
-  });
-
-  async function clearWorkflowHistory() {
-    if (
-      clearingHistory.value ||
-      activeRuns.value.length > 0 ||
-      runs.value.length === 0 ||
-      deletingId.value !== null ||
-      cancellingId.value !== null
-    )
-      return;
-    clearingHistory.value = true;
-    try {
-      const result = await api.clearWorkflowHistory();
-      resetConfirmations();
-      runs.value = [];
-      current.value = null;
-      activeRuns.value = [];
-      previousStatuses = new Map<number, string>();
-      statusSnapshotReady = true;
-      historyHasMore.value = false;
-      historyLoadError.value = "";
-      historyTotal.value = 0;
-      selectedStatus.value = "all";
-      selectedSource.value = "all";
-      notify(t("workflowPage.clearedRuns", { n: result.deletedRuns }), "success");
-    } catch (caught) {
-      notify(caught instanceof Error ? caught.message : String(caught), "error");
-    } finally {
-      clearingHistory.value = false;
-    }
-  }
-  async function deleteRun(run: WorkflowRun) {
-    if (deletingId.value !== null || confirmingHistoryDeleteId.value !== run.id) return;
-    if (run.status === "running" || run.status === "pending") {
-      notify(t("workflowPage.k19"), "warning");
-      return;
-    }
-    deletingId.value = run.id;
-    try {
-      await api.deleteWorkflow(run.id);
-      runs.value = runs.value.filter((item) => item.id !== run.id);
-      previousStatuses.delete(run.id);
-      confirmingHistoryDeleteId.value = null;
-      notify(t("workflowPage.deletedRun", { id: run.id }), "success");
-      historyTotal.value = Math.max(0, historyTotal.value - 1);
-      historyHasMore.value = runs.value.length < historyTotal.value;
-      if (current.value?.id === run.id) current.value = null;
-    } catch (caught) {
-      notify(caught instanceof Error ? caught.message : String(caught), "error");
-    } finally {
-      deletingId.value = null;
-    }
   }
   async function cancelRun(run: WorkflowRun, source: "current" | "queue" | "history") {
     const confirmationOpen =
@@ -283,13 +205,9 @@ export function useWorkflowDashboard() {
     historyTotal,
     selectedStatus,
     selectedSource,
-    deletingId,
-    confirmingHistoryDeleteId,
     confirmingCurrentCancel,
     confirmingQueueCancelId,
     confirmingHistoryCancelId,
-    confirmingHistoryClear,
-    clearingHistory,
     cancellingId,
     active,
     otherActiveRuns,
@@ -306,11 +224,6 @@ export function useWorkflowDashboard() {
     toggleCurrentCancel,
     toggleQueueCancel,
     toggleHistoryCancel,
-    toggleHistoryDelete,
-    toggleHistoryClear,
-    historyClearDisabledReason,
-    clearWorkflowHistory,
-    deleteRun,
     cancelRun,
   };
 }

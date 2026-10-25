@@ -119,8 +119,6 @@ export interface SyncWorkflowRepository {
   get(id: number): WorkflowRun | null;
   stages(runId: number): WorkflowStage[];
   cancelPending(id: number): "cancelled" | "not-found" | "not-pending";
-  clearHistory(): { deletedRuns: number; activeRuns: number };
-  delete(id: number): "deleted" | "not-found" | "active";
 }
 
 export interface SyncArtifactRepository {

@@ -220,38 +220,6 @@ describe("memory workflow repository", () => {
     expect(repository.cancelPending(running)).toBe("not-pending");
   });
 
-  it("refuses to clear history while a run is active", () => {
-    const repository = createMemoryWorkflowRepository();
-    repository.create("manual", "custom");
-    expect(repository.clearHistory()).toEqual({ deletedRuns: 0, activeRuns: 1 });
-    expect(repository.count()).toBe(1);
-  });
-
-  it("clears finished history and stages", () => {
-    const repository = createMemoryWorkflowRepository();
-    const id = repository.create("manual", "custom");
-    repository.startStage(id, "download");
-    repository.update(id, { status: "succeeded" });
-
-    expect(repository.clearHistory()).toEqual({ deletedRuns: 1, activeRuns: 0 });
-    expect(repository.count()).toBe(0);
-    expect(repository.stages(id)).toEqual([]);
-  });
-
-  it("deletes finished runs and their stages", () => {
-    const repository = createMemoryWorkflowRepository();
-    const id = repository.create("manual", "custom");
-    repository.startStage(id, "download");
-
-    expect(repository.delete(999)).toBe("not-found");
-    expect(repository.delete(id)).toBe("active");
-
-    repository.update(id, { status: "succeeded" });
-    expect(repository.delete(id)).toBe("deleted");
-    expect(repository.get(id)).toBeNull();
-    expect(repository.stages(id)).toEqual([]);
-  });
-
   it("resets every stored run and stage", () => {
     const repository = createMemoryWorkflowRepository();
     const id = repository.create("manual", "custom");
