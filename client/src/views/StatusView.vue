@@ -134,7 +134,9 @@ const {
           {{ t("statusPage.k17") }}<code>{{ pacUrl() }}</code>
           {{ t("statusPage.k18") }}
         </p>
-        <RouterLink class="app-button app-button--primary" :to="adminEntry">{{ t("nav.admin") }}</RouterLink>
+        <RouterLink class="app-button app-button--primary" :to="adminEntry">{{
+          t("nav.admin")
+        }}</RouterLink>
       </section>
 
       <template v-else-if="hasRuleSummary">
@@ -332,7 +334,11 @@ const {
 .page-hero {
   @apply relative mb-[22px] overflow-hidden rounded-[18px] border p-[clamp(22px,3.8vw,34px)_clamp(22px,4vw,38px)];
   border-color: color-mix(in srgb, var(--accent) 15%, var(--line));
-  background: linear-gradient(128deg, color-mix(in srgb, var(--accent) 7%, var(--surface)) 0%, var(--surface) 72%);
+  background: linear-gradient(
+    128deg,
+    color-mix(in srgb, var(--accent) 7%, var(--surface)) 0%,
+    var(--surface) 72%
+  );
   box-shadow: var(--shadow);
 }
 .page-hero::before {
@@ -423,7 +429,11 @@ const {
 }
 .stat-proxy-card {
   border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
-  background: linear-gradient(112deg, color-mix(in srgb, var(--accent) 9%, var(--surface)), var(--surface) 78%);
+  background: linear-gradient(
+    112deg,
+    color-mix(in srgb, var(--accent) 9%, var(--surface)),
+    var(--surface) 78%
+  );
 }
 .proxy-card-heading {
   @apply flex items-center justify-between gap-3;
@@ -602,7 +612,11 @@ const {
 .default-proxy {
   @apply flex flex-col items-start gap-2 rounded-[10px] border p-4;
   border-color: color-mix(in srgb, var(--accent) 26%, var(--line));
-  background: linear-gradient(112deg, color-mix(in srgb, var(--accent) 7%, var(--surface)), var(--surface) 82%);
+  background: linear-gradient(
+    112deg,
+    color-mix(in srgb, var(--accent) 7%, var(--surface)),
+    var(--surface) 82%
+  );
 }
 .default-proxy span {
   @apply text-[11px] font-semibold;
@@ -622,7 +636,11 @@ const {
 .pac-access-card {
   @apply mb-[22px] mt-0 flex items-center justify-between gap-6 rounded-[17px] border p-[clamp(20px,3vw,28px)];
   border-color: color-mix(in srgb, var(--accent) 24%, var(--line));
-  background: linear-gradient(115deg, color-mix(in srgb, var(--accent) 8%, var(--surface)), var(--surface) 74%);
+  background: linear-gradient(
+    115deg,
+    color-mix(in srgb, var(--accent) 8%, var(--surface)),
+    var(--surface) 74%
+  );
   box-shadow: var(--shadow);
 }
 .pac-access-copy {

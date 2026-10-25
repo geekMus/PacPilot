@@ -175,15 +175,56 @@ onMounted(() => void load());
       <section class="settings-panel password-settings-panel">
         <div class="heading">
           <span class="icon-badge"><AppIcon name="shield-check" :size="19" /></span>
-          <div><h2>{{ t("settings.changePasswordTitle") }}</h2><p>{{ t("settings.passwordStoredLocal") }}</p></div>
+          <div>
+            <h2>{{ t("settings.changePasswordTitle") }}</h2>
+            <p>{{ t("settings.passwordStoredLocal") }}</p>
+          </div>
         </div>
         <form class="system-password-form" @submit.prevent="changeAdminPassword">
-          <label><span>{{ t("settings.currentPassword") }}</span><AppInput v-model="passwordForm.currentPassword" type="password" autocomplete="current-password" required :placeholder="t('settings.currentPassword')" @input="passwordError = ''" /></label>
-          <label><span>{{ t("settings.newPassword") }}</span><AppInput v-model="passwordForm.newPassword" type="password" autocomplete="new-password" required :placeholder="t('settings.newPasswordPlaceholder')" @input="passwordError = ''" /></label>
-          <label><span>{{ t("settings.confirmPassword") }}</span><AppInput v-model="passwordForm.confirmPassword" type="password" autocomplete="new-password" required :placeholder="t('settings.confirmPassword')" @input="passwordError = ''" /></label>
+          <label
+            ><span>{{ t("settings.currentPassword") }}</span
+            ><AppInput
+              v-model="passwordForm.currentPassword"
+              type="password"
+              autocomplete="current-password"
+              required
+              :placeholder="t('settings.currentPassword')"
+              @input="passwordError = ''"
+          /></label>
+          <label
+            ><span>{{ t("settings.newPassword") }}</span
+            ><AppInput
+              v-model="passwordForm.newPassword"
+              type="password"
+              autocomplete="new-password"
+              required
+              :placeholder="t('settings.newPasswordPlaceholder')"
+              @input="passwordError = ''"
+          /></label>
+          <label
+            ><span>{{ t("settings.confirmPassword") }}</span
+            ><AppInput
+              v-model="passwordForm.confirmPassword"
+              type="password"
+              autocomplete="new-password"
+              required
+              :placeholder="t('settings.confirmPassword')"
+              @input="passwordError = ''"
+          /></label>
           <p v-if="passwordError" class="system-password-error" role="alert">{{ passwordError }}</p>
-          <p class="system-password-help">{{ t("settings.resetHelpFull") }} <a :href="PROJECT_LINKS.adminPasswordReset" target="_blank" rel="noopener noreferrer">{{ t("settings.resetHelpLink") }}</a></p>
-          <div class="password-settings-actions"><AppButton variant="primary" type="submit" :disabled="passwordSaving"><AppIcon :name="passwordSaving ? 'loader-circle' : 'key-round'" :size="15" />{{ passwordSaving ? t("settings.changingPassword") : t("settings.changePassword") }}</AppButton></div>
+          <p class="system-password-help">
+            {{ t("settings.resetHelpFull") }}
+            <a :href="PROJECT_LINKS.adminPasswordReset" target="_blank" rel="noopener noreferrer">{{
+              t("settings.resetHelpLink")
+            }}</a>
+          </p>
+          <div class="password-settings-actions">
+            <AppButton variant="primary" type="submit" :disabled="passwordSaving"
+              ><AppIcon :name="passwordSaving ? 'loader-circle' : 'key-round'" :size="15" />{{
+                passwordSaving ? t("settings.changingPassword") : t("settings.changePassword")
+              }}</AppButton
+            >
+          </div>
         </form>
       </section>
       <p v-if="maintenanceBusy()" class="maintenance-status" role="status" aria-live="polite">
@@ -214,7 +255,8 @@ onMounted(() => void load());
           </div>
         </div>
         <div v-else-if="error" class="state error" role="alert">
-          {{ error }} <AppButton variant="secondary" @click="load">{{ t("common.retry") }}</AppButton>
+          {{ error }}
+          <AppButton variant="secondary" @click="load">{{ t("common.retry") }}</AppButton>
         </div>
         <div v-else-if="storage" class="metrics">
           <div class="metric">
@@ -301,103 +343,100 @@ onMounted(() => void load());
           </button>
         </div>
         <div v-if="storage?.pac" class="pac-files">
-            <div class="pac-file">
-              <div class="pac-file-head">
-                <strong>/pac</strong
-                ><span
-                  class="file-state"
-                  :class="storage.pac.rendered.exists ? 'file-exists' : 'file-missing'"
-                  >{{
-                    storage.pac.rendered.exists ? t("systemPage.k21") : t("systemPage.k22")
-                  }}</span
-                >
-              </div>
-              <p>{{ t("systemPage.pacRenderedDesc") }}</p>
-              <div class="pac-file-meta">
-                <span>{{
-                  t("systemPage.pacBytes", { size: formatBytes(storage.pac.rendered.sizeBytes) })
-                }}</span
-                ><span>{{
-                  storage.pac.rendered.builtAt
-                    ? t("systemPage.fileMtime", {
-                        time: fileDateLabel(storage.pac.rendered.builtAt),
-                      })
-                    : "—"
-                }}</span
-                >
-              </div>
-              <div class="pac-file-meta">
-                <span>{{
-                  storage.pac.rendered.compressed
-                    ? t("systemPage.pacCompressed")
-                    : t("systemPage.pacPlain")
-                }}</span
-                ><span class="pac-etag">{{ storage.pac.rendered.etag || "—" }}</span>
-              </div>
+          <div class="pac-file">
+            <div class="pac-file-head">
+              <strong>/pac</strong
+              ><span
+                class="file-state"
+                :class="storage.pac.rendered.exists ? 'file-exists' : 'file-missing'"
+                >{{ storage.pac.rendered.exists ? t("systemPage.k21") : t("systemPage.k22") }}</span
+              >
             </div>
-            <div class="pac-file">
-              <div class="pac-file-head">
-                <strong>{{ t("systemPage.ruleSnapshot") }}</strong
-                ><span
-                  class="file-state"
-                  :class="storage.pac.ruleSource.exists ? 'file-exists' : 'file-missing'"
-                  >{{
-                    storage.pac.ruleSource.exists ? t("systemPage.k21") : t("systemPage.k22")
-                  }}</span
-                >
-              </div>
-              <p>{{ t("systemPage.ruleSnapshotDesc") }}</p>
-              <div class="pac-file-meta">
-                <span>{{
-                  storage.pac.ruleSource.exists
-                    ? t("systemPage.fileMtime", {
-                        time: fileDateLabel(storage.pac.ruleSource.fetchedAt),
-                      })
-                    : t("systemPage.ruleSnapshotNone")
-                }}</span
-                ><span v-if="storage.pac.ruleSource.exists">{{
-                  t("systemPage.ruleCounts", {
-                    proxy: storage.pac.ruleSource.proxyHosts,
-                    direct: storage.pac.ruleSource.directHosts,
-                  })
-                }}</span>
-              </div>
-              <div v-if="storage.pac.ruleSource.exists" class="pac-file-meta">
-                <span class="pac-etag">{{ storage.pac.ruleSource.url }}</span>
-              </div>
+            <p>{{ t("systemPage.pacRenderedDesc") }}</p>
+            <div class="pac-file-meta">
+              <span>{{
+                t("systemPage.pacBytes", { size: formatBytes(storage.pac.rendered.sizeBytes) })
+              }}</span
+              ><span>{{
+                storage.pac.rendered.builtAt
+                  ? t("systemPage.fileMtime", {
+                      time: fileDateLabel(storage.pac.rendered.builtAt),
+                    })
+                  : "—"
+              }}</span>
+            </div>
+            <div class="pac-file-meta">
+              <span>{{
+                storage.pac.rendered.compressed
+                  ? t("systemPage.pacCompressed")
+                  : t("systemPage.pacPlain")
+              }}</span
+              ><span class="pac-etag">{{ storage.pac.rendered.etag || "—" }}</span>
             </div>
           </div>
-          <p v-if="storage?.pac && !storage.pac.rendered.exists" class="empty-note">
-            {{ t("systemPage.pacNotRendered") }}
-          </p>
-          <ConfirmPopover
-            :open="confirmationOpen.deletePacFiles"
-            :title="t('systemPage.clearPacCache')"
-            :description="t('systemPage.clearPacCacheDesc')"
-            :confirm-text="t('systemPage.k27')"
-            :busy-text="t('systemPage.k28')"
-            align="start"
-            :disabled="loading || maintenanceBusy() || !storage"
-            :disabled-reason="deletePacFilesDisabledReason"
-            :busy="deletingPacFiles"
-            @update:open="setConfirmation('deletePacFiles', $event)"
-            @confirm="deletePacFiles"
-            ><template #trigger="{ toggle, open }"
-              ><button
-                class="app-button app-button--danger"
-                type="button"
-                :aria-expanded="open"
-                :disabled="loading || maintenanceBusy() || !storage"
-                :title="deletePacFilesDisabledReason"
-                @click="toggle"
+          <div class="pac-file">
+            <div class="pac-file-head">
+              <strong>{{ t("systemPage.ruleSnapshot") }}</strong
+              ><span
+                class="file-state"
+                :class="storage.pac.ruleSource.exists ? 'file-exists' : 'file-missing'"
+                >{{
+                  storage.pac.ruleSource.exists ? t("systemPage.k21") : t("systemPage.k22")
+                }}</span
               >
-                <AppIcon :name="deletingPacFiles ? 'loader-circle' : 'trash-2'" :size="15" />
-                {{ deletingPacFiles ? t("systemPage.k28") : t("systemPage.clearPacCache") }}
-              </button></template
-            ></ConfirmPopover
-          >
-          <p class="hint">{{ t("systemPage.clearPacCacheHint") }}</p>
-        </section>
+            </div>
+            <p>{{ t("systemPage.ruleSnapshotDesc") }}</p>
+            <div class="pac-file-meta">
+              <span>{{
+                storage.pac.ruleSource.exists
+                  ? t("systemPage.fileMtime", {
+                      time: fileDateLabel(storage.pac.ruleSource.fetchedAt),
+                    })
+                  : t("systemPage.ruleSnapshotNone")
+              }}</span
+              ><span v-if="storage.pac.ruleSource.exists">{{
+                t("systemPage.ruleCounts", {
+                  proxy: storage.pac.ruleSource.proxyHosts,
+                  direct: storage.pac.ruleSource.directHosts,
+                })
+              }}</span>
+            </div>
+            <div v-if="storage.pac.ruleSource.exists" class="pac-file-meta">
+              <span class="pac-etag">{{ storage.pac.ruleSource.url }}</span>
+            </div>
+          </div>
+        </div>
+        <p v-if="storage?.pac && !storage.pac.rendered.exists" class="empty-note">
+          {{ t("systemPage.pacNotRendered") }}
+        </p>
+        <ConfirmPopover
+          :open="confirmationOpen.deletePacFiles"
+          :title="t('systemPage.clearPacCache')"
+          :description="t('systemPage.clearPacCacheDesc')"
+          :confirm-text="t('systemPage.k27')"
+          :busy-text="t('systemPage.k28')"
+          align="start"
+          :disabled="loading || maintenanceBusy() || !storage"
+          :disabled-reason="deletePacFilesDisabledReason"
+          :busy="deletingPacFiles"
+          @update:open="setConfirmation('deletePacFiles', $event)"
+          @confirm="deletePacFiles"
+          ><template #trigger="{ toggle, open }"
+            ><button
+              class="app-button app-button--danger"
+              type="button"
+              :aria-expanded="open"
+              :disabled="loading || maintenanceBusy() || !storage"
+              :title="deletePacFilesDisabledReason"
+              @click="toggle"
+            >
+              <AppIcon :name="deletingPacFiles ? 'loader-circle' : 'trash-2'" :size="15" />
+              {{ deletingPacFiles ? t("systemPage.k28") : t("systemPage.clearPacCache") }}
+            </button></template
+          ></ConfirmPopover
+        >
+        <p class="hint">{{ t("systemPage.clearPacCacheHint") }}</p>
+      </section>
       <section class="settings-panel">
         <div class="heading">
           <span class="icon-badge"><AppIcon name="trash-2" :size="19" /></span>

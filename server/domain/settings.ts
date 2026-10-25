@@ -58,7 +58,10 @@ export function normalizeWebhookConfig(input: unknown, locale: AppLocale = "zh_C
     dingTalkMessageType: raw.dingTalkMessageType === "markdown" ? "markdown" : "text",
     testBody: String(raw.testBody ?? defaults.testBody),
     messageTemplate: normalizeDefaultTemplate(raw.messageTemplate, defaults.messageTemplate),
-    testMessageTemplate: normalizeDefaultTemplate(raw.testMessageTemplate, defaults.testMessageTemplate),
+    testMessageTemplate: normalizeDefaultTemplate(
+      raw.testMessageTemplate,
+      defaults.testMessageTemplate
+    ),
   };
 }
 
@@ -102,10 +105,16 @@ export function normalizeAppSettings(input: unknown): AppSettings {
     pacCompress: Boolean(merged.pacCompress),
     listUrl: String(merged.listUrl || "").trim(),
     blockList: Array.isArray(merged.blockList)
-      ? merged.blockList.map(String).map((item) => item.trim()).filter(Boolean)
+      ? merged.blockList
+          .map(String)
+          .map((item) => item.trim())
+          .filter(Boolean)
       : [],
     directList: Array.isArray(merged.directList)
-      ? merged.directList.map(String).map((item) => item.trim()).filter(Boolean)
+      ? merged.directList
+          .map(String)
+          .map((item) => item.trim())
+          .filter(Boolean)
       : [],
     cronSchedule: String(merged.cronSchedule || "").trim(),
     timezone: normalizeTimeZone(merged.timezone || DEFAULT_SETTINGS.timezone),

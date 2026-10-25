@@ -70,7 +70,9 @@ async function rawDocument(storage: Storage): Promise<NotificationDocument> {
 async function flushDeliveries(storage: Storage): Promise<NotificationDocument> {
   for (let attempt = 0; attempt < 60; attempt++) {
     const document = await rawDocument(storage);
-    const busy = document.deliveries.some((item) => item.status === "sending" || item.status === "pending");
+    const busy = document.deliveries.some(
+      (item) => item.status === "sending" || item.status === "pending"
+    );
     if (!busy) return document;
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
@@ -113,27 +115,47 @@ describe("validateRule", () => {
   });
 
   it("rejects phases the event type does not support", () => {
-    expect(validateRule(ruleDraft({ eventType: "system.error", phase: "finished", channelIds: ["c"] }))).toBe(
-      "该事件类型不支持所选阶段。"
-    );
-    expect(validateRule(ruleDraft({ eventType: "config.publish", phase: "progress", channelIds: ["c"] }))).toBe(
-      "该事件类型不支持所选阶段。"
-    );
+    expect(
+      validateRule(ruleDraft({ eventType: "system.error", phase: "finished", channelIds: ["c"] }))
+    ).toBe("该事件类型不支持所选阶段。");
+    expect(
+      validateRule(ruleDraft({ eventType: "config.publish", phase: "progress", channelIds: ["c"] }))
+    ).toBe("该事件类型不支持所选阶段。");
   });
 
   it("forces non-final phases to use the unrestricted outcome", () => {
-    expect(validateRule(ruleDraft({ phase: "started", outcome: "success", channelIds: ["c"] }))).toBe(
-      "开始或执行中阶段没有最终结果，请选择不限制结果。"
-    );
-    expect(validateRule(ruleDraft({ phase: "started", outcome: "any", channelIds: ["c"] }))).toBeNull();
-    expect(validateRule(ruleDraft({ phase: "started", outcome: null, channelIds: ["c"] }))).toBeNull();
+    expect(
+      validateRule(ruleDraft({ phase: "started", outcome: "success", channelIds: ["c"] }))
+    ).toBe("开始或执行中阶段没有最终结果，请选择不限制结果。");
+    expect(
+      validateRule(ruleDraft({ phase: "started", outcome: "any", channelIds: ["c"] }))
+    ).toBeNull();
+    expect(
+      validateRule(ruleDraft({ phase: "started", outcome: null, channelIds: ["c"] }))
+    ).toBeNull();
   });
 
   it("rejects outcomes the event type does not declare", () => {
-    expect(validateRule(ruleDraft({ eventType: "system.error", phase: "state_changed", outcome: "success", channelIds: ["c"] }))).toBe(
-      "该事件类型不支持所选结果。"
-    );
-    expect(validateRule(ruleDraft({ eventType: "system.error", phase: "state_changed", outcome: "failure", channelIds: ["c"] }))).toBeNull();
+    expect(
+      validateRule(
+        ruleDraft({
+          eventType: "system.error",
+          phase: "state_changed",
+          outcome: "success",
+          channelIds: ["c"],
+        })
+      )
+    ).toBe("该事件类型不支持所选结果。");
+    expect(
+      validateRule(
+        ruleDraft({
+          eventType: "system.error",
+          phase: "state_changed",
+          outcome: "failure",
+          channelIds: ["c"],
+        })
+      )
+    ).toBeNull();
   });
 
   it("requires at least one usable channel id", () => {
@@ -186,7 +208,9 @@ describe("notification channels", () => {
   it("restores redacted header values from the previous revision", async () => {
     const created = await saveNotificationChannel(
       storage,
-      channelDraft({ config: config({ headers: JSON.stringify({ Authorization: "Bearer real" }) }) })
+      channelDraft({
+        config: config({ headers: JSON.stringify({ Authorization: "Bearer real" }) }),
+      })
     );
     expect(created.config.headers).toContain("***");
     await saveNotificationChannel(
@@ -221,18 +245,24 @@ describe("notification channels", () => {
 
   it("rejects an invalid webhook config and a blank name", async () => {
     await expect(
-      saveNotificationChannel(storage, channelDraft({ config: config({ url: "ftp://example.com/hook" }) }))
+      saveNotificationChannel(
+        storage,
+        channelDraft({ config: config({ url: "ftp://example.com/hook" }) })
+      )
     ).rejects.toThrow("must use the HTTP or HTTPS scheme");
     await expect(
       saveNotificationChannel(storage, channelDraft({ config: config({ body: "{oops" }) }))
     ).rejects.toThrow("不是合法 JSON");
-    await expect(
-      saveNotificationChannel(storage, channelDraft({ name: "  " }))
-    ).rejects.toThrow("通知渠道名称不能为空。");
+    await expect(saveNotificationChannel(storage, channelDraft({ name: "  " }))).rejects.toThrow(
+      "通知渠道名称不能为空。"
+    );
   });
 
   it("allows saving a draft channel with an empty URL", async () => {
-    const saved = await saveNotificationChannel(storage, channelDraft({ config: config({ url: "" }) }));
+    const saved = await saveNotificationChannel(
+      storage,
+      channelDraft({ config: config({ url: "" }) })
+    );
     expect(saved.config.url).toBe("");
   });
 
@@ -254,7 +284,9 @@ describe("notification channels", () => {
     const channel = await saveNotificationChannel(storage, channelDraft());
     await removeNotificationChannel(storage, channel.id);
     expect((await rawDocument(storage)).channels).toHaveLength(0);
-    await expect(removeNotificationChannel(storage, channel.id)).rejects.toThrow("通知渠道不存在。");
+    await expect(removeNotificationChannel(storage, channel.id)).rejects.toThrow(
+      "通知渠道不存在。"
+    );
   });
 });
 
@@ -278,7 +310,10 @@ describe("notification rules", () => {
   });
 
   it("stores a null outcome when the rule is unrestricted", async () => {
-    const rule = await saveNotificationRule(storage, ruleDraft({ outcome: undefined, channelIds: [channelId] }));
+    const rule = await saveNotificationRule(
+      storage,
+      ruleDraft({ outcome: undefined, channelIds: [channelId] })
+    );
     expect(rule.outcome).toBeNull();
   });
 
@@ -331,7 +366,10 @@ describe("legacy webhook settings migration", () => {
     });
 
     const view = await getNotificationAdminView(storage);
-    expect(view.channels.map((item) => item.id).sort()).toEqual(["legacy-failure", "legacy-success"]);
+    expect(view.channels.map((item) => item.id).sort()).toEqual([
+      "legacy-failure",
+      "legacy-success",
+    ]);
     expect(view.rules.map((item) => item.outcome).sort()).toEqual(["failure", "success"]);
     expect(view.rules.every((item) => item.eventType === "task.execution")).toBe(true);
     expect(view.rules.every((item) => item.subjectType === "task")).toBe(true);
@@ -361,7 +399,9 @@ describe("legacy webhook settings migration", () => {
     expect(legacy.config.url).toBe("https://hooks.example.com/success?key=***");
     expect(legacy.hasSecret).toBe(true);
     const document = await rawDocument(storage);
-    expect(document.channels.find((item) => item.id === "legacy-success")!.config.url).toContain("supersecret");
+    expect(document.channels.find((item) => item.id === "legacy-success")!.config.url).toContain(
+      "supersecret"
+    );
   });
 });
 
@@ -372,7 +412,14 @@ describe("publishDomainEvent", () => {
   });
 
   it("persists the event even when no rule matches", async () => {
-    await publishDomainEvent(storage, eventInput({ type: "request.process", outcome: "success", subject: { type: "request", id: "1" } }));
+    await publishDomainEvent(
+      storage,
+      eventInput({
+        type: "request.process",
+        outcome: "success",
+        subject: { type: "request", id: "1" },
+      })
+    );
     const document = await rawDocument(storage);
     expect(document.events).toHaveLength(1);
     expect(document.deliveries).toHaveLength(0);
@@ -403,14 +450,22 @@ describe("publishDomainEvent", () => {
     await publishDomainEvent(storage, eventInput());
     const document = await flushDeliveries(storage);
     expect(document.deliveries).toHaveLength(2);
-    expect(document.deliveries.map((item) => item.channelId).sort()).toEqual([first.id, second.id].sort());
+    expect(document.deliveries.map((item) => item.channelId).sort()).toEqual(
+      [first.id, second.id].sort()
+    );
   });
 
   it("skips disabled rules, mismatched outcomes and mismatched subject types", async () => {
     const channel = await saveNotificationChannel(storage, channelDraft());
     await saveNotificationRule(storage, ruleDraft({ enabled: false, channelIds: [channel.id] }));
-    await saveNotificationRule(storage, ruleDraft({ outcome: "success", channelIds: [channel.id] }));
-    await saveNotificationRule(storage, ruleDraft({ subjectType: "configuration", channelIds: [channel.id] }));
+    await saveNotificationRule(
+      storage,
+      ruleDraft({ outcome: "success", channelIds: [channel.id] })
+    );
+    await saveNotificationRule(
+      storage,
+      ruleDraft({ subjectType: "configuration", channelIds: [channel.id] })
+    );
     await publishDomainEvent(storage, eventInput());
     expect((await rawDocument(storage)).deliveries).toHaveLength(0);
   });
@@ -432,7 +487,10 @@ describe("publishDomainEvent", () => {
   });
 
   it("redacts URLs from the event summary before persisting", async () => {
-    await publishDomainEvent(storage, eventInput({ summary: "failed calling https://hooks.example.com/x?token=leak" }));
+    await publishDomainEvent(
+      storage,
+      eventInput({ summary: "failed calling https://hooks.example.com/x?token=leak" })
+    );
     const event = (await rawDocument(storage)).events[0];
     expect(event.summary).toBe("failed calling https://hooks.example.com/x?token=***");
   });
@@ -442,7 +500,10 @@ describe("publishDomainEvent", () => {
     await saveNotificationRule(storage, ruleDraft({ channelIds: [channel.id] }));
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("{}", { status: 200 })));
     for (let index = 0; index < 205; index++) {
-      await publishDomainEvent(storage, eventInput({ id: `e-${index}`, correlationId: `c-${index}` }));
+      await publishDomainEvent(
+        storage,
+        eventInput({ id: `e-${index}`, correlationId: `c-${index}` })
+      );
     }
     await flushDeliveries(storage);
     const document = await rawDocument(storage);
@@ -528,7 +589,11 @@ describe("delivery pipeline", () => {
     await saveNotificationRule(storage, ruleDraft({ channelIds: [secretChannel.id] }));
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockRejectedValue(new Error("connect ECONNREFUSED https://hooks.example.com/notify?token=topsecret"))
+      vi
+        .fn()
+        .mockRejectedValue(
+          new Error("connect ECONNREFUSED https://hooks.example.com/notify?token=topsecret")
+        )
     );
     await publishDomainEvent(storage, eventInput());
     const document = await flushDeliveries(storage);
@@ -633,11 +698,16 @@ describe("testNotificationChannel", () => {
   it("rejects unknown and disabled channels", async () => {
     await expect(testNotificationChannel(storage, "missing")).rejects.toThrow("通知渠道不存在。");
     const channel = await saveNotificationChannel(storage, channelDraft({ enabled: false }));
-    await expect(testNotificationChannel(storage, channel.id)).rejects.toThrow("请先启用通知渠道。");
+    await expect(testNotificationChannel(storage, channel.id)).rejects.toThrow(
+      "请先启用通知渠道。"
+    );
   });
 
   it("rejects a channel whose stored config is invalid", async () => {
-    const channel = await saveNotificationChannel(storage, channelDraft({ config: config({ url: "" }) }));
+    const channel = await saveNotificationChannel(
+      storage,
+      channelDraft({ config: config({ url: "" }) })
+    );
     await expect(testNotificationChannel(storage, channel.id)).rejects.toThrow("不能为空");
   });
 
@@ -705,8 +775,26 @@ describe("resumePendingNotificationDeliveries", () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response("{}", { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     await seedDocument([
-      { id: "d-1", eventId: "evt-1", ruleId: "rule-1", channelId: "chan-1", status: "pending", attemptCount: 0, createdAt: "", updatedAt: "" },
-      { id: "d-2", eventId: "evt-1", ruleId: "rule-1", channelId: "chan-1", status: "sending", attemptCount: 1, createdAt: "", updatedAt: "" },
+      {
+        id: "d-1",
+        eventId: "evt-1",
+        ruleId: "rule-1",
+        channelId: "chan-1",
+        status: "pending",
+        attemptCount: 0,
+        createdAt: "",
+        updatedAt: "",
+      },
+      {
+        id: "d-2",
+        eventId: "evt-1",
+        ruleId: "rule-1",
+        channelId: "chan-1",
+        status: "sending",
+        attemptCount: 1,
+        createdAt: "",
+        updatedAt: "",
+      },
     ]);
     await resumePendingNotificationDeliveries(storage);
     const document = await flushDeliveries(storage);
@@ -718,8 +806,26 @@ describe("resumePendingNotificationDeliveries", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     await seedDocument([
-      { id: "d-1", eventId: "evt-1", ruleId: "r", channelId: "chan-1", status: "succeeded", attemptCount: 1, createdAt: "", updatedAt: "" },
-      { id: "d-2", eventId: "evt-1", ruleId: "r", channelId: "chan-1", status: "failed", attemptCount: 3, createdAt: "", updatedAt: "" },
+      {
+        id: "d-1",
+        eventId: "evt-1",
+        ruleId: "r",
+        channelId: "chan-1",
+        status: "succeeded",
+        attemptCount: 1,
+        createdAt: "",
+        updatedAt: "",
+      },
+      {
+        id: "d-2",
+        eventId: "evt-1",
+        ruleId: "r",
+        channelId: "chan-1",
+        status: "failed",
+        attemptCount: 3,
+        createdAt: "",
+        updatedAt: "",
+      },
     ]);
     await resumePendingNotificationDeliveries(storage);
     expect(fetchMock).not.toHaveBeenCalled();

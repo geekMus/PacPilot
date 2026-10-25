@@ -149,7 +149,8 @@ function jumpToLine(lineNumber: number) {
   editor.contentDOM.focus({ preventScroll: true });
 
   const ensureLineVisible = () => {
-    if (editorField.value?.getEditorView() !== editor || lineNumber > editor.state.doc.lines) return;
+    if (editorField.value?.getEditorView() !== editor || lineNumber > editor.state.doc.lines)
+      return;
     const line = editor.state.doc.line(lineNumber);
     const coords = editor.coordsAtPos(line.from);
     if (!coords) return;
@@ -281,7 +282,6 @@ watch(
   },
   { deep: true }
 );
-
 </script>
 
 <template>

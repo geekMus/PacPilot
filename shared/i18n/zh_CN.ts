@@ -6,7 +6,8 @@ export default {
     mainNav: "主导航",
   },
   serverErrors: {
-    versionMismatch: "当前后端不支持保存并生成工作流，前后端版本不匹配。请停止旧版进程，从项目根目录更新并重启。本次请求未保存配置或生成 PAC；请核对设置后重试。",
+    versionMismatch:
+      "当前后端不支持保存并生成工作流，前后端版本不匹配。请停止旧版进程，从项目根目录更新并重启。本次请求未保存配置或生成 PAC；请核对设置后重试。",
     invalidTimezone: "时区无效，请填写有效的 IANA 时区，例如 Asia/Shanghai。",
     invalidCron: "Cron 表达式无效，请使用 5 段格式：分 时 日 月 周。",
     activeWorkflowHistory: "工作流正在排队或执行中，无法清空执行历史。请等所有任务结束后重试。",
@@ -23,7 +24,8 @@ export default {
   gen: {
     success: {
       remote: {
-        gfwlist: "生成成功（远程规则：GFWList（Base64），代理域名 {proxy} 条，例外直连 {direct} 条）",
+        gfwlist:
+          "生成成功（远程规则：GFWList（Base64），代理域名 {proxy} 条，例外直连 {direct} 条）",
         abp: "生成成功（远程规则：AutoProxy / ABP，代理域名 {proxy} 条，例外直连 {direct} 条）",
         plain: "生成成功（远程规则：明文域名列表，代理域名 {proxy} 条，例外直连 {direct} 条）",
       },
@@ -296,11 +298,13 @@ export default {
     secureLogin: "安全登录",
     pageTitle: "管理你的 PAC 配置",
     pageDesc: "登录后可以切换生成模式、维护直连和黑名单、设置定时生成，并管理 Webhook 通知。",
-    securityNote: "首次启动时，随机管理员密码会输出到服务日志。忘记密码时，可使用密码重置命令生成新密码。",
+    securityNote:
+      "首次启动时，随机管理员密码会输出到服务日志。忘记密码时，可使用密码重置命令生成新密码。",
     backendLogin: "后台登录",
     enterPassword: "输入管理密码以继续",
     loginFailed: "登录失败，请重试。",
-    adminCredentialsMissing: "尚未创建管理员凭据。请使用密码重置命令生成管理员密码，再刷新此页面登录。",
+    adminCredentialsMissing:
+      "尚未创建管理员凭据。请使用密码重置命令生成管理员密码，再刷新此页面登录。",
   },
   system: {
     title: "系统设置",
@@ -369,7 +373,8 @@ export default {
     cannotJudge: "暂时无法判断",
     pacUnavailable: "当前 PAC 状态不可用，请先生成并刷新 PAC。",
     directTitle: "直连",
-    directLocalDetail: "命中 PAC 的 localhost、无点号主机名或 IPv4 回环 / RFC 1918 私网地址直连规则。",
+    directLocalDetail:
+      "命中 PAC 的 localhost、无点号主机名或 IPv4 回环 / RFC 1918 私网地址直连规则。",
     sourceLocal: "本地 / 内网规则",
     blockTitle: "黑名单拦截",
     blockDetail: "命中自定义黑名单；按照 PAC 的规则顺序，该结果优先于直连和远程列表。",
@@ -394,10 +399,14 @@ export default {
     },
     notice: {
       empty: "还没有生成 proxy.pac。前往配置管理设置规则并生成 PAC。",
-      custom: "本地/内网地址优先直连；之后检查黑名单与自定义直连列表，其他请求使用默认代理：{proxy}",
-      remote: "自定义黑名单 {block} 条、自定义直连 {direct} 条优先生效；随后匹配远程例外直连与代理列表，其余流量直连。",
-      customParseError: "无法完整读取 PAC 规则摘要。仍可直接查看 PAC 文件内容；摘要解析失败不代表生成文件中的规则失效。",
-      other: "当前文件不属于已识别的 PacPilot 模板，因此无法可靠展示规则数量。可以打开 PAC 文件，检查其实际内容与逻辑。",
+      custom:
+        "本地/内网地址优先直连；之后检查黑名单与自定义直连列表，其他请求使用默认代理：{proxy}",
+      remote:
+        "自定义黑名单 {block} 条、自定义直连 {direct} 条优先生效；随后匹配远程例外直连与代理列表，其余流量直连。",
+      customParseError:
+        "无法完整读取 PAC 规则摘要。仍可直接查看 PAC 文件内容；摘要解析失败不代表生成文件中的规则失效。",
+      other:
+        "当前文件不属于已识别的 PacPilot 模板，因此无法可靠展示规则数量。可以打开 PAC 文件，检查其实际内容与逻辑。",
     },
   },
   footer: {
@@ -539,7 +548,8 @@ export default {
     timezone: "时区",
     timezoneSearch: "搜索时区名称或代码，例如中国标准时间、Asia/Tokyo",
     timezoneNoMatch: "没有匹配项；可以直接输入有效的 IANA 时区名称。",
-    timezoneHintFull: "可按地区名称或 IANA 时区代码搜索，也可直接输入有效的时区代码。该设置统一用于定时任务、运行记录和 Webhook 通知的时间显示。",
+    timezoneHintFull:
+      "可按地区名称或 IANA 时区代码搜索，也可直接输入有效的时区代码。该设置统一用于定时任务、运行记录和 Webhook 通知的时间显示。",
     timezoneInvalid: "时区无效，请使用有效的 IANA 时区名称，例如 Asia/Tokyo。",
     startMode: "启动模式",
     startModeDesc: "选择 PAC 如何生成",
@@ -557,7 +567,8 @@ export default {
     proxyAndRemoteDesc: "设置默认代理字符串，并指定远程规则列表来源",
     pacProxy: "PAC 代理字符串",
     pacProxyRequired: "请填写 PAC 代理字符串。",
-    pacProxyHintFull: "每个代理项用分号分隔。支持 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 和 DIRECT；代理地址必须填写端口，例如 SOCKS5 127.0.0.1:1080; DIRECT。",
+    pacProxyHintFull:
+      "每个代理项用分号分隔。支持 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 和 DIRECT；代理地址必须填写端口，例如 SOCKS5 127.0.0.1:1080; DIRECT。",
     listUrlLabel: "规则列表 URL",
     listUrlLabHint: "GFWList / 域名型 AutoProxy、ABP / 明文域名",
     listUrlDescFull: "按提取出的域名进行匹配；URL 路径、资源类型等复杂过滤条件不会保留。",
@@ -565,12 +576,14 @@ export default {
     listUrlRequired: "远程列表模式需要填写规则列表 URL。",
     listUrlInvalid: "规则列表 URL 格式无效，请使用完整的 HTTP(S) 地址，且不要嵌入用户名或密码。",
     compressPac: "压缩 PAC",
-    compressPacHintFull: "开启后，无论启动模式和规则来源，生成完成的 PAC 都会去除注释与多余缩进；关闭后保留完整的可读格式。",
+    compressPacHintFull:
+      "开启后，无论启动模式和规则来源，生成完成的 PAC 都会去除注释与多余缩进；关闭后保留完整的可读格式。",
     customRulesTitle: "自定义规则",
     customRulesDesc: "直连与黑名单在「自定义」和「远程列表」两种模式下都会生效",
     howToConfig: "如何配置？生效顺序说明",
     writing: "写法：",
-    writingFull: "每行填写一条域名规则。example.com 仅匹配该域名本身；*.example.com 仅匹配其子域名；**.example.com 同时匹配主域名和所有子域名。自定义直连与黑名单列表不支持注释行，请只填写规则，不要添加说明文字。",
+    writingFull:
+      "每行填写一条域名规则。example.com 仅匹配该域名本身；*.example.com 仅匹配其子域名；**.example.com 同时匹配主域名和所有子域名。自定义直连与黑名单列表不支持注释行，请只填写规则，不要添加说明文字。",
     directListLabel: "直连列表：",
     directHit: "命中后返回 DIRECT（不走代理）。",
     blockListLabel: "黑名单：",
@@ -584,7 +597,8 @@ export default {
     matchRemote: "若为远程列表模式：再匹配远程规则（列表中的域名走代理，列表内例外直连）",
     matchCustomRest: "自定义模式剩余流量走 PAC 代理字符串；远程列表模式剩余流量默认直连",
     modeCustomHint: "使用直连 / 黑名单列表，默认走代理；内网始终直连。",
-    modeRemoteHint: "从远程规则列表生成 PAC；匹配到代理域名时走代理，例外及未命中域名直连。自定义规则优先。",
+    modeRemoteHint:
+      "从远程规则列表生成 PAC；匹配到代理域名时走代理，例外及未命中域名直连。自定义规则优先。",
     cronOff: "关闭",
     cronOffHint: "不定时更新",
     cronHourly: "每小时",
@@ -614,7 +628,8 @@ export default {
     webhookBodyError: "{label}请求 Body：{error}",
     webhookTestBodyError: "{label}测试请求 Body：{error}",
     webhookHeadersError: "{label}额外请求头必须是 JSON 对象。",
-    headersTransport: "请求头包含不允许覆盖的传输字段或换行字符；Content-Type 固定为 application/json。",
+    headersTransport:
+      "请求头包含不允许覆盖的传输字段或换行字符；Content-Type 固定为 application/json。",
     headersJsonError: "{label}额外请求头 JSON 语法错误，请检查括号、引号和逗号。",
     headersMustStrings: "{label}请求头必须是名称和值均为字符串的 JSON 对象。",
     dingTalkUrl: "{label}钉钉 URL 必须是有效的 HTTP(S) 地址。",
@@ -622,7 +637,8 @@ export default {
     dingTalkSecret: "{label}钉钉机器人必须填写 Secret 加签密钥。",
     dingTalkSecretNeedsUrl: "{label}填写 Secret 前，请先填写机器人 Webhook URL。",
     proxySemicolon: "代理项之间请使用分号分隔，不能包含空代理项。",
-    proxyItemInvalid: "第 {n} 项“{item}”格式无效。请使用 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 或 DIRECT 指令。",
+    proxyItemInvalid:
+      "第 {n} 项“{item}”格式无效。请使用 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 或 DIRECT 指令。",
     proxyHostInvalid: "第 {n} 项代理地址格式无效，请使用 host:port；IPv6 地址请写成 [IPv6]:port。",
     proxyPortInvalid: "第 {n} 项端口无效，端口范围必须是 1–65535。",
     proxyIpv6Invalid: "第 {n} 项的 IPv6 地址无效。",
@@ -637,7 +653,8 @@ export default {
     changingPassword: "正在修改…",
     changePasswordTitle: "修改管理密码",
     enterCurrentPassword: "请输入当前管理密码。",
-    resetHelpFull: "忘记密码时，可根据部署方式重置：本机开发运行对应脚本；非容器生产部署运行 bun run reset:admin-password:production；Docker 部署仍可在容器内运行原重置命令。脚本会显示实际数据库路径，且不会在数据库不存在时创建空库。",
+    resetHelpFull:
+      "忘记密码时，可根据部署方式重置：本机开发运行对应脚本；非容器生产部署运行 bun run reset:admin-password:production；Docker 部署仍可在容器内运行原重置命令。脚本会显示实际数据库路径，且不会在数据库不存在时创建空库。",
     resetHelpLink: "查看完整重置说明 ↗",
     newPasswordPlaceholder: "输入新密码（不限制长度或复杂度）",
     scheduleOnly: "定时任务",
@@ -649,8 +666,10 @@ export default {
     validationIssues: "配置存在校验问题，点击定位到错误",
     ruleCheckSummary: "规则检查：{errors} 个错误，{warnings} 条提示",
     ruleCheckFixErrors: "请先修正规则格式错误；格式错误会阻止保存。",
-    ruleCheckHints: "提示包含重复、可能冗余及直连/黑名单匹配范围重叠。重叠不会自动修改；黑名单优先于直连列表。",
-    defaultMessageTemplate: "PacPilot 通知\n事件：{{event}}\n状态：{{status}}\n时间：{{timestamp}}\n详情：{{message}}",
+    ruleCheckHints:
+      "提示包含重复、可能冗余及直连/黑名单匹配范围重叠。重叠不会自动修改；黑名单优先于直连列表。",
+    defaultMessageTemplate:
+      "PacPilot 通知\n事件：{{event}}\n状态：{{status}}\n时间：{{timestamp}}\n详情：{{message}}",
     testMessageTemplate: "PacPilot 测试通知\n时间：{{timestamp}}\n结果：{{message}}",
     tzShanghai: "中国标准时间（UTC+08:00）",
     tzTaipei: "中国台湾 · 台北",
@@ -792,7 +811,8 @@ export default {
     lastHourCount: "近 1 小时 {n} 次",
     peakPerHour: "峰值 {n} 次/小时",
     matchCount: "匹配 {filtered} / {total} 条",
-    accessLoadedHint: "已加载 {loaded} / {total} 条；筛选只作用于已加载记录。访问日志最多保留 7 天且上限为 5,000 条。点击行可查看完整请求详情等信息。",
+    accessLoadedHint:
+      "已加载 {loaded} / {total} 条；筛选只作用于已加载记录。访问日志最多保留 7 天且上限为 5,000 条。点击行可查看完整请求详情等信息。",
   },
   systemPage: {
     k0: "正在读取系统设置，请稍候",
@@ -1057,7 +1077,8 @@ export default {
     k40: "自定义直连优先于远程列表；蓝色来源标签代表远程规则中的例外直连。",
     k41: "红色来源标签代表自定义黑名单；localhost、无点号主机名及 IPv4 回环 / RFC 1918\n                私网直连规则优先。",
     checking: "正在检查当前 PAC 文件和生成模式。",
-    emptyHint: "先进入后台管理，在配置页面设置启动模式和规则，然后点击「保存并生成 PAC」。生成后，这里会显示可识别的规则摘要。",
+    emptyHint:
+      "先进入后台管理，在配置页面设置启动模式和规则，然后点击「保存并生成 PAC」。生成后，这里会显示可识别的规则摘要。",
     remoteDirectCaption: "自定义直连与远程例外直连",
   },
   webhookBody: {
@@ -1083,8 +1104,10 @@ export default {
     scrollOrLoad: "滚动以加载更多，或",
   },
   domainRuleDiag: {
-    unsupportedWildcard: "不支持此通配符写法；请使用 example.com、*.example.com 或 **.example.com。",
-    invalidDomain: "域名格式无效。请填写有效的完整域名，不能包含协议、路径、端口或空格；通配符仅用于域名。",
+    unsupportedWildcard:
+      "不支持此通配符写法；请使用 example.com、*.example.com 或 **.example.com。",
+    invalidDomain:
+      "域名格式无效。请填写有效的完整域名，不能包含协议、路径、端口或空格；通配符仅用于域名。",
     duplicateLine: "与第 {line} 行重复（{label}），可考虑删除其中一条。",
     coveredByLine: "该规则已被第 {line} 行覆盖，可能冗余。",
     mergeEquivalent: "第 {exact} 行与第 {subdomains} 行合并后等价于 **.{host}。",
@@ -1094,4 +1117,4 @@ export default {
     directList: "直连列表",
     blockList: "黑名单",
   },
-}
+};

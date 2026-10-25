@@ -33,7 +33,6 @@
 - 前端和后端分别维护自己的 Vitest 配置、测试发现范围和覆盖率报告；不要把前后端单测放回仓库根目录的统一 `tests/` 目录。
 - 新增或迁移测试后，必须同步检查对应 Vitest 配置、`package.json` 测试脚本、TypeScript 检查范围和开发文档；验证 `bun run test` 能运行两套测试与覆盖率门槛。
 
-
 ## 前端组件分层与编辑器规范
 
 - `client/src/components/` 只放跨页面通用组件；业务专属组件放在 `client/src/features/<feature>/components/`，页面组件负责组合而不是复制通用组件实现。

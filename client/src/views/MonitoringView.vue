@@ -173,7 +173,9 @@ const {
               <h2 id="pac-overview-title">
                 <AppIcon name="route" :size="17" />{{ t("monitor.k66") }}
               </h2>
-              <p>{{ t("monitor.k67") }} <code>{{ pacUrl() }}</code> {{ t("monitor.k68") }}</p>
+              <p>
+                {{ t("monitor.k67") }} <code>{{ pacUrl() }}</code> {{ t("monitor.k68") }}
+              </p>
             </div>
             <span class="panel-count">{{ t("monitor.k69") }}</span>
           </div>

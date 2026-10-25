@@ -89,8 +89,8 @@ volumes:
 | 页面或资源     | 地址                                              |
 | -------------- | ------------------------------------------------- |
 | 公共状态页     | `http://<服务器地址>:17321/`                      |
-| PAC 源码       | `http://<服务器地址>:17321/pac`             |
-| 下载 PAC       | `http://<服务器地址>:17321/pac?download=1`  |
+| PAC 源码       | `http://<服务器地址>:17321/pac`                   |
+| 下载 PAC       | `http://<服务器地址>:17321/pac?download=1`        |
 | 后台总览       | `http://<服务器地址>:17321/admin/dashboard`       |
 | 生成配置       | `http://<服务器地址>:17321/admin/settings`        |
 | 网络监控       | `http://<服务器地址>:17321/admin/monitor`         |
@@ -133,12 +133,12 @@ bun run build:client
 
 ### 3. 平台注意事项
 
-| 平台 | 方式 |
-| --- | --- |
+| 平台             | 方式                                                         |
+| ---------------- | ------------------------------------------------------------ |
 | Cloudflare Pages | 直接上传 `dist/client`；`config.json` 与 `index.html` 同目录 |
-| Vercel | 静态站点，Output Directory 指向 `dist/client` |
-| Netlify | Publish directory 指向 `dist/client` |
-| 对象存储 / Nginx | 需要为 SPA 回退到 `index.html` |
+| Vercel           | 静态站点，Output Directory 指向 `dist/client`                |
+| Netlify          | Publish directory 指向 `dist/client`                         |
+| 对象存储 / Nginx | 需要为 SPA 回退到 `index.html`                               |
 
 ### 4. 校验清单
 

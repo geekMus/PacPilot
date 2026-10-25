@@ -63,7 +63,9 @@ const {
           <div>
             <span>{{ t("notifications.dialogPhase") }}</span
             ><strong>{{
-              deliveryEvent(selectedDelivery) ? phaseName(deliveryEvent(selectedDelivery)!.phase) : "—"
+              deliveryEvent(selectedDelivery)
+                ? phaseName(deliveryEvent(selectedDelivery)!.phase)
+                : "—"
             }}</strong>
           </div>
           <div>

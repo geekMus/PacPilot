@@ -67,15 +67,32 @@ onUnmounted(() => resizeObserver?.disconnect());
 <template>
   <div class="app-table-frame" :class="{ 'is-empty': props.empty }" :style="frameStyle">
     <div class="app-table-header-viewport">
-      <table class="app-table virtual-table" :class="props.tableClass" :style="{ transform: `translateX(-${headerOffset}px)` }">
-        <colgroup><slot name="columns" /></colgroup>
-        <thead><slot name="header" /></thead>
+      <table
+        class="app-table virtual-table"
+        :class="props.tableClass"
+        :style="{ transform: `translateX(-${headerOffset}px)` }"
+      >
+        <colgroup>
+          <slot name="columns" />
+        </colgroup>
+        <thead>
+          <slot name="header" />
+        </thead>
       </table>
     </div>
-    <AppScrollArea root-class="app-table-body-scroll" orientation="both" @ready="onReady" @scroll="onScroll">
+    <AppScrollArea
+      root-class="app-table-body-scroll"
+      orientation="both"
+      @ready="onReady"
+      @scroll="onScroll"
+    >
       <table class="app-table virtual-table" :class="props.tableClass">
-        <colgroup><slot name="columns" /></colgroup>
-        <tbody><slot name="body" /></tbody>
+        <colgroup>
+          <slot name="columns" />
+        </colgroup>
+        <tbody>
+          <slot name="body" />
+        </tbody>
       </table>
     </AppScrollArea>
   </div>

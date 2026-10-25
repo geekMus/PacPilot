@@ -8,7 +8,8 @@ import { useI18n } from "vue-i18n";
 import BrandMark from "@/components/BrandMark.vue";
 import AppScrollArea from "@/components/AppScrollArea.vue";
 
-type AdminSection = "dashboard" | "settings" | "system-settings" | "monitor" | "workflow" | "logs" | "notifications";
+type AdminSection =
+  "dashboard" | "settings" | "system-settings" | "monitor" | "workflow" | "logs" | "notifications";
 const props = defineProps<{ active: AdminSection; open: boolean }>();
 const { t } = useI18n();
 const router = useRouter();
@@ -51,133 +52,140 @@ async function logout(): Promise<void> {
 </script>
 
 <template>
-    <aside class="admin-sidebar" :class="{ 'is-open': props.open }">
-      <div class="sidebar-brand" :aria-label="t('app.projectName')">
-        <BrandMark :size="40" />
-        <span class="brand-copy">
-          <strong>PacPilot</strong>
-          <small>{{ t("layout.adminConsole") }}</small>
-        </span>
+  <aside class="admin-sidebar" :class="{ 'is-open': props.open }">
+    <div class="sidebar-brand" :aria-label="t('app.projectName')">
+      <BrandMark :size="40" />
+      <span class="brand-copy">
+        <strong>PacPilot</strong>
+        <small>{{ t("layout.adminConsole") }}</small>
+      </span>
+    </div>
+
+    <AppScrollArea
+      root-class="sidebar-nav"
+      orientation="vertical"
+      role="navigation"
+      :aria-label="t('layout.adminConsole')"
+    >
+      <section class="nav-group" aria-labelledby="nav-workbench">
+        <p id="nav-workbench" class="nav-caption">{{ t("layout.workbench") }}</p>
+        <RouterLink
+          to="/admin/dashboard"
+          class="sidebar-link"
+          :class="{ active: props.active === 'dashboard' }"
+          :aria-current="props.active === 'dashboard' ? 'page' : undefined"
+        >
+          <AppIcon name="layout-dashboard" :size="18" />
+          <span>{{ t("nav.dashboard") }}</span>
+        </RouterLink>
+        <RouterLink
+          to="/admin/monitor"
+          class="sidebar-link"
+          :class="{ active: props.active === 'monitor' }"
+          :aria-current="props.active === 'monitor' ? 'page' : undefined"
+        >
+          <AppIcon name="activity" :size="18" />
+          <span>{{ t("nav.monitor") }}</span>
+        </RouterLink>
+        <RouterLink
+          to="/admin/logs"
+          class="sidebar-link"
+          :class="{ active: props.active === 'logs' }"
+          :aria-current="props.active === 'logs' ? 'page' : undefined"
+        >
+          <AppIcon name="file-text" :size="18" />
+          <span>{{ t("nav.logs") }}</span>
+        </RouterLink>
+        <RouterLink
+          to="/admin/notifications"
+          class="sidebar-link"
+          :class="{ active: props.active === 'notifications' }"
+          :aria-current="props.active === 'notifications' ? 'page' : undefined"
+        >
+          <AppIcon name="zap" :size="18" />
+          <span>{{ t("nav.notifications") }}</span>
+        </RouterLink>
+      </section>
+
+      <section class="nav-group" aria-labelledby="nav-business">
+        <p id="nav-business" class="nav-caption">{{ t("layout.navBusiness") }}</p>
+        <RouterLink
+          to="/admin/settings"
+          class="sidebar-link"
+          :class="{ active: props.active === 'settings' }"
+          :aria-current="props.active === 'settings' ? 'page' : undefined"
+        >
+          <AppIcon name="sliders-horizontal" :size="18" />
+          <span>{{ t("nav.settings") }}</span>
+        </RouterLink>
+        <RouterLink
+          to="/admin/workflows"
+          class="sidebar-link"
+          :class="{ active: props.active === 'workflow' }"
+          :aria-current="props.active === 'workflow' ? 'page' : undefined"
+        >
+          <AppIcon name="workflow" :size="18" />
+          <span>{{ t("nav.workflow") }}</span>
+        </RouterLink>
+      </section>
+
+      <section class="nav-group" aria-labelledby="nav-system">
+        <p id="nav-system" class="nav-caption">{{ t("layout.navSystem") }}</p>
+        <RouterLink
+          to="/admin/system-settings"
+          class="sidebar-link"
+          :class="{ active: props.active === 'system-settings' }"
+          :aria-current="props.active === 'system-settings' ? 'page' : undefined"
+        >
+          <AppIcon name="settings-2" :size="18" />
+          <span>{{ t("nav.systemSettings") }}</span>
+        </RouterLink>
+      </section>
+
+      <section class="nav-group" aria-labelledby="nav-services">
+        <p id="nav-services" class="nav-caption">{{ t("nav.services") }}</p>
+        <RouterLink to="/" class="sidebar-link">
+          <AppIcon name="globe" :size="18" />
+          <span>{{ t("nav.publicStatus") }}</span>
+        </RouterLink>
+      </section>
+    </AppScrollArea>
+
+    <div class="sidebar-bottom">
+      <div class="sidebar-status">
+        <span class="status-dot" :class="{ offline: !backendOnline }"></span>
+        <span>{{
+          backendOnline ? t("layout.adminConnected") : t("layout.backendUnreachable")
+        }}</span>
       </div>
-
-      <AppScrollArea root-class="sidebar-nav" orientation="vertical" role="navigation" :aria-label="t('layout.adminConsole')">
-        <section class="nav-group" aria-labelledby="nav-workbench">
-          <p id="nav-workbench" class="nav-caption">{{ t("layout.workbench") }}</p>
-          <RouterLink
-            to="/admin/dashboard"
-            class="sidebar-link"
-            :class="{ active: props.active === 'dashboard' }"
-            :aria-current="props.active === 'dashboard' ? 'page' : undefined"
-          >
-            <AppIcon name="layout-dashboard" :size="18" />
-            <span>{{ t("nav.dashboard") }}</span>
-          </RouterLink>
-          <RouterLink
-            to="/admin/monitor"
-            class="sidebar-link"
-            :class="{ active: props.active === 'monitor' }"
-            :aria-current="props.active === 'monitor' ? 'page' : undefined"
-          >
-            <AppIcon name="activity" :size="18" />
-            <span>{{ t("nav.monitor") }}</span>
-          </RouterLink>
-          <RouterLink
-            to="/admin/logs"
-            class="sidebar-link"
-            :class="{ active: props.active === 'logs' }"
-            :aria-current="props.active === 'logs' ? 'page' : undefined"
-          >
-            <AppIcon name="file-text" :size="18" />
-            <span>{{ t("nav.logs") }}</span>
-          </RouterLink>
-          <RouterLink
-            to="/admin/notifications"
-            class="sidebar-link"
-            :class="{ active: props.active === 'notifications' }"
-            :aria-current="props.active === 'notifications' ? 'page' : undefined"
-          >
-            <AppIcon name="zap" :size="18" />
-            <span>{{ t("nav.notifications") }}</span>
-          </RouterLink>
-        </section>
-
-        <section class="nav-group" aria-labelledby="nav-business">
-          <p id="nav-business" class="nav-caption">{{ t("layout.navBusiness") }}</p>
-          <RouterLink
-            to="/admin/settings"
-            class="sidebar-link"
-            :class="{ active: props.active === 'settings' }"
-            :aria-current="props.active === 'settings' ? 'page' : undefined"
-          >
-            <AppIcon name="sliders-horizontal" :size="18" />
-            <span>{{ t("nav.settings") }}</span>
-          </RouterLink>
-          <RouterLink
-            to="/admin/workflows"
-            class="sidebar-link"
-            :class="{ active: props.active === 'workflow' }"
-            :aria-current="props.active === 'workflow' ? 'page' : undefined"
-          >
-            <AppIcon name="workflow" :size="18" />
-            <span>{{ t("nav.workflow") }}</span>
-          </RouterLink>
-        </section>
-
-        <section class="nav-group" aria-labelledby="nav-system">
-          <p id="nav-system" class="nav-caption">{{ t("layout.navSystem") }}</p>
-          <RouterLink
-            to="/admin/system-settings"
-            class="sidebar-link"
-            :class="{ active: props.active === 'system-settings' }"
-            :aria-current="props.active === 'system-settings' ? 'page' : undefined"
-          >
-            <AppIcon name="settings-2" :size="18" />
-            <span>{{ t("nav.systemSettings") }}</span>
-          </RouterLink>
-        </section>
-
-        <section class="nav-group" aria-labelledby="nav-services">
-          <p id="nav-services" class="nav-caption">{{ t("nav.services") }}</p>
-          <RouterLink to="/" class="sidebar-link">
-            <AppIcon name="globe" :size="18" />
-            <span>{{ t("nav.publicStatus") }}</span>
-          </RouterLink>
-        </section>
-      </AppScrollArea>
-
-      <div class="sidebar-bottom">
-        <div class="sidebar-status">
-          <span class="status-dot" :class="{ offline: !backendOnline }"></span>
-          <span>{{ backendOnline ? t("layout.adminConnected") : t("layout.backendUnreachable") }}</span>
+      <dl class="sidebar-backend">
+        <div>
+          <dt>{{ t("layout.backendVersion") }}</dt>
+          <dd>{{ backendInfo?.version || "—" }}</dd>
         </div>
-        <dl class="sidebar-backend">
-          <div>
-            <dt>{{ t("layout.backendVersion") }}</dt>
-            <dd>{{ backendInfo?.version || "—" }}</dd>
-          </div>
-          <div>
-            <dt>{{ t("layout.backendStorage") }}</dt>
-            <dd>{{ storageLabel }}</dd>
-          </div>
-        </dl>
-        <div class="sidebar-controls">
-          <button
-            type="button"
-            class="sidebar-logout-button"
-            :disabled="logoutBusy"
-            :title="logoutBusy ? t('layout.loggingOutTitle') : t('layout.logoutTitle')"
-            @click="logout"
-          >
-            <AppIcon
-              :name="logoutBusy ? 'loader-circle' : 'log-out'"
-              :size="16"
-              :class="{ 'icon-spinning': logoutBusy }"
-            />
-            {{ logoutBusy ? t("layout.loggingOut") : t("nav.logout") }}
-          </button>
+        <div>
+          <dt>{{ t("layout.backendStorage") }}</dt>
+          <dd>{{ storageLabel }}</dd>
         </div>
+      </dl>
+      <div class="sidebar-controls">
+        <button
+          type="button"
+          class="sidebar-logout-button"
+          :disabled="logoutBusy"
+          :title="logoutBusy ? t('layout.loggingOutTitle') : t('layout.logoutTitle')"
+          @click="logout"
+        >
+          <AppIcon
+            :name="logoutBusy ? 'loader-circle' : 'log-out'"
+            :size="16"
+            :class="{ 'icon-spinning': logoutBusy }"
+          />
+          {{ logoutBusy ? t("layout.loggingOut") : t("nav.logout") }}
+        </button>
       </div>
-    </aside>
+    </div>
+  </aside>
 </template>
 
 <style scoped>

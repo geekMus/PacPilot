@@ -14,7 +14,9 @@ const { t } = useI18n();
       <h1 class="page-title">{{ t("notFound.title") }}</h1>
       <p>{{ t("notFound.desc") }}</p>
       <div class="not-found-actions">
-        <RouterLink class="app-button app-button--primary" to="/">{{ t("notFound.backStatus") }}</RouterLink>
+        <RouterLink class="app-button app-button--primary" to="/">{{
+          t("notFound.backStatus")
+        }}</RouterLink>
         <RouterLink class="app-button app-button--secondary" to="/admin/dashboard">{{
           t("notFound.admin")
         }}</RouterLink>

@@ -459,4 +459,3 @@ export async function warmPacCache(
     runtimeLog("error", "Unable to warm the PAC cache: " + message);
   }
 }
-

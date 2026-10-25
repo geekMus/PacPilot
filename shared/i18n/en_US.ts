@@ -6,26 +6,35 @@ export default {
     mainNav: "Main navigation",
   },
   serverErrors: {
-    versionMismatch: "The backend does not expose the save-and-generate endpoint (frontend/backend version mismatch). Stop old PacPilot processes, update to the latest code, and restart from the project root. This request did not save or generate; verify settings and retry.",
+    versionMismatch:
+      "The backend does not expose the save-and-generate endpoint (frontend/backend version mismatch). Stop old PacPilot processes, update to the latest code, and restart from the project root. This request did not save or generate; verify settings and retry.",
     invalidTimezone: "Invalid time zone. Enter a valid IANA time zone, such as Asia/Shanghai.",
     invalidCron: "Invalid cron expression. Use the 5-field form: minute hour day month weekday.",
-    activeWorkflowHistory: "Workflow history cannot be cleared while a workflow is queued or running. Try again when all tasks finish.",
+    activeWorkflowHistory:
+      "Workflow history cannot be cleared while a workflow is queued or running. Try again when all tasks finish.",
     invalidWorkflowId: "Invalid workflow id.",
     workflowNotFound: "Workflow run not found.",
-    workflowCannotCancel: "This workflow has started or finished and can no longer be cancelled from the queue.",
+    workflowCannotCancel:
+      "This workflow has started or finished and can no longer be cancelled from the queue.",
     workflowCannotDelete: "A queued or running workflow cannot be deleted.",
     workflowCancelled: "The workflow was cancelled while waiting in the queue.",
-    activeWorkflowPacDelete: "PAC files cannot be deleted while a workflow is queued or running. Try again when it finishes.",
-    invalidFactoryResetConfirmation: "The factory-reset confirmation is invalid. Refresh the page and try again.",
-    activeWorkflowFactoryReset: "A workflow is running. Wait for it to finish before restoring defaults.",
-    factoryResetCompleted: "Default settings were restored and runtime records were cleared. The admin password was unchanged.",
+    activeWorkflowPacDelete:
+      "PAC files cannot be deleted while a workflow is queued or running. Try again when it finishes.",
+    invalidFactoryResetConfirmation:
+      "The factory-reset confirmation is invalid. Refresh the page and try again.",
+    activeWorkflowFactoryReset:
+      "A workflow is running. Wait for it to finish before restoring defaults.",
+    factoryResetCompleted:
+      "Default settings were restored and runtime records were cleared. The admin password was unchanged.",
   },
   gen: {
     success: {
       remote: {
-        gfwlist: "Generated successfully (remote rules: GFWList (Base64), {proxy} proxy hosts, {direct} direct exceptions)",
+        gfwlist:
+          "Generated successfully (remote rules: GFWList (Base64), {proxy} proxy hosts, {direct} direct exceptions)",
         abp: "Generated successfully (remote rules: AutoProxy / ABP, {proxy} proxy hosts, {direct} direct exceptions)",
-        plain: "Generated successfully (remote rules: plain domain list, {proxy} proxy hosts, {direct} direct exceptions)",
+        plain:
+          "Generated successfully (remote rules: plain domain list, {proxy} proxy hosts, {direct} direct exceptions)",
       },
       custom: {
         compressed: "Generated successfully (custom rules mode, compressed)",
@@ -57,7 +66,8 @@ export default {
     channelsTitle: "Notification channels",
     workspace: "Notification workspace",
     eventDriven: "Event-driven notifications",
-    workspaceHint: "From business events to sent notifications — manage channels, rules, and delivery logs in one place.",
+    workspaceHint:
+      "From business events to sent notifications — manage channels, rules, and delivery logs in one place.",
     stateReady: "Notification rules configured",
     stateSetup: "Finish the basic setup to enable notifications",
     stateHint: "Event driven · multi-channel",
@@ -173,7 +183,8 @@ export default {
     hintBodyJson: "The body must be valid JSON; event variables are interpolated automatically.",
     hintSubjectType: "For example task, configuration, or request. Empty means any subject type.",
     hintTargetsSummary: "Will be sent to {count} channels: {names}.",
-    hintChannelIncomplete: "A URL is required; DingTalk channels also need a valid bot configuration before testing.",
+    hintChannelIncomplete:
+      "A URL is required; DingTalk channels also need a valid bot configuration before testing.",
     toggleChannel: "Enable this channel",
     toggleChannelHint: "Matching rules can deliver to this target once enabled.",
     toggleRule: "Enable this rule",
@@ -215,7 +226,8 @@ export default {
     buttonSaving: "Saving…",
     deleteChannelTitle: "Delete channel {name}",
     deleteRuleTitle: "Delete rule {name}",
-    confirmDeleteChannel: "Delete notification channel “{name}”? A channel referenced by rules cannot be deleted.",
+    confirmDeleteChannel:
+      "Delete notification channel “{name}”? A channel referenced by rules cannot be deleted.",
     confirmDeleteRule: "Delete notification rule “{name}”?",
     toastChannelSaved: "Notification channel saved",
     toastChannelDeleted: "Notification channel deleted",
@@ -287,7 +299,8 @@ export default {
     passwordChanged: "Admin password updated. Sign in with the new password.",
     connectFailed: "Unable to reach the service. Check that the backend is running.",
     invalidPassword: "Invalid admin password.",
-    footnote: "Do not save the admin password on shared devices. A password reset generates a new password; changing it again is optional.",
+    footnote:
+      "Do not save the admin password on shared devices. A password reset generates a new password; changing it again is optional.",
     resetHelp: "Cross-platform password reset instructions ↗",
     titleButton: "Sign in to admin",
     needPassword: "Enter the admin password to continue",
@@ -295,12 +308,15 @@ export default {
     verifying: "Verifying credentials…",
     secureLogin: "Secure sign-in",
     pageTitle: "Manage your PAC configuration",
-    pageDesc: "After signing in you can switch generation modes, maintain direct and block lists, schedule generation, and manage Webhook notifications.",
-    securityNote: "The randomly generated admin password is printed in the service startup logs. If you forget it, use the password reset command to generate a new one.",
+    pageDesc:
+      "After signing in you can switch generation modes, maintain direct and block lists, schedule generation, and manage Webhook notifications.",
+    securityNote:
+      "The randomly generated admin password is printed in the service startup logs. If you forget it, use the password reset command to generate a new one.",
     backendLogin: "Admin sign-in",
     enterPassword: "Enter the admin password to continue",
     loginFailed: "Sign-in failed. Please try again.",
-    adminCredentialsMissing: "Admin credentials have not been created. Run the password reset command to generate a one-time password, then refresh this page to sign in.",
+    adminCredentialsMissing:
+      "Admin credentials have not been created. Run the password reset command to generate a one-time password, then refresh this page to sign in.",
   },
   system: {
     title: "System settings",
@@ -365,14 +381,17 @@ export default {
     viewPac: "View PAC",
     downloadPac: "Download PAC",
     domainFormatInvalid: "Invalid domain format",
-    domainFormatDetail: "Enter a domain or full URL, for example example.com or https://example.com/path.",
+    domainFormatDetail:
+      "Enter a domain or full URL, for example example.com or https://example.com/path.",
     cannotJudge: "Unable to determine",
     pacUnavailable: "PAC status is unavailable. Generate and refresh the PAC first.",
     directTitle: "Direct",
-    directLocalDetail: "Matched PAC localhost, hostname without a dot, or IPv4 loopback / RFC 1918 private network direct rules.",
+    directLocalDetail:
+      "Matched PAC localhost, hostname without a dot, or IPv4 loopback / RFC 1918 private network direct rules.",
     sourceLocal: "Local / private network rules",
     blockTitle: "Block list",
-    blockDetail: "Matched the custom block list; by PAC rule order this result takes priority over direct and remote lists.",
+    blockDetail:
+      "Matched the custom block list; by PAC rule order this result takes priority over direct and remote lists.",
     sourceCustomBlock: "Custom block list",
     directCustomDetail: "Matched a custom direct rule, which takes priority over remote lists.",
     sourceCustomDirect: "Custom direct",
@@ -380,9 +399,11 @@ export default {
     sourceRemoteException: "Remote exception",
     proxyRemoteDetail: "Matched a domain on the remote proxy list.",
     sourceRemoteProxy: "Remote proxy list",
-    directRemoteDefaultDetail: "Did not match custom rules or the remote proxy list; in remote mode remaining domains default to direct.",
+    directRemoteDefaultDetail:
+      "Did not match custom rules or the remote proxy list; in remote mode remaining domains default to direct.",
     sourceRemoteDefault: "Remote mode default",
-    proxyDefaultDetail: "Did not match block or direct rules; will use the current default proxy: {proxy}.",
+    proxyDefaultDetail:
+      "Did not match block or direct rules; will use the current default proxy: {proxy}.",
     sourceDefaultProxy: "Default proxy unrecognized",
     sourceRemoteExceptionDirect: "Remote exception direct",
     mode: {
@@ -393,11 +414,16 @@ export default {
       empty: "PAC not generated",
     },
     notice: {
-      empty: "proxy.pac has not been generated. Open configuration, set up the rules, and generate the PAC file.",
-      custom: "Local and private-network hosts use direct access first; then block and custom direct rules are checked. Other requests use the default proxy: {proxy}",
-      remote: "The {block} custom block rules and {direct} custom direct rules take priority, followed by remote exceptions and proxy rules; all other traffic goes direct.",
-      customParseError: "The PAC rule summary could not be fully parsed. You can still view the PAC file; a parsing failure does not mean its rules are invalid.",
-      other: "This file is not a recognized PacPilot template, so rule counts cannot be shown reliably. Open the PAC file to inspect its content and behavior.",
+      empty:
+        "proxy.pac has not been generated. Open configuration, set up the rules, and generate the PAC file.",
+      custom:
+        "Local and private-network hosts use direct access first; then block and custom direct rules are checked. Other requests use the default proxy: {proxy}",
+      remote:
+        "The {block} custom block rules and {direct} custom direct rules take priority, followed by remote exceptions and proxy rules; all other traffic goes direct.",
+      customParseError:
+        "The PAC rule summary could not be fully parsed. You can still view the PAC file; a parsing failure does not mean its rules are invalid.",
+      other:
+        "This file is not a recognized PacPilot template, so rule counts cannot be shown reliably. Open the PAC file to inspect its content and behavior.",
     },
   },
   footer: {
@@ -413,9 +439,11 @@ export default {
     clickGetLatest: "Click to fetch the latest version",
     latestVersion: "Latest version",
     foundNew: "New version available: {version}",
-    outdated: "You are running an older version. Check the repository for the latest code and release notes.",
+    outdated:
+      "You are running an older version. Check the repository for the latest code and release notes.",
     checkingStatus: "Fetching the latest version…",
-    fetchFailed: "Failed to fetch the latest version. Click “Latest version” above to retry later. This does not affect PAC or admin features.",
+    fetchFailed:
+      "Failed to fetch the latest version. Click “Latest version” above to retry later. This does not affect PAC or admin features.",
     alreadyLatest: "You are already on the latest version.",
   },
   domainList: {
@@ -454,7 +482,8 @@ export default {
     countOne: "1 workflow",
     pacGeneration: "PAC generation workflow",
     pacGenerationDesc: "Generates a PAC file from the current configuration and records each run.",
-    idAndTriggers: "Id: pac-generation · Triggers: service start, scheduled task, manual generate, save & generate",
+    idAndTriggers:
+      "Id: pac-generation · Triggers: service start, scheduled task, manual generate, save & generate",
     readOnly: "Read-only",
     current: "Current workflow",
     fixedId: "Fixed workflow id: pac-generation",
@@ -517,7 +546,8 @@ export default {
     readingWorkflows: "Loading workflows…",
     noWorkflows: "No workflow runs yet.",
     trend24h: "Access trend (24h)",
-    trend24hDesc: "Hourly requests received by the app; bars are volume, overlay is errors. Hover for details.",
+    trend24hDesc:
+      "Hourly requests received by the app; bars are volume, overlay is errors. Hover for details.",
     detailMonitor: "Full monitor",
     trendAria: "Access trend for the last 24 hours",
     noTrendData: "No trend data yet; statistics appear after the service receives requests.",
@@ -535,20 +565,24 @@ export default {
     saveAndGenerate: "Save and generate PAC",
     savingAndGenerating: "Saving and generating PAC",
     general: "General",
-    generalDesc: "General options are stored in the database; you do not need to edit Docker environment variables.",
+    generalDesc:
+      "General options are stored in the database; you do not need to edit Docker environment variables.",
     timezone: "Time zone",
     timezoneSearch: "Search by time zone name or code, e.g. China Standard Time or Asia/Tokyo",
     timezoneNoMatch: "No matches. You can enter a valid IANA time zone directly.",
-    timezoneHintFull: "Search by region or IANA time zone code, or enter a valid code directly. This setting controls time display for scheduled tasks, run history, and Webhook notifications.",
+    timezoneHintFull:
+      "Search by region or IANA time zone code, or enter a valid code directly. This setting controls time display for scheduled tasks, run history, and Webhook notifications.",
     timezoneInvalid: "Invalid time zone. Use a valid IANA time zone, such as Asia/Tokyo.",
     startMode: "Generation mode",
     startModeDesc: "Choose how the PAC is generated",
     customRules: "Custom rules",
     recommended: "Recommended",
-    customModeDesc: "Use direct and block lists with a default proxy; suitable for quick local setup.",
+    customModeDesc:
+      "Use direct and block lists with a default proxy; suitable for quick local setup.",
     remoteRules: "Remote rule list",
     bunBuiltin: "Built into Bun",
-    remoteModeDesc: "Generate from a remote rule list. Matching proxy domains use the proxy; exceptions and unmatched domains connect directly.",
+    remoteModeDesc:
+      "Generate from a remote rule list. Matching proxy domains use the proxy; exceptions and unmatched domains connect directly.",
     engineReady: "Remote-list engine is ready",
     engineAbnormal: "Engine status is abnormal",
     engineHint: "Check that the list URL is reachable, or switch to Custom rules mode.",
@@ -557,34 +591,45 @@ export default {
     proxyAndRemoteDesc: "Set the default proxy string and choose a remote rule-list source",
     pacProxy: "PAC proxy string",
     pacProxyRequired: "Enter a PAC proxy string.",
-    pacProxyHintFull: "Separate proxy entries with semicolons. Supported directives: PROXY, HTTP, HTTPS, SOCKS, SOCKS4, SOCKS5, and DIRECT. Proxy addresses must include a port, e.g. SOCKS5 127.0.0.1:1080; DIRECT.",
+    pacProxyHintFull:
+      "Separate proxy entries with semicolons. Supported directives: PROXY, HTTP, HTTPS, SOCKS, SOCKS4, SOCKS5, and DIRECT. Proxy addresses must include a port, e.g. SOCKS5 127.0.0.1:1080; DIRECT.",
     listUrlLabel: "Rule-list URL",
     listUrlLabHint: "GFWList / domain-based AutoProxy, ABP / plain domains",
-    listUrlDescFull: "Rules are matched by extracted domain. URL paths, resource types, and other complex filters are not preserved.",
+    listUrlDescFull:
+      "Rules are matched by extracted domain. URL paths, resource types, and other complex filters are not preserved.",
     listUrlEditWhenRemote: "Available after switching to Remote rule list mode.",
     listUrlRequired: "A rule-list URL is required in Remote rule list mode.",
-    listUrlInvalid: "Invalid rule-list URL. Enter a complete HTTP(S) URL without embedded credentials.",
+    listUrlInvalid:
+      "Invalid rule-list URL. Enter a complete HTTP(S) URL without embedded credentials.",
     compressPac: "Minify PAC",
-    compressPacHintFull: "When enabled, comments and extra indentation are removed from the generated PAC regardless of generation mode or rule source. When disabled, the readable formatting is preserved.",
+    compressPacHintFull:
+      "When enabled, comments and extra indentation are removed from the generated PAC regardless of generation mode or rule source. When disabled, the readable formatting is preserved.",
     customRulesTitle: "Custom rules",
     customRulesDesc: "Direct and block lists apply in both Custom and Remote rule list modes.",
     howToConfig: "Configuration and rule priority",
     writing: "Syntax:",
-    writingFull: "Enter one domain rule per line. example.com matches only that domain; *.example.com matches subdomains only; **.example.com matches the root domain and all subdomains. Custom direct and block lists do not support comments; enter rules only.",
+    writingFull:
+      "Enter one domain rule per line. example.com matches only that domain; *.example.com matches subdomains only; **.example.com matches the root domain and all subdomains. Custom direct and block lists do not support comments; enter rules only.",
     directListLabel: "Direct list:",
     directHit: "A match returns DIRECT (bypasses the proxy).",
     blockListLabel: "Block list:",
-    blockHit: "A match returns a rejecting proxy, causing the client to connect to an unavailable proxy address to block access. The exact message depends on the client.",
+    blockHit:
+      "A match returns a rejecting proxy, causing the client to connect to an unavailable proxy address to block access. The exact message depends on the client.",
     directList: "Direct list",
     blockList: "Block list",
     matchOrder: "Rule priority (same in both modes):",
-    matchLocal: "localhost, hostnames without dots, IPv4 loopback, and RFC 1918 private addresses → DIRECT",
+    matchLocal:
+      "localhost, hostnames without dots, IPv4 loopback, and RFC 1918 private addresses → DIRECT",
     matchBlock: "Block list → reject",
     matchDirect: "Direct list → DIRECT",
-    matchRemote: "In Remote rule list mode, remote rules are checked next (listed proxy domains use the proxy; exceptions connect directly).",
-    matchCustomRest: "Remaining traffic uses the PAC proxy string in Custom mode; unmatched traffic connects directly in Remote rule list mode.",
-    modeCustomHint: "Use direct / block lists and proxy other traffic; local network traffic always connects directly.",
-    modeRemoteHint: "Generate a PAC from a remote rule list. Matching proxy domains use the proxy; exceptions and unmatched domains connect directly. Custom rules take priority.",
+    matchRemote:
+      "In Remote rule list mode, remote rules are checked next (listed proxy domains use the proxy; exceptions connect directly).",
+    matchCustomRest:
+      "Remaining traffic uses the PAC proxy string in Custom mode; unmatched traffic connects directly in Remote rule list mode.",
+    modeCustomHint:
+      "Use direct / block lists and proxy other traffic; local network traffic always connects directly.",
+    modeRemoteHint:
+      "Generate a PAC from a remote rule list. Matching proxy domains use the proxy; exceptions and unmatched domains connect directly. Custom rules take priority.",
     cronOff: "Off",
     cronOffHint: "No scheduled updates",
     cronHourly: "Hourly",
@@ -599,7 +644,8 @@ export default {
     cronWeeklyHint: "Every Monday at 00:00",
     cronFormatError: "Use the standard five-field format: minute hour day month weekday.",
     cronParseError: "Unable to parse this expression. Check the field ranges and syntax.",
-    cronDisabledMsg: "Scheduled tasks are disabled; saving will not generate PAC files automatically.",
+    cronDisabledMsg:
+      "Scheduled tasks are disabled; saving will not generate PAC files automatically.",
     cronInvalidMsg: "Invalid expression: {error}",
     cronPlanMsg: "Schedule: {description}. Runs in the selected time zone ({timezone}).",
     cronInvalid: "Invalid Cron expression:",
@@ -610,19 +656,23 @@ export default {
     jsonTopLevel: "The top level of the JSON value must be an object or an array.",
     jsonFormatError: "Invalid JSON. Check the brackets, quotes, and commas.",
     webhookNeedUrl: "{label} requires a valid HTTP(S) URL.",
-    webhookNeedUrlForBody: "{label} has a request body or custom headers configured; enter a Webhook URL.",
+    webhookNeedUrlForBody:
+      "{label} has a request body or custom headers configured; enter a Webhook URL.",
     webhookBodyError: "{label} request body: {error}",
     webhookTestBodyError: "{label} test request body: {error}",
     webhookHeadersError: "{label} custom headers must be a JSON object.",
-    headersTransport: "Headers contain a protected transport field or a line break. Content-Type is fixed to application/json.",
-    headersJsonError: "{label} custom headers contain invalid JSON. Check the brackets, quotes, and commas.",
+    headersTransport:
+      "Headers contain a protected transport field or a line break. Content-Type is fixed to application/json.",
+    headersJsonError:
+      "{label} custom headers contain invalid JSON. Check the brackets, quotes, and commas.",
     headersMustStrings: "{label} headers must be a JSON object with string names and values.",
     dingTalkUrl: "{label} DingTalk URL must be a valid HTTP(S) address.",
     dingTalkToken: "{label} DingTalk URL is missing access_token.",
     dingTalkSecret: "{label} requires a DingTalk signing secret.",
     dingTalkSecretNeedsUrl: "Enter the bot Webhook URL before adding a secret for {label}.",
     proxySemicolon: "Separate proxy entries with semicolons; empty entries are not allowed.",
-    proxyItemInvalid: "Entry {n} (“{item}”) is invalid. Use PROXY, HTTP, HTTPS, SOCKS, SOCKS4, SOCKS5, or DIRECT.",
+    proxyItemInvalid:
+      "Entry {n} (“{item}”) is invalid. Use PROXY, HTTP, HTTPS, SOCKS, SOCKS4, SOCKS5, or DIRECT.",
     proxyHostInvalid: "The proxy address in entry {n} is invalid. Use host:port or [IPv6]:port.",
     proxyPortInvalid: "The port in entry {n} is invalid. It must be between 1 and 65535.",
     proxyIpv6Invalid: "The IPv6 address in entry {n} is invalid.",
@@ -638,20 +688,25 @@ export default {
     changePasswordTitle: "Change admin password",
     enterCurrentPassword: "Enter the current admin password.",
     passwordSameAsCurrent: "The new password must be different from the current password.",
-    resetHelpFull: "If you forget the password, reset it according to your deployment: run the matching script for local development; run bun run reset:admin-password:production for a non-container production deployment; or run the existing reset command inside the Docker container. The script displays the actual database path and will not create an empty database if it does not exist.",
+    resetHelpFull:
+      "If you forget the password, reset it according to your deployment: run the matching script for local development; run bun run reset:admin-password:production for a non-container production deployment; or run the existing reset command inside the Docker container. The script displays the actual database path and will not create an empty database if it does not exist.",
     resetHelpLink: "View complete reset instructions ↗",
     newPasswordPlaceholder: "Enter a new password (no length or complexity requirements)",
     scheduleOnly: "Scheduled tasks",
-    scheduleOnlyDesc: "Configure the PAC generation schedule and time zone. Manage notification channels separately in Notifications.",
+    scheduleOnlyDesc:
+      "Configure the PAC generation schedule and time zone. Manage notification channels separately in Notifications.",
     workflowQueued: "Workflow queued (run #{id})",
     workflowStartedId: "Workflow started (run #{id})",
     fixBeforeSave: "Fix the following issues before saving",
-    floatingSaveHint: "After you edit the configuration, a quick-save button appears in the lower-right corner. It disappears after PAC generation succeeds.",
+    floatingSaveHint:
+      "After you edit the configuration, a quick-save button appears in the lower-right corner. It disappears after PAC generation succeeds.",
     validationIssues: "Configuration has validation issues. Click to go to the error.",
     ruleCheckSummary: "Rule check: {errors} errors, {warnings} warnings",
     ruleCheckFixErrors: "Fix rule syntax errors before saving. Syntax errors prevent saving.",
-    ruleCheckHints: "Warnings include duplicates, possible redundancies, and overlaps between direct and block rules. Overlaps are not changed automatically; block rules take priority over direct rules.",
-    defaultMessageTemplate: "PacPilot notification\nEvent: {{event}}\nStatus: {{status}}\nTime: {{timestamp}}\nDetails: {{message}}",
+    ruleCheckHints:
+      "Warnings include duplicates, possible redundancies, and overlaps between direct and block rules. Overlaps are not changed automatically; block rules take priority over direct rules.",
+    defaultMessageTemplate:
+      "PacPilot notification\nEvent: {{event}}\nStatus: {{status}}\nTime: {{timestamp}}\nDetails: {{message}}",
     testMessageTemplate: "PacPilot test notification\nTime: {{timestamp}}\nResult: {{message}}",
     tzShanghai: "China Standard Time (UTC+08:00)",
     tzTaipei: "Taiwan · Taipei",
@@ -676,7 +731,8 @@ export default {
     passwordMismatch: "The two new passwords do not match.",
     passwordChangedOk: "Admin password updated. Sign in again with the new password.",
     passwordChangeFailed: "Failed to change password. Please try again.",
-    passwordStoredLocal: "The password is stored in the local database, not via environment variables.",
+    passwordStoredLocal:
+      "The password is stored in the local database, not via environment variables.",
   },
   monitor: {
     k0: "(No record)",
@@ -792,7 +848,8 @@ export default {
     lastHourCount: "Last hour: {n}",
     peakPerHour: "Peak {n}/hour",
     matchCount: "Matched {filtered} / {total}",
-    accessLoadedHint: "Loaded {loaded} / {total}; filters apply to loaded records only. Access logs keep 7 days / 5,000 max. Click a row for full request details.",
+    accessLoadedHint:
+      "Loaded {loaded} / {total}; filters apply to loaded records only. Access logs keep 7 days / 5,000 max. Click a row for full request details.",
   },
   systemPage: {
     k0: "Loading system settings…",
@@ -844,17 +901,20 @@ export default {
     k52: "The retention period has not changed.",
     k53: "The saved policy is applied at startup and during scheduled cleanup.",
     k54: "PAC service status",
-    pacRenderedDesc: "The rendered body is kept in memory and served directly from /pac; no file is read from disk.",
+    pacRenderedDesc:
+      "The rendered body is kept in memory and served directly from /pac; no file is read from disk.",
     pacBytes: "Response size {size}",
     pacCompressed: "Compressed (terser)",
     pacPlain: "Uncompressed",
     ruleSnapshot: "Remote rule snapshot",
-    ruleSnapshotDesc: "Normalized remote rules, used to rebuild the PAC after a restart without re-fetching.",
+    ruleSnapshotDesc:
+      "Normalized remote rules, used to rebuild the PAC after a restart without re-fetching.",
     ruleSnapshotNone: "Not fetched yet",
     ruleCounts: "{proxy} proxy · {direct} direct",
     pacNotRendered: "No usable PAC yet; saving the configuration builds it automatically.",
     clearPacCache: "Clear PAC cache",
-    clearPacCacheDesc: "Deletes the remote rule snapshot and drops the in-memory render; the next request rebuilds from current settings.",
+    clearPacCacheDesc:
+      "Deletes the remote rule snapshot and drops the in-memory render; the next request rebuilds from current settings.",
     clearPacCacheHint: "After clearing, remote mode needs to fetch the rules again.",
     clearPacCacheAction: "Cleared entries rebuild from current settings",
     k55: "proxy.pac is the main file used by clients. proxy.source.pac is an uncompressed source file used by the status page. Both are deleted together; rules are not changed.",
@@ -1057,7 +1117,8 @@ export default {
     k40: "Custom direct rules take priority over the remote list. Blue source labels indicate remote exceptions routed directly.",
     k41: "Red source labels indicate custom block rules. localhost, hostnames without dots, IPv4 loopback, and RFC 1918 private direct-routing rules take priority.",
     checking: "Checking the current PAC file and generation mode.",
-    emptyHint: "Open admin, set generation mode and rules, then Save & generate PAC. Recognized rule summaries will appear here afterward.",
+    emptyHint:
+      "Open admin, set generation mode and rules, then Save & generate PAC. Recognized rule summaries will appear here afterward.",
     remoteDirectCaption: "Custom direct and remote exceptions",
   },
   webhookBody: {
@@ -1083,15 +1144,19 @@ export default {
     scrollOrLoad: "Scroll to load more, or",
   },
   domainRuleDiag: {
-    unsupportedWildcard: "This wildcard form is not supported; use example.com, *.example.com, or **.example.com.",
-    invalidDomain: "Invalid domain. Enter a full domain without protocol, path, port, or spaces; wildcards apply to the domain only.",
+    unsupportedWildcard:
+      "This wildcard form is not supported; use example.com, *.example.com, or **.example.com.",
+    invalidDomain:
+      "Invalid domain. Enter a full domain without protocol, path, port, or spaces; wildcards apply to the domain only.",
     duplicateLine: "Duplicates line {line} ({label}); consider removing one.",
     coveredByLine: "This rule is covered by line {line} and may be redundant.",
     mergeEquivalent: "Line {exact} combined with line {subdomains} is equivalent to **.{host}.",
     mergeWithExact: "Combined with line {line} this is equivalent to **.{host}.",
-    overlapBlock: "Overlaps block-list line {line}; the block list wins, so the overlap is blocked.",
-    overlapDirect: "Overlaps direct-list line {line}; the block list wins, so the overlap is blocked.",
+    overlapBlock:
+      "Overlaps block-list line {line}; the block list wins, so the overlap is blocked.",
+    overlapDirect:
+      "Overlaps direct-list line {line}; the block list wins, so the overlap is blocked.",
     directList: "Direct list",
     blockList: "Block list",
   },
-}
+};

@@ -7,7 +7,8 @@ import UserPreferencesMenu from "@/components/UserPreferencesMenu.vue";
 import AdminSidebar from "@/components/layout/AdminSidebar.vue";
 import AppScrollArea from "@/components/AppScrollArea.vue";
 
-type AdminSection = "dashboard" | "settings" | "system-settings" | "monitor" | "workflow" | "logs" | "notifications";
+type AdminSection =
+  "dashboard" | "settings" | "system-settings" | "monitor" | "workflow" | "logs" | "notifications";
 
 defineProps<{
   active: AdminSection;
@@ -27,7 +28,6 @@ watch(
 );
 </script>
 
-
 <template>
   <div class="admin-layout">
     <button
@@ -42,7 +42,10 @@ watch(
 
     <div class="admin-main">
       <AppScrollArea root-class="admin-content" orientation="vertical">
-        <div class="admin-content-inner" :class="{ 'admin-content-inner--notifications': active === 'notifications' }">
+        <div
+          class="admin-content-inner"
+          :class="{ 'admin-content-inner--notifications': active === 'notifications' }"
+        >
           <slot></slot>
         </div>
       </AppScrollArea>

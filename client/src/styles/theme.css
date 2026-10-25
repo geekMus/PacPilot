@@ -346,10 +346,7 @@ code {
 
 /* Native text fields keep their semantic behavior while inheriting project theme tokens.
    The zero-specificity baseline deliberately lets page-specific layouts retain their own styling. */
-:where(
-  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
-  textarea
-) {
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea) {
   box-sizing: border-box;
   min-width: 0;
   min-height: 40px;

@@ -1,21 +1,24 @@
 <script setup lang="ts">
 import { ref } from "vue";
-withDefaults(defineProps<{
-  modelValue: string;
-  type?: string;
-  placeholder?: string;
-  autocomplete?: string;
-  required?: boolean;
-  disabled?: boolean;
-  invalid?: boolean;
-}>(), {
-  type: "text",
-  placeholder: "",
-  autocomplete: "off",
-  required: false,
-  disabled: false,
-  invalid: false,
-});
+withDefaults(
+  defineProps<{
+    modelValue: string;
+    type?: string;
+    placeholder?: string;
+    autocomplete?: string;
+    required?: boolean;
+    disabled?: boolean;
+    invalid?: boolean;
+  }>(),
+  {
+    type: "text",
+    placeholder: "",
+    autocomplete: "off",
+    required: false,
+    disabled: false,
+    invalid: false,
+  }
+);
 
 const inputElement = ref<HTMLInputElement | null>(null);
 

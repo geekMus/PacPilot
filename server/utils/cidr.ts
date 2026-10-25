@@ -23,10 +23,7 @@ function ipv6ToBigInt(ip: string): bigint | null {
     const v4 = ipv4ToInt(text.slice(lastColon + 1));
     if (v4 === null) return null;
     text =
-      text.slice(0, lastColon + 1) +
-      (v4 >>> 16).toString(16) +
-      ":" +
-      (v4 & 0xffff).toString(16);
+      text.slice(0, lastColon + 1) + (v4 >>> 16).toString(16) + ":" + (v4 & 0xffff).toString(16);
   }
 
   const hasEllipsis = text.includes("::");
@@ -69,7 +66,7 @@ export function isIpInCidr(ip: string, cidr: string): boolean {
     if (target === null || network === null) return false;
     if (bits === 0) return true;
     const mask = bits === 32 ? 0xffffffff : (0xffffffff << (32 - bits)) >>> 0;
-    return ((target & mask) >>> 0) === ((network & mask) >>> 0);
+    return (target & mask) >>> 0 === (network & mask) >>> 0;
   }
 
   const target = ipv6ToBigInt(ip);

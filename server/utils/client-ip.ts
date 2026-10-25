@@ -85,7 +85,8 @@ export function getClientIpConfig(): ClientIpConfig {
 export function resolveClientIp(req: Request): string {
   const peer = normalizeIp(req.socket.remoteAddress ?? "");
   const hasAllowlist = config.trustedProxyCidrs.length > 0;
-  const peerTrusted = peer !== null && hasAllowlist && isIpInAnyCidr(peer, config.trustedProxyCidrs);
+  const peerTrusted =
+    peer !== null && hasAllowlist && isIpInAnyCidr(peer, config.trustedProxyCidrs);
 
   // With an allowlist configured, headers from untrusted peers are ignored.
   if (hasAllowlist && !peerTrusted) return peer ?? "unknown";

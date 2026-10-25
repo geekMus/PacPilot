@@ -101,9 +101,7 @@ export function useNotificationWorkspace() {
     }
   );
 
-  const phases = computed(
-    () => catalog.value.find((x) => x.type === rule.eventType)?.phases ?? []
-  );
+  const phases = computed(() => catalog.value.find((x) => x.type === rule.eventType)?.phases ?? []);
   const outcomes = computed(
     () => catalog.value.find((x) => x.type === rule.eventType)?.outcomes ?? []
   );
@@ -156,7 +154,10 @@ export function useNotificationWorkspace() {
     { value: "PATCH", label: "PATCH" },
   ];
   const eventOptions = computed<AppSelectOption[]>(() =>
-    catalog.value.map((item) => ({ value: item.type, label: labels.evName(item.type, catalog.value) }))
+    catalog.value.map((item) => ({
+      value: item.type,
+      label: labels.evName(item.type, catalog.value),
+    }))
   );
   const phaseOptions = computed<AppSelectOption[]>(() =>
     phases.value.map((item) => ({ value: item, label: labels.phaseName(item) }))

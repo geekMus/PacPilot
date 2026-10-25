@@ -15,7 +15,10 @@ export function normalizeOrigin(value: string | undefined): string | null {
 function normalizeIpAddress(value: string): string {
   // IPv6 interface addresses may contain a zone identifier, which is not part
   // of the address identity used for Origin comparison.
-  return value.replace(/^\[|\]$/g, "").split("%")[0].toLowerCase();
+  return value
+    .replace(/^\[|\]$/g, "")
+    .split("%")[0]
+    .toLowerCase();
 }
 
 /** Discover current non-loopback interface addresses on every call. */
@@ -71,8 +74,8 @@ export function isTrustedOrigin(
   const normalizedRequestOrigin = normalizeOrigin(requestOrigin);
   return Boolean(
     normalizedOrigin &&
-      ((normalizedRequestOrigin && normalizedOrigin === normalizedRequestOrigin) ||
-        allowedOrigins.has(normalizedOrigin) ||
-        isLocalInterfaceOrigin(normalizedOrigin, requestOrigin, localAddresses))
+    ((normalizedRequestOrigin && normalizedOrigin === normalizedRequestOrigin) ||
+      allowedOrigins.has(normalizedOrigin) ||
+      isLocalInterfaceOrigin(normalizedOrigin, requestOrigin, localAddresses))
   );
 }

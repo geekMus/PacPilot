@@ -9,14 +9,22 @@
   @apply relative flex items-center justify-between gap-6 overflow-hidden rounded-[var(--wh-radius-card)] border px-[26px] py-[23px];
   border-color: color-mix(in srgb, var(--accent) 14%, var(--line));
   background:
-    radial-gradient(120% 160% at 0% 0%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 55%),
+    radial-gradient(
+      120% 160% at 0% 0%,
+      color-mix(in srgb, var(--accent) 9%, transparent),
+      transparent 55%
+    ),
     var(--wh-panel-bg);
   box-shadow: var(--shadow);
 }
 
 .webhook-page .page-intro::before {
   @apply absolute bottom-0 left-0 top-0 w-[3px];
-  background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 30%, transparent));
+  background: linear-gradient(
+    180deg,
+    var(--accent),
+    color-mix(in srgb, var(--accent) 30%, transparent)
+  );
   content: "";
 }
 

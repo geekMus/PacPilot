@@ -290,8 +290,8 @@
 }
 @media (max-width: 1150px) {
   .webhook-page .editor-heading,
-.webhook-page .editor-body,
-.webhook-page .editor-footer {
+  .webhook-page .editor-body,
+  .webhook-page .editor-footer {
     @apply px-[17px];
   }
 }
@@ -300,8 +300,8 @@
     @apply h-[var(--wh-editor-height)];
   }
   .webhook-page .editor-heading,
-.webhook-page .editor-body,
-.webhook-page .editor-footer {
+  .webhook-page .editor-body,
+  .webhook-page .editor-footer {
     @apply px-[17px];
   }
 }

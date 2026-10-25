@@ -9,12 +9,10 @@ export function adminGenerationRoutes(dataDir: string, storage: ApplicationStora
   router.post("/api/admin/generate", requireAdmin(storage.credentials), async (_req, res) => {
     try {
       const workflowId = await startPacWorkflow(storage, dataDir, "manual");
-      res
-        .status(202)
-        .json({
-          workflowId,
-          status: (await storage.workflows.get(workflowId))?.status ?? "pending",
-        });
+      res.status(202).json({
+        workflowId,
+        status: (await storage.workflows.get(workflowId))?.status ?? "pending",
+      });
     } catch (e) {
       res.status(409).json({ error: e instanceof Error ? e.message : String(e) });
     }

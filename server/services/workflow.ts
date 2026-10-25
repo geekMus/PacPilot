@@ -49,7 +49,13 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
       return cancelledResult();
     }
     const settings = await storage.settings.get();
-    await publishDomainEvent(storage, { type: "task.execution", phase: "started", subject: { type: "task", id: String(id), name: "PAC 生成任务" }, correlationId: "workflow-" + id, summary: "PAC 生成任务已开始。" });
+    await publishDomainEvent(storage, {
+      type: "task.execution",
+      phase: "started",
+      subject: { type: "task", id: String(id), name: "PAC 生成任务" },
+      correlationId: "workflow-" + id,
+      summary: "PAC 生成任务已开始。",
+    });
     const prepareDetail = encodeWorkflowStageDetail({
       mode: settings.mode,
       pac_proxy: settings.pacProxy,
@@ -88,7 +94,14 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
       finished_at: finishedAt.toISOString(),
       duration_ms: Math.max(0, finishedAt.getTime() - startedAt.getTime()),
     });
-    await publishDomainEvent(storage, { type: "task.execution", phase: "finished", outcome: generation.success ? "success" : "failure", subject: { type: "task", id: String(id), name: "PAC 生成任务" }, correlationId: "workflow-" + id, summary: generation.message });
+    await publishDomainEvent(storage, {
+      type: "task.execution",
+      phase: "finished",
+      outcome: generation.success ? "success" : "failure",
+      subject: { type: "task", id: String(id), name: "PAC 生成任务" },
+      correlationId: "workflow-" + id,
+      summary: generation.message,
+    });
     return generation;
   } catch (error) {
     const finishedAt = new Date();
@@ -112,7 +125,14 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
     } catch (recordError) {
       runtimeLog("error", "Failed to save workflow failure status: ", recordError);
     }
-    await publishDomainEvent(storage, { type: "task.execution", phase: "finished", outcome: "failure", subject: { type: "task", id: String(id), name: "PAC 生成任务" }, correlationId: "workflow-" + id, summary: message });
+    await publishDomainEvent(storage, {
+      type: "task.execution",
+      phase: "finished",
+      outcome: "failure",
+      subject: { type: "task", id: String(id), name: "PAC 生成任务" },
+      correlationId: "workflow-" + id,
+      summary: message,
+    });
     throw error;
   }
 }

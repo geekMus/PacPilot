@@ -38,12 +38,13 @@ describe("looksLikeUrl", () => {
 
 describe("validateWebhookDraft", () => {
   it("accepts a valid custom webhook and empty optional JSON bodies", () => {
-    expect(validators.validateWebhookDraft(webhook({ url: "https://example.com/hook" }), "success"))
-      .toEqual({ url: "", headers: "", body: "", testBody: "", secret: "" });
+    expect(
+      validators.validateWebhookDraft(webhook({ url: "https://example.com/hook" }), "success")
+    ).toEqual({ url: "", headers: "", body: "", testBody: "", secret: "" });
   });
 
   it("requires a URL when custom body or headers are configured", () => {
-    const result = validators.validateWebhookDraft(webhook({ body: "{\"ok\":true}" }), "failure");
+    const result = validators.validateWebhookDraft(webhook({ body: '{"ok":true}' }), "failure");
     expect(result.url).toContain("settings.webhookNeedUrlForBody");
   });
 
@@ -58,39 +59,56 @@ describe("validateWebhookDraft", () => {
   });
 
   it("rejects malformed headers and unsafe transport headers", () => {
-    expect(validators.validateWebhookDraft(webhook({ headers: "{" }), "x").headers)
-      .toContain("settings.headersJsonError");
-    expect(validators.validateWebhookDraft(webhook({ headers: "{\"Host\":\"x\"}" }), "x").headers)
-      .toContain("settings.headersTransport");
-    expect(validators.validateWebhookDraft(webhook({ headers: "{\"X-Test\":12}" }), "x").headers)
-      .toContain("settings.headersMustStrings");
-    expect(validators.validateWebhookDraft(webhook({ headers: "[]" }), "x").headers)
-      .toContain("settings.webhookHeadersError");
-    expect(validators.validateWebhookDraft(webhook({ headers: "{\"X-Test\":\"a\\r\\nb\"}" }), "x").headers)
-      .toContain("settings.headersTransport");
+    expect(validators.validateWebhookDraft(webhook({ headers: "{" }), "x").headers).toContain(
+      "settings.headersJsonError"
+    );
+    expect(
+      validators.validateWebhookDraft(webhook({ headers: '{"Host":"x"}' }), "x").headers
+    ).toContain("settings.headersTransport");
+    expect(
+      validators.validateWebhookDraft(webhook({ headers: '{"X-Test":12}' }), "x").headers
+    ).toContain("settings.headersMustStrings");
+    expect(validators.validateWebhookDraft(webhook({ headers: "[]" }), "x").headers).toContain(
+      "settings.webhookHeadersError"
+    );
+    expect(
+      validators.validateWebhookDraft(webhook({ headers: '{"X-Test":"a\\r\\nb"}' }), "x").headers
+    ).toContain("settings.headersTransport");
   });
 
   it("validates DingTalk access token and signing secret", () => {
     const missingToken = validators.validateWebhookDraft(
-      webhook({ provider: "dingtalk", url: "https://oapi.dingtalk.com/robot/send", dingTalkSecret: "secret" }),
+      webhook({
+        provider: "dingtalk",
+        url: "https://oapi.dingtalk.com/robot/send",
+        dingTalkSecret: "secret",
+      }),
       "success"
     );
     expect(missingToken.url).toContain("settings.dingTalkToken");
     const missingSecret = validators.validateWebhookDraft(
-      webhook({ provider: "dingtalk", url: "https://oapi.dingtalk.com/robot/send?access_token=abc" }),
+      webhook({
+        provider: "dingtalk",
+        url: "https://oapi.dingtalk.com/robot/send?access_token=abc",
+      }),
       "success"
     );
     expect(missingSecret.secret).toContain("settings.dingTalkSecret");
-    expect(validators.validateWebhookDraft(webhook({ provider: "dingtalk", dingTalkSecret: "secret" }), "x").url)
-      .toContain("settings.dingTalkSecretNeedsUrl");
+    expect(
+      validators.validateWebhookDraft(
+        webhook({ provider: "dingtalk", dingTalkSecret: "secret" }),
+        "x"
+      ).url
+    ).toContain("settings.dingTalkSecretNeedsUrl");
   });
 });
 
 describe("PAC and domain validation", () => {
   it("accepts supported proxy directives and optional final semicolons", () => {
     expect(validators.validatePacProxyString("DIRECT")).toBeNull();
-    expect(validators.validatePacProxyString("PROXY proxy.example.com:8080; SOCKS5 [2001:db8::1]:1080;"))
-      .toBeNull();
+    expect(
+      validators.validatePacProxyString("PROXY proxy.example.com:8080; SOCKS5 [2001:db8::1]:1080;")
+    ).toBeNull();
   });
 
   it("rejects empty items, invalid endpoints, ports and hosts", () => {
@@ -119,12 +137,14 @@ describe("PAC and domain validation", () => {
   });
 
   it("collects all non-empty webhook errors", () => {
-    expect(validators.webhookErrorMessages({
-      url: "url",
-      headers: "",
-      body: "body",
-      testBody: "",
-      secret: "secret",
-    })).toEqual(["url", "body", "secret"]);
+    expect(
+      validators.webhookErrorMessages({
+        url: "url",
+        headers: "",
+        body: "body",
+        testBody: "",
+        secret: "secret",
+      })
+    ).toEqual(["url", "body", "secret"]);
   });
 });

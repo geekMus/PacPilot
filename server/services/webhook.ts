@@ -16,7 +16,11 @@ export interface WebhookDeliveryResult {
 }
 type EventKind = "success" | "failure" | "test";
 interface MessageContext {
-  event: string; ok: boolean | null; message: string; timestamp: string; status?: string;
+  event: string;
+  ok: boolean | null;
+  message: string;
+  timestamp: string;
+  status?: string;
 }
 
 function urlValidationError(raw: string, label: string): string | null {
@@ -108,7 +112,9 @@ function buildContext(
 function templateValues(context: MessageContext): Record<string, string> {
   return {
     event: context.event,
-    status: context.status ?? (context.event === "webhook.test" ? "test" : context.ok ? "success" : "failure"),
+    status:
+      context.status ??
+      (context.event === "webhook.test" ? "test" : context.ok ? "success" : "failure"),
     message: context.message,
     timestamp: context.timestamp,
     ok: context.ok === null ? "" : String(context.ok),
@@ -318,8 +324,20 @@ export async function notifyFailure(
   return notify(getNotificationConfig(settings, "failure"), "failure", message, settings.timezone);
 }
 
-export async function sendWebhookForEvent(input: WebhookConfig, event: DomainEvent, timeZone = "Asia/Shanghai"): Promise<WebhookDeliveryResult> {
- const config=normalizeWebhookConfig(input);
- const context:MessageContext={event:event.type+"."+event.phase,ok:event.outcome == null ? null : event.outcome==="success",status:event.outcome||(event.phase==="started"?"started":"unknown"),message:event.summary||event.type+" "+event.phase,timestamp:new Date(event.occurredAt).toLocaleString("zh-CN",{timeZone})};
- return config.provider==="dingtalk"?sendDingTalk(config,context):sendCustom(config,context);
+export async function sendWebhookForEvent(
+  input: WebhookConfig,
+  event: DomainEvent,
+  timeZone = "Asia/Shanghai"
+): Promise<WebhookDeliveryResult> {
+  const config = normalizeWebhookConfig(input);
+  const context: MessageContext = {
+    event: event.type + "." + event.phase,
+    ok: event.outcome == null ? null : event.outcome === "success",
+    status: event.outcome || (event.phase === "started" ? "started" : "unknown"),
+    message: event.summary || event.type + " " + event.phase,
+    timestamp: new Date(event.occurredAt).toLocaleString("zh-CN", { timeZone }),
+  };
+  return config.provider === "dingtalk"
+    ? sendDingTalk(config, context)
+    : sendCustom(config, context);
 }

@@ -1,7 +1,14 @@
 import { randomUUID } from "node:crypto";
 import type {
-  DomainEvent, NotificationChannel, NotificationDelivery, NotificationDocument,
-  NotificationEventDefinition, NotificationEventPhase, NotificationOutcome, NotificationRule, WebhookConfig,
+  DomainEvent,
+  NotificationChannel,
+  NotificationDelivery,
+  NotificationDocument,
+  NotificationEventDefinition,
+  NotificationEventPhase,
+  NotificationOutcome,
+  NotificationRule,
+  WebhookConfig,
 } from "../../shared/contracts";
 import type { ApplicationStorage } from "../storage/repositories";
 import { normalizeWebhookConfig } from "../domain/settings";
@@ -17,21 +24,58 @@ const locks = new WeakMap<object, Promise<void>>();
 const activeDeliveries = new Set<string>();
 
 export const notificationEventCatalog: NotificationEventDefinition[] = [
-  { type: "task.execution", label: "任务执行", phases: ["started", "finished"], outcomes: ["success", "failure", "cancelled", "timeout", "unknown"], subjectTypes: ["task"] },
-  { type: "config.publish", label: "配置发布", phases: ["started", "finished", "state_changed"], outcomes: ["success", "failure", "unknown"], subjectTypes: ["configuration"] },
-  { type: "request.process", label: "请求处理", phases: ["started", "finished"], outcomes: ["success", "failure", "timeout", "unknown"], subjectTypes: ["request"] },
-  { type: "system.error", label: "系统异常", phases: ["state_changed"], outcomes: ["failure", "unknown"], subjectTypes: ["system"] },
+  {
+    type: "task.execution",
+    label: "任务执行",
+    phases: ["started", "finished"],
+    outcomes: ["success", "failure", "cancelled", "timeout", "unknown"],
+    subjectTypes: ["task"],
+  },
+  {
+    type: "config.publish",
+    label: "配置发布",
+    phases: ["started", "finished", "state_changed"],
+    outcomes: ["success", "failure", "unknown"],
+    subjectTypes: ["configuration"],
+  },
+  {
+    type: "request.process",
+    label: "请求处理",
+    phases: ["started", "finished"],
+    outcomes: ["success", "failure", "timeout", "unknown"],
+    subjectTypes: ["request"],
+  },
+  {
+    type: "system.error",
+    label: "系统异常",
+    phases: ["state_changed"],
+    outcomes: ["failure", "unknown"],
+    subjectTypes: ["system"],
+  },
 ];
-const emptyDocument = (): NotificationDocument => ({ schemaVersion: 1, legacyMigrated: false, channels: [], rules: [], events: [], deliveries: [] });
+const emptyDocument = (): NotificationDocument => ({
+  schemaVersion: 1,
+  legacyMigrated: false,
+  channels: [],
+  rules: [],
+  events: [],
+  deliveries: [],
+});
 
 async function withLock<T>(storage: ApplicationStorage, action: () => Promise<T>): Promise<T> {
   const previous = locks.get(storage) ?? Promise.resolve();
   let release!: () => void;
-  const current = new Promise<void>((resolve) => { release = resolve; });
+  const current = new Promise<void>((resolve) => {
+    release = resolve;
+  });
   locks.set(storage, current);
   await previous;
-  try { return await action(); }
-  finally { release(); if (locks.get(storage) === current) locks.delete(storage); }
+  try {
+    return await action();
+  } finally {
+    release();
+    if (locks.get(storage) === current) locks.delete(storage);
+  }
 }
 
 function redactUrl(raw: string): string {
@@ -41,7 +85,9 @@ function redactUrl(raw: string): string {
       if (/token|secret|key|sign|authorization/i.test(key)) url.searchParams.set(key, "***");
     }
     return url.toString();
-  } catch { return raw; }
+  } catch {
+    return raw;
+  }
 }
 function redactHeaders(raw: string): string {
   try {
@@ -50,13 +96,24 @@ function redactHeaders(raw: string): string {
       if (/authorization|token|secret|api[_-]?key|signature/i.test(key)) headers[key] = "***";
     }
     return JSON.stringify(headers, null, 2);
-  } catch { return raw; }
+  } catch {
+    return raw;
+  }
 }
 function publicChannel(channel: NotificationChannel): NotificationChannel {
   return {
     ...channel,
-    config: { ...channel.config, url: redactUrl(channel.config.url), headers: redactHeaders(channel.config.headers), dingTalkSecret: "" },
-    hasSecret: Boolean(channel.config.dingTalkSecret || /(?:token|secret|key|sign)=/i.test(channel.config.url) || /authorization|token|secret|api[_-]?key|signature/i.test(channel.config.headers)),
+    config: {
+      ...channel.config,
+      url: redactUrl(channel.config.url),
+      headers: redactHeaders(channel.config.headers),
+      dingTalkSecret: "",
+    },
+    hasSecret: Boolean(
+      channel.config.dingTalkSecret ||
+      /(?:token|secret|key|sign)=/i.test(channel.config.url) ||
+      /authorization|token|secret|api[_-]?key|signature/i.test(channel.config.headers)
+    ),
   };
 }
 function mergeSecrets(input: WebhookConfig, previous?: WebhookConfig): WebhookConfig {
@@ -72,7 +129,9 @@ function mergeSecrets(input: WebhookConfig, previous?: WebhookConfig): WebhookCo
       if (value === "***" && oldHeaders[key]) newHeaders[key] = oldHeaders[key];
     }
     config.headers = JSON.stringify(newHeaders, null, 2);
-  } catch { /* server validation handles malformed header JSON */ }
+  } catch {
+    /* server validation handles malformed header JSON */
+  }
   return config;
 }
 
@@ -88,15 +147,25 @@ async function loadUnlocked(storage: ApplicationStorage): Promise<NotificationDo
     if (!item.config.url.trim()) continue;
     const id = "legacy-" + item.key;
     document.channels.push({
-      id, name: item.key === "success" ? "旧版成功通知渠道" : "旧版失败通知渠道",
-      provider: item.config.provider, enabled: true, config: normalizeWebhookConfig(item.config),
-      createdAt: timestamp, updatedAt: timestamp,
+      id,
+      name: item.key === "success" ? "旧版成功通知渠道" : "旧版失败通知渠道",
+      provider: item.config.provider,
+      enabled: true,
+      config: normalizeWebhookConfig(item.config),
+      createdAt: timestamp,
+      updatedAt: timestamp,
     });
     document.rules.push({
       id: "legacy-rule-" + item.key,
       name: item.key === "success" ? "兼容旧版成功通知" : "兼容旧版失败通知",
-      enabled: true, eventType: "task.execution", phase: "finished", outcome: item.outcome,
-      channelIds: [id], subjectType: "task", createdAt: timestamp, updatedAt: timestamp,
+      enabled: true,
+      eventType: "task.execution",
+      phase: "finished",
+      outcome: item.outcome,
+      channelIds: [id],
+      subjectType: "task",
+      createdAt: timestamp,
+      updatedAt: timestamp,
     });
   }
   document.legacyMigrated = true;
@@ -108,8 +177,11 @@ export async function getNotificationAdminView(storage: ApplicationStorage) {
   return withLock(storage, async () => {
     const document = await loadUnlocked(storage);
     return {
-      channels: document.channels.map(publicChannel), rules: document.rules,
-      events: document.events, deliveries: document.deliveries, eventCatalog: notificationEventCatalog,
+      channels: document.channels.map(publicChannel),
+      rules: document.rules,
+      events: document.events,
+      deliveries: document.deliveries,
+      eventCatalog: notificationEventCatalog,
     };
   });
 }
@@ -117,19 +189,36 @@ export function validateRule(input: Partial<NotificationRule>): string | null {
   if (!input.name?.trim()) return "规则名称不能为空。";
   const definition = notificationEventCatalog.find((item) => item.type === input.eventType);
   if (!definition) return "不支持的事件类型。";
-  if (!definition.phases.includes(input.phase as NotificationEventPhase)) return "该事件类型不支持所选阶段。";
-  if ((input.phase === "started" || input.phase === "progress") && input.outcome != null && input.outcome !== "any") {
+  if (!definition.phases.includes(input.phase as NotificationEventPhase))
+    return "该事件类型不支持所选阶段。";
+  if (
+    (input.phase === "started" || input.phase === "progress") &&
+    input.outcome != null &&
+    input.outcome !== "any"
+  ) {
     return "开始或执行中阶段没有最终结果，请选择不限制结果。";
   }
-  if (input.outcome != null && input.outcome !== "any" && !definition.outcomes.includes(input.outcome as NotificationOutcome)) {
+  if (
+    input.outcome != null &&
+    input.outcome !== "any" &&
+    !definition.outcomes.includes(input.outcome as NotificationOutcome)
+  ) {
     return "该事件类型不支持所选结果。";
   }
-  if (!Array.isArray(input.channelIds) || input.channelIds.length === 0 || input.channelIds.some((id) => typeof id !== "string" || !id.trim())) {
+  if (
+    !Array.isArray(input.channelIds) ||
+    input.channelIds.length === 0 ||
+    input.channelIds.some((id) => typeof id !== "string" || !id.trim())
+  ) {
     return "至少选择一个通知渠道。";
   }
   return null;
 }
-export async function saveNotificationChannel(storage: ApplicationStorage, input: Partial<NotificationChannel>, id?: string) {
+export async function saveNotificationChannel(
+  storage: ApplicationStorage,
+  input: Partial<NotificationChannel>,
+  id?: string
+) {
   return withLock(storage, async () => {
     const document = await loadUnlocked(storage);
     const previous = id ? document.channels.find((channel) => channel.id === id) : undefined;
@@ -140,10 +229,16 @@ export async function saveNotificationChannel(storage: ApplicationStorage, input
     if (!input.name?.trim()) throw new Error("通知渠道名称不能为空。");
     const timestamp = now();
     const channel: NotificationChannel = {
-      id: previous?.id || randomUUID(), name: input.name.trim(), provider: config.provider,
-      enabled: input.enabled !== false, config, createdAt: previous?.createdAt || timestamp, updatedAt: timestamp,
+      id: previous?.id || randomUUID(),
+      name: input.name.trim(),
+      provider: config.provider,
+      enabled: input.enabled !== false,
+      config,
+      createdAt: previous?.createdAt || timestamp,
+      updatedAt: timestamp,
     };
-    if (previous) document.channels = document.channels.map((item) => item.id === id ? channel : item);
+    if (previous)
+      document.channels = document.channels.map((item) => (item.id === id ? channel : item));
     else document.channels.push(channel);
     await storage.notifications.set(document);
     return publicChannel(channel);
@@ -152,13 +247,19 @@ export async function saveNotificationChannel(storage: ApplicationStorage, input
 export async function removeNotificationChannel(storage: ApplicationStorage, id: string) {
   return withLock(storage, async () => {
     const document = await loadUnlocked(storage);
-    if (!document.channels.some((channel) => channel.id === id)) throw new Error("通知渠道不存在。");
-    if (document.rules.some((rule) => rule.channelIds.includes(id))) throw new Error("该渠道仍被通知规则引用，请先修改或删除相关规则。");
+    if (!document.channels.some((channel) => channel.id === id))
+      throw new Error("通知渠道不存在。");
+    if (document.rules.some((rule) => rule.channelIds.includes(id)))
+      throw new Error("该渠道仍被通知规则引用，请先修改或删除相关规则。");
     document.channels = document.channels.filter((channel) => channel.id !== id);
     await storage.notifications.set(document);
   });
 }
-export async function saveNotificationRule(storage: ApplicationStorage, input: Partial<NotificationRule>, id?: string) {
+export async function saveNotificationRule(
+  storage: ApplicationStorage,
+  input: Partial<NotificationRule>,
+  id?: string
+) {
   return withLock(storage, async () => {
     const document = await loadUnlocked(storage);
     const previous = id ? document.rules.find((rule) => rule.id === id) : undefined;
@@ -166,16 +267,23 @@ export async function saveNotificationRule(storage: ApplicationStorage, input: P
     const validationError = validateRule(input);
     if (validationError) throw new Error(validationError);
     for (const channelId of input.channelIds!) {
-      if (!document.channels.some((channel) => channel.id === channelId)) throw new Error("规则引用了不存在的通知渠道。");
+      if (!document.channels.some((channel) => channel.id === channelId))
+        throw new Error("规则引用了不存在的通知渠道。");
     }
     const timestamp = now();
     const rule: NotificationRule = {
-      id: previous?.id || randomUUID(), name: input.name!.trim(), enabled: input.enabled !== false,
-      eventType: input.eventType!, phase: input.phase!, outcome: input.outcome ?? null,
-      channelIds: [...new Set(input.channelIds!)], subjectType: input.subjectType?.trim() || undefined,
-      createdAt: previous?.createdAt || timestamp, updatedAt: timestamp,
+      id: previous?.id || randomUUID(),
+      name: input.name!.trim(),
+      enabled: input.enabled !== false,
+      eventType: input.eventType!,
+      phase: input.phase!,
+      outcome: input.outcome ?? null,
+      channelIds: [...new Set(input.channelIds!)],
+      subjectType: input.subjectType?.trim() || undefined,
+      createdAt: previous?.createdAt || timestamp,
+      updatedAt: timestamp,
     };
-    if (previous) document.rules = document.rules.map((item) => item.id === id ? rule : item);
+    if (previous) document.rules = document.rules.map((item) => (item.id === id ? rule : item));
     else document.rules.push(rule);
     await storage.notifications.set(document);
     return rule;
@@ -190,9 +298,13 @@ export async function removeNotificationRule(storage: ApplicationStorage, id: st
   });
 }
 function matches(rule: NotificationRule, event: DomainEvent) {
-  return rule.enabled && rule.eventType === event.type && rule.phase === event.phase
-    && (rule.outcome == null || rule.outcome === "any" || rule.outcome === event.outcome)
-    && (!rule.subjectType || rule.subjectType === event.subject.type);
+  return (
+    rule.enabled &&
+    rule.eventType === event.type &&
+    rule.phase === event.phase &&
+    (rule.outcome == null || rule.outcome === "any" || rule.outcome === event.outcome) &&
+    (!rule.subjectType || rule.subjectType === event.subject.type)
+  );
 }
 function safeError(error: unknown, channel: NotificationChannel): string {
   let message = error instanceof Error ? error.message : String(error);
@@ -202,7 +314,11 @@ function safeError(error: unknown, channel: NotificationChannel): string {
   return message.replace(/https?:\/\/[^\s]+/g, (url) => redactUrl(url)).slice(0, 1000);
 }
 
-async function updateDelivery(storage: ApplicationStorage, id: string, update: (delivery: NotificationDelivery, document: NotificationDocument) => void) {
+async function updateDelivery(
+  storage: ApplicationStorage,
+  id: string,
+  update: (delivery: NotificationDelivery, document: NotificationDocument) => void
+) {
   return withLock(storage, async () => {
     const document = await storage.notifications.get();
     const delivery = document.deliveries.find((item) => item.id === id);
@@ -212,14 +328,27 @@ async function updateDelivery(storage: ApplicationStorage, id: string, update: (
     return { delivery, document };
   });
 }
-async function deliver(storage: ApplicationStorage, event: DomainEvent, deliveryId: string, timeZone: string) {
+async function deliver(
+  storage: ApplicationStorage,
+  event: DomainEvent,
+  deliveryId: string,
+  timeZone: string
+) {
   const existing = await storage.notifications.get();
-  const previousAttempts = existing.deliveries.find((item) => item.id === deliveryId)?.attemptCount ?? 0;
+  const previousAttempts =
+    existing.deliveries.find((item) => item.id === deliveryId)?.attemptCount ?? 0;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const ready = await updateDelivery(storage, deliveryId, (delivery, document) => {
-      const channel = document.channels.find((item) => item.id === delivery.channelId && item.enabled);
+      const channel = document.channels.find(
+        (item) => item.id === delivery.channelId && item.enabled
+      );
       const rule = document.rules.find((item) => item.id === delivery.ruleId && item.enabled);
-      if (!channel || !rule) { delivery.status = "failed"; delivery.lastError = "通知规则或渠道已停用。"; delivery.updatedAt = now(); return; }
+      if (!channel || !rule) {
+        delivery.status = "failed";
+        delivery.lastError = "通知规则或渠道已停用。";
+        delivery.updatedAt = now();
+        return;
+      }
       delivery.status = "sending";
       delivery.attemptCount = previousAttempts + attempt;
       delivery.updatedAt = now();
@@ -230,14 +359,25 @@ async function deliver(storage: ApplicationStorage, event: DomainEvent, delivery
     const channel = ready.document.channels.find((item) => item.id === current.channelId)!;
     let result: Awaited<ReturnType<typeof sendWebhookForEvent>> | null = null;
     let caught: unknown = null;
-    try { result = await sendWebhookForEvent(channel.config, event, timeZone); }
-    catch (error) { caught = error; }
-    const message = result ? (result.success ? "" : safeError(new Error(result.message), channel)) : safeError(caught, channel);
-    const permanent = Boolean(result?.status && result.status >= 400 && result.status < 500 && result.status !== 429);
+    try {
+      result = await sendWebhookForEvent(channel.config, event, timeZone);
+    } catch (error) {
+      caught = error;
+    }
+    const message = result
+      ? result.success
+        ? ""
+        : safeError(new Error(result.message), channel)
+      : safeError(caught, channel);
+    const permanent = Boolean(
+      result?.status && result.status >= 400 && result.status < 500 && result.status !== 429
+    );
     const finished = await updateDelivery(storage, deliveryId, (delivery) => {
       delivery.updatedAt = now();
       if (result?.success) {
-        delivery.status = "succeeded"; delivery.deliveredAt = now(); delivery.lastError = undefined;
+        delivery.status = "succeeded";
+        delivery.deliveredAt = now();
+        delivery.lastError = undefined;
       } else {
         delivery.lastError = message || "通知发送失败。";
         if (permanent || attempt === MAX_ATTEMPTS) delivery.status = "failed";
@@ -247,7 +387,13 @@ async function deliver(storage: ApplicationStorage, event: DomainEvent, delivery
     if (!finished) return;
     if (finished.delivery.status === "succeeded") return;
     if (finished.delivery.status === "failed") {
-      runtimeLog("error", "Notification delivery failed (" + finished.delivery.channelId + "): " + finished.delivery.lastError);
+      runtimeLog(
+        "error",
+        "Notification delivery failed (" +
+          finished.delivery.channelId +
+          "): " +
+          finished.delivery.lastError
+      );
       return;
     }
     await sleep(250 * 2 ** (attempt - 1) + Math.floor(Math.random() * 150));
@@ -264,35 +410,67 @@ async function dispatchPending(storage: ApplicationStorage, ids: string[], timeZ
       if (delivery && event && (delivery.status === "pending" || delivery.status === "sending")) {
         await deliver(storage, event, id, timeZone);
       }
-    } catch (error) { runtimeLog("error", "Notification dispatch failed: ", error); }
-    finally { activeDeliveries.delete(id); }
+    } catch (error) {
+      runtimeLog("error", "Notification dispatch failed: ", error);
+    } finally {
+      activeDeliveries.delete(id);
+    }
   }
 }
-export async function publishDomainEvent(storage: ApplicationStorage, input: Omit<DomainEvent, "id" | "occurredAt" | "schemaVersion"> & { id?: string; occurredAt?: string; schemaVersion?: number }) {
+export async function publishDomainEvent(
+  storage: ApplicationStorage,
+  input: Omit<DomainEvent, "id" | "occurredAt" | "schemaVersion"> & {
+    id?: string;
+    occurredAt?: string;
+    schemaVersion?: number;
+  }
+) {
   try {
     const result = await withLock(storage, async () => {
       const document = await loadUnlocked(storage);
       const summary = input.summary?.replace(/https?:\/\/[^\s]+/g, (url) => redactUrl(url));
-      const event: DomainEvent = { ...input, summary, id: input.id || randomUUID(), occurredAt: input.occurredAt || now(), schemaVersion: input.schemaVersion || 1 };
+      const event: DomainEvent = {
+        ...input,
+        summary,
+        id: input.id || randomUUID(),
+        occurredAt: input.occurredAt || now(),
+        schemaVersion: input.schemaVersion || 1,
+      };
       document.events.push(event);
       document.events = document.events.slice(-MAX_EVENTS);
       const ids: string[] = [];
       for (const rule of document.rules.filter((candidate) => matches(candidate, event))) {
         for (const channelId of rule.channelIds) {
-          const channel = document.channels.find((candidate) => candidate.id === channelId && candidate.enabled);
+          const channel = document.channels.find(
+            (candidate) => candidate.id === channelId && candidate.enabled
+          );
           if (!channel) continue;
-          const delivery: NotificationDelivery = { id: randomUUID(), eventId: event.id, ruleId: rule.id, channelId, status: "pending", attemptCount: 0, createdAt: now(), updatedAt: now() };
+          const delivery: NotificationDelivery = {
+            id: randomUUID(),
+            eventId: event.id,
+            ruleId: rule.id,
+            channelId,
+            status: "pending",
+            attemptCount: 0,
+            createdAt: now(),
+            updatedAt: now(),
+          };
           document.deliveries.push(delivery);
           ids.push(delivery.id);
         }
       }
       document.deliveries = document.deliveries.slice(-MAX_DELIVERIES);
       await storage.notifications.set(document);
-      return { ids: ids.filter((id) => document.deliveries.some((delivery) => delivery.id === id)), event };
+      return {
+        ids: ids.filter((id) => document.deliveries.some((delivery) => delivery.id === id)),
+        event,
+      };
     });
     const timeZone = (await storage.settings.get()).timezone;
     void dispatchPending(storage, result.ids, timeZone);
-  } catch (error) { runtimeLog("error", "Failed to persist notification event: ", error); }
+  } catch (error) {
+    runtimeLog("error", "Failed to persist notification event: ", error);
+  }
 }
 export async function testNotificationChannel(storage: ApplicationStorage, id: string) {
   const channel = await withLock(storage, async () => {
@@ -316,7 +494,9 @@ export async function retryNotificationDelivery(storage: ApplicationStorage, id:
     const event = document.events.find((item) => item.id === delivery.eventId);
     const channel = document.channels.find((item) => item.id === delivery.channelId);
     if (!event || !channel || !channel.enabled) throw new Error("事件或已启用的渠道不存在。");
-    delivery.status = "pending"; delivery.lastError = undefined; delivery.updatedAt = now();
+    delivery.status = "pending";
+    delivery.lastError = undefined;
+    delivery.updatedAt = now();
     await storage.notifications.set(document);
     return { deliveryId: delivery.id };
   });
@@ -331,10 +511,19 @@ export function resumePendingNotificationDeliveries(storage: ApplicationStorage)
   const recovery = (async () => {
     try {
       const document = await withLock(storage, () => storage.notifications.get());
-      const ids = document.deliveries.filter((item) => (item.status === "pending" || item.status === "sending") && !activeDeliveries.has(item.id)).map((item) => item.id);
+      const ids = document.deliveries
+        .filter(
+          (item) =>
+            (item.status === "pending" || item.status === "sending") &&
+            !activeDeliveries.has(item.id)
+        )
+        .map((item) => item.id);
       await dispatchPending(storage, ids, (await storage.settings.get()).timezone);
-    } catch (error) { runtimeLog("error", "Failed to resume notification deliveries: ", error); }
-    finally { recoveries.delete(storage); }
+    } catch (error) {
+      runtimeLog("error", "Failed to resume notification deliveries: ", error);
+    } finally {
+      recoveries.delete(storage);
+    }
   })();
   recoveries.set(storage, recovery);
   return recovery;

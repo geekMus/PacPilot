@@ -82,7 +82,9 @@ const {
           <span
             class="status-dot"
             :class="{ online: item.enabled }"
-            :title="item.enabled ? t('notifications.statusEnabled') : t('notifications.statusDisabled')"
+            :title="
+              item.enabled ? t('notifications.statusEnabled') : t('notifications.statusDisabled')
+            "
           ></span>
           <AppIconButton
             class="row-delete"
@@ -112,7 +114,9 @@ const {
         </div>
         <span class="status-pill" :class="rule.enabled ? 'pill-enabled' : 'pill-disabled'"
           ><span class="status-dot" :class="{ online: rule.enabled }"></span
-          >{{ rule.enabled ? t("notifications.statusEnabled") : t("notifications.statusDisabled") }}</span
+          >{{
+            rule.enabled ? t("notifications.statusEnabled") : t("notifications.statusDisabled")
+          }}</span
         >
       </header>
       <AppScrollArea root-class="editor-scroll" type="auto"
@@ -220,9 +224,7 @@ const {
                   @update:model-value="toggleChannel(item.id, $event)"
                 />
                 <span class="option-icon"
-                  ><AppIcon
-                    :name="item.provider === 'dingtalk' ? 'bell-ring' : 'globe'"
-                    :size="17"
+                  ><AppIcon :name="item.provider === 'dingtalk' ? 'bell-ring' : 'globe'" :size="17"
                 /></span>
                 <span class="option-copy"
                   ><strong>{{ item.name }}</strong
@@ -263,12 +265,16 @@ const {
               :label="t('notifications.toggleRule')"
               :description="t('notifications.toggleRuleHint')"
             />
-          </section>
-        </div></AppScrollArea
-      >
+          </section></div
+      ></AppScrollArea>
       <footer class="editor-footer">
-        <AppButton variant="secondary" @click="resetR">{{ t("notifications.buttonNewBlank") }}</AppButton>
-        <AppButton v-if="rid" variant="danger-ghost" @click="deleteR(rules.find((x) => x.id === rid))"
+        <AppButton variant="secondary" @click="resetR">{{
+          t("notifications.buttonNewBlank")
+        }}</AppButton>
+        <AppButton
+          v-if="rid"
+          variant="danger-ghost"
+          @click="deleteR(rules.find((x) => x.id === rid))"
           ><AppIcon name="trash-2" :size="15" /> {{ t("common.delete") }}</AppButton
         >
         <span class="footer-spacer"></span>
@@ -277,7 +283,9 @@ const {
           variant="primary"
           :disabled="busy || !rule.name.trim() || !rule.channelIds.length"
           ><AppIcon name="save" :size="15" />
-          {{ busy ? t("notifications.buttonSaving") : t("notifications.buttonSaveRule") }}</AppButton
+          {{
+            busy ? t("notifications.buttonSaving") : t("notifications.buttonSaveRule")
+          }}</AppButton
         >
       </footer>
     </form>

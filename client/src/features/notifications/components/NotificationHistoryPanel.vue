@@ -103,7 +103,8 @@ const {
                   size="sm"
                   variant="secondary"
                   @click.stop="retry(item.id)"
-                  ><AppIcon name="refresh-cw" :size="13" /> {{ t("notifications.retry") }}</AppButton
+                  ><AppIcon name="refresh-cw" :size="13" />
+                  {{ t("notifications.retry") }}</AppButton
                 >
                 <span v-else class="row-open-hint">{{ t("notifications.rowOpenHint") }}</span>
               </td>

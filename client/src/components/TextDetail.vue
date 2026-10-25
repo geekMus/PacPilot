@@ -71,15 +71,26 @@ async function copyContent(): Promise<void> {
     <template #footer>
       <button
         class="text-detail-button secondary"
-        :class="{ 'is-copy-success': copyState === 'success', 'is-copy-error': copyState === 'error' }"
+        :class="{
+          'is-copy-success': copyState === 'success',
+          'is-copy-error': copyState === 'error',
+        }"
         type="button"
         aria-live="polite"
         @click="copyContent"
       >
         <AppIcon
-          :name="copyState === 'success' ? 'circle-check' : copyState === 'error' ? 'circle-x' : 'copy'"
+          :name="
+            copyState === 'success' ? 'circle-check' : copyState === 'error' ? 'circle-x' : 'copy'
+          "
           :size="14"
-        />{{ copyState === 'success' ? t("common.copiedShort") : copyState === 'error' ? t("common.copyFailed") : t("common.copyContent") }}
+        />{{
+          copyState === "success"
+            ? t("common.copiedShort")
+            : copyState === "error"
+              ? t("common.copyFailed")
+              : t("common.copyContent")
+        }}
       </button>
     </template>
   </AppDialog>

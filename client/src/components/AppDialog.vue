@@ -50,17 +50,23 @@ function onCloseAutoFocus(event: Event): void {
   <DialogRoot :open="props.open" @update:open="emit('update:open', $event)">
     <DialogPortal>
       <DialogOverlay class="app-dialog-overlay" />
-      <DialogContent
-        as-child
-        :aria-label="props.label"
-        @close-auto-focus="onCloseAutoFocus"
-      >
-        <section class="app-dialog-shell" :class="props.contentClass" :style="props.width ? { width: props.width } : undefined">
-          <header v-if="$slots.header || $slots['header-actions'] || props.showClose" class="app-dialog-header">
+      <DialogContent as-child :aria-label="props.label" @close-auto-focus="onCloseAutoFocus">
+        <section
+          class="app-dialog-shell"
+          :class="props.contentClass"
+          :style="props.width ? { width: props.width } : undefined"
+        >
+          <header
+            v-if="$slots.header || $slots['header-actions'] || props.showClose"
+            class="app-dialog-header"
+          >
             <div class="app-dialog-heading">
               <slot name="header" />
             </div>
-            <div v-if="$slots['header-actions'] || props.showClose" class="app-dialog-header-actions">
+            <div
+              v-if="$slots['header-actions'] || props.showClose"
+              class="app-dialog-header-actions"
+            >
               <slot name="header-actions" />
               <button
                 v-if="props.showClose"

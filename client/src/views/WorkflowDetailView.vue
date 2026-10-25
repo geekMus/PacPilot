@@ -278,7 +278,9 @@ onUnmounted(() => {
       <div v-if="error" class="error-panel" role="alert">
         <strong>{{ t("workflow.loadDetailFailed") }}</strong>
         <span>{{ error }}</span>
-        <button type="button" class="app-button app-button--secondary" @click="load()">{{ t("common.retry") }}</button>
+        <button type="button" class="app-button app-button--secondary" @click="load()">
+          {{ t("common.retry") }}
+        </button>
       </div>
 
       <section v-if="detail" class="detail-panel">
@@ -426,16 +428,31 @@ onUnmounted(() => {
         </template>
         <template #header-actions>
           <button
-                class="app-button app-button--sm app-button--secondary"
-                :class="{ 'is-copy-success': stageCopyState === 'success', 'is-copy-error': stageCopyState === 'error' }"
-                type="button"
-                aria-live="polite"
-                @click="copyStageDetail"
-              >
-                <AppIcon
-                  :name="stageCopyState === 'success' ? 'circle-check' : stageCopyState === 'error' ? 'circle-x' : 'copy'"
-                  :size="14"
-                />{{ stageCopyState === 'success' ? t("common.copiedShort") : stageCopyState === 'error' ? t("common.copyFailed") : t("workflowDetailPage.k31") }}
+            class="app-button app-button--sm app-button--secondary"
+            :class="{
+              'is-copy-success': stageCopyState === 'success',
+              'is-copy-error': stageCopyState === 'error',
+            }"
+            type="button"
+            aria-live="polite"
+            @click="copyStageDetail"
+          >
+            <AppIcon
+              :name="
+                stageCopyState === 'success'
+                  ? 'circle-check'
+                  : stageCopyState === 'error'
+                    ? 'circle-x'
+                    : 'copy'
+              "
+              :size="14"
+            />{{
+              stageCopyState === "success"
+                ? t("common.copiedShort")
+                : stageCopyState === "error"
+                  ? t("common.copyFailed")
+                  : t("workflowDetailPage.k31")
+            }}
           </button>
         </template>
         <template #body>

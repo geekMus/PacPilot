@@ -277,12 +277,15 @@ onMounted(() => {
           </header>
           <div class="config-details">
             <div class="config-detail">
-              <span>{{ t("dashboard.pacEndpoint") }}</span><code>/pac</code>
+              <span>{{ t("dashboard.pacEndpoint") }}</span
+              ><code>/pac</code>
             </div>
             <div class="config-detail">
               <span>{{ t("dashboard.ruleSource") }}</span
               ><strong :class="settings?.mode === 'remote' ? '' : 'value-muted'">{{
-                settings?.mode === "remote" ? t("dashboard.ruleSourceRemote") : t("dashboard.ruleSourceCustom")
+                settings?.mode === "remote"
+                  ? t("dashboard.ruleSourceRemote")
+                  : t("dashboard.ruleSourceCustom")
               }}</strong>
             </div>
             <div class="config-detail">
@@ -331,9 +334,10 @@ onMounted(() => {
             :row-height="40"
           >
             <template #columns>
-              <col style="width: 150px" /><col style="width: 110px" /><col style="width: 130px" /><col
-                style="width: 110px"
-              />
+              <col style="width: 150px" />
+              <col style="width: 110px" />
+              <col style="width: 130px" />
+              <col style="width: 110px" />
             </template>
             <template #header>
               <tr>
@@ -393,7 +397,6 @@ onMounted(() => {
         </div>
       </section>
 
-      
       <AppFooter />
     </div>
   </AdminLayout>

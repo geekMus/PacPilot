@@ -20,7 +20,11 @@ function parseIpv4(host: string): number[] | null {
 
 /** Return the dotted IPv4 address embedded in any valid IPv4-mapped IPv6 form. */
 function mappedIpv4Address(host: string): string | null {
-  let normalized = host.toLowerCase().replace(/^\[|\]$/g, "").split("%")[0] ?? "";
+  let normalized =
+    host
+      .toLowerCase()
+      .replace(/^\[|\]$/g, "")
+      .split("%")[0] ?? "";
   if (!normalized.includes(":")) return null;
 
   const dottedTail = normalized.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
@@ -38,11 +42,7 @@ function mappedIpv4Address(host: string): string | null {
   const right = halves.length === 2 && halves[1] ? halves[1].split(":") : [];
   const missing = 8 - left.length - right.length;
   if ((halves.length === 1 && missing !== 0) || (halves.length === 2 && missing < 1)) return null;
-  const groups = [
-    ...left,
-    ...Array.from({ length: missing }, () => "0"),
-    ...right,
-  ].map((part) => {
+  const groups = [...left, ...Array.from({ length: missing }, () => "0"), ...right].map((part) => {
     if (!/^[0-9a-f]{1,4}$/.test(part)) return Number.NaN;
     return Number.parseInt(part, 16);
   });
@@ -51,12 +51,7 @@ function mappedIpv4Address(host: string): string | null {
 
   const high = groups[6];
   const low = groups[7];
-  return [
-    high >> 8,
-    high & 0xff,
-    low >> 8,
-    low & 0xff,
-  ].join(".");
+  return [high >> 8, high & 0xff, low >> 8, low & 0xff].join(".");
 }
 
 /** True for loopback, link-local, RFC1918, CGNAT, and cloud metadata ranges. */

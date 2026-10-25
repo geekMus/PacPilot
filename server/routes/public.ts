@@ -99,9 +99,7 @@ export function publicRoutes(storage: ApplicationStorage): Router {
     } catch {
       source = "";
     }
-    res.json(
-      parsePacStatus(source, (await storage.settings.get()).timezone, builtAt)
-    );
+    res.json(parsePacStatus(source, (await storage.settings.get()).timezone, builtAt));
   });
 
   return router;

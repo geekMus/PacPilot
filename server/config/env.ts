@@ -37,7 +37,8 @@ function isContainer(): boolean {
     process.env.RUNNING_IN_DOCKER === "1" ||
     process.env.container ||
     process.env.KUBERNETES_SERVICE_HOST
-  ) return true;
+  )
+    return true;
   try {
     return fs.existsSync("/.dockerenv");
   } catch {

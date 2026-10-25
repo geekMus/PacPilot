@@ -50,7 +50,14 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
               etag: rendered.etag,
               compressed: (await storage.settings.get()).pacCompress,
             }
-          : { exists: false, sizeBytes: 0, sourceBytes: 0, builtAt: null, etag: "", compressed: false },
+          : {
+              exists: false,
+              sizeBytes: 0,
+              sourceBytes: 0,
+              builtAt: null,
+              etag: "",
+              compressed: false,
+            },
         ruleSource: ruleSource
           ? {
               exists: true,
@@ -111,8 +118,12 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
         ok: true,
         deleted,
         pac: {
-          rendered: rendered ? { exists: true, builtAt: rendered.builtAt } : { exists: false, builtAt: null },
-          ruleSource: ruleSource ? { exists: true, fetchedAt: ruleSource.fetchedAt } : { exists: false, fetchedAt: null },
+          rendered: rendered
+            ? { exists: true, builtAt: rendered.builtAt }
+            : { exists: false, builtAt: null },
+          ruleSource: ruleSource
+            ? { exists: true, fetchedAt: ruleSource.fetchedAt }
+            : { exists: false, fetchedAt: null },
         },
         pacFiles: {
           proxyPac: rendered

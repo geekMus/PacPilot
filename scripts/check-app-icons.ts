@@ -65,7 +65,10 @@ if (legacyScrollbarUsages.length) {
   );
 }
 
-const editorComponent = fs.readFileSync(path.join(sourceRoot, "components/CodeMirrorField.vue"), "utf8");
+const editorComponent = fs.readFileSync(
+  path.join(sourceRoot, "components/CodeMirrorField.vue"),
+  "utf8"
+);
 if (!/scrollbarMode\?:\s*["']hover["']\s*\|\s*["']auto["']/.test(editorComponent)) {
   throw new Error("CodeMirrorField scrollbarMode 应仅支持 hover | auto。");
 }
@@ -73,4 +76,6 @@ if (!/scrollbarMode:\s*["']auto["']/.test(editorComponent)) {
   throw new Error('CodeMirrorField scrollbarMode 默认值应为 "auto"。');
 }
 
-console.log(`AppIcon 检查通过：已验证 ${usedIcons.size} 个静态图标名称；编辑器滚动条模式检查通过。`);
+console.log(
+  `AppIcon 检查通过：已验证 ${usedIcons.size} 个静态图标名称；编辑器滚动条模式检查通过。`
+);

@@ -166,5 +166,8 @@ export interface ApplicationStorage {
   close(): Promise<void>;
 }
 
-export interface SyncNotificationRepository { get(): NotificationDocument; set(document: NotificationDocument): void; }
+export interface SyncNotificationRepository {
+  get(): NotificationDocument;
+  set(document: NotificationDocument): void;
+}
 export type NotificationRepository = AsyncRepository<SyncNotificationRepository>;

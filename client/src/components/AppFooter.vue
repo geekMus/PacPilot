@@ -152,7 +152,9 @@ onMounted(() => {
     >
       <template #header>
         <div class="version-dialog-heading">
-          <DialogTitle id="version-dialog-title" class="version-dialog-title">{{ t("footer.projectVersion") }}</DialogTitle>
+          <DialogTitle id="version-dialog-title" class="version-dialog-title">{{
+            t("footer.projectVersion")
+          }}</DialogTitle>
           <DialogDescription id="version-dialog-description" class="app-dialog-visually-hidden">
             {{ t("footer.currentVersion") }}、{{ t("footer.latestVersion") }}
           </DialogDescription>
@@ -160,67 +162,65 @@ onMounted(() => {
       </template>
       <template #body>
         <div class="version-grid">
-            <div class="version-item">
-              <span>{{ t("footer.currentVersion") }}</span
-              ><strong>v{{ currentVersion }}</strong>
-            </div>
-            <button
-              type="button"
-              class="version-item latest-version-item"
-              :class="{ 'version-new': hasUpdate, 'is-loading': isCheckingVersion }"
-              @click="loadVersionInfo"
-              :disabled="isCheckingVersion"
-              :title="isCheckingVersion ? t('footer.checkingVersion') : t('footer.queryLatest')"
-              :aria-label="
-                isCheckingVersion ? t('footer.checkingLatest') : t('footer.clickGetLatest')
-              "
-            >
-              <span
-                >{{ t("footer.latestVersion") }}
-                <small>{{
-                  isCheckingVersion ? t("common.getting") : t("common.clickRefresh")
-                }}</small></span
-              ><strong>{{
-                latestVersion === t("common.temporarilyUnknown")
-                  ? latestVersion
-                  : "v" + latestVersion
-              }}</strong>
-            </button>
+          <div class="version-item">
+            <span>{{ t("footer.currentVersion") }}</span
+            ><strong>v{{ currentVersion }}</strong>
           </div>
-          <div v-if="hasUpdate" class="dialog-update-note" role="status">
-            <span class="dialog-update-dot"></span>
-            <div>
-              <strong>{{ t("footer.foundNew", { version: updateInfo?.latestVersion }) }}</strong>
-              <p>{{ t("footer.outdated") }}</p>
-            </div>
+          <button
+            type="button"
+            class="version-item latest-version-item"
+            :class="{ 'version-new': hasUpdate, 'is-loading': isCheckingVersion }"
+            @click="loadVersionInfo"
+            :disabled="isCheckingVersion"
+            :title="isCheckingVersion ? t('footer.checkingVersion') : t('footer.queryLatest')"
+            :aria-label="
+              isCheckingVersion ? t('footer.checkingLatest') : t('footer.clickGetLatest')
+            "
+          >
+            <span
+              >{{ t("footer.latestVersion") }}
+              <small>{{
+                isCheckingVersion ? t("common.getting") : t("common.clickRefresh")
+              }}</small></span
+            ><strong>{{
+              latestVersion === t("common.temporarilyUnknown") ? latestVersion : "v" + latestVersion
+            }}</strong>
+          </button>
+        </div>
+        <div v-if="hasUpdate" class="dialog-update-note" role="status">
+          <span class="dialog-update-dot"></span>
+          <div>
+            <strong>{{ t("footer.foundNew", { version: updateInfo?.latestVersion }) }}</strong>
+            <p>{{ t("footer.outdated") }}</p>
           </div>
-          <p v-else-if="isCheckingVersion" class="dialog-status" role="status">
-            {{ t("footer.checkingStatus") }}
-          </p>
-          <p v-else-if="refreshFailed" class="dialog-status" role="status">
-            {{ t("footer.fetchFailed") }}
-          </p>
-          <p v-else-if="updateInfo?.checked" class="dialog-status">
-            {{ t("footer.alreadyLatest") }}
-          </p>
-          <p v-else class="dialog-status">{{ t("footerExtra.k2") }}</p>
+        </div>
+        <p v-else-if="isCheckingVersion" class="dialog-status" role="status">
+          {{ t("footer.checkingStatus") }}
+        </p>
+        <p v-else-if="refreshFailed" class="dialog-status" role="status">
+          {{ t("footer.fetchFailed") }}
+        </p>
+        <p v-else-if="updateInfo?.checked" class="dialog-status">
+          {{ t("footer.alreadyLatest") }}
+        </p>
+        <p v-else class="dialog-status">{{ t("footerExtra.k2") }}</p>
       </template>
       <template #footer>
-          <a
-              class="app-button app-button--primary"
-              :href="updateInfo?.repositoryUrl || projectUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
-                <path
-                  fill="currentColor"
-                  d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.55.1.76-.24.76-.53v-2.04c-3.1.68-3.76-1.32-3.76-1.32-.5-1.3-1.24-1.65-1.24-1.65-1.01-.69.08-.68.08-.68 1.12.08 1.71 1.15 1.71 1.15.99 1.7 2.6 1.21 3.23.93.1-.72.39-1.21.7-1.49-2.47-.28-5.07-1.24-5.07-5.5 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.05 1.15a10.6 10.6 0 0 1 5.55 0c2.11-1.45 3.05-1.15 3.05-1.15.61 1.54.23 2.68.11 2.96.72.78 1.15 1.78 1.15 3.01 0 4.27-2.6 5.21-5.08 5.49.4.35.75 1.02.75 2.06V22c0 .29.2.64.76.53A11.1 11.1 0 0 0 12 .9Z"
-                /></svg
-              >{{ t("footerExtra.k3") }}</a
-            ><button type="button" class="app-button app-button--secondary" @click="dialogOpen = false">
-              {{ t("footerExtra.k4") }}
-            </button>
+        <a
+          class="app-button app-button--primary"
+          :href="updateInfo?.repositoryUrl || projectUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.55.1.76-.24.76-.53v-2.04c-3.1.68-3.76-1.32-3.76-1.32-.5-1.3-1.24-1.65-1.24-1.65-1.01-.69.08-.68.08-.68 1.12.08 1.71 1.15 1.71 1.15.99 1.7 2.6 1.21 3.23.93.1-.72.39-1.21.7-1.49-2.47-.28-5.07-1.24-5.07-5.5 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.05 1.15a10.6 10.6 0 0 1 5.55 0c2.11-1.45 3.05-1.15 3.05-1.15.61 1.54.23 2.68.11 2.96.72.78 1.15 1.78 1.15 3.01 0 4.27-2.6 5.21-5.08 5.49.4.35.75 1.02.75 2.06V22c0 .29.2.64.76.53A11.1 11.1 0 0 0 12 .9Z"
+            /></svg
+          >{{ t("footerExtra.k3") }}</a
+        ><button type="button" class="app-button app-button--secondary" @click="dialogOpen = false">
+          {{ t("footerExtra.k4") }}
+        </button>
       </template>
     </AppDialog>
   </footer>

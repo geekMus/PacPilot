@@ -4,7 +4,10 @@ import { useI18n } from "vue-i18n";
 import { EditorView, keymap, lineNumbers, placeholder as cmPlaceholder } from "@codemirror/view";
 import { EditorState, type Extension } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { syntaxHighlighting as addSyntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
+import {
+  syntaxHighlighting as addSyntaxHighlighting,
+  defaultHighlightStyle,
+} from "@codemirror/language";
 import { json } from "@codemirror/lang-json";
 import { oneDarkHighlightStyle, oneDarkTheme } from "@codemirror/theme-one-dark";
 import AppScrollArea from "@/components/AppScrollArea.vue";
@@ -71,7 +74,9 @@ function observeScrollableContent(): void {
 }
 
 function isDark(): boolean {
-  return typeof document !== "undefined" && document.documentElement.classList.contains("theme-dark");
+  return (
+    typeof document !== "undefined" && document.documentElement.classList.contains("theme-dark")
+  );
 }
 
 function buildExtensions() {
@@ -86,7 +91,10 @@ function buildExtensions() {
     keymap.of(bindings),
     ...(props.syntaxHighlighting ? [addSyntaxHighlighting(defaultHighlightStyle)] : []),
     ...(props.theme === "one-dark" && isDark()
-      ? [oneDarkTheme, ...(props.syntaxHighlighting ? [addSyntaxHighlighting(oneDarkHighlightStyle)] : [])]
+      ? [
+          oneDarkTheme,
+          ...(props.syntaxHighlighting ? [addSyntaxHighlighting(oneDarkHighlightStyle)] : []),
+        ]
       : []),
     ...(props.language === "json" ? [json()] : []),
     ...(props.placeholder ? [cmPlaceholder(props.placeholder)] : []),
@@ -127,7 +135,11 @@ function buildExtensions() {
       },
       ".cm-content": { padding: "10px 12px" },
       ".cm-line": { padding: "0" },
-      ".cm-gutters": { background: "var(--surface-2)", borderRight: "1px solid var(--line)", color: "var(--muted)" },
+      ".cm-gutters": {
+        background: "var(--surface-2)",
+        borderRight: "1px solid var(--line)",
+        color: "var(--muted)",
+      },
       // CodeMirror ships its own grey (#888), which lands at 3.24:1 on our
       // surfaces — below WCAG AA. Use the muted token instead (4.58:1).
       ".cm-placeholder": { color: "var(--muted)", fontStyle: "normal" },
@@ -177,7 +189,17 @@ onBeforeUnmount(() => {
   view = null;
 });
 watch(
-  () => [props.singleLine, props.lineNumbers, props.syntaxHighlighting, props.readOnly, props.language, props.height, props.placeholder, props.extensions, props.theme],
+  () => [
+    props.singleLine,
+    props.lineNumbers,
+    props.syntaxHighlighting,
+    props.readOnly,
+    props.language,
+    props.height,
+    props.placeholder,
+    props.extensions,
+    props.theme,
+  ],
   () => mountEditor()
 );
 watch(
@@ -195,7 +217,9 @@ watch(
   <div
     class="cm-field-frame"
     :class="{ 'single-line': singleLine, invalid, embedded }"
-    :style="!singleLine ? { height: `${height}px`, '--cm-editor-height': `${height}px` } : undefined"
+    :style="
+      !singleLine ? { height: `${height}px`, '--cm-editor-height': `${height}px` } : undefined
+    "
   >
     <AppScrollArea
       v-if="!singleLine"

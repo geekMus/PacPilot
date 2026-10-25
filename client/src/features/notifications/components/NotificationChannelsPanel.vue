@@ -84,7 +84,9 @@ const {
           <span
             class="status-dot"
             :class="{ online: item.enabled }"
-            :title="item.enabled ? t('notifications.statusEnabled') : t('notifications.statusDisabled')"
+            :title="
+              item.enabled ? t('notifications.statusEnabled') : t('notifications.statusDisabled')
+            "
           ></span>
           <AppIconButton
             class="row-delete"
@@ -115,7 +117,9 @@ const {
         <div class="editor-heading-tools">
           <span class="status-pill" :class="ch.enabled ? 'pill-enabled' : 'pill-disabled'"
             ><span class="status-dot" :class="{ online: ch.enabled }"></span
-            >{{ ch.enabled ? t("notifications.statusEnabled") : t("notifications.statusDisabled") }}</span
+            >{{
+              ch.enabled ? t("notifications.statusEnabled") : t("notifications.statusDisabled")
+            }}</span
           >
         </div>
       </header>
@@ -173,12 +177,16 @@ const {
                 @update:model-value="ch.config.url = $event"
               />
               <small class="field-hint"
-                ><AppIcon name="shield-check" :size="13" /> {{ t("notifications.hintUrlRedacted") }}</small
+                ><AppIcon name="shield-check" :size="13" />
+                {{ t("notifications.hintUrlRedacted") }}</small
               >
             </label>
             <template v-if="ch.config.provider === 'dingtalk'">
               <label class="field">
-                <span>{{ t("notifications.fieldSecret") }} <em>{{ t("notifications.optional") }}</em></span>
+                <span
+                  >{{ t("notifications.fieldSecret") }}
+                  <em>{{ t("notifications.optional") }}</em></span
+                >
                 <div class="secret-input">
                   <AppInput
                     v-model="ch.config.dingTalkSecret"
@@ -215,10 +223,11 @@ const {
                   :aria-label="t('notifications.fieldMessageTemplate')"
                   @update:model-value="ch.config.messageTemplate = $event"
                 /><small class="field-hint"
-                  >{{ t("notifications.hintVariables") }}<code v-pre>{{event}}</code>、<code v-pre
-                    >{{status}}</code
-                  >、<code v-pre>{{message}}</code>、<code v-pre>{{timestamp}}</code>、<code v-pre
-                    >{{ok}}</code
+                  >{{ t("notifications.hintVariables") }}<code v-pre>{{ event }}</code
+                  >、<code v-pre>{{ status }}</code
+                  >、<code v-pre>{{ message }}</code
+                  >、<code v-pre>{{ timestamp }}</code
+                  >、<code v-pre>{{ ok }}</code
                   >。</small
                 ></label
               >
@@ -250,16 +259,21 @@ const {
                 >
               </div>
               <label class="field"
-                ><span>{{ t("notifications.fieldHeaders") }} <em>{{ t("notifications.json") }}</em></span
+                ><span
+                  >{{ t("notifications.fieldHeaders") }}
+                  <em>{{ t("notifications.json") }}</em></span
                 ><WebhookBodyEditor
                   :model-value="ch.config.headers"
                   :height="126"
                   placeholder='{"Authorization":"Bearer …"}'
                   @update:model-value="ch.config.headers = $event"
-                /><small class="field-hint">{{ t("notifications.hintHeadersRedacted") }}</small></label
+                /><small class="field-hint">{{
+                  t("notifications.hintHeadersRedacted")
+                }}</small></label
               >
               <label class="field"
-                ><span>{{ t("notifications.fieldBody") }} <em>{{ t("notifications.json") }}</em></span
+                ><span
+                  >{{ t("notifications.fieldBody") }} <em>{{ t("notifications.json") }}</em></span
                 ><WebhookBodyEditor
                   :model-value="ch.config.body"
                   :height="190"
@@ -318,11 +332,12 @@ const {
               :label="t('notifications.toggleChannel')"
               :description="t('notifications.toggleChannelHint')"
             />
-          </section>
-        </div></AppScrollArea
-      >
+          </section></div
+      ></AppScrollArea>
       <footer class="editor-footer">
-        <AppButton variant="secondary" @click="resetC">{{ t("notifications.buttonNewBlank") }}</AppButton>
+        <AppButton variant="secondary" @click="resetC">{{
+          t("notifications.buttonNewBlank")
+        }}</AppButton>
         <AppButton
           v-if="cid"
           variant="danger-ghost"
@@ -350,7 +365,9 @@ const {
           variant="primary"
           :disabled="busy || !ch.name.trim() || !ch.config.url.trim() || channelErrors.length > 0"
           ><AppIcon name="save" :size="15" />
-          {{ busy ? t("notifications.buttonSaving") : t("notifications.buttonSaveChannel") }}</AppButton
+          {{
+            busy ? t("notifications.buttonSaving") : t("notifications.buttonSaveChannel")
+          }}</AppButton
         >
       </footer>
       <div v-if="channelErrors.length" class="editor-note" role="alert">
@@ -366,4 +383,3 @@ const {
     </section>
   </section>
 </template>
-

@@ -54,9 +54,7 @@ export function useNotificationLabels() {
   const outcomeName = (value?: string | null) =>
     t(outcomeNames[value ?? "any"] ?? "notifications.outcomeAny");
   const providerName = (provider: string) =>
-    provider === "dingtalk"
-      ? t("notifications.providerDingTalk")
-      : t("notifications.providerHttp");
+    provider === "dingtalk" ? t("notifications.providerDingTalk") : t("notifications.providerHttp");
   const statusName = (status: string) => (statusNames[status] ? t(statusNames[status]) : status);
   const statusIcon = (status: string): DeliveryStatusIcon => statusIcons[status] ?? "clock";
   const formatDate = (value?: string) => {

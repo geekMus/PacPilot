@@ -3,9 +3,11 @@ import { createDefaultWebhookConfig } from "../domain/settings";
 import { validateWebhookConfig } from "../services/webhook";
 
 function config(overrides: Record<string, unknown> = {}) {
-  return { ...createDefaultWebhookConfig(), url: "https://example.com/hook", ...overrides } as ReturnType<
-    typeof createDefaultWebhookConfig
-  >;
+  return {
+    ...createDefaultWebhookConfig(),
+    url: "https://example.com/hook",
+    ...overrides,
+  } as ReturnType<typeof createDefaultWebhookConfig>;
 }
 
 describe("validateWebhookConfig", () => {
@@ -17,7 +19,11 @@ describe("validateWebhookConfig", () => {
   });
 
   it("blocks loopback and metadata targets so webhooks cannot probe the host", () => {
-    for (const url of ["http://127.0.0.1/hook", "http://localhost/hook", "http://metadata.goog/hook"]) {
+    for (const url of [
+      "http://127.0.0.1/hook",
+      "http://localhost/hook",
+      "http://metadata.goog/hook",
+    ]) {
       expect(validateWebhookConfig(config({ url }))).toEqual([
         expect.stringContaining("loopback or cloud metadata"),
       ]);

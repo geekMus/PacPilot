@@ -58,9 +58,8 @@ async function onSubmit() {
   loading.value = true;
   try {
     await api.login(password.value);
-    const { invalidateAdminSessionCache, fetchAdminSession } = await import(
-      "@/composables/useAdminSession"
-    );
+    const { invalidateAdminSessionCache, fetchAdminSession } =
+      await import("@/composables/useAdminSession");
     invalidateAdminSessionCache();
     await fetchAdminSession(true);
     notify(t("login.success"), "success");

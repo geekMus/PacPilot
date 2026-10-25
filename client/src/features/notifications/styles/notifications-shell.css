@@ -142,7 +142,11 @@
 .webhook-page .panel-heading {
   @apply flex shrink-0 items-center gap-[11px] border-b px-[15px] py-[13px];
   border-color: color-mix(in srgb, var(--accent) 16%, var(--line));
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, var(--surface-2)), var(--wh-heading-bg));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 8%, var(--surface-2)),
+    var(--wh-heading-bg)
+  );
 }
 
 .webhook-page .panel-heading-icon {
@@ -461,7 +465,7 @@
     @apply static h-auto max-h-none;
   }
   .webhook-page .workspace-layout,
-.webhook-page .history-workspace {
+  .webhook-page .history-workspace {
     @apply min-h-0 max-h-none;
     flex: 0 0 auto;
     height: clamp(320px, 62dvh, 560px);
@@ -480,13 +484,13 @@
     flex: 0 0 auto;
   }
   .webhook-page .workspace-layout,
-.webhook-page .history-workspace {
+  .webhook-page .history-workspace {
     @apply min-h-0 max-h-none flex-col overflow-visible;
     flex: 0 0 auto;
   }
   .webhook-page .directory-panel,
-.webhook-page .editor-panel,
-.webhook-page .history-panel {
+  .webhook-page .editor-panel,
+  .webhook-page .history-panel {
     @apply w-full min-w-0 max-h-none;
   }
   .webhook-page .directory-panel {
@@ -531,14 +535,14 @@
     @apply w-full;
   }
   .webhook-page .event-row,
-.webhook-page .delivery-row {
+  .webhook-page .delivery-row {
     @apply gap-[9px] p-[13px];
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .webhook-page *,
-.webhook-page *::before,
-.webhook-page *::after {
+  .webhook-page *::before,
+  .webhook-page *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
   }

@@ -25,7 +25,9 @@ describe("portaled overlay style architecture", () => {
       ".timezone-no-results",
     ]) {
       expect(overlayStyles, `missing global overlay selector ${selector}`).toContain(selector);
-      expect(adminStyles, `Portal selector ${selector} leaked into scoped page CSS`).not.toContain(selector);
+      expect(adminStyles, `Portal selector ${selector} leaked into scoped page CSS`).not.toContain(
+        selector
+      );
     }
   });
 

@@ -40,7 +40,10 @@ function installMatchMedia(matches = false) {
     removeListener: vi.fn(),
     dispatchEvent: vi.fn(() => true),
   } as unknown as MediaQueryList;
-  vi.stubGlobal("matchMedia", vi.fn(() => media));
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn(() => media)
+  );
   return { media, listeners };
 }
 
@@ -63,12 +66,14 @@ describe("useTheme", () => {
     initThemeEarly();
     expect(document.documentElement.classList.contains("theme-dark")).toBe(true);
 
-    const wrapper = mount(defineComponent({
-      setup() {
-        const theme = useTheme();
-        return () => h("span", theme.resolved());
-      },
-    }));
+    const wrapper = mount(
+      defineComponent({
+        setup() {
+          const theme = useTheme();
+          return () => h("span", theme.resolved());
+        },
+      })
+    );
     expect(wrapper.text()).toBe("dark");
     wrapper.unmount();
   });
@@ -80,12 +85,14 @@ describe("useTheme", () => {
     initThemeEarly();
     expect(document.documentElement.classList.contains("theme-light")).toBe(true);
 
-    const wrapper = mount(defineComponent({
-      setup() {
-        const theme = useTheme();
-        return () => h("span", theme.mode.value);
-      },
-    }));
+    const wrapper = mount(
+      defineComponent({
+        setup() {
+          const theme = useTheme();
+          return () => h("span", theme.mode.value);
+        },
+      })
+    );
     expect(wrapper.text()).toBe("light");
     wrapper.unmount();
 
@@ -99,14 +106,21 @@ describe("useTheme", () => {
   it("persists explicit mode changes and applies the corresponding class", async () => {
     installMatchMedia(false);
     const { useTheme } = await import("../src/composables/useTheme");
-    const wrapper = mount(defineComponent({
-      setup() {
-        const theme = useTheme();
-        return () => h("button", {
-          onClick: () => theme.setMode("dark"),
-        }, theme.mode.value);
-      },
-    }));
+    const wrapper = mount(
+      defineComponent({
+        setup() {
+          const theme = useTheme();
+          return () =>
+            h(
+              "button",
+              {
+                onClick: () => theme.setMode("dark"),
+              },
+              theme.mode.value
+            );
+        },
+      })
+    );
 
     await wrapper.get("button").trigger("click");
     await nextTick();
@@ -119,12 +133,14 @@ describe("useTheme", () => {
   it("updates on system preference changes only in system mode and removes listeners", async () => {
     const { media, listeners } = installMatchMedia(false);
     const { useTheme } = await import("../src/composables/useTheme");
-    const wrapper = mount(defineComponent({
-      setup() {
-        const theme = useTheme();
-        return () => h("span", theme.resolved());
-      },
-    }));
+    const wrapper = mount(
+      defineComponent({
+        setup() {
+          const theme = useTheme();
+          return () => h("span", theme.resolved());
+        },
+      })
+    );
     expect(wrapper.text()).toBe("light");
     expect(listeners.size).toBe(1);
 

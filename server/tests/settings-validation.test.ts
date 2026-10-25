@@ -4,24 +4,26 @@ import { validateSettingsPayload } from "../utils/settings-validation";
 describe("validateSettingsPayload", () => {
   it("accepts an empty object and supported setting values", () => {
     expect(validateSettingsPayload({})).toBeNull();
-    expect(validateSettingsPayload({
-      mode: "remote",
-      pacProxy: "PROXY proxy.example.com:8080",
-      listUrl: "https://rules.example.com/list.txt",
-      cronSchedule: "0 */6 * * *",
-      timezone: "Asia/Shanghai",
-      pacCompress: true,
-      blockList: ["blocked.example.com"],
-      directList: "internal.example.com",
-      logRetentionDays: 30,
-      webhookSuccessConfig: {
-        provider: "custom",
-        method: "POST",
-        url: "https://hooks.example.com",
-        headers: "{}",
-        body: "{}",
-      },
-    })).toBeNull();
+    expect(
+      validateSettingsPayload({
+        mode: "remote",
+        pacProxy: "PROXY proxy.example.com:8080",
+        listUrl: "https://rules.example.com/list.txt",
+        cronSchedule: "0 */6 * * *",
+        timezone: "Asia/Shanghai",
+        pacCompress: true,
+        blockList: ["blocked.example.com"],
+        directList: "internal.example.com",
+        logRetentionDays: 30,
+        webhookSuccessConfig: {
+          provider: "custom",
+          method: "POST",
+          url: "https://hooks.example.com",
+          headers: "{}",
+          body: "{}",
+        },
+      })
+    ).toBeNull();
   });
 
   it("rejects non-object payloads and unsupported modes", () => {
@@ -38,8 +40,12 @@ describe("validateSettingsPayload", () => {
   });
 
   it("validates domain lists and log retention bounds", () => {
-    expect(validateSettingsPayload({ blockList: [1] })).toBe("blockList must be a string or an array of strings");
-    expect(validateSettingsPayload({ directList: {} })).toBe("directList must be a string or an array of strings");
+    expect(validateSettingsPayload({ blockList: [1] })).toBe(
+      "blockList must be a string or an array of strings"
+    );
+    expect(validateSettingsPayload({ directList: {} })).toBe(
+      "directList must be a string or an array of strings"
+    );
     for (const value of [-1, 3651, 1.5, Infinity, "30"]) {
       expect(validateSettingsPayload({ logRetentionDays: value })).toBe(
         "logRetentionDays must be an integer between 0 and 3650"
@@ -62,9 +68,9 @@ describe("validateSettingsPayload", () => {
     expect(validateSettingsPayload({ webhookSuccessConfig: { method: "GET" } })).toBe(
       "webhookSuccessConfig.method is unsupported"
     );
-    expect(validateSettingsPayload({ webhookSuccessConfig: { dingTalkMessageType: "image" } })).toBe(
-      "webhookSuccessConfig.dingTalkMessageType is unsupported"
-    );
+    expect(
+      validateSettingsPayload({ webhookSuccessConfig: { dingTalkMessageType: "image" } })
+    ).toBe("webhookSuccessConfig.dingTalkMessageType is unsupported");
   });
 
   it("covers all optional webhook string fields and accepted enum values", () => {
@@ -98,9 +104,12 @@ describe("validateSettingsPayload", () => {
   it("accepts boundary retention values and validates list and mode alternatives", () => {
     expect(validateSettingsPayload({ mode: "custom", logRetentionDays: 0 })).toBeNull();
     expect(validateSettingsPayload({ mode: "remote", logRetentionDays: 3650 })).toBeNull();
-    expect(validateSettingsPayload({ blockList: "blocked.example.com", directList: ["one.example", "two.example"] }))
-      .toBeNull();
+    expect(
+      validateSettingsPayload({
+        blockList: "blocked.example.com",
+        directList: ["one.example", "two.example"],
+      })
+    ).toBeNull();
     expect(validateSettingsPayload({ pacCompress: false })).toBeNull();
   });
-
 });

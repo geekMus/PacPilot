@@ -1,12 +1,7 @@
 import { onMounted, reactive, ref, computed, nextTick, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter, useRoute } from "vue-router";
-import {
-  api,
-  type AppSettings,
-  type PacPilotProbe,
-  type WebhookConfig,
-} from "@/api/client";
+import { api, type AppSettings, type PacPilotProbe, type WebhookConfig } from "@/api/client";
 import { analyzeDomainRules } from "@/utils/domain-rules";
 import { DEFAULT_LIST_URL } from "@shared/contracts";
 import { createAdminSettingsValidators } from "@/utils/admin-settings-validation";
@@ -18,11 +13,8 @@ export function useAdminSettings() {
 
   const { notify } = useToast();
 
-  const {
-    looksLikeUrl,
-    validatePacProxyString,
-    validateDomainRules,
-  } = createAdminSettingsValidators(t);
+  const { looksLikeUrl, validatePacProxyString, validateDomainRules } =
+    createAdminSettingsValidators(t);
 
   const router = useRouter();
 
@@ -50,7 +42,6 @@ export function useAdminSettings() {
   const timezoneMenuOpen = ref(false);
 
   const timezoneQuery = ref("");
-
 
   const form = reactive({
     mode: "custom" as "custom" | "remote",
@@ -349,13 +340,11 @@ export function useAdminSettings() {
       }
       const [settings, probe] = await Promise.all([
         api.settings(),
-        api.pacpilotStatus().catch(
-          (): PacPilotProbe => ({
-            available: false,
-            command: null,
-            detail: t("settings.engineUnknown"),
-          })
-        ),
+        api.pacpilotStatus().catch((): PacPilotProbe => ({
+          available: false,
+          command: null,
+          detail: t("settings.engineUnknown"),
+        })),
       ]);
       applySettings(settings);
       savedSettingsSnapshot.value = settingsSnapshot();

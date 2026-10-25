@@ -183,13 +183,22 @@ onUnmounted(() => resizeObserver?.disconnect());
       </tr>
       <tr v-if="loading" class="virtual-state-row">
         <td :colspan="colSpan">
-          <span class="virtual-state"><span class="virtual-spinner"></span>{{ t("virtualTable.loadingMore") }}</span>
+          <span class="virtual-state"
+            ><span class="virtual-spinner"></span>{{ t("virtualTable.loadingMore") }}</span
+          >
         </td>
       </tr>
       <tr v-else-if="error" class="virtual-state-row">
         <td :colspan="colSpan">
           <div class="virtual-state is-error">
-            {{ error }} <button type="button" class="app-button app-button--sm app-button--secondary" @click="retry">{{ t("common.retry") }}</button>
+            {{ error }}
+            <button
+              type="button"
+              class="app-button app-button--sm app-button--secondary"
+              @click="retry"
+            >
+              {{ t("common.retry") }}
+            </button>
           </div>
         </td>
       </tr>
@@ -197,18 +206,28 @@ onUnmounted(() => resizeObserver?.disconnect());
         <td :colspan="colSpan">
           <div class="virtual-empty-state">
             <span>{{ resolvedEmptyText }}</span>
-            <button v-if="hasMore" type="button" class="app-button app-button--sm app-button--secondary" @click="retry">{{ t("virtualTable.loadNextBatch") }}</button>
+            <button
+              v-if="hasMore"
+              type="button"
+              class="app-button app-button--sm app-button--secondary"
+              @click="retry"
+            >
+              {{ t("virtualTable.loadNextBatch") }}
+            </button>
           </div>
         </td>
       </tr>
       <tr v-else-if="!hasMore" class="virtual-state-row">
         <td :colspan="colSpan">
-          <span class="virtual-state is-muted">{{ t("virtualTable.loadedAll", { n: items.length }) }}</span>
+          <span class="virtual-state is-muted">{{
+            t("virtualTable.loadedAll", { n: items.length })
+          }}</span>
         </td>
       </tr>
       <tr v-else class="virtual-state-row">
         <td :colspan="colSpan">
-          <span class="virtual-state is-muted">{{ t("virtualTable.scrollOrLoad") }}
+          <span class="virtual-state is-muted"
+            >{{ t("virtualTable.scrollOrLoad") }}
             <button type="button" @click="retry">{{ t("virtualTable.loadNextBatch") }}</button>
           </span>
         </td>

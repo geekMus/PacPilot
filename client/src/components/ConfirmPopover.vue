@@ -1,12 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import {
-  PopoverAnchor,
-  PopoverContent,
-  PopoverPortal,
-  PopoverRoot,
-} from "reka-ui";
+import { PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot } from "reka-ui";
 
 const props = withDefaults(
   defineProps<{
@@ -89,7 +84,12 @@ function onOpenChange(open: boolean) {
           {{ resolvedDisabledReason }}
         </div>
         <div class="confirm-popover-actions">
-          <button type="button" class="app-button app-button--sm app-button--secondary" :disabled="props.busy" @click="close">
+          <button
+            type="button"
+            class="app-button app-button--sm app-button--secondary"
+            :disabled="props.busy"
+            @click="close"
+          >
             {{ resolvedCancelText }}
           </button>
           <button
@@ -97,7 +97,13 @@ function onOpenChange(open: boolean) {
             class="app-button app-button--sm"
             :class="props.tone === 'warning' ? 'app-button--danger-ghost' : 'confirm-danger'"
             :disabled="props.disabled || props.busy"
-            :title="props.busy ? resolvedBusyText : props.disabled ? resolvedDisabledReason : resolvedConfirmText"
+            :title="
+              props.busy
+                ? resolvedBusyText
+                : props.disabled
+                  ? resolvedDisabledReason
+                  : resolvedConfirmText
+            "
             @click="emit('confirm')"
           >
             {{ props.busy ? resolvedBusyText : resolvedConfirmText }}

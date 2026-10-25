@@ -10,7 +10,10 @@ export function vacuumDatabase(database: AppDatabase, truncateWal = false): void
 export function checkpointDatabase(database: AppDatabase): void {
   database.run("PRAGMA wal_checkpoint(TRUNCATE);");
 }
-export function resetOperationalData(database: AppDatabase, settings = DEFAULT_SETTINGS): {
+export function resetOperationalData(
+  database: AppDatabase,
+  settings = DEFAULT_SETTINGS
+): {
   accessEvents: number;
   workflows: number;
 } {
@@ -23,7 +26,11 @@ export function resetOperationalData(database: AppDatabase, settings = DEFAULT_S
     database.run("COMMIT");
     return { accessEvents, workflows };
   } catch (error) {
-    try { database.run("ROLLBACK"); } catch { /* transaction already closed */ }
+    try {
+      database.run("ROLLBACK");
+    } catch {
+      /* transaction already closed */
+    }
     throw error;
   }
 }

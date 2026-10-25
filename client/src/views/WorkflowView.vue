@@ -28,7 +28,9 @@ async function openRunDetail(run: any): Promise<void> {
     selectedRunStages.value = detail.stages;
   } catch (error) {
     runDetailError.value = error instanceof Error ? error.message : String(error);
-  } finally { runDetailLoading.value = false; }
+  } finally {
+    runDetailLoading.value = false;
+  }
 }
 
 const {
@@ -84,7 +86,9 @@ const {
       <div v-if="error" class="workflow-alert error" role="alert">
         <strong>{{ t("workflow.loadFailed") }}</strong>
         <span>{{ error }}</span>
-        <button type="button" class="app-button app-button--secondary" @click="load()">{{ t("common.retry") }}</button>
+        <button type="button" class="app-button app-button--secondary" @click="load()">
+          {{ t("common.retry") }}
+        </button>
       </div>
 
       <section class="workflow-current panel">
@@ -168,7 +172,9 @@ const {
             </div>
           </div>
           <div class="current-actions">
-            <RouterLink class="app-button app-button--secondary" :to="`/admin/workflows/${current.id}`"
+            <RouterLink
+              class="app-button app-button--secondary"
+              :to="`/admin/workflows/${current.id}`"
               ><AppIcon name="external-link" :size="14" /> {{ t("workflowPage.k53") }}</RouterLink
             >
             <ConfirmPopover
@@ -244,9 +250,11 @@ const {
                 {{ stageLabel(run.stage) || t("workflowPage.k0") }}
               </p>
             </div>
-            <RouterLink class="app-button app-button--secondary" :to="`/admin/workflows/${run.id}`">{{
-              t("workflowPage.k53")
-            }}</RouterLink>
+            <RouterLink
+              class="app-button app-button--secondary"
+              :to="`/admin/workflows/${run.id}`"
+              >{{ t("workflowPage.k53") }}</RouterLink
+            >
             <ConfirmPopover
               v-if="run.status === 'pending'"
               :open="confirmingQueueCancelId === run.id"
@@ -525,38 +533,95 @@ const {
           {{ t("workflowPage.loadedHint", { loaded: runs.length, total: historyTotal }) }}
         </p>
       </section>
-      <AppDialog :open="runDetailOpen && !!selectedRun" :label="t('workflowPage.viewRunDetails', { id: selectedRun?.id })" width="min(720px, calc(100vw - 16px))" @update:open="runDetailOpen = $event">
+      <AppDialog
+        :open="runDetailOpen && !!selectedRun"
+        :label="t('workflowPage.viewRunDetails', { id: selectedRun?.id })"
+        width="min(720px, calc(100vw - 16px))"
+        @update:open="runDetailOpen = $event"
+      >
         <template #header>
           <div>
             <p class="eyebrow">WORKFLOW RUN #{{ selectedRun?.id }}</p>
             <DialogTitle>{{ t("workflow.pacGeneration") }}</DialogTitle>
-            <DialogDescription>{{ t("workflowPage.viewRunDetails", { id: selectedRun?.id }) }}</DialogDescription>
+            <DialogDescription>{{
+              t("workflowPage.viewRunDetails", { id: selectedRun?.id })
+            }}</DialogDescription>
           </div>
         </template>
         <template #body>
           <div v-if="selectedRun" class="run-detail-content">
             <div class="run-detail-grid">
-              <div><span>{{ t("workflowPage.k69") }}</span><strong>{{ sourceLabel(selectedRun.source) }}</strong></div>
-              <div><span>{{ t("workflowPage.k71") }}</span><strong><span class="status-pill" :class="selectedRun.status">{{ statusLabel(selectedRun.status) }}</span></strong></div>
-              <div><span>{{ t("workflowPage.k70") }}</span><strong>{{ dateLabel(selectedRun.started_at || selectedRun.created_at) }}</strong></div>
-              <div><span>{{ t("workflowPage.k72") }}</span><strong>{{ durationLabel(selectedRun) }}</strong></div>
-              <div><span>{{ t("workflowPage.k50") }}</span><strong>{{ modeLabel(selectedRun.mode) }}</strong></div>
-              <div><span>{{ t("workflowPage.k61") }}</span><strong>{{ stageLabel(selectedRun.stage) || "—" }}</strong></div>
-              <div><span>{{ t("workflowPage.k75") }}</span><strong>{{ selectedRun.finished_at ? dateLabel(selectedRun.finished_at) : "—" }}</strong></div>
+              <div>
+                <span>{{ t("workflowPage.k69") }}</span
+                ><strong>{{ sourceLabel(selectedRun.source) }}</strong>
+              </div>
+              <div>
+                <span>{{ t("workflowPage.k71") }}</span
+                ><strong
+                  ><span class="status-pill" :class="selectedRun.status">{{
+                    statusLabel(selectedRun.status)
+                  }}</span></strong
+                >
+              </div>
+              <div>
+                <span>{{ t("workflowPage.k70") }}</span
+                ><strong>{{ dateLabel(selectedRun.started_at || selectedRun.created_at) }}</strong>
+              </div>
+              <div>
+                <span>{{ t("workflowPage.k72") }}</span
+                ><strong>{{ durationLabel(selectedRun) }}</strong>
+              </div>
+              <div>
+                <span>{{ t("workflowPage.k50") }}</span
+                ><strong>{{ modeLabel(selectedRun.mode) }}</strong>
+              </div>
+              <div>
+                <span>{{ t("workflowPage.k61") }}</span
+                ><strong>{{ stageLabel(selectedRun.stage) || "—" }}</strong>
+              </div>
+              <div>
+                <span>{{ t("workflowPage.k75") }}</span
+                ><strong>{{
+                  selectedRun.finished_at ? dateLabel(selectedRun.finished_at) : "—"
+                }}</strong>
+              </div>
             </div>
             <p v-if="runDetailLoading" class="run-detail-state">{{ t("common.loading") }}</p>
-            <p v-if="runDetailError" class="run-detail-error-message" role="alert">{{ runDetailError }}</p>
+            <p v-if="runDetailError" class="run-detail-error-message" role="alert">
+              {{ runDetailError }}
+            </p>
             <section v-if="selectedRunStages.length" class="run-detail-stages">
               <h3>{{ t("workflowPage.k61") }}</h3>
               <article v-for="stage in selectedRunStages" :key="stage.id" class="run-detail-stage">
-                <div class="run-detail-stage-heading"><strong>{{ stageLabel(stage.stage_key) }}</strong><span class="status-pill" :class="stage.status">{{ statusLabel(stage.status) }}</span></div>
-                <div class="run-detail-stage-meta"><span>{{ stage.started_at ? dateLabel(stage.started_at) : "—" }}</span><span>{{ stage.finished_at ? dateLabel(stage.finished_at) : "—" }}</span><span>{{ stage.duration_ms == null ? "—" : stage.duration_ms + " ms" }}</span></div>
+                <div class="run-detail-stage-heading">
+                  <strong>{{ stageLabel(stage.stage_key) }}</strong
+                  ><span class="status-pill" :class="stage.status">{{
+                    statusLabel(stage.status)
+                  }}</span>
+                </div>
+                <div class="run-detail-stage-meta">
+                  <span>{{ stage.started_at ? dateLabel(stage.started_at) : "—" }}</span
+                  ><span>{{ stage.finished_at ? dateLabel(stage.finished_at) : "—" }}</span
+                  ><span>{{ stage.duration_ms == null ? "—" : stage.duration_ms + " ms" }}</span>
+                </div>
                 <pre v-if="stage.error" class="run-detail-error">{{ stage.error }}</pre>
-                <pre v-if="stage.detail" class="run-detail-stage-detail">{{ JSON.stringify(stage.detail, null, 2) }}</pre>
+                <pre v-if="stage.detail" class="run-detail-stage-detail">{{
+                  JSON.stringify(stage.detail, null, 2)
+                }}</pre>
               </article>
             </section>
-            <div v-if="selectedRun.error" class="run-detail-error"><strong>{{ t("workflowPage.k57") }}</strong><pre>{{ selectedRun.error }}</pre></div>
-            <div class="run-detail-actions"><RouterLink class="app-button app-button--secondary" :to="`/admin/workflows/${selectedRun.id}`" @click="runDetailOpen = false"><AppIcon name="external-link" :size="14" />{{ t("workflowPage.k53") }}</RouterLink></div>
+            <div v-if="selectedRun.error" class="run-detail-error">
+              <strong>{{ t("workflowPage.k57") }}</strong>
+              <pre>{{ selectedRun.error }}</pre>
+            </div>
+            <div class="run-detail-actions">
+              <RouterLink
+                class="app-button app-button--secondary"
+                :to="`/admin/workflows/${selectedRun.id}`"
+                @click="runDetailOpen = false"
+                ><AppIcon name="external-link" :size="14" />{{ t("workflowPage.k53") }}</RouterLink
+              >
+            </div>
           </div>
         </template>
       </AppDialog>

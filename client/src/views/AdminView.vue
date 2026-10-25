@@ -59,7 +59,6 @@ const {
   hasUnsavedSettings,
   saveAndGenerate,
 } = useAdminSettings();
-
 </script>
 
 <template>
@@ -127,9 +126,17 @@ const {
                       :display-value="(value) => String(value ?? '')"
                       :placeholder="t('settings.timezoneSearch')"
                       :aria-invalid="Boolean(timezoneError)"
-                      @focus="timezoneMenuOpen = true; timezoneQuery = ''"
+                      @focus="
+                        timezoneMenuOpen = true;
+                        timezoneQuery = '';
+                      "
                     />
-                    <AppIcon class="timezone-picker-icon" name="chevron-down" :size="15" aria-hidden="true" />
+                    <AppIcon
+                      class="timezone-picker-icon"
+                      name="chevron-down"
+                      :size="15"
+                      aria-hidden="true"
+                    />
                   </div>
                 </ComboboxAnchor>
                 <ComboboxPortal>
@@ -464,7 +471,6 @@ const {
                 </p>
               </div>
             </div>
-
           </section>
 
           <div class="actions-block">

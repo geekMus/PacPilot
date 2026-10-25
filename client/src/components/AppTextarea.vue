@@ -1,20 +1,23 @@
 <script setup lang="ts">
-withDefaults(defineProps<{
-  modelValue: string;
-  placeholder?: string;
-  rows?: number;
-  required?: boolean;
-  disabled?: boolean;
-  invalid?: boolean;
-  resize?: "none" | "vertical" | "horizontal" | "both";
-}>(), {
-  placeholder: "",
-  rows: 3,
-  required: false,
-  disabled: false,
-  invalid: false,
-  resize: "vertical",
-});
+withDefaults(
+  defineProps<{
+    modelValue: string;
+    placeholder?: string;
+    rows?: number;
+    required?: boolean;
+    disabled?: boolean;
+    invalid?: boolean;
+    resize?: "none" | "vertical" | "horizontal" | "both";
+  }>(),
+  {
+    placeholder: "",
+    rows: 3,
+    required: false,
+    disabled: false,
+    invalid: false,
+    resize: "vertical",
+  }
+);
 
 const emit = defineEmits<{
   "update:modelValue": [value: string];
