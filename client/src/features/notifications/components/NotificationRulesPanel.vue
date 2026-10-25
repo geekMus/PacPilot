@@ -46,9 +46,27 @@ const {
   deleteR,
 } = props.ws;
 
+// 编辑区底部的删除按钮和列表行共用同一套确认流程：把待删除的规则记下来，
+// 由确认气泡真正执行删除，避免任何入口变成「点一下就没」。
+const footerDeleteOpen = ref(false);
+const footerDeleteItem = ref<NotificationRule | null>(null);
+
 function toggleDelete(toggle: () => void, open: boolean) {
   if (!open) confirmingDeleteId.value = null;
   toggle();
+}
+
+function openFooterDelete(): void {
+  confirmingDeleteId.value = null;
+  footerDeleteItem.value = rules.value.find((item) => item.id === rid.value) ?? null;
+  footerDeleteOpen.value = footerDeleteItem.value !== null;
+}
+
+async function confirmFooterDelete(): Promise<void> {
+  const item = footerDeleteItem.value;
+  footerDeleteOpen.value = false;
+  footerDeleteItem.value = null;
+  if (item) await deleteR(item);
 }
 
 async function confirmDeleteRule(item: NotificationRule) {
@@ -301,12 +319,29 @@ async function confirmDeleteRule(item: NotificationRule) {
         <AppButton variant="secondary" @click="resetR">{{
           t("notifications.buttonNewBlank")
         }}</AppButton>
-        <AppButton
-          v-if="rid"
-          variant="danger-ghost"
-          @click="deleteR(rules.find((x) => x.id === rid))"
-          ><AppIcon name="trash-2" :size="15" /> {{ t("common.delete") }}</AppButton
+        <ConfirmPopover
+          :open="footerDeleteOpen"
+          :title="t('notifications.deleteRuleTitle', { name: footerDeleteItem?.name ?? '' })"
+          :description="
+            t('notifications.confirmDeleteRule', { name: footerDeleteItem?.name ?? '' })
+          "
+          :confirm-text="t('common.delete')"
+          :cancel-text="t('common.back')"
+          :busy-text="t('common.processing')"
+          :busy="busy"
+          @update:open="footerDeleteOpen = $event"
+          @confirm="confirmFooterDelete"
         >
+          <template #trigger>
+            <AppButton
+              v-if="rid"
+              variant="danger-ghost"
+              :disabled="busy"
+              @click.stop="openFooterDelete"
+              ><AppIcon name="trash-2" :size="15" /> {{ t("common.delete") }}</AppButton
+            >
+          </template>
+        </ConfirmPopover>
         <span class="footer-spacer"></span>
         <AppButton
           type="submit"

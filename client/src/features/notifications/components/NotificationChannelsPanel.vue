@@ -66,9 +66,27 @@ function rawTemplate(key: string): string {
 const dingTalkTemplateDefault = computed(() => rawTemplate("settings.defaultMessageTemplate"));
 const dingTalkTestTemplateDefault = computed(() => rawTemplate("settings.testMessageTemplate"));
 
+// 编辑区底部的删除按钮和列表行共用同一套确认流程：把待删除的渠道记下来，
+// 由确认气泡真正执行删除，避免任何入口变成「点一下就没」。
+const footerDeleteOpen = ref(false);
+const footerDeleteItem = ref<NotificationChannel | null>(null);
+
 function toggleDelete(toggle: () => void, open: boolean) {
   if (!open) confirmingDeleteId.value = null;
   toggle();
+}
+
+function openFooterDelete(): void {
+  confirmingDeleteId.value = null;
+  footerDeleteItem.value = channels.value.find((item) => item.id === cid.value) ?? null;
+  footerDeleteOpen.value = footerDeleteItem.value !== null;
+}
+
+async function confirmFooterDelete(): Promise<void> {
+  const item = footerDeleteItem.value;
+  footerDeleteOpen.value = false;
+  footerDeleteItem.value = null;
+  if (item) await deleteC(item);
 }
 
 async function confirmDeleteChannel(item: NotificationChannel) {
@@ -371,12 +389,29 @@ async function confirmDeleteChannel(item: NotificationChannel) {
         <AppButton variant="secondary" @click="resetC">{{
           t("notifications.buttonNewBlank")
         }}</AppButton>
-        <AppButton
-          v-if="cid"
-          variant="danger-ghost"
-          @click="deleteC(channels.find((x) => x.id === cid))"
-          ><AppIcon name="trash-2" :size="15" /> {{ t("common.delete") }}</AppButton
+        <ConfirmPopover
+          :open="footerDeleteOpen"
+          :title="t('notifications.deleteChannelTitle', { name: footerDeleteItem?.name ?? '' })"
+          :description="
+            t('notifications.confirmDeleteChannel', { name: footerDeleteItem?.name ?? '' })
+          "
+          :confirm-text="t('common.delete')"
+          :cancel-text="t('common.back')"
+          :busy-text="t('common.processing')"
+          :busy="busy"
+          @update:open="footerDeleteOpen = $event"
+          @confirm="confirmFooterDelete"
         >
+          <template #trigger>
+            <AppButton
+              v-if="cid"
+              variant="danger-ghost"
+              :disabled="busy"
+              @click.stop="openFooterDelete"
+              ><AppIcon name="trash-2" :size="15" /> {{ t("common.delete") }}</AppButton
+            >
+          </template>
+        </ConfirmPopover>
         <span class="footer-spacer"></span>
         <AppButton
           variant="secondary"
