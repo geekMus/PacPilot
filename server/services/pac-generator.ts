@@ -375,6 +375,7 @@ export async function getRenderedPacBody(
       builtAt: generatedAt.toISOString(),
       sourceVersion: computeSourceVersion(freshSettings, freshSource),
       stale: false,
+      compressed: Boolean(freshSettings.pacCompress),
     };
     setRenderedPac(value);
     return value;

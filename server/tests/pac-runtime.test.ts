@@ -85,6 +85,7 @@ describe("render freshness", () => {
       builtAt: new Date().toISOString(),
       sourceVersion: computeSourceVersion(s, null),
       stale: false,
+      compressed: true,
     });
     expect(isRenderFresh(s, null)).toBe(true);
     // Changing any input invalidates it.

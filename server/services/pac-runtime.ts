@@ -73,6 +73,8 @@ export interface RenderedPac {
   builtAt: string;
   sourceVersion: string;
   stale: boolean;
+  /** Whether `body` is terser-minified; surfaced as the X-Pac-Compressed header. */
+  compressed: boolean;
 }
 
 let rendered: RenderedPac | null = null;

@@ -30,12 +30,14 @@ async function sendPac(
   let body: string;
   let etag: string;
   let cacheState: string;
+  let compressed: boolean;
 
   try {
     const rendered = await getRenderedPacBody(storage);
     body = rendered.body;
     etag = rendered.etag;
     cacheState = rendered.stale ? "stale" : "hit";
+    compressed = rendered.compressed;
   } catch (error) {
     // Rendering can only fail before the first remote fetch; serve a DIRECT
     // fallback instead of an empty response so clients stay online.
@@ -43,6 +45,7 @@ async function sendPac(
     body = FALLBACK_PAC;
     etag = '"fallback"';
     cacheState = "fallback";
+    compressed = false;
   }
 
   // The public status page is the main UI entry for the PAC body: show it
@@ -54,6 +57,9 @@ async function sendPac(
   // ETag turns into a 304 instead of a full body transfer.
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("X-Pac-Cache", cacheState);
+  // Whether the body is terser-minified: transport-level gzip applies to both
+  // states, so the byte size alone no longer reveals the toggle state.
+  res.setHeader("X-Pac-Compressed", compressed ? "1" : "0");
 
   if (etagMatches(req.get("if-none-match"), etag)) {
     res.status(304).end();
