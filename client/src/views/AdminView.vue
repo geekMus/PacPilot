@@ -327,9 +327,9 @@ const {
             <div class="checks">
               <label class="check">
                 <CheckboxRoot
-                  :checked="form.pacCompress"
+                  :model-value="form.pacCompress"
                   class="admin-checkbox"
-                  @update:checked="onPacCompressToggle($event === true)"
+                  @update:model-value="onPacCompressToggle($event === true)"
                 >
                   <CheckboxIndicator>
                     <AppIcon name="check" :size="14" aria-hidden="true" />
