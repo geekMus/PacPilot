@@ -12,7 +12,7 @@ export type {
 export type { AppLocale } from "../../shared/i18n";
 
 /** Domain settings defaults and normalization shared by every storage adapter. */
-export const DEFAULT_TASK_BODY = JSON.stringify(
+export const DEFAULT_TEST_BODY = JSON.stringify(
   {
     ok: "{{ok}}",
     event: "{{event}}",
@@ -22,7 +22,6 @@ export const DEFAULT_TASK_BODY = JSON.stringify(
   null,
   2
 );
-export const DEFAULT_TEST_BODY = DEFAULT_TASK_BODY;
 
 export function createDefaultWebhookConfig(locale: AppLocale = "zh_CN"): WebhookConfig {
   return {
@@ -55,8 +54,6 @@ export function normalizeWebhookConfig(input: unknown, locale: AppLocale = "zh_C
     testMessageTemplate: String(raw.testMessageTemplate ?? ""),
   };
 }
-
-const DEFAULT_WEBHOOK = createDefaultWebhookConfig();
 
 export const DEFAULT_SETTINGS: AppSettings = {
   mode: "custom",

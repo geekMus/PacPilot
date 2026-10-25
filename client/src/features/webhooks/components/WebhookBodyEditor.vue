@@ -14,7 +14,6 @@ const props = withDefaults(
     /** 覆盖 placeholder 展示；不传时直接展示 sample。 */
     placeholder?: string;
     height?: number;
-    emptyHint?: string;
     invalid?: boolean;
     language?: "json" | "text";
     lineNumbers?: boolean;
@@ -36,7 +35,7 @@ const shownPlaceholder = computed(() => props.placeholder || props.sample);
 const isJson = computed(() => props.language === "json");
 const jsonStatus = computed(() => {
   const raw = props.modelValue.trim();
-  if (!raw) return { kind: "empty", text: props.emptyHint ?? t("webhookBody.k0") };
+  if (!raw) return { kind: "empty", text: t("webhookBody.k0") };
   try {
     const value: unknown = JSON.parse(raw);
     if (value === null || typeof value !== "object")

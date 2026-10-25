@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_SETTINGS,
-  DEFAULT_TASK_BODY,
   DEFAULT_TEST_BODY,
   createDefaultWebhookConfig,
   normalizeAppSettings,
@@ -19,8 +18,7 @@ describe("createDefaultWebhookConfig", () => {
     expect(config.dingTalkSecret).toBe("");
     expect(config.dingTalkMessageType).toBe("text");
     expect(config.testBody).toBe(DEFAULT_TEST_BODY);
-    expect(DEFAULT_TEST_BODY).toBe(DEFAULT_TASK_BODY);
-    expect(JSON.parse(DEFAULT_TASK_BODY)).toEqual({
+    expect(JSON.parse(DEFAULT_TEST_BODY)).toEqual({
       ok: "{{ok}}",
       event: "{{event}}",
       message: "{{message}}",
