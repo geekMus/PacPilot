@@ -558,9 +558,6 @@ export default {
     subtitle: "Manage PAC generation mode, rule lists, scheduled tasks, and Webhook notifications.",
     loading: "Loading configuration",
     loadingDesc: "Loading configuration and workflow history.",
-    saveSuccess: "Configuration saved",
-    saveAndGenerate: "Save and generate PAC",
-    savingAndGenerating: "Saving and generating PAC",
     general: "General",
     generalDesc:
       "General options are stored in the database; you do not need to edit Docker environment variables.",
@@ -650,6 +647,15 @@ export default {
     cronExpr: "Cron expression",
     cronFields: "5 fields · minute hour day month weekday",
     cronExample: "e.g. 0 */3 * * *",
+    savedTimeZone: "Time zone updated",
+    savedMode: "Mode updated; the PAC file is being regenerated",
+    savedPacProxy: "Proxy settings updated; the PAC file is being regenerated",
+    savedListUrl: "Remote rule list URL updated; the PAC file is being regenerated",
+    savedPacCompress: "PAC compression updated; the PAC file is being regenerated",
+    savedCron: "Schedule updated",
+    savedRules: "Custom rules saved; the PAC file is being regenerated",
+    saveRulesBtn: "Save rules",
+    saveRulesHint: "Save the custom rules and regenerate the PAC file",
     jsonTopLevel: "The top level of the JSON value must be an object or an array.",
     jsonFormatError: "Invalid JSON. Check the brackets, quotes, and commas.",
     webhookNeedUrl: "{label} requires a valid HTTP(S) URL.",
@@ -692,12 +698,6 @@ export default {
     scheduleOnly: "Scheduled tasks",
     scheduleOnlyDesc:
       "Configure the PAC generation schedule and time zone. Manage notification channels separately in Notifications.",
-    workflowQueued: "Workflow queued (run #{id})",
-    workflowStartedId: "Workflow started (run #{id})",
-    fixBeforeSave: "Fix the following issues before saving",
-    floatingSaveHint:
-      "After you edit the configuration, a quick-save button appears in the lower-right corner. It disappears after PAC generation succeeds.",
-    validationIssues: "Configuration has validation issues. Click to go to the error.",
     ruleCheckSummary: "Rule check: {errors} errors, {warnings} warnings",
     ruleCheckFixErrors: "Fix rule syntax errors before saving. Syntax errors prevent saving.",
     ruleCheckHints:

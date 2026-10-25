@@ -24,16 +24,8 @@ export function useAdminSettings() {
 
   const saving = ref(false);
 
-  const savedSettingsSnapshot = ref("");
-
-  const flash = ref("");
-
-  const flashOk = ref(true);
-
-  function showFlash(message: string, success = true) {
-    flash.value = message;
-    flashOk.value = success;
-  }
+  /** 最近一次已知已持久化到服务端的完整配置，是即时保存的比对基准。 */
+  const saved = ref<AppSettings | null>(null);
 
   const error = ref("");
 
@@ -205,10 +197,6 @@ export function useAdminSettings() {
     });
   });
 
-  function applyCronPreset(value: string) {
-    form.cronSchedule = value;
-  }
-
   const pacProxyError = computed(() => validatePacProxyString(form.pacProxy));
 
   const listUrlError = computed(() => {
@@ -238,53 +226,154 @@ export function useAdminSettings() {
 
   const cronError = computed(() => (form.cronSchedule.trim() ? cronParse.value.error : ""));
 
-  /** 保存前统一校验；错误列表为空才允许保存和生成 PAC。 */
-  const formErrors = computed(() => {
-    const errs: string[] = [];
-    if (timezoneError.value) errs.push(timezoneError.value);
-    if (pacProxyError.value) errs.push(pacProxyError.value);
-    if (listUrlError.value) errs.push(listUrlError.value);
-    if (directListError.value) errs.push(directListError.value);
-    if (blockListError.value) errs.push(blockListError.value);
-    if (cronError.value) errs.push(t("settings.cronInvalid") + cronError.value);
-    return errs;
-  });
-
-  type ValidationTarget = { key: string; message: string };
-
-  const validationTargets = computed<ValidationTarget[]>(() => {
-    const targets: ValidationTarget[] = [];
-    if (timezoneError.value) targets.push({ key: "timezone", message: timezoneError.value });
-    if (pacProxyError.value) targets.push({ key: "pac-proxy", message: pacProxyError.value });
-    if (listUrlError.value) targets.push({ key: "list-url", message: listUrlError.value });
-    if (directListError.value) targets.push({ key: "direct-list", message: directListError.value });
-    if (blockListError.value) targets.push({ key: "block-list", message: blockListError.value });
-    if (cronError.value) targets.push({ key: "cron", message: cronError.value });
-    return targets;
-  });
-
-  async function jumpToFirstError(): Promise<void> {
-    const first = validationTargets.value[0];
-    if (!first) return;
-    await nextTick();
-    const element = document.querySelector<HTMLElement>(
-      '[data-validation-target="' + first.key + '"]'
-    );
-    if (!element) return;
-    element.scrollIntoView({ behavior: "smooth", block: "center" });
-    const control = element.querySelector<HTMLElement>(
-      'input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [contenteditable="true"]'
-    );
-    control?.focus({ preventScroll: true });
+  function splitLines(text: string): string[] {
+    return text
+      .split(/[\n,]+/)
+      .map((x) => x.trim())
+      .filter(Boolean);
   }
 
-  function handleFloatingSaveClick(): void {
-    if (formErrors.value.length) void jumpToFirstError();
+  /**
+   * 逐项即时保存：只提交与已保存配置不同的字段；generate 表示该项影响
+   * PAC 内容，需要走「保存并生成」让服务端重建 PAC。任何结果都通过
+   * toast 反馈。
+   */
+  async function tryApply(
+    patch: Partial<AppSettings>,
+    options: { generate: boolean; message: string; invalid?: string }
+  ): Promise<void> {
+    if (!saved.value || saving.value) return;
+    const current = saved.value as unknown as Record<string, unknown>;
+    const diff = Object.fromEntries(
+      Object.entries(patch).filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(current[key]))
+    ) as Partial<AppSettings>;
+    if (!Object.keys(diff).length) return;
+    if (options.invalid) {
+      notify(options.invalid, "warning");
+      return;
+    }
+    saving.value = true;
+    try {
+      // 合并服务端最新配置，避免覆盖其他页面（通知渠道、日志保留期）的修改。
+      const latest = await api.settings();
+      form.webhookSuccessConfig = normalizedWebhookConfig(latest.webhookSuccessConfig);
+      form.webhookFailureConfig = normalizedWebhookConfig(latest.webhookFailureConfig);
+      form.logRetentionDays = latest.logRetentionDays;
+      const payload: AppSettings = { ...latest, ...diff };
+      if (options.generate) {
+        await api.saveAndGenerate(payload);
+      } else {
+        await api.saveSettings(payload);
+      }
+      saved.value = payload;
+      notify(options.message, "success");
+      if (options.generate) {
+        // 探针刷新只是辅助操作，不影响已成功的保存结果。
+        const latestProbe = await api.pacpilotStatus().catch(() => null);
+        if (latestProbe) pacpilotProbe.value = latestProbe;
+      }
+    } catch (e) {
+      notify(e instanceof Error ? e.message : String(e), "error");
+    } finally {
+      saving.value = false;
+    }
   }
 
-  const canSubmit = computed(
-    () => formErrors.value.length === 0 && !saving.value && !cronParsing.value
-  );
+  function onTimeZoneSelected(value: string) {
+    const changed = value !== form.timezone;
+    selectTimeZone(value);
+    if (changed) {
+      void tryApply(
+        { timezone: value.trim() },
+        { generate: false, message: t("settings.savedTimeZone"), invalid: timezoneError.value }
+      );
+    }
+  }
+
+  function onTimeZoneChip(value: string) {
+    if (form.timezone === value) return;
+    form.timezone = value;
+    void tryApply(
+      { timezone: value },
+      { generate: false, message: t("settings.savedTimeZone"), invalid: timezoneError.value }
+    );
+  }
+
+  function onModeChange(value: string) {
+    const mode = value as "custom" | "remote";
+    if (form.mode === mode) return;
+    form.mode = mode;
+    void tryApply({ mode }, { generate: true, message: t("settings.savedMode") });
+  }
+
+  function onPacProxyCommit() {
+    void tryApply(
+      { pacProxy: form.pacProxy.trim() },
+      { generate: true, message: t("settings.savedPacProxy"), invalid: pacProxyError.value ?? undefined }
+    );
+  }
+
+  function onListUrlCommit() {
+    if (form.mode !== "remote") return;
+    void tryApply(
+      { listUrl: form.listUrl.trim() },
+      { generate: true, message: t("settings.savedListUrl"), invalid: listUrlError.value }
+    );
+  }
+
+  function onPacCompressToggle(checked: boolean) {
+    if (form.pacCompress === checked) return;
+    form.pacCompress = checked;
+    void tryApply({ pacCompress: checked }, { generate: true, message: t("settings.savedPacCompress") });
+  }
+
+  /** 等待进行中的 cron 解析结束再校验提交，避免误报格式错误。 */
+  async function waitCronParsing(): Promise<void> {
+    const deadline = Date.now() + 800;
+    while (cronParsing.value && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  }
+
+  async function onCronCommit() {
+    await waitCronParsing();
+    void tryApply(
+      { cronSchedule: form.cronSchedule.trim() },
+      { generate: false, message: t("settings.savedCron"), invalid: cronError.value }
+    );
+  }
+
+  function applyCronPreset(value: string) {
+    if (form.cronSchedule.trim() === value) return;
+    form.cronSchedule = value;
+    void onCronCommit();
+  }
+
+  const ruleErrors = computed(() => directListError.value || blockListError.value);
+
+  const hasUnsavedRules = computed(() => {
+    if (!saved.value) return false;
+    const current = JSON.stringify({
+      directList: splitLines(form.directListText),
+      blockList: splitLines(form.blockListText),
+    });
+    const persisted = JSON.stringify({
+      directList: saved.value.directList,
+      blockList: saved.value.blockList,
+    });
+    return current !== persisted;
+  });
+
+  function saveRules() {
+    if (ruleErrors.value) {
+      notify(ruleErrors.value, "warning");
+      return;
+    }
+    void tryApply(
+      { directList: splitLines(form.directListText), blockList: splitLines(form.blockListText) },
+      { generate: true, message: t("settings.savedRules") }
+    );
+  }
 
   function applySettings(s: AppSettings) {
     form.mode = s.mode;
@@ -299,35 +388,6 @@ export function useAdminSettings() {
     form.webhookSuccessConfig = normalizedWebhookConfig(s.webhookSuccessConfig);
     form.webhookFailureConfig = normalizedWebhookConfig(s.webhookFailureConfig);
   }
-
-  function toPayload(): AppSettings {
-    const split = (t: string) =>
-      t
-        .split(/[\n,]+/)
-        .map((x) => x.trim())
-        .filter(Boolean);
-    return {
-      mode: form.mode,
-      pacProxy: form.pacProxy,
-      pacCompress: form.pacCompress,
-      listUrl: form.listUrl,
-      directList: split(form.directListText),
-      blockList: split(form.blockListText),
-      cronSchedule: form.cronSchedule,
-      timezone: form.timezone.trim(),
-      logRetentionDays: form.logRetentionDays,
-      webhookSuccessConfig: { ...form.webhookSuccessConfig },
-      webhookFailureConfig: { ...form.webhookFailureConfig },
-    };
-  }
-
-  function settingsSnapshot(): string {
-    return JSON.stringify(toPayload());
-  }
-
-  const hasUnsavedSettings = computed(
-    () => savedSettingsSnapshot.value !== "" && settingsSnapshot() !== savedSettingsSnapshot.value
-  );
 
   async function load() {
     loading.value = true;
@@ -347,7 +407,7 @@ export function useAdminSettings() {
         })),
       ]);
       applySettings(settings);
-      savedSettingsSnapshot.value = settingsSnapshot();
+      saved.value = settings;
       pacpilotProbe.value = probe;
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
@@ -363,50 +423,10 @@ export function useAdminSettings() {
 
   onMounted(load);
 
-  async function saveAndGenerate() {
-    if (saving.value || cronParsing.value) return;
-    flash.value = "";
-    error.value = "";
-    if (formErrors.value.length) {
-      await jumpToFirstError();
-      return;
-    }
-    saving.value = true;
-    try {
-      // Webhook now has its own service; merge the latest channel settings to avoid overwriting changes from another page.
-      const latestSettings = await api.settings();
-      form.webhookSuccessConfig = normalizedWebhookConfig(latestSettings.webhookSuccessConfig);
-      form.webhookFailureConfig = normalizedWebhookConfig(latestSettings.webhookFailureConfig);
-      form.logRetentionDays = latestSettings.logRetentionDays;
-      const payload = toPayload();
-      const submittedSnapshot = JSON.stringify(payload);
-      // 服务端先持久化配置，再启动独立工作流并立即返回任务 ID。
-      const workflow = await api.saveAndGenerate(payload);
-      savedSettingsSnapshot.value = submittedSnapshot;
-      showFlash(t("settings.saveSuccess"));
-      notify(
-        workflow.status === "pending"
-          ? t("settings.workflowQueued", { id: workflow.workflowId })
-          : t("settings.workflowStartedId", { id: workflow.workflowId }),
-        "success"
-      );
-      // 日志/状态刷新只是辅助操作，不能反过来影响已经成功启动的任务。
-      const latestProbe = await api.pacpilotStatus().catch(() => null);
-      if (latestProbe) pacpilotProbe.value = latestProbe;
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : String(e);
-      notify(error.value, "error");
-    } finally {
-      saving.value = false;
-    }
-  }
-
   return {
     t,
     loading,
     saving,
-    flash,
-    flashOk,
     error,
     pacpilotProbe,
     timezoneMenuOpen,
@@ -417,10 +437,17 @@ export function useAdminSettings() {
     filteredTimeZones,
     selectTimeZone,
     closeTimezoneMenu,
+    onTimeZoneSelected,
+    onTimeZoneChip,
     modeHint,
     cronPresets,
     cronHint,
+    onCronCommit,
     applyCronPreset,
+    onModeChange,
+    onPacProxyCommit,
+    onListUrlCommit,
+    onPacCompressToggle,
     pacProxyError,
     listUrlError,
     ruleAnalysis,
@@ -428,12 +455,10 @@ export function useAdminSettings() {
     blockRuleDiagnostics,
     directListError,
     blockListError,
+    ruleErrors,
+    hasUnsavedRules,
+    saveRules,
     timezoneError,
     cronError,
-    formErrors,
-    handleFloatingSaveClick,
-    canSubmit,
-    hasUnsavedSettings,
-    saveAndGenerate,
   };
 }

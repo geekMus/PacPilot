@@ -8,67 +8,6 @@
 .admin-page {
   @apply min-w-0 pb-0;
 }
-.admin-page.has-floating-save {
-  @apply pb-[90px];
-}
-.floating-save-button {
-  @apply fixed z-40 grid h-14 w-14 cursor-pointer place-items-center rounded-[18px] border p-0 transition-[background,border-color,box-shadow,transform];
-  right: max(24px, env(safe-area-inset-right));
-  bottom: max(24px, env(safe-area-inset-bottom));
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast) !important;
-  -webkit-text-fill-color: var(--accent-contrast);
-  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 28%, transparent);
-}
-.floating-save-button svg {
-  @apply shrink-0;
-}
-.floating-save-button:hover:not(:disabled) {
-  @apply -translate-y-0.5;
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  color: var(--accent-contrast) !important;
-  -webkit-text-fill-color: var(--accent-contrast);
-  box-shadow: 0 10px 26px color-mix(in srgb, var(--accent) 34%, transparent);
-}
-.floating-save-button:active:not(:disabled) {
-  @apply translate-y-0;
-  background: var(--accent-active);
-  border-color: var(--accent-active);
-  color: var(--accent-contrast) !important;
-  -webkit-text-fill-color: var(--accent-contrast);
-  box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 24%, transparent);
-}
-.floating-save-button:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--accent) 42%, transparent);
-  outline-offset: 4px;
-}
-.floating-save-button.has-errors,
-.floating-save-button.has-errors:disabled {
-  @apply cursor-pointer;
-  background: var(--warn-soft);
-  border-color: var(--warn);
-  color: var(--warn) !important;
-  -webkit-text-fill-color: var(--warn);
-  box-shadow: 0 8px 22px color-mix(in srgb, var(--warn) 18%, transparent);
-}
-.floating-save-button.has-errors:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--warn) 20%, var(--surface));
-  border-color: var(--warn);
-  color: var(--warn) !important;
-  -webkit-text-fill-color: var(--warn);
-  box-shadow: 0 10px 26px color-mix(in srgb, var(--warn) 24%, transparent);
-}
-.floating-save-button.is-loading:disabled {
-  @apply cursor-progress opacity-100;
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast) !important;
-  -webkit-text-fill-color: var(--accent-contrast);
-  box-shadow: none;
-  transform: none;
-}
 .admin-logout-button {
   @apply inline-flex min-h-[34px] cursor-pointer items-center justify-center rounded-lg border px-[11px] text-[11px] font-bold;
   border-color: var(--line);
@@ -122,10 +61,6 @@
   border-color: var(--line);
   background: var(--surface);
 }
-.banner.ok {
-  background: var(--green-soft);
-  border-color: color-mix(in srgb, var(--green) 35%, var(--line));
-}
 .banner.bad {
   background: var(--red-soft);
   border-color: color-mix(in srgb, var(--red) 35%, var(--line));
@@ -134,9 +69,6 @@
   @apply grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full text-xs font-bold;
   background: var(--surface);
   color: var(--text);
-}
-.banner.ok .banner-icon {
-  color: var(--green);
 }
 .banner.bad .banner-icon {
   color: var(--red);
@@ -158,6 +90,12 @@
 }
 .card-title {
   @apply flex items-start gap-3;
+}
+.card-head-with-action {
+  @apply flex items-start justify-between gap-3;
+}
+.rules-save-button {
+  @apply shrink-0;
 }
 .icon-badge {
   @apply grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[9px] border;
@@ -638,29 +576,6 @@ textarea.body-area:not(.app-textarea) {
 .dot.bad {
   background: var(--red);
 }
-.actions-block {
-  @apply my-2 mb-3;
-}
-.validation-box {
-  @apply mb-3 rounded-[var(--radius-sm)] border px-3.5 py-3 text-[13px];
-  border-color: color-mix(in srgb, var(--warn) 40%, var(--line));
-  background: var(--warn-soft);
-}
-.validation-title {
-  @apply mb-1.5 font-bold;
-  color: var(--text);
-}
-.validation-box ul {
-  @apply m-0 pl-[1.2em];
-  color: var(--text);
-}
-.validation-box li {
-  @apply mb-1;
-}
-.actions-hint {
-  @apply mb-0 mt-2.5 text-xs;
-  color: var(--muted);
-}
 .security-card {
   @apply mb-[18px];
 }
@@ -778,14 +693,6 @@ textarea.body-area:not(.app-textarea) {
   clip: rect(0, 0, 0, 0);
 }
 @media (max-width: 720px) {
-  .admin-page.has-floating-save {
-    @apply pb-[100px];
-  }
-  .floating-save-button {
-    @apply h-[52px] w-[52px] rounded-2xl;
-    right: max(16px, env(safe-area-inset-right));
-    bottom: max(16px, env(safe-area-inset-bottom));
-  }
   .mode-grid,
   .split {
     @apply grid-cols-1;

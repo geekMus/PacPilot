@@ -30,8 +30,6 @@ const {
   t,
   loading,
   saving,
-  flash,
-  flashOk,
   error,
   pacpilotProbe,
   timezoneMenuOpen,
@@ -39,11 +37,17 @@ const {
   form,
   commonTimeZones,
   filteredTimeZones,
-  selectTimeZone,
+  onTimeZoneSelected,
+  onTimeZoneChip,
   modeHint,
   cronPresets,
   cronHint,
+  onCronCommit,
   applyCronPreset,
+  onModeChange,
+  onPacProxyCommit,
+  onListUrlCommit,
+  onPacCompressToggle,
   pacProxyError,
   listUrlError,
   ruleAnalysis,
@@ -51,19 +55,17 @@ const {
   blockRuleDiagnostics,
   directListError,
   blockListError,
+  ruleErrors,
+  hasUnsavedRules,
+  saveRules,
   timezoneError,
   cronError,
-  formErrors,
-  handleFloatingSaveClick,
-  canSubmit,
-  hasUnsavedSettings,
-  saveAndGenerate,
 } = useAdminSettings();
 </script>
 
 <template>
   <AdminLayout active="settings" :title="t('settings.title')" :subtitle="t('settings.subtitle')">
-    <div class="admin-page" :class="{ 'has-floating-save': hasUnsavedSettings }">
+    <div class="admin-page">
       <section v-if="loading" class="state-card" aria-live="polite">
         <span class="spinner" aria-hidden="true"></span>
         <div>
@@ -71,12 +73,6 @@ const {
           <p>{{ t("settings.loadingDesc") }}</p>
         </div>
       </section>
-      <div v-if="flash" class="banner" :class="flashOk ? 'ok' : 'bad'">
-        <span class="banner-icon" aria-hidden="true"
-          ><AppIcon :name="flashOk ? 'circle-check' : 'circle-alert'" :size="15"
-        /></span>
-        <pre class="banner-text">{{ flash }}</pre>
-      </div>
       <div v-if="error" class="banner bad">
         <span class="banner-icon" aria-hidden="true"
           ><AppIcon name="circle-alert" :size="15"
@@ -85,13 +81,7 @@ const {
       </div>
 
       <template v-if="!loading && !error">
-        <form
-          id="settings-form"
-          class="stack"
-          :inert="saving"
-          :aria-busy="saving"
-          @submit.prevent="saveAndGenerate"
-        >
+        <form id="settings-form" class="stack" :inert="saving" :aria-busy="saving" @submit.prevent>
           <!-- 常规设置 -->
           <section id="general" class="card">
             <div class="card-head">
@@ -113,7 +103,7 @@ const {
                 :search-term="timezoneQuery"
                 class="timezone-combobox desktop-timezone-picker"
                 @update:open="timezoneMenuOpen = $event"
-                @update:model-value="selectTimeZone($event)"
+                @update:model-value="onTimeZoneSelected(String($event))"
                 @update:search-term="timezoneQuery = $event"
               >
                 <ComboboxAnchor as-child>
@@ -192,7 +182,7 @@ const {
                 type="button"
                 class="chip"
                 :class="{ active: form.timezone === zone.value }"
-                @click="form.timezone = zone.value"
+                @click="onTimeZoneChip(zone.value)"
               >
                 {{ t(zone.labelKey) }}
               </button>
@@ -217,7 +207,7 @@ const {
               :model-value="form.mode"
               class="mode-grid"
               :aria-label="t('settings.title')"
-              @update:model-value="form.mode = $event as 'custom' | 'remote'"
+              @update:model-value="onModeChange(String($event))"
             >
               <RadioGroupItem as-child value="custom" :aria-label="t('settings.customRules')">
                 <label class="mode-card" :class="{ active: form.mode === 'custom' }">
@@ -283,6 +273,7 @@ const {
                 v-model="form.pacProxy"
                 :invalid="Boolean(pacProxyError)"
                 placeholder="SOCKS5 127.0.0.1:1080; DIRECT"
+                @change="onPacProxyCommit"
               />
               <p class="field-hint">
                 {{ t("settings.pacProxyHintFull") }}
@@ -305,6 +296,7 @@ const {
                 :aria-disabled="form.mode !== 'remote'"
                 :invalid="Boolean(listUrlError)"
                 placeholder="https://example.com/list.txt"
+                @change="onListUrlCommit"
               />
               <p class="field-hint">
                 {{ t("settings.listUrlDescFull")
@@ -319,7 +311,7 @@ const {
                 <CheckboxRoot
                   :checked="form.pacCompress"
                   class="admin-checkbox"
-                  @update:checked="form.pacCompress = $event === true"
+                  @update:checked="onPacCompressToggle($event === true)"
                 >
                   <CheckboxIndicator>
                     <AppIcon name="check" :size="14" aria-hidden="true" />
@@ -335,7 +327,7 @@ const {
 
           <!-- 规则列表 -->
           <section id="rules" class="card">
-            <div class="card-head">
+            <div class="card-head card-head-with-action">
               <div class="card-title">
                 <span class="icon-badge" aria-hidden="true">
                   <AppIcon name="list-checks" :size="18" />
@@ -345,6 +337,21 @@ const {
                   <p class="card-sub">{{ t("settings.customRulesDesc") }}</p>
                 </div>
               </div>
+              <button
+                type="button"
+                class="app-button app-button--primary rules-save-button"
+                :class="{ 'is-loading': saving }"
+                :disabled="saving || !hasUnsavedRules || Boolean(ruleErrors)"
+                :title="t('settings.saveRulesHint')"
+                @click="saveRules"
+              >
+                <AppIcon
+                  :name="saving ? 'loader-circle' : 'save'"
+                  :size="15"
+                  :class="{ 'save-spinner': saving }"
+                />
+                {{ t("settings.saveRulesBtn") }}
+              </button>
             </div>
 
             <details class="help">
@@ -461,6 +468,7 @@ const {
                   spellcheck="false"
                   autocomplete="off"
                   :placeholder="t('settings.cronExample')"
+                  @change="onCronCommit"
                 />
                 <p
                   class="field-hint"
@@ -473,50 +481,7 @@ const {
             </div>
           </section>
 
-          <div class="actions-block">
-            <div v-if="formErrors.length" class="validation-box">
-              <div class="validation-title">{{ t("settings.fixBeforeSave") }}</div>
-              <ul>
-                <li v-for="(e, i) in formErrors" :key="i">{{ e }}</li>
-              </ul>
-            </div>
-            <p class="actions-hint">
-              {{ t("settings.floatingSaveHint") }}
-            </p>
-          </div>
         </form>
-
-        <button
-          v-if="hasUnsavedSettings"
-          form="settings-form"
-          :type="canSubmit ? 'submit' : 'button'"
-          class="floating-save-button"
-          :class="{ 'is-loading': saving, 'has-errors': formErrors.length > 0 && !saving }"
-          :disabled="saving"
-          :aria-busy="saving"
-          :aria-invalid="formErrors.length > 0 ? 'true' : undefined"
-          :aria-label="
-            saving
-              ? t('settings.savingAndGenerating')
-              : formErrors.length
-                ? t('settings.validationIssues')
-                : t('settings.saveAndGenerate')
-          "
-          :title="
-            saving
-              ? t('settings.savingAndGenerating')
-              : formErrors.length
-                ? t('settings.validationIssues')
-                : t('settings.saveAndGenerate')
-          "
-          @click="handleFloatingSaveClick"
-        >
-          <AppIcon
-            :name="saving ? 'loader-circle' : formErrors.length ? 'circle-alert' : 'save'"
-            :size="21"
-            :class="{ 'save-spinner': saving }"
-          />
-        </button>
       </template>
       <AppFooter />
     </div>

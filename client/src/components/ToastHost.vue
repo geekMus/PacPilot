@@ -29,15 +29,10 @@ watch(locale, () => {
 });
 
 const toastOptions = {
+  // 视觉（底色/边框/文字颜色）统一在下方样式块按 data-type 定义，
+  // 不放行内样式，否则会盖掉按类型着色的规则。
   style: {
-    background: "var(--surface)",
-    color: "var(--text)",
-    border: "1px solid var(--line)",
-    borderRadius: "var(--radius-sm)",
-    boxShadow: "var(--shadow)",
     fontFamily: "var(--font)",
-    width: "100%",
-    maxWidth: "100%",
   },
 };
 </script>
@@ -63,6 +58,27 @@ const toastOptions = {
 :deep([data-sonner-toast]) {
   @apply box-border w-full max-w-full tracking-[0.01em];
   overflow-wrap: anywhere;
+  white-space: pre-line;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+:deep([data-sonner-toast][data-type="success"]) {
+  border-color: color-mix(in srgb, var(--green) 35%, var(--line));
+  background: var(--green-soft);
+  color: var(--green);
+}
+:deep([data-sonner-toast][data-type="error"]) {
+  border-color: color-mix(in srgb, var(--red) 35%, var(--line));
+  background: var(--red-soft);
+  color: var(--red);
+}
+:deep([data-sonner-toast][data-type="warning"]) {
+  border-color: color-mix(in srgb, var(--warn) 35%, var(--line));
+  background: var(--warn-soft);
+  color: var(--warn);
 }
 
 :deep([data-sonner-toast] [data-close-button]) {
