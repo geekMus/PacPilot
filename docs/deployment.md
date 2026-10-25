@@ -249,7 +249,7 @@ bun run dev
     tar czf /backup/pacpilot-data.tar.gz -C /data .
   ```
 
-- **恢复**：解包回数据目录后重启服务。数据库通过 `PRAGMA user_version` 做 schema 增量迁移，旧版本数据目录可直接被新版本启动。
+- **恢复**：解包回数据目录后重启服务。数据库通过 `PRAGMA user_version` 校验 schema 版本，版本不匹配（来自旧版本的数据目录）会拒绝启动，需删除 `data` 目录重建。
 - **重要**：需要保留数据时不要删除数据卷（`docker volume rm pacpilot-data`），升级前先备份。
 
 ## 常用地址
