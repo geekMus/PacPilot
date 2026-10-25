@@ -376,12 +376,12 @@ export const api = {
     ),
   cleanupLogs: () =>
     request<{
-      deleted: { accessEvents: number };
+      deleted: { accessEvents: number; workflowRuns: number };
       retentionDays: number;
     }>("/api/admin/logs/cleanup", { method: "POST" }),
   clearLogs: () =>
     request<{
-      deleted: { accessEvents: number };
+      deleted: { accessEvents: number; workflowRuns: number };
       retentionDays: number;
     }>("/api/admin/logs/clear", { method: "POST" }),
   factoryReset: () =>

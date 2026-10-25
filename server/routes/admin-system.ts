@@ -146,8 +146,9 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
     const retentionDays = (await storage.settings.get()).logRetentionDays;
     const deleted = {
       accessEvents: await storage.monitoring.cleanup(retentionDays),
+      workflowRuns: await storage.workflows.cleanup(retentionDays),
     };
-    if (deleted.accessEvents > 0) {
+    if (deleted.accessEvents > 0 || deleted.workflowRuns > 0) {
       if (env.storageDriver === "sqlite") await storage.maintenance.compact();
     }
     res.json({ deleted, retentionDays: (await storage.settings.get()).logRetentionDays });
@@ -156,6 +157,7 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
     try {
       const deleted = {
         accessEvents: await storage.monitoring.clear(),
+        workflowRuns: await storage.workflows.clear(),
       };
       if (env.storageDriver === "sqlite") await storage.maintenance.compact();
       res.json({ deleted, retentionDays: (await storage.settings.get()).logRetentionDays });

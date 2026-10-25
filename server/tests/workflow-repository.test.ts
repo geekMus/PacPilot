@@ -220,6 +220,41 @@ describe("memory workflow repository", () => {
     expect(repository.cancelPending(running)).toBe("not-pending");
   });
 
+  it("cleans up expired inactive runs while keeping active and fresh ones", () => {
+    const repository = createMemoryWorkflowRepository();
+    const pending = repository.create("manual", "custom");
+    const running = repository.create("manual", "custom");
+    repository.claim(running, NOW.toISOString());
+    const finished = repository.create("manual", "custom");
+    repository.startStage(finished, "download");
+    repository.update(finished, { status: "succeeded" });
+
+    expect(repository.cleanup(0)).toBe(0);
+    expect(repository.cleanup(30)).toBe(0);
+    expect(repository.count()).toBe(3);
+
+    vi.setSystemTime(new Date(NOW.getTime() + 31 * 86400000));
+    expect(repository.cleanup(30)).toBe(1);
+    expect(repository.get(finished)).toBeNull();
+    expect(repository.stages(finished)).toEqual([]);
+    expect(repository.count()).toBe(2);
+    expect(repository.get(pending)?.status).toBe("pending");
+    expect(repository.get(running)?.status).toBe("running");
+  });
+
+  it("clears inactive runs with their stages and keeps active ones", () => {
+    const repository = createMemoryWorkflowRepository();
+    const pending = repository.create("manual", "custom");
+    const finished = repository.create("manual", "custom");
+    repository.startStage(finished, "download");
+    repository.update(finished, { status: "succeeded" });
+
+    expect(repository.clear()).toBe(1);
+    expect(repository.get(finished)).toBeNull();
+    expect(repository.stages(finished)).toEqual([]);
+    expect(repository.get(pending)).toMatchObject({ status: "pending" });
+  });
+
   it("resets every stored run and stage", () => {
     const repository = createMemoryWorkflowRepository();
     const id = repository.create("manual", "custom");

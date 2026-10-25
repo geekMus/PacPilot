@@ -1,3 +1,4 @@
+import type { SQLQueryBindings } from "bun:sqlite";
 import type { AppDatabase } from "./database";
 import type { WorkflowRun, WorkflowStage } from "../../../shared/contracts";
 export type { WorkflowRun, WorkflowStage, WorkflowStatus } from "../../../shared/contracts";
@@ -194,4 +195,35 @@ export function listWorkflowStages(database: AppDatabase, runId: number): Workfl
   return database
     .query("SELECT * FROM workflow_stages WHERE run_id = ? ORDER BY id")
     .all(runId) as WorkflowStage[];
+}
+
+/** run deletions cascade to workflow_stages, which would inflate `changes`;
+ *  count matched runs first so callers get the number of runs removed. */
+function deleteWorkflowRuns(
+  database: AppDatabase,
+  where: string,
+  ...params: SQLQueryBindings[]
+): number {
+  const matched = database
+    .query(`SELECT COUNT(*) AS count FROM workflow_runs WHERE ${where}`)
+    .get(...params) as { count: number };
+  const deleted = Number(matched.count || 0);
+  if (deleted > 0) {
+    database.query(`DELETE FROM workflow_runs WHERE ${where}`).run(...params);
+  }
+  return deleted;
+}
+
+export function cleanupWorkflowRuns(database: AppDatabase, retentionDays: number): number {
+  if (retentionDays <= 0) return 0;
+  const cutoff = new Date(Date.now() - retentionDays * 86400000).toISOString();
+  return deleteWorkflowRuns(
+    database,
+    "status NOT IN ('pending','running') AND created_at < ?",
+    cutoff
+  );
+}
+
+export function clearWorkflowRuns(database: AppDatabase): number {
+  return deleteWorkflowRuns(database, "status NOT IN ('pending','running')");
 }

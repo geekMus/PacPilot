@@ -3,6 +3,8 @@ import type { SyncWorkflowRepository } from "../repositories";
 import {
   cancelPendingWorkflow,
   claimWorkflowRun,
+  cleanupWorkflowRuns,
+  clearWorkflowRuns,
   countWorkflowRuns,
   createWorkflowRun,
   finishWorkflowStage,
@@ -32,5 +34,7 @@ export function createSqliteWorkflowRepository(database: Database): SyncWorkflow
     get: (id) => getWorkflowRun(database, id),
     stages: (runId) => listWorkflowStages(database, runId),
     cancelPending: (id) => cancelPendingWorkflow(database, id),
+    cleanup: (retentionDays) => cleanupWorkflowRuns(database, retentionDays),
+    clear: () => clearWorkflowRuns(database),
   };
 }

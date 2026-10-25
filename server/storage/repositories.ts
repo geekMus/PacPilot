@@ -119,6 +119,10 @@ export interface SyncWorkflowRepository {
   get(id: number): WorkflowRun | null;
   stages(runId: number): WorkflowStage[];
   cancelPending(id: number): "cancelled" | "not-found" | "not-pending";
+  /** Log-retention cleanup: deletes inactive runs older than the cutoff; never touches pending/running runs. */
+  cleanup(retentionDays: number): number;
+  /** Manual log clearing: deletes every inactive run (stages cascade); never touches pending/running runs. */
+  clear(): number;
 }
 
 export interface SyncArtifactRepository {

@@ -81,4 +81,36 @@ describe("SQLite storage adapter", () => {
     expect(claims.filter(Boolean)).toHaveLength(1);
     await storage.close();
   });
+  test("workflow log cleanup follows retention and never deletes active runs", async () => {
+    // Like the claims test above, the directory is left for the OS temp
+    // cleanup: Windows keeps the SQLite file handle briefly after close.
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "pacpilot-storage-cleanup-"));
+    const database = getDb(dataDir);
+    const storage = createSqliteApplicationStorage(database, dataDir);
+
+    const pending = await storage.workflows.create("manual", "custom");
+    const running = await storage.workflows.create("manual", "custom");
+    await storage.workflows.claim(running, new Date().toISOString());
+    const staleFinished = await storage.workflows.create("manual", "custom");
+    await storage.workflows.startStage(staleFinished, "download");
+    await storage.workflows.update(staleFinished, { status: "succeeded" });
+    const freshFinished = await storage.workflows.create("manual", "custom");
+    await storage.workflows.update(freshFinished, { status: "succeeded" });
+
+    const stale = new Date(Date.now() - 40 * 86400000).toISOString();
+    database.run("UPDATE workflow_runs SET created_at = ? WHERE id = ?", [stale, staleFinished]);
+
+    expect(await storage.workflows.cleanup(30)).toBe(1);
+    expect(await storage.workflows.get(staleFinished)).toBeNull();
+    expect(await storage.workflows.stages(staleFinished)).toEqual([]);
+    expect(await storage.workflows.get(freshFinished)).not.toBeNull();
+    expect((await storage.workflows.get(pending))?.status).toBe("pending");
+    expect((await storage.workflows.get(running))?.status).toBe("running");
+
+    expect(await storage.workflows.clear()).toBe(1);
+    expect(await storage.workflows.get(freshFinished)).toBeNull();
+    expect(await storage.workflows.get(pending)).not.toBeNull();
+    expect(await storage.workflows.get(running)).not.toBeNull();
+    await storage.close();
+  });
 });

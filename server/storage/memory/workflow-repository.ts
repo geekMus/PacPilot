@@ -156,6 +156,29 @@ export function createMemoryWorkflowRepository(): MemorySyncWorkflowRepository {
       });
       return "cancelled" as const;
     },
+    cleanup(retentionDays: number) {
+      if (retentionDays <= 0) return 0;
+      const cutoff = Date.now() - retentionDays * 86400000;
+      let deleted = 0;
+      for (const [id, run] of runs) {
+        if (run.status === "pending" || run.status === "running") continue;
+        if (Date.parse(run.created_at) >= cutoff) continue;
+        runs.delete(id);
+        for (const [stageId, stage] of stages) if (stage.run_id === id) stages.delete(stageId);
+        deleted++;
+      }
+      return deleted;
+    },
+    clear() {
+      let deleted = 0;
+      for (const [id, run] of runs) {
+        if (run.status === "pending" || run.status === "running") continue;
+        runs.delete(id);
+        for (const [stageId, stage] of stages) if (stage.run_id === id) stages.delete(stageId);
+        deleted++;
+      }
+      return deleted;
+    },
   };
   return Object.assign(workflows, {
     reset() {
