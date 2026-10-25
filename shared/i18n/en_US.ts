@@ -656,6 +656,8 @@ export default {
     savedRules: "Custom rules saved; the PAC file is being regenerated",
     saveRulesBtn: "Save rules",
     saveRulesHint: "Save the custom rules and regenerate the PAC file",
+    saveModeBtn: "Save mode",
+    saveModeHint: "Save the generation mode and regenerate the PAC file",
     jsonTopLevel: "The top level of the JSON value must be an object or an array.",
     jsonFormatError: "Invalid JSON. Check the brackets, quotes, and commas.",
     webhookNeedUrl: "{label} requires a valid HTTP(S) URL.",

@@ -201,7 +201,7 @@ export function useAdminSettings() {
 
   const listUrlError = computed(() => {
     if (form.mode !== "remote") return "";
-    if (!form.listUrl.trim()) return t("settings.listUrlRequired");
+    if (!form.listUrl.trim()) return "";
     if (!looksLikeUrl(form.listUrl.trim())) return t("settings.listUrlInvalid");
     return "";
   });
@@ -303,7 +303,10 @@ export function useAdminSettings() {
     const mode = value as "custom" | "remote";
     if (form.mode === mode) return;
     form.mode = mode;
-    void tryApply({ mode }, { generate: true, message: t("settings.savedMode") });
+  }
+
+  function saveMode() {
+    void tryApply({ mode: form.mode }, { generate: true, message: t("settings.savedMode") });
   }
 
   function onPacProxyCommit() {
@@ -315,8 +318,9 @@ export function useAdminSettings() {
 
   function onListUrlCommit() {
     if (form.mode !== "remote") return;
+    const url = form.listUrl.trim() || DEFAULT_LIST_URL;
     void tryApply(
-      { listUrl: form.listUrl.trim() },
+      { listUrl: url },
       { generate: true, message: t("settings.savedListUrl"), invalid: listUrlError.value }
     );
   }
@@ -364,6 +368,11 @@ export function useAdminSettings() {
     return current !== persisted;
   });
 
+  const hasUnsavedMode = computed(() => {
+    if (!saved.value) return false;
+    return form.mode !== saved.value.mode;
+  });
+
   function saveRules() {
     if (ruleErrors.value) {
       notify(ruleErrors.value, "warning");
@@ -379,7 +388,7 @@ export function useAdminSettings() {
     form.mode = s.mode;
     form.pacProxy = s.pacProxy;
     form.pacCompress = s.pacCompress;
-    form.listUrl = s.listUrl;
+    form.listUrl = s.listUrl === DEFAULT_LIST_URL ? "" : s.listUrl;
     form.directListText = s.directList.join("\n");
     form.blockListText = s.blockList.join("\n");
     form.cronSchedule = s.cronSchedule;
@@ -445,6 +454,7 @@ export function useAdminSettings() {
     onCronCommit,
     applyCronPreset,
     onModeChange,
+    saveMode,
     onPacProxyCommit,
     onListUrlCommit,
     onPacCompressToggle,
@@ -457,6 +467,7 @@ export function useAdminSettings() {
     blockListError,
     ruleErrors,
     hasUnsavedRules,
+    hasUnsavedMode,
     saveRules,
     timezoneError,
     cronError,

@@ -625,6 +625,8 @@ export default {
     savedRules: "自定义规则已保存，PAC 正在重新生成",
     saveRulesBtn: "保存规则",
     saveRulesHint: "保存自定义规则并重新生成 PAC",
+    saveModeBtn: "保存模式",
+    saveModeHint: "保存生成模式并重新生成 PAC",
     jsonTopLevel: "JSON 顶层必须是对象或数组。",
     jsonFormatError: "JSON 格式错误，请检查括号、引号和逗号。",
     webhookNeedUrl: "{label}需要有效的 HTTP(S) URL。",

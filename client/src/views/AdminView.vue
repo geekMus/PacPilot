@@ -22,6 +22,7 @@ import AppDialog from "@/components/AppDialog.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 import AppFooter from "@/components/AppFooter.vue";
 import { useAdminSettings } from "@/composables/useAdminSettings";
+import { DEFAULT_LIST_URL } from "@shared/contracts";
 
 const DomainListEditor = defineAsyncComponent(
   () => import("@/features/domain-rules/components/DomainListEditor.vue")
@@ -45,6 +46,7 @@ const {
   onCronCommit,
   applyCronPreset,
   onModeChange,
+  saveMode,
   onPacProxyCommit,
   onListUrlCommit,
   onPacCompressToggle,
@@ -57,6 +59,7 @@ const {
   blockListError,
   ruleErrors,
   hasUnsavedRules,
+  hasUnsavedMode,
   saveRules,
   timezoneError,
   cronError,
@@ -191,7 +194,7 @@ const {
 
           <!-- 模式 -->
           <section id="mode" class="card">
-            <div class="card-head">
+            <div class="card-head card-head-with-action">
               <div class="card-title">
                 <span class="icon-badge" aria-hidden="true">
                   <AppIcon name="workflow" :size="18" />
@@ -201,6 +204,21 @@ const {
                   <p class="card-sub">{{ t("settings.startModeDesc") }}</p>
                 </div>
               </div>
+              <button
+                type="button"
+                class="app-button app-button--primary rules-save-button"
+                :class="{ 'is-loading': saving }"
+                :disabled="saving || !hasUnsavedMode"
+                :title="t('settings.saveModeHint')"
+                @click="saveMode"
+              >
+                <AppIcon
+                  :name="saving ? 'loader-circle' : 'save'"
+                  :size="15"
+                  :class="{ 'save-spinner': saving }"
+                />
+                {{ t("settings.saveModeBtn") }}
+              </button>
             </div>
 
             <RadioGroupRoot
@@ -295,7 +313,7 @@ const {
                 :disabled="form.mode !== 'remote'"
                 :aria-disabled="form.mode !== 'remote'"
                 :invalid="Boolean(listUrlError)"
-                placeholder="https://example.com/list.txt"
+                :placeholder="DEFAULT_LIST_URL"
                 @change="onListUrlCommit"
               />
               <p class="field-hint">
