@@ -48,7 +48,7 @@
 - **独立静态前端**（Cloudflare Pages / Vercel 等任意源）走令牌：设置 `CORS_MODE=open`，并确认前端 `config.json` 的 `apiBaseUrl` 指向后端；预检响应应含 `Access-Control-Allow-Origin: *`。
 - `open` 模式下浏览器请求不能带凭据，前端会自动使用 `credentials: "omit"` 并携带 `Authorization`。若手动联调，请勿同时发送 Cookie。
 - 检查 Origin 是否完整匹配白名单中的来源，且不要使用通配符。
-- 参考[配置说明中的跨域与访问安全](configuration.md#跨域与访问安全)。
+- 参考[部署指南的跨域来源与真实 IP 参数](deployment.md#环境参数参考)。
 
 ## 登录返回 403 `untrusted_origin`
 
