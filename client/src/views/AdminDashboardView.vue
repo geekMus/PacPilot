@@ -15,6 +15,7 @@ import {
 import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AppFooter from "@/components/AppFooter.vue";
+import LazyMount from "@/components/LazyMount.vue";
 import ResponsiveTrendChart from "@/components/ResponsiveTrendChart.vue";
 import TableFrame from "@/components/TableFrame.vue";
 import { useWorkflowLabels } from "@/composables/useWorkflowLabels";
@@ -389,14 +390,16 @@ onMounted(() => {
             >{{ t("dashboard.detailMonitor") }} <AppIcon name="arrow-up-right" :size="13"
           /></RouterLink>
         </header>
-        <ResponsiveTrendChart
-          v-if="monitor?.requestTrend?.length"
-          :points="monitor.requestTrend"
-          :time-zone="settings?.timezone || 'Asia/Shanghai'"
-          :aria-label="t('dashboard.trendAria')"
-          compact
-        />
-        <div v-else class="panel-empty">{{ t("dashboard.noTrendData") }}</div>
+        <LazyMount :min-height="220" :root-margin="120">
+          <ResponsiveTrendChart
+            v-if="monitor?.requestTrend?.length"
+            :points="monitor.requestTrend"
+            :time-zone="settings?.timezone || 'Asia/Shanghai'"
+            :aria-label="t('dashboard.trendAria')"
+            compact
+          />
+          <div v-else class="panel-empty">{{ t("dashboard.noTrendData") }}</div>
+        </LazyMount>
         <div class="trend-legend">
           <span><i class="trend-swatch"></i>{{ t("dashboard.requestVolume") }}</span
           ><span><i class="trend-swatch errors"></i>{{ t("dashboard.errorRequests") }}</span>

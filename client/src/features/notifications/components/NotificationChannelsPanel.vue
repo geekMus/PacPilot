@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, defineAsyncComponent, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import AppButton from "@/components/AppButton.vue";
 import AppIcon from "@/components/AppIcon.vue";
@@ -8,11 +8,15 @@ import AppInput from "@/components/AppInput.vue";
 import AppScrollArea from "@/components/AppScrollArea.vue";
 import AppSelect from "@/components/AppSelect.vue";
 import AppToggle from "@/components/AppToggle.vue";
-import CodeMirrorField from "@/components/CodeMirrorField.vue";
 import ConfirmPopover from "@/components/ConfirmPopover.vue";
-import WebhookBodyEditor from "@/features/webhooks/components/WebhookBodyEditor.vue";
 import type { NotificationWorkspace } from "@/features/notifications/composables/useNotificationWorkspace";
 import type { NotificationChannel } from "@shared/contracts";
+
+// 编辑器（CodeMirror）约 300KB，异步加载：仅在真正打开渠道编辑器时才拉取，
+// 通知页首屏不再为此付出加载与解析成本。
+const WebhookBodyEditor = defineAsyncComponent(
+  () => import("@/features/webhooks/components/WebhookBodyEditor.vue")
+);
 
 const props = defineProps<{ ws: NotificationWorkspace }>();
 // 逐行记录哪个渠道正在等待删除确认，避免同一时间弹出多个确认气泡。

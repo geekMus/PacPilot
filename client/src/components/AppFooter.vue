@@ -2,7 +2,6 @@
 import { useI18n } from "vue-i18n";
 
 import { computed, onMounted, ref } from "vue";
-import packageJson from "../../../package.json";
 import { PROJECT_LINKS } from "@shared/project-links";
 import AppDialog from "@/components/AppDialog.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
@@ -10,7 +9,8 @@ import { DialogDescription, DialogTitle } from "reka-ui";
 const { t } = useI18n();
 const projectUrl = PROJECT_LINKS.repository;
 const packageJsonUrl = PROJECT_LINKS.packageJsonProxy;
-const currentVersion = ref(String(packageJson.version));
+// 版本号由构建期 vite define 注入，避免把整个 package.json 打进客户端产物。
+const currentVersion = ref(__APP_VERSION__);
 interface UpdateInfo {
   latestVersion: string | null;
   updateAvailable: boolean;

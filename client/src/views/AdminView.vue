@@ -20,6 +20,7 @@ import AppInput from "@/components/AppInput.vue";
 import AppScrollArea from "@/components/AppScrollArea.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import { useAdminSettings } from "@/composables/useAdminSettings";
+import LazyMount from "@/components/LazyMount.vue";
 import { DEFAULT_LIST_URL } from "@shared/contracts";
 
 const DomainListEditor = defineAsyncComponent(
@@ -401,24 +402,28 @@ const {
             <div class="split editors">
               <div class="field">
                 <label>{{ t("settings.directList") }}</label>
-                <DomainListEditor
-                  v-model="form.directListText"
-                  :height="320"
-                  :invalid="Boolean(directListError)"
-                  :diagnostics="directRuleDiagnostics"
-                  placeholder="example.com&#10;*.example.org&#10;**.example.net"
-                />
+                <LazyMount :min-height="320">
+                  <DomainListEditor
+                    v-model="form.directListText"
+                    :height="320"
+                    :invalid="Boolean(directListError)"
+                    :diagnostics="directRuleDiagnostics"
+                    placeholder="example.com&#10;*.example.org&#10;**.example.net"
+                  />
+                </LazyMount>
                 <p v-if="directListError" class="field-error" role="alert">{{ directListError }}</p>
               </div>
               <div class="field">
                 <label>{{ t("settings.blockList") }}</label>
-                <DomainListEditor
-                  v-model="form.blockListText"
-                  :height="320"
-                  :invalid="Boolean(blockListError)"
-                  :diagnostics="blockRuleDiagnostics"
-                  placeholder="ads.example.com"
-                />
+                <LazyMount :min-height="320">
+                  <DomainListEditor
+                    v-model="form.blockListText"
+                    :height="320"
+                    :invalid="Boolean(blockListError)"
+                    :diagnostics="blockRuleDiagnostics"
+                    placeholder="ads.example.com"
+                  />
+                </LazyMount>
                 <p v-if="blockListError" class="field-error" role="alert">{{ blockListError }}</p>
               </div>
             </div>

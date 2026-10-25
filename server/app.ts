@@ -1,5 +1,6 @@
 import express from "express";
 import cookieParser from "cookie-parser";
+import compression from "compression";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -94,6 +95,9 @@ export function createApp(env: EnvConfig, storage: ApplicationStorage): express.
   });
 
   app.use(requestMonitoringMiddleware(storage.monitoring));
+  // 文本响应（HTML/JS/CSS/JSON/PAC）启用 gzip：静态资源原始体积约为压缩后的 3 倍，
+  // 未压缩传输会显著拖慢弱网环境的首屏渲染。客户端不支持时自动跳过。
+  app.use(compression());
   app.use(express.urlencoded({ extended: true, limit: "1mb" }));
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());

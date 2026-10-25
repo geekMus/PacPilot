@@ -2,6 +2,7 @@
 import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AppFooter from "@/components/AppFooter.vue";
+import LazyMount from "@/components/LazyMount.vue";
 import ResponsiveTrendChart from "@/components/ResponsiveTrendChart.vue";
 import { useMonitoringDashboard } from "@/composables/useMonitoringDashboard";
 import { resolveApiUrl } from "@/api/runtime-config";
@@ -148,16 +149,18 @@ const {
               })
             }}</span>
           </div>
-          <ResponsiveTrendChart
-            v-if="summary?.requestTrend?.length"
-            mode="count"
-            :points="summary.requestTrend"
-            :time-zone="timeZone"
-            :aria-label="t('monitor.k32')"
-          />
-          <div v-else class="monitor-empty">
-            {{ t("monitor.k108") }}
-          </div>
+          <LazyMount :min-height="220" :root-margin="120">
+            <ResponsiveTrendChart
+              v-if="summary?.requestTrend?.length"
+              mode="count"
+              :points="summary.requestTrend"
+              :time-zone="timeZone"
+              :aria-label="t('monitor.k32')"
+            />
+            <div v-else class="monitor-empty">
+              {{ t("monitor.k108") }}
+            </div>
+          </LazyMount>
           <div class="trend-legend">
             <span><i class="legend-swatch request-swatch"></i>{{ t("monitor.k109") }}</span>
             <span><i class="legend-swatch error-swatch"></i>{{ t("monitor.k110") }}</span>
@@ -284,14 +287,16 @@ const {
               })
             }}</span>
           </div>
-          <ResponsiveTrendChart
-            v-if="(summary?.pacRequestsLast24h ?? 0) > 0"
-            mode="count"
-            :points="summary!.pacRequestTrend"
-            :time-zone="timeZone"
-            :aria-label="t('monitor.k29')"
-          />
-          <div v-else class="monitor-empty">{{ t("monitor.k85") }}</div>
+          <LazyMount :min-height="220" :root-margin="120">
+            <ResponsiveTrendChart
+              v-if="(summary?.pacRequestsLast24h ?? 0) > 0"
+              mode="count"
+              :points="summary!.pacRequestTrend"
+              :time-zone="timeZone"
+              :aria-label="t('monitor.k29')"
+            />
+            <div v-else class="monitor-empty">{{ t("monitor.k85") }}</div>
+          </LazyMount>
           <div class="trend-legend">
             <span><i class="legend-swatch request-swatch"></i>{{ t("monitor.k86") }}</span>
             <span><i class="legend-swatch error-swatch"></i>{{ t("monitor.k87") }}</span>
@@ -300,16 +305,18 @@ const {
             <strong><AppIcon name="timer" :size="15" />{{ t("monitor.k88") }}</strong>
             <span>{{ t("monitor.k89") }}</span>
           </div>
-          <ResponsiveTrendChart
-            v-if="(summary?.pacRequestsLast24h ?? 0) > 0 && summary?.pacRequestTrend?.length"
-            mode="latency"
-            :points="summary!.pacRequestTrend"
-            :time-zone="timeZone"
-            :aria-label="t('monitor.k30')"
-          />
-          <div v-else class="pac-no-latest">
-            {{ t("monitor.k90") }}
-          </div>
+          <LazyMount :min-height="220" :root-margin="120">
+            <ResponsiveTrendChart
+              v-if="(summary?.pacRequestsLast24h ?? 0) > 0 && summary?.pacRequestTrend?.length"
+              mode="latency"
+              :points="summary!.pacRequestTrend"
+              :time-zone="timeZone"
+              :aria-label="t('monitor.k30')"
+            />
+            <div v-else class="pac-no-latest">
+              {{ t("monitor.k90") }}
+            </div>
+          </LazyMount>
         </section>
       </template>
 

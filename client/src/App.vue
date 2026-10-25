@@ -1,7 +1,11 @@
 <script setup lang="ts">
+import { defineAsyncComponent } from "vue";
 import { useRoute } from "vue-router";
 import AppScrollArea from "@/components/AppScrollArea.vue";
-import ToastHost from "@/components/ToastHost.vue";
+
+// Toast 组件（含 vue-sonner，约 36KB）仅在第一条 toast 出现时才加载，
+// 不占用任何页面的首屏关键路径。
+const ToastHost = defineAsyncComponent(() => import("@/components/ToastHost.vue"));
 
 const route = useRoute();
 </script>
