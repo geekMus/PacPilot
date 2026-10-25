@@ -2,13 +2,10 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { api, type AccessEvent, type AdminSession, type MonitorSummary } from "@/api/client";
-import { useToast } from "@/composables/useToast";
 import { useCopyFeedback } from "@/composables/useCopyFeedback";
 
 export function useMonitoringDashboard() {
   const { t, locale } = useI18n();
-
-  const { notify } = useToast();
 
   const router = useRouter();
 
@@ -39,21 +36,6 @@ export function useMonitoringDashboard() {
   let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
   const timeZone = computed(() => summary.value?.timezone || "Asia/Shanghai");
-
-  function formatTrendHour(value: string): string {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "--:--";
-    try {
-      return new Intl.DateTimeFormat(locale.value === "en_US" ? "en-US" : "zh-CN", {
-        timeZone: timeZone.value,
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      }).format(date);
-    } catch {
-      return date.toISOString().slice(11, 16);
-    }
-  }
 
   const latestPacRequest = computed(() => summary.value?.latestPacRequest ?? null);
 

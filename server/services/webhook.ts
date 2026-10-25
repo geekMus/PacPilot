@@ -3,7 +3,6 @@ import type { WebhookConfig } from "../domain/settings";
 import type { DomainEvent } from "../../shared/contracts";
 import { createDefaultWebhookConfig, normalizeWebhookConfig } from "../domain/settings";
 import { assertSafeHttpUrl } from "../utils/url-safety";
-import { runtimeLog } from "../utils/runtime-log";
 
 const WEBHOOK_TIMEOUT_MS = 10_000;
 export interface WebhookDeliveryResult {

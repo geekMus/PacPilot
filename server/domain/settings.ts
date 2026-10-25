@@ -1,6 +1,6 @@
 import { t, type AppLocale } from "../../shared/i18n";
 import { DEFAULT_LIST_URL } from "../../shared/contracts";
-import type { AppSettings, GenerationMode, WebhookConfig } from "../../shared/contracts";
+import type { AppSettings, WebhookConfig } from "../../shared/contracts";
 export type {
   AppSettings,
   DingTalkMessageType,

@@ -19,7 +19,7 @@ import ResponsiveTrendChart from "@/components/ResponsiveTrendChart.vue";
 import TableFrame from "@/components/TableFrame.vue";
 import { useWorkflowLabels } from "@/composables/useWorkflowLabels";
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
 const router = useRouter();
 const { statusLabel, sourceLabel, durationLabel, dateLabel } = useWorkflowLabels();
 const loading = ref(true);
@@ -48,15 +48,6 @@ const modeLabel = computed(() =>
 const customRuleCount = computed(
   () => (settings.value?.directList.length ?? 0) + (settings.value?.blockList.length ?? 0)
 );
-
-function formatStatusDate(value: string | undefined): string {
-  if (!value) return t("common.noRecords");
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN", {
-    timeZone: settings.value?.timezone,
-  });
-}
 
 async function loadOverview(): Promise<void> {
   loading.value = !settings.value;

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { api, type WorkflowDetail, type WorkflowStage } from "@/api/client";
 import AdminLayout from "@/components/layout/AdminLayout.vue";

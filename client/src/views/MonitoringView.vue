@@ -24,8 +24,6 @@ const {
   latestPacRequest,
   formatDate,
   formatDuration,
-  formatBytes,
-  categoryLabel,
   statusLabel,
   statusTone,
 } = useMonitoringDashboard();

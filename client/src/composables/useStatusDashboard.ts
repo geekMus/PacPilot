@@ -246,7 +246,6 @@ export function useStatusDashboard() {
 
   return {
     t,
-    locale,
     status,
     error,
     loading,
@@ -257,7 +256,6 @@ export function useStatusDashboard() {
     statusNotice,
     formattedUpdatedAt,
     domainInput,
-    checkedDomain,
     activeRuleType,
     directEntries,
     blockEntries,

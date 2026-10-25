@@ -8,7 +8,6 @@ import type {
 } from "../../shared/contracts";
 import { createDefaultWebhookConfig, normalizeWebhookConfig } from "../domain/settings";
 import {
-  getNotificationAdminView,
   notificationEventCatalog,
   publishDomainEvent,
   removeNotificationChannel,

@@ -4,7 +4,7 @@ import type { ApplicationStorage } from "../storage/repositories";
 import { APP_VERSION } from "../version";
 import { t } from "../../shared/i18n";
 import type { AppSettings } from "../../shared/contracts";
-import { buildRemoteListPac, fetchAndParseRemoteList } from "./remote-list";
+import { fetchAndParseRemoteList } from "./remote-list";
 import { runtimeLog } from "../utils/runtime-log";
 import {
   computeEtag,
@@ -17,7 +17,6 @@ import {
   setRenderedPac,
   withPacBuildLock,
   writeRuleSource,
-  type PacRuleSource,
   type RenderedPac,
 } from "./pac-runtime";
 

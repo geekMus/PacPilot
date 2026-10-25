@@ -1,4 +1,3 @@
-import type { AppSettings } from "../../domain/settings";
 import { DEFAULT_SETTINGS } from "../../domain/settings";
 import type { AppDatabase } from "./database";
 import { setSettings } from "./settings";

@@ -176,8 +176,7 @@ export interface MonitorSummary {
 export class ApiError extends Error {
   constructor(
     message: string,
-    readonly code = "",
-    readonly detail = ""
+    readonly code = ""
   ) {
     super(message);
     this.name = "ApiError";
@@ -218,18 +217,15 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     let msg = res.statusText;
     let code = "";
-    let detail = "";
     try {
       const data = (await res.json()) as {
         error?: string;
         message?: string;
         errorCode?: string;
-        errorDetail?: string;
       };
       if (data.error) msg = data.error;
       else if (data.message) msg = data.message;
       code = data.errorCode ?? "";
-      detail = data.errorDetail ?? "";
     } catch {
       // Non-JSON error responses retain their HTTP status text.
     }
@@ -245,7 +241,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
       emitUnauthorized();
     }
 
-    throw new ApiError(msg, code, detail);
+    throw new ApiError(msg, code);
   }
   // 204/空响应体没有 JSON 可解析，直接返回 undefined 交给调用方。
   const text = await res.text();

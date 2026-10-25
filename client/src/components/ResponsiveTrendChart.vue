@@ -140,20 +140,6 @@ function buildOption(): Record<string, unknown> {
     outerBoundsContain: "axisLabel",
   };
 
-  const axisCommon = {
-    axisLine: { lineStyle: { color: line } },
-    axisTick: { show: false },
-    axisLabel: {
-      color: muted,
-      fontSize: isMobile ? 10 : 11,
-      fontFamily: "var(--font)",
-    },
-    splitLine: {
-      show: true,
-      lineStyle: { color: line, type: "dashed" as const, opacity: 0.9 },
-    },
-  };
-
   const tooltip = {
     trigger: "axis" as const,
     confine: true,

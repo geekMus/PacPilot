@@ -18,7 +18,6 @@ const props = withDefaults(
   }
 );
 
-const trigger = ref<HTMLButtonElement | null>(null);
 const dialogOpen = ref(false);
 const { copyState, copyWithFeedback, resetCopyState } = useCopyFeedback();
 const fullText = computed(() => props.text ?? "");
@@ -42,7 +41,6 @@ async function copyContent(): Promise<void> {
 
 <template>
   <button
-    ref="trigger"
     class="text-detail-trigger"
     type="button"
     :title="t('common.viewDetail', { label: resolvedLabel })"

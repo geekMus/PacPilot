@@ -98,9 +98,7 @@ describe("request plumbing", () => {
 
 describe("error handling", () => {
   it("surfaces the server error payload", async () => {
-    fetchMock.mockResolvedValue(
-      jsonResponse({ error: "boom", errorCode: "bad_thing", errorDetail: "details" }, 400)
-    );
+    fetchMock.mockResolvedValue(jsonResponse({ error: "boom", errorCode: "bad_thing" }, 400));
     const { api, ApiError } = await loadClient();
 
     const failure = await api.meta().catch((error: unknown) => error);
@@ -110,7 +108,6 @@ describe("error handling", () => {
     expect((failure as Error).name).toBe("ApiError");
     expect((failure as Error).message).toBe("boom");
     expect((failure as { code: string }).code).toBe("bad_thing");
-    expect((failure as { detail: string }).detail).toBe("details");
   });
 
   it("prefers the error field and falls back to message then statusText", async () => {

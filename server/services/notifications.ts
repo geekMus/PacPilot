@@ -53,14 +53,6 @@ export const notificationEventCatalog: NotificationEventDefinition[] = [
     subjectTypes: ["system"],
   },
 ];
-const emptyDocument = (): NotificationDocument => ({
-  schemaVersion: 1,
-  channels: [],
-  rules: [],
-  events: [],
-  deliveries: [],
-});
-
 async function withLock<T>(storage: ApplicationStorage, action: () => Promise<T>): Promise<T> {
   const previous = locks.get(storage) ?? Promise.resolve();
   let release!: () => void;

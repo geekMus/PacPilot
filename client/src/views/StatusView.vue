@@ -14,7 +14,6 @@ const pacUrl = () => resolveApiUrl("/pac");
 
 const {
   t,
-  locale,
   status,
   error,
   loading,
@@ -25,7 +24,6 @@ const {
   statusNotice,
   formattedUpdatedAt,
   domainInput,
-  checkedDomain,
   activeRuleType,
   directEntries,
   blockEntries,
