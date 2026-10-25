@@ -106,7 +106,8 @@ async function compressPac(content: string): Promise<string> {
     compress: { defaults: true, passes: 2 },
     // 不混淆变量名，避免无意义的可读性损失。
     mangle: false,
-    format: { comments: false, beautify: false, ecma: 5 },
+    // 固定双引号输出：pac-parser 按此契约解析，不再兼容其他引号风格。
+    format: { comments: false, beautify: false, ecma: 5, quote_style: 2 },
   });
   if (typeof result.code !== "string" || !result.code.trim()) {
     throw new Error("PAC 压缩失败：压缩器未生成有效代码。");
