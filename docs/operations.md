@@ -42,6 +42,7 @@ docker run -d \
 - [代码质量检查](../.github/workflows/quality-checks.yml)：仅在 `dev` 分支 push，以及目标分支为 `main` 或 `dev` 的 Pull Request 时启动；不配置手动触发，其他分支 push 和目标分支为其他分支的 PR 都不会创建运行。
 - [主分支包含性检查](../.github/workflows/main-inclusion.yml)：仅在目标分支为 `main` 或 `dev` 的 Pull Request 时启动；不响应 push，也不配置手动触发。检查兼容 Squash Merge。
 - [合并后同步 main 到 dev](../.github/workflows/sync-main-to-dev.yml)：仅在目标为 `main` 的 PR 确实合并后，自动将最新 `main` 合并到 `dev`；不配置手动触发。若存在冲突会停止并提示人工处理。
+- [页面 Lighthouse 分析](../.github/workflows/lighthouse-analysis.yml)：仅手动触发（不响应 push / PR），且只允许在 `dev` 或 `main` 分支上实际执行。构建并启动真实服务后，对全部页面（状态页、登录页与各后台页面；工作流详情页由列表页代表）执行 Lighthouse 分析，在 Step Summary 输出移动端 + 桌面端双预设评分报告，并保存含逐页 HTML 报告的构建产物；任一页面性能低于阈值（默认 70 分）时运行判定为失败。本地复现：构建后启动服务，运行 `BASE_URL=… ADMIN_PASSWORD=… node scripts/lighthouse/analyze.mjs`（Chrome 位置通过 `CHROME_PATH` 指定）。
 - [构建并发布 Docker 镜像](../.github/workflows/publish-image.yml)：在 `main` 上校验版本并发布 ARM64 镜像到 GHCR。
 - [清理废弃工作流运行记录](../.github/workflows/cleanup-obsolete-workflow-runs.yml)：定时清理已删除工作流留下的历史运行记录。
 - [Agent 项目级强制规则](../AGENTS.md)：分支操作、工作流触发限制、发布权限与并发策略，新增或修改工作流前必须阅读。
