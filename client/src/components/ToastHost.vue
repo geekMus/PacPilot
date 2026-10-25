@@ -67,17 +67,18 @@ const toastOptions = {
 }
 :deep([data-sonner-toast][data-type="success"]) {
   border-color: color-mix(in srgb, var(--green) 35%, var(--line));
-  background: var(--green-soft);
+  /* -soft 令牌混有 transparent，透底的浮层必须改与不透明的 surface 混色。 */
+  background: color-mix(in srgb, var(--green) 12%, var(--surface));
   color: var(--green);
 }
 :deep([data-sonner-toast][data-type="error"]) {
   border-color: color-mix(in srgb, var(--red) 35%, var(--line));
-  background: var(--red-soft);
+  background: color-mix(in srgb, var(--red) 12%, var(--surface));
   color: var(--red);
 }
 :deep([data-sonner-toast][data-type="warning"]) {
   border-color: color-mix(in srgb, var(--warn) 35%, var(--line));
-  background: var(--warn-soft);
+  background: color-mix(in srgb, var(--warn) 14%, var(--surface));
   color: var(--warn);
 }
 
