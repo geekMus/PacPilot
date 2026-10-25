@@ -98,7 +98,7 @@ try {
 
   const database = getDb(dataDir);
   try {
-    const generatedPassword = resetAdminPassword(
+    const generatedPassword = await resetAdminPassword(
       asAsyncRepository(new SqliteAdminCredentialRepository(database))
     );
     console.log("管理员凭据已创建或重置。下面的随机密码只显示这一次：");

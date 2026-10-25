@@ -164,12 +164,9 @@ describe("resetAdminPassword", () => {
     const storage = await freshStorage();
     await createInitialAdminCredentials(storage.credentials, "old-password");
 
-    const temporary = resetAdminPassword(storage.credentials);
+    const temporary = await resetAdminPassword(storage.credentials);
     expect(temporary.length).toBeGreaterThan(20);
 
-    // resetAdminPassword is synchronous and does not await the write; wait for the
-    // microtask queue to drain before asserting on the stored record.
-    await new Promise((resolve) => setTimeout(resolve, 0));
     await expect(verifyAdminPassword(storage.credentials, temporary)).resolves.toBe(true);
     await storage.close();
   });
