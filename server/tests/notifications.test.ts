@@ -368,22 +368,19 @@ describe("publishDomainEvent", () => {
     const document = await rawDocument(storage);
     expect(document.events).toHaveLength(1);
     expect(document.deliveries).toHaveLength(0);
-    expect(document.events[0].schemaVersion).toBe(1);
     expect(document.events[0].occurredAt).toBeTruthy();
     expect(document.events[0].id).toBeTruthy();
   });
 
-  it("honours caller-supplied id, occurredAt and schemaVersion", async () => {
+  it("honours caller-supplied id and occurredAt", async () => {
     await publishDomainEvent(storage, {
       ...eventInput(),
       id: "fixed-id",
       occurredAt: "2026-01-02T03:04:05.000Z",
-      schemaVersion: 7,
     });
     const event = (await rawDocument(storage)).events[0];
     expect(event.id).toBe("fixed-id");
     expect(event.occurredAt).toBe("2026-01-02T03:04:05.000Z");
-    expect(event.schemaVersion).toBe(7);
   });
 
   it("creates one delivery per enabled channel on a matching rule", async () => {
@@ -684,7 +681,6 @@ describe("resumePendingNotificationDeliveries", () => {
       subject: { type: "task", id: "1" },
       occurredAt: new Date().toISOString(),
       correlationId: "run-1",
-      schemaVersion: 1,
     };
     const channel: NotificationChannel = {
       id: "chan-1",

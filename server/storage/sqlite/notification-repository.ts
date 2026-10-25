@@ -2,7 +2,6 @@ import type { Database } from "bun:sqlite";
 import type { NotificationDocument } from "../../../shared/contracts";
 import type { SyncNotificationRepository } from "../repositories";
 const empty = (): NotificationDocument => ({
-  schemaVersion: 1,
   channels: [],
   rules: [],
   events: [],
@@ -18,8 +17,6 @@ export function createSqliteNotificationRepository(db: Database): SyncNotificati
       try {
         const v = JSON.parse(row.value) as Partial<NotificationDocument>;
         return {
-          ...empty(),
-          ...v,
           channels: Array.isArray(v.channels) ? v.channels : [],
           rules: Array.isArray(v.rules) ? v.rules : [],
           events: Array.isArray(v.events) ? v.events : [],

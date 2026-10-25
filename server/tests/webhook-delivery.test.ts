@@ -1,11 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DomainEvent } from "../../shared/contracts";
 import { createDefaultWebhookConfig } from "../domain/settings";
-import {
-  sendWebhook,
-  sendWebhookForEvent,
-  sendWebhookTest,
-} from "../services/webhook";
+import { sendWebhook, sendWebhookForEvent, sendWebhookTest } from "../services/webhook";
 
 type FetchArgs = [string | URL, RequestInit];
 
@@ -287,7 +283,6 @@ describe("sendWebhookForEvent", () => {
       subject: { type: "task", id: "1", name: "PAC 生成任务" },
       occurredAt: "2026-10-25T01:00:00.000Z",
       correlationId: "workflow-1",
-      schemaVersion: 1,
       summary: "生成成功",
       ...overrides,
     };

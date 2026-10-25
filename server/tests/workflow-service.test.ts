@@ -14,7 +14,6 @@ async function storageWith(overrides: Record<string, unknown> = {}) {
     ...overrides,
   });
   await storage.notifications.set({
-    schemaVersion: 1,
     channels: [],
     rules: [],
     events: [],

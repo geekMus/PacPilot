@@ -31,7 +31,8 @@ Every driver must return an `ApplicationStorage` with the same repository proper
 - Keep JSON serialization, integer/boolean conversion, and row-to-domain mapping inside the adapter. Validate parsed persisted JSON instead of blindly trusting it.
 - Use the same pagination order and cursor meaning across drivers. Generated IDs must be monotonic within the relevant collection and suitable for `beforeId` pagination.
 - Keep transactions around multi-step operations that must be atomic (workflow claim/stage operations, schema initialization, operational reset). Failed operations must not leave partially applied state.
-- Schema versions are recorded with `PRAGMA user_version` (SQLite) and validated at startup. There is no migration runner: a version mismatch is rejected with an explicit error instead of being upgraded in place, so a driver must either create its schema from scratch or refuse to start.
+- Schema evolution runs through the append-only, forward-only migration chain in `server/storage/sqlite/migrations.ts` at startup. Versions are recorded with `PRAGMA user_version`; each migration applies in its own transaction together with the version bump, so a failed migration rolls back completely. Fresh databases replay the whole chain from the v4 baseline, keeping fresh installs and upgraded databases on one code path with a provably identical end state. Databases newer than this build (a rolled-back deployment) and older than the baseline are rejected with explicit errors instead of being touched. Before upgrading an existing database, a `VACUUM INTO` snapshot is written to `<dataDir>/backups/` (the five most recent are kept).
+- Published migrations are immutable: never edit or remove a shipped entry; always append with `version = previous + 1` and a matching test. Any change to persisted data shapes — table structure, JSON documents stored in the `settings` table, or artifact JSON files — must ship as a migration that transforms existing data in place. Read-time normalization may only fill defaults; it must never rename, move, or silently drop stored fields.
 
 ## Adding a new adapter
 
@@ -40,7 +41,7 @@ Every driver must return an `ApplicationStorage` with the same repository proper
 3. Compose repositories into `ApplicationStorage` in that driver directory. Keep selection/dynamic loading in `server/storage/index.ts` so unselected drivers are not loaded.
 4. Add driver configuration parsing and safe defaults. Never silently fall back to another driver if the configured driver fails to initialize.
 5. Test settings normalization/update, credential round-trip, monitoring counts/pagination/cleanup, workflow atomic claim/stage/history protection, artifact binary round-trip/path safety, maintenance/reset, and close behavior against each adapter.
-6. Add a schema-version test that verifies a mismatched version is rejected and a fresh data directory initializes correctly.
+6. Add schema lifecycle tests: a fresh data directory initializes, an older supported version upgrades through the migration chain (with a pre-migration backup), and newer-than-build or older-than-baseline versions are rejected.
 7. Run `bun run typecheck`, `bun run test:core`, `bun run test:server:coverage`, `bun run test:client:coverage`, `bun run build`, `bun run check:i18n`, and `bun run format:check` as applicable. Compilation alone is not sufficient.
 
 ## Layering rules

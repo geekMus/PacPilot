@@ -186,7 +186,6 @@ describe("memory notification repository", () => {
   it("starts from an empty document", () => {
     const repository = createMemoryNotificationRepository();
     expect(repository.get()).toEqual({
-      schemaVersion: 1,
       channels: [],
       rules: [],
       events: [],
@@ -197,7 +196,6 @@ describe("memory notification repository", () => {
   it("stores clones in both directions", () => {
     const repository = createMemoryNotificationRepository();
     const document = {
-      schemaVersion: 1,
       channels: [],
       rules: [],
       events: [],
@@ -213,7 +211,6 @@ describe("memory notification repository", () => {
   it("resets back to the empty document", () => {
     const repository = createMemoryNotificationRepository();
     repository.set({
-      schemaVersion: 1,
       channels: [],
       rules: [],
       events: [],
@@ -221,7 +218,6 @@ describe("memory notification repository", () => {
     });
     repository.reset();
     expect(repository.get()).toEqual({
-      schemaVersion: 1,
       channels: [],
       rules: [],
       events: [],

@@ -74,7 +74,6 @@ export interface DomainEvent {
   subject: { type: string; id: string; name?: string };
   occurredAt: string;
   correlationId: string;
-  schemaVersion: number;
   summary?: string;
   details?: Record<string, unknown>;
 }
@@ -114,7 +113,6 @@ export interface NotificationDelivery {
   lastError?: string;
 }
 export interface NotificationDocument {
-  schemaVersion: number;
   channels: NotificationChannel[];
   rules: NotificationRule[];
   events: DomainEvent[];

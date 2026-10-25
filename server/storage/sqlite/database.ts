@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 import fs from "node:fs";
 import path from "node:path";
 import { DEFAULT_SETTINGS, normalizeAppSettings } from "../../domain/settings";
-import { initializeSchema } from "./schema";
+import { ensureSchema } from "./migrations";
 
 /** The concrete database type is confined to the SQLite adapter. */
 export type AppDatabase = Database;
@@ -18,11 +18,14 @@ export function createDatabase(dataDir: string): AppDatabase {
   try {
     database.run("PRAGMA journal_mode = WAL;");
     database.run("PRAGMA foreign_keys = ON;");
-    initializeSchema(database, () => {
-      const normalized = normalizeAppSettings(DEFAULT_SETTINGS);
-      database
-        .query("INSERT INTO settings (key, value) VALUES ('config', ?)")
-        .run(JSON.stringify(normalized));
+    ensureSchema(database, {
+      dataDir: inMemory ? null : dataDir,
+      ensureDefaultSettings: () => {
+        const normalized = normalizeAppSettings(DEFAULT_SETTINGS);
+        database
+          .query("INSERT INTO settings (key, value) VALUES ('config', ?)")
+          .run(JSON.stringify(normalized));
+      },
     });
     return database;
   } catch (error) {

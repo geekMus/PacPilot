@@ -243,6 +243,17 @@ bun run dev
 
 - **`STORAGE_DRIVER=sqlite`（默认）**：数据目录中保存 `database.db`（配置、管理员凭据、工作流记录、请求监控、远程规则快照）与 `pac.rule-source.json`（远程规则快照）。文件内容详见[配置说明](configuration.md#数据文件与数据库)。
 - **`STORAGE_DRIVER=memory`**：无任何落盘文件，重启即回到初始状态。
+
+### 升级时的自动迁移
+
+升级镜像并重启后，新版本会在启动时自动把旧版本的数据库升级到最新 schema，无需任何手动操作。升级前会先用 `VACUUM INTO` 在 `<数据目录>/backups/` 下生成一份迁移前快照（保留最近 5 份，计入数据目录占用）；每个迁移在事务内原子执行，完成后日志会输出 `Database schema upgraded to v...`。不要让新旧两个容器同时挂载同一个数据目录。
+
+- **版本回滚**：旧版本代码遇到更新的数据库会拒绝启动（报错 `newer than this build supports`），这是预期的保护行为。需要回滚时：停止容器，把 `backups/` 中对应时间点的 `database.v*.db` 复制为数据目录下的 `database.db`（删除原有的 `database.db-wal`、`database.db-shm`），再启动旧镜像。
+- **过旧的数据库**：schema 版本低于 v4（v1~v3）的数据库会被拒绝启动；请先升级到任一支持 v4 的中间版本，再升级到最新版。
+- **迁移失败**：启动中止且数据保持原状，错误信息中会给出备份路径；按上面的回滚方法用备份恢复后再反馈问题。
+
+### 手动备份与恢复
+
 - **备份**：停止容器（或确保低负载）后复制整个数据目录即可，例如：
 
   ```bash
@@ -250,7 +261,7 @@ bun run dev
     tar czf /backup/pacpilot-data.tar.gz -C /data .
   ```
 
-- **恢复**：解包回数据目录后重启服务。数据库通过 `PRAGMA user_version` 校验 schema 版本，版本不匹配（来自旧版本的数据目录）会拒绝启动，需删除 `data` 目录重建。
+- **恢复**：解包回数据目录后重启服务。
 - **重要**：需要保留数据时不要删除数据卷（`docker volume rm pacpilot-data`），升级前先备份。
 
 ## 常用地址

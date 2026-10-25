@@ -376,10 +376,9 @@ async function dispatchPending(storage: ApplicationStorage, ids: string[], timeZ
 }
 export async function publishDomainEvent(
   storage: ApplicationStorage,
-  input: Omit<DomainEvent, "id" | "occurredAt" | "schemaVersion"> & {
+  input: Omit<DomainEvent, "id" | "occurredAt"> & {
     id?: string;
     occurredAt?: string;
-    schemaVersion?: number;
   }
 ) {
   try {
@@ -391,7 +390,6 @@ export async function publishDomainEvent(
         summary,
         id: input.id || randomUUID(),
         occurredAt: input.occurredAt || now(),
-        schemaVersion: input.schemaVersion || 1,
       };
       document.events.push(event);
       document.events = document.events.slice(-MAX_EVENTS);
