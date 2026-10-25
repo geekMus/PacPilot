@@ -193,8 +193,13 @@ select {
 /*
  * A loading button is temporarily non-interactive, not unavailable. Preserve
  * legible text and the normal button variant while it waits for a response.
+ *
+ * The selectors intentionally do NOT require :disabled. Some buttons keep
+ * themselves enabled while a request is in flight (the settings page must,
+ * otherwise a click arriving after a blur-triggered save is swallowed), and
+ * they still need the loading affordances.
  */
-:root button.is-loading:disabled {
+:root button.is-loading {
   opacity: 1;
   cursor: progress;
   box-shadow: none;
@@ -202,7 +207,7 @@ select {
   filter: none;
 }
 
-:root button.is-loading:disabled:not(.login-submit) {
+:root button.is-loading:not(.login-submit) {
   color: var(--text);
   -webkit-text-fill-color: var(--text);
   background-color: var(--surface);
@@ -211,15 +216,15 @@ select {
   cursor: progress;
 }
 
-:root button.is-loading:disabled:is(.app-button--primary, .login-submit) {
+:root button.is-loading:is(.app-button--primary, .login-submit) {
   color: var(--accent-contrast);
   -webkit-text-fill-color: var(--accent-contrast);
   background-color: var(--accent);
   border-color: var(--accent);
 }
 
-:root button.is-loading:disabled .app-icon,
-:root button.is-loading:disabled svg {
+:root button.is-loading .app-icon,
+:root button.is-loading svg {
   opacity: 1;
 }
 

@@ -24,6 +24,9 @@ export function useAdminSettings() {
 
   const saving = ref(false);
 
+  /** 即时保存的串行队列，保证同一时间只有一个请求在途。 */
+  let saveQueue: Promise<void> = Promise.resolve();
+
   /** 最近一次已知已持久化到服务端的完整配置，是即时保存的比对基准。 */
   const saved = ref<AppSettings | null>(null);
 
@@ -237,46 +240,57 @@ export function useAdminSettings() {
    * 逐项即时保存：只提交与已保存配置不同的字段；generate 表示该项影响
    * PAC 内容，需要走「保存并生成」让服务端重建 PAC。任何结果都通过
    * toast 反馈。
+   *
+   * 每次保存都排进串行队列。输入框失焦提交和紧随其后的按钮点击会在同一
+   * 帧内先后触发保存，并发提交会让两个请求各带一份旧快照，后落地的那个
+   * 把先写入的字段改回旧值；排队后 diff 始终基于上一次保存后的 saved 计算。
    */
   async function tryApply(
     patch: Partial<AppSettings>,
-    options: { generate: boolean; message: string; invalid?: string; force?: boolean }
+    options: { generate: boolean; message: string; invalid?: string }
   ): Promise<void> {
-    if (!saved.value || (saving.value && !options.force)) return;
-    const current = saved.value as unknown as Record<string, unknown>;
-    const diff = Object.fromEntries(
-      Object.entries(patch).filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(current[key]))
-    ) as Partial<AppSettings>;
-    if (!Object.keys(diff).length) return;
-    if (options.invalid) {
-      notify(options.invalid, "warning");
-      return;
-    }
-    saving.value = true;
-    try {
-      // 合并服务端最新配置，避免覆盖其他页面（通知渠道、日志保留期）的修改。
-      const latest = await api.settings();
-      form.webhookSuccessConfig = normalizedWebhookConfig(latest.webhookSuccessConfig);
-      form.webhookFailureConfig = normalizedWebhookConfig(latest.webhookFailureConfig);
-      form.logRetentionDays = latest.logRetentionDays;
-      const payload: AppSettings = { ...latest, ...diff };
-      if (options.generate) {
-        await api.saveAndGenerate(payload);
-      } else {
-        await api.saveSettings(payload);
+    const run = async (): Promise<void> => {
+      if (!saved.value) return;
+      const current = saved.value as unknown as Record<string, unknown>;
+      const diff = Object.fromEntries(
+        Object.entries(patch).filter(
+          ([key, value]) => JSON.stringify(value) !== JSON.stringify(current[key])
+        )
+      ) as Partial<AppSettings>;
+      if (!Object.keys(diff).length) return;
+      if (options.invalid) {
+        notify(options.invalid, "warning");
+        return;
       }
-      saved.value = payload;
-      notify(options.message, "success");
-      if (options.generate) {
-        // 探针刷新只是辅助操作，不影响已成功的保存结果。
-        const latestProbe = await api.pacpilotStatus().catch(() => null);
-        if (latestProbe) pacpilotProbe.value = latestProbe;
+      saving.value = true;
+      try {
+        // 合并服务端最新配置，避免覆盖其他页面（通知渠道、日志保留期）的修改。
+        const latest = await api.settings();
+        form.webhookSuccessConfig = normalizedWebhookConfig(latest.webhookSuccessConfig);
+        form.webhookFailureConfig = normalizedWebhookConfig(latest.webhookFailureConfig);
+        form.logRetentionDays = latest.logRetentionDays;
+        const payload: AppSettings = { ...latest, ...diff };
+        if (options.generate) {
+          await api.saveAndGenerate(payload);
+        } else {
+          await api.saveSettings(payload);
+        }
+        saved.value = payload;
+        notify(options.message, "success");
+        if (options.generate) {
+          // 探针刷新只是辅助操作，不影响已成功的保存结果。
+          const latestProbe = await api.pacpilotStatus().catch(() => null);
+          if (latestProbe) pacpilotProbe.value = latestProbe;
+        }
+      } catch (e) {
+        notify(e instanceof Error ? e.message : String(e), "error");
+      } finally {
+        saving.value = false;
       }
-    } catch (e) {
-      notify(e instanceof Error ? e.message : String(e), "error");
-    } finally {
-      saving.value = false;
-    }
+    };
+    const next = saveQueue.then(run, run).catch(() => undefined);
+    saveQueue = next;
+    return next;
   }
 
   function onTimeZoneSelected(value: string) {
@@ -307,10 +321,16 @@ export function useAdminSettings() {
 
   function saveMode() {
     const patch: Partial<AppSettings> = { mode: form.mode };
-    if (form.mode === "remote" && !form.listUrl.trim()) {
-      patch.listUrl = DEFAULT_LIST_URL;
+    // 远程模式的规则地址为空时提交默认地址：服务端在 remote 模式下要求
+    // listUrl 是合法的 HTTP(S) 地址，空串会被判为非法。
+    if (form.mode === "remote") {
+      patch.listUrl = form.listUrl.trim() || DEFAULT_LIST_URL;
     }
-    void tryApply(patch, { generate: true, message: t("settings.savedMode"), force: true });
+    void tryApply(patch, {
+      generate: true,
+      message: t("settings.savedMode"),
+      invalid: listUrlError.value,
+    });
   }
 
   function onPacProxyCommit() {

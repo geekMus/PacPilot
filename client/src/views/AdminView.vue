@@ -84,7 +84,12 @@ const {
       </div>
 
       <template v-if="!loading && !error">
-        <form id="settings-form" class="stack" :inert="saving" :aria-busy="saving" @submit.prevent>
+        <!--
+          不要在这里加 :inert="saving"：输入框失焦保存会在 mousedown 之后、
+          click 之前把表单置为 inert，导致用户紧接着点击的保存按钮收不到 click。
+          串行保存队列已保证同一时间只有一个请求在途，无需冻结表单。
+        -->
+        <form id="settings-form" class="stack" :aria-busy="saving" @submit.prevent>
           <!-- 常规设置 -->
           <section id="general" class="card">
             <div class="card-head">
@@ -208,7 +213,8 @@ const {
                 type="button"
                 class="app-button app-button--primary rules-save-button"
                 :class="{ 'is-loading': saving }"
-                :disabled="saving || !hasUnsavedMode"
+                :disabled="!hasUnsavedMode"
+                :aria-busy="saving"
                 :title="t('settings.saveModeHint')"
                 @click="saveMode"
               >
@@ -359,7 +365,8 @@ const {
                 type="button"
                 class="app-button app-button--primary rules-save-button"
                 :class="{ 'is-loading': saving }"
-                :disabled="saving || !hasUnsavedRules || Boolean(ruleErrors)"
+                :disabled="!hasUnsavedRules || Boolean(ruleErrors)"
+                :aria-busy="saving"
                 :title="t('settings.saveRulesHint')"
                 @click="saveRules"
               >
