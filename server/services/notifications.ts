@@ -81,8 +81,10 @@ function redactUrl(raw: string): string {
   }
 }
 function redactHeaders(raw: string): string {
+  // 空值保持空串返回：否则会被序列化成 "{}"，编辑表单把它当成已填写的内容展示。
+  if (!raw.trim()) return "";
   try {
-    const headers = JSON.parse(raw || "{}") as Record<string, string>;
+    const headers = JSON.parse(raw) as Record<string, string>;
     for (const key of Object.keys(headers)) {
       if (/authorization|token|secret|api[_-]?key|signature/i.test(key)) headers[key] = "***";
     }

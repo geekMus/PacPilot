@@ -48,7 +48,8 @@ const {
   testC,
 } = props.ws;
 
-// 默认内容只以 placeholder 展示，用户点「填入默认值」时才写入编辑框；
+// 默认内容只在用户点「填入默认值」时写入编辑框；占位符只给一行简短提示，
+// 不再展示完整默认内容（那看起来就像预填了默认值）。
 // 占位符变量（{{event}} 等）在发送时由服务端替换。
 const headersDefault = JSON.stringify({ Authorization: "Bearer …" }, null, 2);
 const bodyTemplateDefault = JSON.stringify(
@@ -62,6 +63,8 @@ const bodyTemplateDefault = JSON.stringify(
   null,
   2
 );
+const headersPlaceholder = '{"Authorization": "Bearer …"}';
+const bodyPlaceholder = '{"event": "{{event}}", "message": "{{message}}"}';
 // 模板默认值含 {{var}} 占位符，必须用 tm() 取原始文案，避免 t() 做插值。
 function rawTemplate(key: string): string {
   const message = tm(key);
@@ -69,6 +72,12 @@ function rawTemplate(key: string): string {
 }
 const dingTalkTemplateDefault = computed(() => rawTemplate("settings.defaultMessageTemplate"));
 const dingTalkTestTemplateDefault = computed(() => rawTemplate("settings.testMessageTemplate"));
+const dingTalkTemplatePlaceholder = computed(() =>
+  rawTemplate("notifications.placeholderMessageTemplate")
+);
+const dingTalkTestTemplatePlaceholder = computed(() =>
+  rawTemplate("notifications.placeholderTestMessage")
+);
 
 // 编辑区底部的删除按钮和列表行共用同一套确认流程：把待删除的渠道记下来，
 // 由确认气泡真正执行删除，避免任何入口变成「点一下就没」。
@@ -296,6 +305,7 @@ async function confirmDeleteChannel(item: NotificationChannel) {
                   :line-numbers="false"
                   :height="120"
                   :sample="dingTalkTemplateDefault"
+                  :placeholder="dingTalkTemplatePlaceholder"
                   :aria-label="t('notifications.fieldMessageTemplate')"
                   @update:model-value="ch.config.messageTemplate = $event"
                 /><small class="field-hint"
@@ -315,6 +325,7 @@ async function confirmDeleteChannel(item: NotificationChannel) {
                   :line-numbers="false"
                   :height="82"
                   :sample="dingTalkTestTemplateDefault"
+                  :placeholder="dingTalkTestTemplatePlaceholder"
                   :aria-label="t('notifications.fieldTestMessage')"
                   @update:model-value="ch.config.testMessageTemplate = $event"
               /></label>
@@ -344,6 +355,7 @@ async function confirmDeleteChannel(item: NotificationChannel) {
                   :model-value="ch.config.headers"
                   :height="126"
                   :sample="headersDefault"
+                  :placeholder="headersPlaceholder"
                   :aria-label="t('notifications.fieldHeaders')"
                   @update:model-value="ch.config.headers = $event"
                 /><small class="field-hint">{{
@@ -357,6 +369,7 @@ async function confirmDeleteChannel(item: NotificationChannel) {
                   :model-value="ch.config.body"
                   :height="190"
                   :sample="bodyTemplateDefault"
+                  :placeholder="bodyPlaceholder"
                   :aria-label="t('notifications.fieldBody')"
                   @update:model-value="ch.config.body = $event"
                 /><small class="field-hint">{{ t("notifications.hintBodyJson") }}</small></label
@@ -369,6 +382,7 @@ async function confirmDeleteChannel(item: NotificationChannel) {
                   :model-value="ch.config.testBody"
                   :height="144"
                   :sample="bodyTemplateDefault"
+                  :placeholder="bodyPlaceholder"
                   :aria-label="t('notifications.fieldTestBody')"
                   @update:model-value="ch.config.testBody = $event"
               /></label>

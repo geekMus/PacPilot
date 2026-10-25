@@ -164,6 +164,8 @@ export default {
     placeholderSecretNew: "如果启用了加签，请填写密钥",
     placeholderSecretSaved: "已保存密钥，留空则保持不变",
     placeholderSubjectType: "例如 task；留空表示匹配所有对象类型",
+    placeholderMessageTemplate: "留空使用内置默认模板；支持 {{event}} 等变量",
+    placeholderTestMessage: "留空使用内置默认测试消息",
     hintUrlRedacted: "URL 中的敏感参数会在页面和日志中脱敏。",
     hintSecretHidden: "出于安全考虑，已保存的密钥不会回显。",
     hintVariables: "支持以下变量：",
@@ -1069,8 +1071,6 @@ export default {
     k1: "JSON 顶层必须是对象或数组。",
     k2: "JSON 格式正确",
     k3: "JSON 语法错误，请检查括号、引号和逗号。",
-    k4: "格式化 JSON",
-    k5: "格式化",
     k6: "填入默认值",
   },
   footerExtra: {

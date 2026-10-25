@@ -171,6 +171,9 @@ export default {
     placeholderSecretNew: "Fill in the secret when signing is enabled",
     placeholderSecretSaved: "Secret saved — leave empty to keep it",
     placeholderSubjectType: "e.g. task; leave empty to match any subject type",
+    placeholderMessageTemplate:
+      "Leave empty to use the built-in template; {{event}} and more variables are supported",
+    placeholderTestMessage: "Leave empty to use the built-in test message",
     hintUrlRedacted: "Sensitive URL parameters are redacted in the UI and logs.",
     hintSecretHidden: "Saved secrets are never echoed back.",
     hintVariables: "Supported variables:",
@@ -1107,8 +1110,6 @@ export default {
     k1: "The top-level JSON value must be an object or an array.",
     k2: "Valid JSON",
     k3: "Invalid JSON syntax. Check the brackets, quotes, and commas.",
-    k4: "Format JSON",
-    k5: "Format",
     k6: "Insert default",
   },
   footerExtra: {

@@ -9,9 +9,9 @@ const { t } = useI18n();
 const props = withDefaults(
   defineProps<{
     modelValue: string;
-    /** 默认内容：既是 placeholder 展示文案，也是「填入默认值」按钮写入的内容。 */
+    /** 「填入默认值」按钮写入的完整默认内容；不作为编辑框展示。 */
     sample?: string;
-    /** 覆盖 placeholder 展示；不传时直接展示 sample。 */
+    /** 占位提示文案；只给提示，不展示完整默认内容。 */
     placeholder?: string;
     height?: number;
     invalid?: boolean;
@@ -31,7 +31,6 @@ const props = withDefaults(
 );
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 
-const shownPlaceholder = computed(() => props.placeholder || props.sample);
 const isJson = computed(() => props.language === "json");
 const jsonStatus = computed(() => {
   const raw = props.modelValue.trim();
@@ -45,7 +44,6 @@ const jsonStatus = computed(() => {
     return { kind: "invalid", text: t("webhookBody.k3") };
   }
 });
-const canFormat = computed(() => isJson.value && jsonStatus.value.kind === "valid");
 const editorExtensions = computed<Extension[]>(() => [
   highlightActiveLine(),
   EditorView.theme({
@@ -57,16 +55,7 @@ const editorExtensions = computed<Extension[]>(() => [
     ".cm-content": { padding: "10px 12px" },
   }),
 ]);
-
-function formatJson() {
-  if (!canFormat.value) return;
-  try {
-    emit("update:modelValue", JSON.stringify(JSON.parse(props.modelValue), null, 2));
-  } catch {
-    // The status bar already reports invalid JSON; formatting leaves the source unchanged.
-  }
-}
-// Only fills the default shown as the placeholder; never formats or rewrites existing content.
+// Only fills the default when the user clicks the button; never rewrites existing content.
 function insertSample() {
   if (props.sample) emit("update:modelValue", props.sample);
 }
@@ -79,19 +68,10 @@ function insertSample() {
   >
     <div class="json-editor-toolbar">
       <div class="json-editor-language">
-        <span class="language-dot" aria-hidden="true"></span><span>{{ isJson ? "JSON" : "TEXT" }}</span>
+        <span class="language-dot" aria-hidden="true"></span
+        ><span>{{ isJson ? "JSON" : "TEXT" }}</span>
       </div>
       <div class="json-editor-actions">
-        <button
-          v-if="isJson"
-          type="button"
-          class="editor-action"
-          :disabled="!canFormat"
-          :title="canFormat ? t('webhookBody.k4') : jsonStatus.text"
-          @click="formatJson"
-        >
-          {{ t("webhookBody.k5") }}
-        </button>
         <button
           v-if="props.sample"
           type="button"
@@ -105,7 +85,7 @@ function insertSample() {
     </div>
     <CodeMirrorField
       :model-value="props.modelValue"
-      :placeholder="shownPlaceholder"
+      :placeholder="props.placeholder"
       :height="props.height"
       :language="props.language"
       :line-numbers="props.lineNumbers"
