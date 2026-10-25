@@ -107,6 +107,10 @@ async function generateNow(): Promise<void> {
   }
 }
 
+function openWorkflow(id: number): void {
+  void router.push(`/admin/workflows/${id}`);
+}
+
 onMounted(() => {
   void loadOverview();
 });
@@ -275,40 +279,47 @@ onMounted(() => {
               >{{ t("dashboard.systemSettings") }} <AppIcon name="arrow-up-right" :size="13"
             /></RouterLink>
           </header>
-          <div class="config-details">
-            <div class="config-detail">
-              <span>{{ t("dashboard.pacEndpoint") }}</span
-              ><code>/pac</code>
+          <dl class="runtime-list">
+            <div class="runtime-row">
+              <dt>{{ t("dashboard.pacEndpoint") }}</dt>
+              <dd><code>/pac</code></dd>
             </div>
-            <div class="config-detail">
-              <span>{{ t("dashboard.ruleSource") }}</span
-              ><strong :class="settings?.mode === 'remote' ? '' : 'value-muted'">{{
-                settings?.mode === "remote"
-                  ? t("dashboard.ruleSourceRemote")
-                  : t("dashboard.ruleSourceCustom")
-              }}</strong>
+            <div class="runtime-row">
+              <dt>{{ t("dashboard.ruleSource") }}</dt>
+              <dd>
+                <strong :class="settings?.mode === 'remote' ? '' : 'value-muted'">{{
+                  settings?.mode === "remote"
+                    ? t("dashboard.ruleSourceRemote")
+                    : t("dashboard.ruleSourceCustom")
+                }}</strong>
+              </dd>
             </div>
-            <div class="config-detail">
-              <span>{{ t("dashboard.autoRefresh") }}</span
-              ><strong :class="settings?.cronSchedule ? 'value-good' : 'value-warning'">{{
-                settings?.cronSchedule ? settings.cronSchedule : t("dashboard.closed")
-              }}</strong>
+            <div class="runtime-row">
+              <dt>{{ t("dashboard.autoRefresh") }}</dt>
+              <dd>
+                <strong :class="settings?.cronSchedule ? 'value-good' : 'value-warning'">{{
+                  settings?.cronSchedule ? settings.cronSchedule : t("dashboard.closed")
+                }}</strong>
+              </dd>
             </div>
-            <div class="config-detail">
-              <span>{{ t("dashboard.trend24hShort") }}</span
-              ><strong>{{ monitor ? monitor.requestsLast24h : "—" }}</strong>
+            <div class="runtime-row">
+              <dt>{{ t("dashboard.trend24hShort") }}</dt>
+              <dd><strong>{{ monitor ? monitor.requestsLast24h : "—" }}</strong></dd>
             </div>
-            <div class="config-detail">
-              <span>{{ t("dashboard.activeRequests") }}</span
-              ><strong>{{ monitor?.activeRequests ?? "—" }}</strong>
+            <div class="runtime-row">
+              <dt>{{ t("dashboard.activeRequests") }}</dt>
+              <dd><strong>{{ monitor?.activeRequests ?? "—" }}</strong></dd>
             </div>
-            <div class="config-detail">
-              <span>{{ t("dashboard.errorRate") }}</span
-              ><strong :class="monitor && monitor.errorRate > 5 ? 'value-warning' : 'value-good'">{{
-                monitor ? monitor.errorRate.toFixed(1) + "%" : "—"
-              }}</strong>
+            <div class="runtime-row">
+              <dt>{{ t("dashboard.errorRate") }}</dt>
+              <dd>
+                <strong
+                  :class="monitor && monitor.errorRate > 5 ? 'value-warning' : 'value-good'"
+                  >{{ monitor ? monitor.errorRate.toFixed(1) + "%" : "—" }}</strong
+                >
+              </dd>
             </div>
-          </div>
+          </dl>
           <div class="panel-footer-links">
             <RouterLink to="/"
               >{{ t("dashboard.openPublicStatus") }} <AppIcon name="arrow-up-right" :size="13"
@@ -348,14 +359,23 @@ onMounted(() => {
               </tr>
             </template>
             <template #body>
-              <tr v-for="run in workflows" :key="run.id">
+              <tr
+                v-for="run in workflows"
+                :key="run.id"
+                class="recent-log-row"
+                tabindex="0"
+                role="link"
+                :aria-label="t('workflowPage.viewRunDetails', { id: run.id })"
+                @click="openWorkflow(run.id)"
+                @keydown.enter.prevent="openWorkflow(run.id)"
+              >
                 <td class="nowrap">{{ dateLabel(run.created_at) }}</td>
                 <td>
                   <span class="result-pill" :class="run.status === 'succeeded' ? 'good' : 'bad'"
                     ><AppIcon
                       :name="run.status === 'succeeded' ? 'circle-check' : 'circle-x'"
                       :size="13"
-                    />{{ statusLabel(run.status) }}</span
+                      />{{ statusLabel(run.status) }}</span
                   >
                 </td>
                 <td>{{ sourceLabel(run.source) }}</td>
@@ -584,39 +604,51 @@ onMounted(() => {
   color: var(--muted);
 }
 .panel-header > a {
-  @apply shrink-0 whitespace-nowrap text-[10px] font-bold no-underline;
+  @apply inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-[5px] text-[10px] font-bold no-underline transition-colors;
+  border-color: var(--line);
+  color: var(--text);
+}
+.panel-header > a:hover,
+.panel-footer-links a:hover {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
   color: var(--accent);
 }
-.config-details {
-  @apply grid grid-cols-2 content-start gap-x-6;
+.runtime-list {
+  @apply grid;
 }
-.config-detail {
-  @apply grid min-w-0 items-baseline gap-3 border-b bg-transparent px-0 py-[13px];
-  grid-template-columns: minmax(86px, 0.78fr) minmax(0, 1.22fr);
+.runtime-row {
+  @apply flex min-w-0 items-baseline justify-between gap-4 border-b py-[9px];
   border-color: color-mix(in srgb, var(--line) 72%, transparent);
 }
-.config-detail > span {
-  @apply text-[11px] leading-normal;
+.runtime-row:last-child {
+  @apply border-b-0;
+}
+.runtime-row > dt {
+  @apply m-0 shrink-0 text-[11px] leading-normal;
   color: var(--muted);
   font-weight: 550;
 }
-.config-detail strong,
-.config-detail code {
-  @apply m-0 block min-w-0 rounded-none border-0 bg-transparent p-0 text-xs leading-normal shadow-none;
-  color: var(--text);
-  font-weight: 650;
+.runtime-row > dd {
+  @apply m-0 min-w-0 text-right text-xs leading-normal;
   overflow-wrap: anywhere;
 }
-.config-detail code {
+.runtime-row > dd strong,
+.runtime-row > dd code {
+  @apply block border-0 bg-transparent p-0 text-xs leading-normal shadow-none;
+  color: var(--text);
+  font-weight: 650;
+}
+.runtime-row > dd code {
   @apply font-mono text-[11px];
   font-weight: 500;
 }
 .panel-footer-links {
-  @apply mt-[15px] flex flex-wrap gap-x-4 gap-y-[9px];
+  @apply mt-4 flex flex-wrap gap-2;
 }
 .panel-footer-links a {
-  @apply text-[10px] font-bold no-underline;
-  color: var(--accent);
+  @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[5px] text-[10px] font-bold no-underline transition-colors;
+  border-color: var(--line);
+  color: var(--text);
 }
 .nowrap {
   @apply whitespace-nowrap;
@@ -689,9 +721,6 @@ onMounted(() => {
   }
   .toolbar-actions .app-button {
     @apply flex-1;
-  }
-  .config-details {
-    @apply gap-x-[11px];
   }
 }
 @media (max-width: 500px) {

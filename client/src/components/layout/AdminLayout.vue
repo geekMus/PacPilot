@@ -186,13 +186,6 @@ watch(
 .admin-content :deep(.panel-heading p) {
   @apply text-[11px] leading-normal;
 }
-.admin-content :deep(.config-detail > span) {
-  @apply text-[11px];
-}
-.admin-content :deep(.config-detail strong),
-.admin-content :deep(.config-detail code) {
-  @apply text-xs;
-}
 .admin-content :deep(.recent-table),
 .admin-content :deep(.table-wrap table) {
   @apply text-xs;
