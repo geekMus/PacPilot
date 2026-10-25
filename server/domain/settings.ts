@@ -77,8 +77,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   cronSchedule: "",
   timezone: "Asia/Shanghai",
   logRetentionDays: 30,
-  webhookSuccessConfig: { ...DEFAULT_WEBHOOK },
-  webhookFailureConfig: { ...DEFAULT_WEBHOOK },
 };
 
 function normalizeTimeZone(value: unknown): string {
@@ -125,7 +123,5 @@ export function normalizeAppSettings(input: unknown): AppSettings {
         Math.floor(Number(merged.logRetentionDays ?? DEFAULT_SETTINGS.logRetentionDays) || 0)
       )
     ),
-    webhookSuccessConfig: normalizeWebhookConfig(merged.webhookSuccessConfig),
-    webhookFailureConfig: normalizeWebhookConfig(merged.webhookFailureConfig),
   };
 }

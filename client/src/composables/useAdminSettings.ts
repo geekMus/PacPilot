@@ -1,7 +1,7 @@
 import { onMounted, reactive, ref, computed, nextTick, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter, useRoute } from "vue-router";
-import { api, type AppSettings, type PacPilotProbe, type WebhookConfig } from "@/api/client";
+import { api, type AppSettings, type PacPilotProbe } from "@/api/client";
 import { analyzeDomainRules } from "@/utils/domain-rules";
 import { DEFAULT_LIST_URL } from "@shared/contracts";
 import { createAdminSettingsValidators } from "@/utils/admin-settings-validation";
@@ -48,35 +48,7 @@ export function useAdminSettings() {
     cronSchedule: "",
     timezone: "Asia/Shanghai",
     logRetentionDays: 30,
-    webhookSuccessConfig: defaultWebhookConfig(),
-    webhookFailureConfig: defaultWebhookConfig(),
   });
-
-  function defaultWebhookConfig(): WebhookConfig {
-    return {
-      provider: "custom",
-      url: "",
-      method: "POST",
-      headers: "",
-      body: "",
-      dingTalkSecret: "",
-      dingTalkMessageType: "text",
-      // 内置默认值不落存储：留空时由服务端回退默认，UI 用 placeholder 展示。
-      testBody: "",
-      messageTemplate: "",
-      testMessageTemplate: "",
-    };
-  }
-
-  function normalizedWebhookConfig(value: WebhookConfig | undefined): WebhookConfig {
-    return {
-      ...defaultWebhookConfig(),
-      ...value,
-      testBody: value?.testBody ?? defaultWebhookConfig().testBody,
-      messageTemplate: value?.messageTemplate ?? "",
-      testMessageTemplate: value?.testMessageTemplate ?? "",
-    };
-  }
 
   const filteredTimeZones = computed(() => {
     const query = timezoneQuery.value.trim().toLowerCase();
@@ -263,8 +235,6 @@ export function useAdminSettings() {
       try {
         // 合并服务端最新配置，避免覆盖其他页面（通知渠道、日志保留期）的修改。
         const latest = await api.settings();
-        form.webhookSuccessConfig = normalizedWebhookConfig(latest.webhookSuccessConfig);
-        form.webhookFailureConfig = normalizedWebhookConfig(latest.webhookFailureConfig);
         form.logRetentionDays = latest.logRetentionDays;
         const payload: AppSettings = { ...latest, ...diff };
         if (options.generate) {
@@ -415,8 +385,6 @@ export function useAdminSettings() {
     form.cronSchedule = s.cronSchedule;
     form.timezone = s.timezone || "Asia/Shanghai";
     form.logRetentionDays = Number.isFinite(s.logRetentionDays) ? s.logRetentionDays : 30;
-    form.webhookSuccessConfig = normalizedWebhookConfig(s.webhookSuccessConfig);
-    form.webhookFailureConfig = normalizedWebhookConfig(s.webhookFailureConfig);
   }
 
   async function load() {

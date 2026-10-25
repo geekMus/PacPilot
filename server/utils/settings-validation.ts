@@ -39,50 +39,5 @@ export function validateSettingsPayload(body: Record<string, unknown>): string |
     return "logRetentionDays must be an integer between 0 and 3650";
   }
 
-  for (const key of ["webhookSuccessConfig", "webhookFailureConfig"] as const) {
-    const value = body[key];
-    if (value === undefined) continue;
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-      return key + " must be an object";
-    }
-
-    const config = value as Record<string, unknown>;
-    for (const field of [
-      "url",
-      "headers",
-      "body",
-      "dingTalkSecret",
-      "testBody",
-      "messageTemplate",
-      "testMessageTemplate",
-    ] as const) {
-      if (config[field] !== undefined && typeof config[field] !== "string") {
-        return key + "." + field + " must be a string";
-      }
-    }
-    if (
-      config.provider !== undefined &&
-      config.provider !== "custom" &&
-      config.provider !== "dingtalk"
-    ) {
-      return key + ".provider is unsupported";
-    }
-    if (
-      config.method !== undefined &&
-      config.method !== "POST" &&
-      config.method !== "PUT" &&
-      config.method !== "PATCH"
-    ) {
-      return key + ".method is unsupported";
-    }
-    if (
-      config.dingTalkMessageType !== undefined &&
-      config.dingTalkMessageType !== "text" &&
-      config.dingTalkMessageType !== "markdown"
-    ) {
-      return key + ".dingTalkMessageType is unsupported";
-    }
-  }
-
   return null;
 }

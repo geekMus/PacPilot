@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto";
-import type { AppSettings, WebhookConfig } from "../domain/settings";
+import type { WebhookConfig } from "../domain/settings";
 import type { DomainEvent } from "../../shared/contracts";
 import { createDefaultWebhookConfig, normalizeWebhookConfig } from "../domain/settings";
 import { assertSafeHttpUrl } from "../utils/url-safety";
@@ -139,15 +139,6 @@ function renderCustomBody(template: string, context: MessageContext): string {
   );
 }
 
-export function getNotificationConfig(
-  settings: AppSettings,
-  kind: "success" | "failure"
-): WebhookConfig {
-  return normalizeWebhookConfig(
-    kind === "success" ? settings.webhookSuccessConfig : settings.webhookFailureConfig
-  );
-}
-
 async function readProviderResponse(response: Response): Promise<Record<string, unknown> | null> {
   try {
     const value: unknown = await response.json();
@@ -281,47 +272,6 @@ export async function sendWebhookTest(
   timeZone = "Asia/Shanghai"
 ): Promise<WebhookDeliveryResult> {
   return sendWebhook(config, "test", undefined, timeZone);
-}
-
-async function notify(
-  config: WebhookConfig,
-  kind: "success" | "failure",
-  message?: string,
-  timeZone = "Asia/Shanghai"
-): Promise<WebhookDeliveryResult | null> {
-  if (!config.url.trim()) return null;
-  const started = Date.now();
-  const result = await sendWebhook(config, kind, message, timeZone);
-  const enriched: WebhookDeliveryResult = {
-    ...result,
-    provider: config.provider,
-    url: config.url.trim(),
-    duration_ms: Math.max(0, Date.now() - started),
-  };
-  if (!enriched.success) {
-    runtimeLog("error", `Webhook (${config.provider}) delivery failed: ${enriched.message}`);
-  } else {
-    runtimeLog(
-      "info",
-      `Webhook (${config.provider}) delivered successfully (HTTP ${enriched.status})`
-    );
-  }
-  return enriched;
-}
-
-export async function notifySuccess(settings: AppSettings): Promise<WebhookDeliveryResult | null> {
-  return notify(
-    getNotificationConfig(settings, "success"),
-    "success",
-    undefined,
-    settings.timezone
-  );
-}
-export async function notifyFailure(
-  settings: AppSettings,
-  message?: string
-): Promise<WebhookDeliveryResult | null> {
-  return notify(getNotificationConfig(settings, "failure"), "failure", message, settings.timezone);
 }
 
 export async function sendWebhookForEvent(

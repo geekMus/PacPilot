@@ -106,9 +106,6 @@ describe("normalizeAppSettings", () => {
     expect(normalized.pacProxy).toBe(DEFAULT_SETTINGS.pacProxy);
     expect(normalized.timezone).toBe(DEFAULT_SETTINGS.timezone);
     expect(normalized.logRetentionDays).toBe(DEFAULT_SETTINGS.logRetentionDays);
-    // Built-in templates are stored as "" so the UI can render them as placeholders.
-    expect(normalized.webhookSuccessConfig.messageTemplate).toBe("");
-    expect(normalized.webhookSuccessConfig.testMessageTemplate).toBe("");
   });
 
   it("accepts the remote generation mode and rejects unknown modes", () => {
@@ -166,14 +163,5 @@ describe("normalizeAppSettings", () => {
     expect(normalizeAppSettings({ pacCompress: "yes" }).pacCompress).toBe(true);
   });
 
-  it("normalizes both notification configs", () => {
-    const settings = normalizeAppSettings({
-      webhookSuccessConfig: { provider: "dingtalk", url: " https://example.com/ok " },
-      webhookFailureConfig: { method: "PATCH", url: "https://example.com/fail" },
-    });
-    expect(settings.webhookSuccessConfig.provider).toBe("dingtalk");
-    expect(settings.webhookSuccessConfig.url).toBe("https://example.com/ok");
-    expect(settings.webhookFailureConfig.method).toBe("PATCH");
-    expect(settings.webhookFailureConfig.url).toBe("https://example.com/fail");
-  });
 });
+

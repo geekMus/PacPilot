@@ -13,11 +13,8 @@ async function storageWith(overrides: Record<string, unknown> = {}) {
     blockList: ["blocked.example"],
     ...overrides,
   });
-  // Mark the notification document as already migrated so publishing events never has to
-  // read the settings document; otherwise a failing settings read would silently drop events.
   await storage.notifications.set({
     schemaVersion: 1,
-    legacyMigrated: true,
     channels: [],
     rules: [],
     events: [],

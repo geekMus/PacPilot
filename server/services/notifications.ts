@@ -55,7 +55,6 @@ export const notificationEventCatalog: NotificationEventDefinition[] = [
 ];
 const emptyDocument = (): NotificationDocument => ({
   schemaVersion: 1,
-  legacyMigrated: false,
   channels: [],
   rules: [],
   events: [],
@@ -136,41 +135,7 @@ function mergeSecrets(input: WebhookConfig, previous?: WebhookConfig): WebhookCo
 }
 
 async function loadUnlocked(storage: ApplicationStorage): Promise<NotificationDocument> {
-  const document = await storage.notifications.get();
-  if (document.legacyMigrated) return document;
-  const settings = await storage.settings.get();
-  const timestamp = now();
-  for (const item of [
-    { key: "success", config: settings.webhookSuccessConfig, outcome: "success" },
-    { key: "failure", config: settings.webhookFailureConfig, outcome: "failure" },
-  ] as const) {
-    if (!item.config.url.trim()) continue;
-    const id = "legacy-" + item.key;
-    document.channels.push({
-      id,
-      name: item.key === "success" ? "旧版成功通知渠道" : "旧版失败通知渠道",
-      provider: item.config.provider,
-      enabled: true,
-      config: normalizeWebhookConfig(item.config),
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    });
-    document.rules.push({
-      id: "legacy-rule-" + item.key,
-      name: item.key === "success" ? "兼容旧版成功通知" : "兼容旧版失败通知",
-      enabled: true,
-      eventType: "task.execution",
-      phase: "finished",
-      outcome: item.outcome,
-      channelIds: [id],
-      subjectType: "task",
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    });
-  }
-  document.legacyMigrated = true;
-  await storage.notifications.set(document);
-  return document;
+  return await storage.notifications.get();
 }
 
 export async function getNotificationAdminView(storage: ApplicationStorage) {

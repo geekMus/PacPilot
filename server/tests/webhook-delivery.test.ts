@@ -1,10 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DomainEvent } from "../../shared/contracts";
-import { DEFAULT_SETTINGS, createDefaultWebhookConfig } from "../domain/settings";
+import { createDefaultWebhookConfig } from "../domain/settings";
 import {
-  getNotificationConfig,
-  notifyFailure,
-  notifySuccess,
   sendWebhook,
   sendWebhookForEvent,
   sendWebhookTest,
@@ -41,18 +38,6 @@ function lastCall(mock: ReturnType<typeof vi.fn>): FetchArgs {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
-});
-
-describe("getNotificationConfig", () => {
-  it("returns the normalized success and failure configs", () => {
-    const settings = {
-      ...DEFAULT_SETTINGS,
-      webhookSuccessConfig: { ...createDefaultWebhookConfig(), url: "https://example.com/ok" },
-      webhookFailureConfig: { ...createDefaultWebhookConfig(), url: "https://example.com/fail" },
-    };
-    expect(getNotificationConfig(settings, "success").url).toBe("https://example.com/ok");
-    expect(getNotificationConfig(settings, "failure").url).toBe("https://example.com/fail");
-  });
 });
 
 describe("sendWebhook for custom providers", () => {
@@ -289,43 +274,6 @@ describe("sendWebhook for DingTalk robots", () => {
         "success"
       )
     ).toEqual({ success: false, message: "钉钉请求失败：socket hang up" });
-  });
-});
-
-describe("notify helpers", () => {
-  it("returns null when no URL is configured", async () => {
-    expect(await notifySuccess(DEFAULT_SETTINGS)).toBeNull();
-    expect(await notifyFailure(DEFAULT_SETTINGS)).toBeNull();
-  });
-
-  it("enriches the result with provider, url and duration", async () => {
-    stubFetch(() => jsonResponse({ ok: true }));
-    const settings = {
-      ...DEFAULT_SETTINGS,
-      webhookSuccessConfig: { ...createDefaultWebhookConfig(), url: "https://example.com/ok" },
-    };
-    const result = await notifySuccess(settings);
-    expect(result).toMatchObject({
-      success: true,
-      provider: "custom",
-      url: "https://example.com/ok",
-    });
-    expect(typeof result?.duration_ms).toBe("number");
-    expect(result?.duration_ms).toBeGreaterThanOrEqual(0);
-  });
-
-  it("passes the custom failure detail through", async () => {
-    const mock = stubFetch(() => jsonResponse({ ok: true }));
-    const settings = {
-      ...DEFAULT_SETTINGS,
-      webhookFailureConfig: {
-        ...createDefaultWebhookConfig(),
-        url: "https://example.com/fail",
-        body: '{"m":"{{message}}"}',
-      },
-    };
-    await notifyFailure(settings, "生成失败：规则为空");
-    expect(JSON.parse(String(lastCall(mock)[1].body))).toEqual({ m: "生成失败：规则为空" });
   });
 });
 

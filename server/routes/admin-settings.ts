@@ -55,8 +55,6 @@ function bodyToSettings(b: Record<string, unknown>): AppSettings {
         Math.floor(Number(b.logRetentionDays ?? DEFAULT_SETTINGS.logRetentionDays) || 0)
       )
     ),
-    webhookSuccessConfig: normalizeWebhookConfig(b.webhookSuccessConfig),
-    webhookFailureConfig: normalizeWebhookConfig(b.webhookFailureConfig),
   };
 }
 function requestLocale(req: import("express").Request): "zh_CN" | "en_US" {
@@ -85,12 +83,6 @@ async function persistSettings(
   const expr = p.cronSchedule.trim();
   if (expr && (expr.split(/\s+/).length !== 5 || !cron.validate(expr)))
     return { error: serverT(locale, "serverErrors.invalidCron") };
-  for (const c of [p.webhookSuccessConfig, p.webhookFailureConfig]) {
-    if (c.url.trim()) {
-      const errors = validateWebhookConfig(c);
-      if (errors.length) return { error: errors.join("\n") };
-    }
-  }
   const settings = await storage.settings.update(p);
   reschedule(storage, env.dataDir);
   // Any render input may have changed (mode, proxy string, compression, rule

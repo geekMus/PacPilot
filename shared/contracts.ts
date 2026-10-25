@@ -31,8 +31,6 @@ export interface AppSettings {
   cronSchedule: string;
   timezone: string;
   logRetentionDays: number;
-  webhookSuccessConfig: WebhookConfig;
-  webhookFailureConfig: WebhookConfig;
 }
 
 /** Shared API contracts for workflow history, used by both the server and browser client. */
@@ -117,7 +115,6 @@ export interface NotificationDelivery {
 }
 export interface NotificationDocument {
   schemaVersion: number;
-  legacyMigrated: boolean;
   channels: NotificationChannel[];
   rules: NotificationRule[];
   events: DomainEvent[];

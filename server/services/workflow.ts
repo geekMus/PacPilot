@@ -65,8 +65,6 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
       cron_schedule: settings.cronSchedule || null,
       block_list_count: settings.blockList.length,
       direct_list_count: settings.directList.length,
-      webhook_success_configured: Boolean(settings.webhookSuccessConfig?.url?.trim()),
-      webhook_failure_configured: Boolean(settings.webhookFailureConfig?.url?.trim()),
       data_dir: item.dataDir,
     });
     const prepareStage = await storage.workflows.startStage(id, "prepare", prepareDetail);

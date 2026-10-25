@@ -351,60 +351,6 @@ describe("notification rules", () => {
   });
 });
 
-describe("legacy webhook settings migration", () => {
-  let storage: Storage;
-  beforeEach(() => {
-    storage = createMemoryApplicationStorage();
-  });
-
-  it("converts legacy success and failure configs into channels and rules once", async () => {
-    const settings = await storage.settings.get();
-    await storage.settings.set({
-      ...settings,
-      webhookSuccessConfig: config({ url: "https://hooks.example.com/success" }),
-      webhookFailureConfig: config({ url: "https://hooks.example.com/failure" }),
-    });
-
-    const view = await getNotificationAdminView(storage);
-    expect(view.channels.map((item) => item.id).sort()).toEqual([
-      "legacy-failure",
-      "legacy-success",
-    ]);
-    expect(view.rules.map((item) => item.outcome).sort()).toEqual(["failure", "success"]);
-    expect(view.rules.every((item) => item.eventType === "task.execution")).toBe(true);
-    expect(view.rules.every((item) => item.subjectType === "task")).toBe(true);
-
-    const document = await rawDocument(storage);
-    expect(document.legacyMigrated).toBe(true);
-    // A second read must not duplicate the migrated records.
-    await getNotificationAdminView(storage);
-    expect((await rawDocument(storage)).channels).toHaveLength(2);
-  });
-
-  it("skips legacy entries whose URL is blank but still marks the document migrated", async () => {
-    const view = await getNotificationAdminView(storage);
-    expect(view.channels).toHaveLength(0);
-    expect(view.rules).toHaveLength(0);
-    expect((await rawDocument(storage)).legacyMigrated).toBe(true);
-  });
-
-  it("redacts legacy secrets in the admin view", async () => {
-    const settings = await storage.settings.get();
-    await storage.settings.set({
-      ...settings,
-      webhookSuccessConfig: config({ url: "https://hooks.example.com/success?key=supersecret" }),
-    });
-    const view = await getNotificationAdminView(storage);
-    const legacy = view.channels.find((item) => item.id === "legacy-success")!;
-    expect(legacy.config.url).toBe("https://hooks.example.com/success?key=***");
-    expect(legacy.hasSecret).toBe(true);
-    const document = await rawDocument(storage);
-    expect(document.channels.find((item) => item.id === "legacy-success")!.config.url).toContain(
-      "supersecret"
-    );
-  });
-});
-
 describe("publishDomainEvent", () => {
   let storage: Storage;
   beforeEach(() => {
@@ -763,7 +709,6 @@ describe("resumePendingNotificationDeliveries", () => {
     };
     await storage.notifications.set({
       ...document,
-      legacyMigrated: true,
       events: [event],
       channels: [channel],
       rules: [rule],

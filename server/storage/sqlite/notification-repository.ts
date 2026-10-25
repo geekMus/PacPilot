@@ -3,7 +3,6 @@ import type { NotificationDocument } from "../../../shared/contracts";
 import type { SyncNotificationRepository } from "../repositories";
 const empty = (): NotificationDocument => ({
   schemaVersion: 1,
-  legacyMigrated: false,
   channels: [],
   rules: [],
   events: [],

@@ -187,7 +187,6 @@ describe("memory notification repository", () => {
     const repository = createMemoryNotificationRepository();
     expect(repository.get()).toEqual({
       schemaVersion: 1,
-      legacyMigrated: false,
       channels: [],
       rules: [],
       events: [],
@@ -199,15 +198,12 @@ describe("memory notification repository", () => {
     const repository = createMemoryNotificationRepository();
     const document = {
       schemaVersion: 1,
-      legacyMigrated: true,
       channels: [],
       rules: [],
       events: [],
       deliveries: [],
     };
     repository.set(document);
-    document.legacyMigrated = false;
-    expect(repository.get().legacyMigrated).toBe(true);
 
     const read = repository.get();
     read.channels.push({ id: "x" } as never);
@@ -218,14 +214,19 @@ describe("memory notification repository", () => {
     const repository = createMemoryNotificationRepository();
     repository.set({
       schemaVersion: 1,
-      legacyMigrated: true,
       channels: [],
       rules: [],
       events: [],
       deliveries: [],
     });
     repository.reset();
-    expect(repository.get().legacyMigrated).toBe(false);
+    expect(repository.get()).toEqual({
+      schemaVersion: 1,
+      channels: [],
+      rules: [],
+      events: [],
+      deliveries: [],
+    });
   });
 });
 

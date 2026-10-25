@@ -15,13 +15,6 @@ describe("validateSettingsPayload", () => {
         blockList: ["blocked.example.com"],
         directList: "internal.example.com",
         logRetentionDays: 30,
-        webhookSuccessConfig: {
-          provider: "custom",
-          method: "POST",
-          url: "https://hooks.example.com",
-          headers: "{}",
-          body: "{}",
-        },
       })
     ).toBeNull();
   });
@@ -50,54 +43,6 @@ describe("validateSettingsPayload", () => {
       expect(validateSettingsPayload({ logRetentionDays: value })).toBe(
         "logRetentionDays must be an integer between 0 and 3650"
       );
-    }
-  });
-
-  it("validates webhook config object, field types and enum values", () => {
-    for (const value of [null, [], "bad"]) {
-      expect(validateSettingsPayload({ webhookSuccessConfig: value })).toBe(
-        "webhookSuccessConfig must be an object"
-      );
-    }
-    expect(validateSettingsPayload({ webhookFailureConfig: { url: 123 } })).toBe(
-      "webhookFailureConfig.url must be a string"
-    );
-    expect(validateSettingsPayload({ webhookSuccessConfig: { provider: "other" } })).toBe(
-      "webhookSuccessConfig.provider is unsupported"
-    );
-    expect(validateSettingsPayload({ webhookSuccessConfig: { method: "GET" } })).toBe(
-      "webhookSuccessConfig.method is unsupported"
-    );
-    expect(
-      validateSettingsPayload({ webhookSuccessConfig: { dingTalkMessageType: "image" } })
-    ).toBe("webhookSuccessConfig.dingTalkMessageType is unsupported");
-  });
-
-  it("covers all optional webhook string fields and accepted enum values", () => {
-    for (const key of ["webhookSuccessConfig", "webhookFailureConfig"] as const) {
-      for (const field of [
-        "url",
-        "headers",
-        "body",
-        "dingTalkSecret",
-        "testBody",
-        "messageTemplate",
-        "testMessageTemplate",
-      ]) {
-        expect(validateSettingsPayload({ [key]: { [field]: 123 } })).toBe(
-          key + "." + field + " must be a string"
-        );
-        expect(validateSettingsPayload({ [key]: { [field]: "" } })).toBeNull();
-      }
-      for (const provider of ["custom", "dingtalk"]) {
-        expect(validateSettingsPayload({ [key]: { provider } })).toBeNull();
-      }
-      for (const method of ["POST", "PUT", "PATCH"]) {
-        expect(validateSettingsPayload({ [key]: { method } })).toBeNull();
-      }
-      for (const dingTalkMessageType of ["text", "markdown"]) {
-        expect(validateSettingsPayload({ [key]: { dingTalkMessageType } })).toBeNull();
-      }
     }
   });
 
