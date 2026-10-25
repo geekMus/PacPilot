@@ -240,9 +240,9 @@ export function useAdminSettings() {
    */
   async function tryApply(
     patch: Partial<AppSettings>,
-    options: { generate: boolean; message: string; invalid?: string }
+    options: { generate: boolean; message: string; invalid?: string; force?: boolean }
   ): Promise<void> {
-    if (!saved.value || saving.value) return;
+    if (!saved.value || (saving.value && !options.force)) return;
     const current = saved.value as unknown as Record<string, unknown>;
     const diff = Object.fromEntries(
       Object.entries(patch).filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(current[key]))
@@ -306,7 +306,11 @@ export function useAdminSettings() {
   }
 
   function saveMode() {
-    void tryApply({ mode: form.mode }, { generate: true, message: t("settings.savedMode") });
+    const patch: Partial<AppSettings> = { mode: form.mode };
+    if (form.mode === "remote" && !form.listUrl.trim()) {
+      patch.listUrl = DEFAULT_LIST_URL;
+    }
+    void tryApply(patch, { generate: true, message: t("settings.savedMode"), force: true });
   }
 
   function onPacProxyCommit() {
