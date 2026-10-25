@@ -100,6 +100,17 @@ describe("validateWebhookDraft", () => {
         "x"
       ).url
     ).toContain("settings.dingTalkSecretNeedsUrl");
+    // 编辑已有渠道时密钥不回显，留空表示沿用已保存的密钥，不应报错。
+    const keepsSavedSecret = validators.validateWebhookDraft(
+      webhook({
+        provider: "dingtalk",
+        url: "https://oapi.dingtalk.com/robot/send?access_token=abc",
+      }),
+      "success",
+      { hasSavedSecret: true }
+    );
+    expect(keepsSavedSecret.secret).toBe("");
+    expect(keepsSavedSecret.url).toBe("");
   });
 });
 

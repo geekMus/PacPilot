@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { emptyConfig } from "../src/features/notifications/composables/useNotificationWorkspace";
+import { t } from "@shared/i18n";
+import {
+  emptyConfig,
+  templateForEditor,
+} from "../src/features/notifications/composables/useNotificationWorkspace";
 
 describe("notification webhook 默认值规范化", () => {
   it("新建频道不预填默认内容，默认值交给 placeholder 展示", () => {
@@ -8,5 +12,15 @@ describe("notification webhook 默认值规范化", () => {
     expect(emptyConfig().testBody).toBe("");
     expect(emptyConfig().messageTemplate).toBe("");
     expect(emptyConfig().testMessageTemplate).toBe("");
+  });
+
+  it("等于内置默认模板的存量值在编辑器中按未设置处理", () => {
+    for (const locale of ["zh_CN", "en_US"] as const) {
+      expect(templateForEditor(t(locale, "settings.defaultMessageTemplate"))).toBe("");
+      expect(templateForEditor(t(locale, "settings.testMessageTemplate"))).toBe("");
+    }
+    expect(templateForEditor("自定义模板内容")).toBe("自定义模板内容");
+    expect(templateForEditor("PacPilot test notification")).toBe("PacPilot test notification");
+    expect(templateForEditor("")).toBe("");
   });
 });

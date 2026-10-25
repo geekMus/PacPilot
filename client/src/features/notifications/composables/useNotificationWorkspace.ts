@@ -10,6 +10,7 @@ import {
   type NotificationRule,
 } from "@/api/client";
 import type { WebhookConfig } from "@shared/contracts";
+import { t as sharedT, type AppLocale } from "@shared/i18n";
 import type { AppSelectOption } from "@/components/AppSelect.vue";
 import { useToast } from "@/composables/useToast";
 import { createAdminSettingsValidators } from "@/utils/admin-settings-validation";
@@ -17,6 +18,23 @@ import { useNotificationLabels } from "./useNotificationLabels";
 
 export type NotificationTab = "channels" | "rules" | "history";
 export type DeliveryStatusFilter = NotificationDelivery["status"] | "all";
+
+/**
+ * 历史版本曾把内置默认模板存为真实值；装载编辑草稿时，等于任一语言内置
+ * 默认的模板按未设置处理（展示为 placeholder），保存后自然以空值落库。
+ * 发送时空模板由服务端回退内置默认，语义不变。
+ */
+const BUILTIN_TEMPLATE_VALUES = new Set<string>(
+  (["zh_CN", "en_US"] as AppLocale[]).flatMap((locale) => [
+    sharedT(locale, "settings.defaultMessageTemplate"),
+    sharedT(locale, "settings.testMessageTemplate"),
+  ])
+);
+
+function templateForEditor(value: string): string {
+  return BUILTIN_TEMPLATE_VALUES.has(value) ? "" : value;
+}
+export { templateForEditor };
 
 interface ChannelDraft {
   name: string;
@@ -125,7 +143,13 @@ export function useNotificationWorkspace() {
   );
   /** 保存前的前端校验：与服务端一致地拦截非法 URL、JSON 与钉钉配置。 */
   const channelErrors = computed(() =>
-    webhookErrorMessages(validateWebhookDraft(ch.config, t("notifications.channelKickerEdit")))
+    webhookErrorMessages(
+      validateWebhookDraft(ch.config, t("notifications.channelKickerEdit"), {
+        hasSavedSecret: Boolean(
+          cid.value && channels.value.find((x) => x.id === cid.value)?.hasSecret
+        ),
+      })
+    )
   );
   const phaseDescription = computed(() => {
     switch (rule.phase) {
@@ -259,7 +283,15 @@ export function useNotificationWorkspace() {
     channelEditorOpen.value = true;
     cid.value = item.id;
     showSecret.value = false;
-    Object.assign(ch, { name: item.name, enabled: item.enabled, config: { ...item.config } });
+    Object.assign(ch, {
+      name: item.name,
+      enabled: item.enabled,
+      config: {
+        ...item.config,
+        messageTemplate: templateForEditor(item.config.messageTemplate),
+        testMessageTemplate: templateForEditor(item.config.testMessageTemplate),
+      },
+    });
   }
   async function saveC() {
     if (channelErrors.value.length) {
