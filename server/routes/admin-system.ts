@@ -6,8 +6,12 @@ import { DEFAULT_SETTINGS } from "../domain/settings";
 import { requireAdmin } from "../middleware/auth";
 import { hasActivePacWorkflow } from "../services/workflow";
 import { reschedule } from "../services/scheduler";
-import { getRenderedPac } from "../services/pac-runtime";
-import { readRuleSource, invalidateRenderedPac, clearRuleSource } from "../services/pac-runtime";
+import {
+  getRenderedPac,
+  readRuleSource,
+  invalidateRenderedPac,
+  clearRuleSource,
+} from "../services/pac-runtime";
 import { resolveLocale, t as serverT } from "../../shared/i18n";
 
 function requestLocale(req: import("express").Request): "zh_CN" | "en_US" {
@@ -23,7 +27,6 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
     const counts = {
       accessEvents: await storage.monitoring.count(),
       workflows: await storage.workflows.count(),
-      activeWorkflows: (await storage.workflows.listActive()).length,
     };
     // The PAC body is rendered in memory now; report that instead of files.
     const rendered = getRenderedPac();
@@ -32,7 +35,6 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
       dataBytes,
       dbBytes,
       logBytes: await storage.monitoring.storageBytes(),
-      retentionDays: (await storage.settings.get()).logRetentionDays,
       counts,
       pac: {
         rendered: rendered
@@ -65,7 +67,7 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
       },
     });
   });
-  router.delete("/api/admin/pac-files", requireAdmin(storage.credentials), async (req, res) => {
+  router.delete("/api/admin/pac-cache", requireAdmin(storage.credentials), async (req, res) => {
     if (await hasActivePacWorkflow(storage)) {
       res.status(409).json({
         error: serverT(requestLocale(req), "serverErrors.activeWorkflowPacDelete"),
@@ -74,8 +76,8 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
     }
     const deleted: string[] = [];
     try {
-      // The PAC body is no longer stored on disk. Clearing means dropping the
-      // persisted remote rule snapshot and the in-memory render, so the next
+      // The PAC body is rendered in memory, so clearing means dropping the
+      // persisted remote rule snapshot and the in-memory render; the next
       // request rebuilds from the current settings.
       if (await storage.artifacts.exists("pac.rule-source.json")) {
         await clearRuleSource(storage);
@@ -83,22 +85,9 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
       }
       invalidateRenderedPac();
       deleted.push("rendered");
-      if (await storage.artifacts.delete("proxy.pac")) deleted.push("proxy.pac");
-      if (await storage.artifacts.delete("proxy.source.pac")) deleted.push("proxy.source.pac");
-      const rendered = getRenderedPac();
-      const ruleSource = await readRuleSource(storage);
-      res.json({
-        ok: true,
-        deleted,
-        pac: {
-          rendered: rendered
-            ? { exists: true, builtAt: rendered.builtAt }
-            : { exists: false, builtAt: null },
-          ruleSource: ruleSource
-            ? { exists: true, fetchedAt: ruleSource.fetchedAt }
-            : { exists: false, fetchedAt: null },
-        },
-      });
+      // The caller refreshes the full storage summary afterwards, so there is no
+      // need to echo the resulting PAC state back here.
+      res.json({ ok: true, deleted });
     } catch (error) {
       res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
     }
@@ -112,7 +101,7 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
     if (deleted.accessEvents > 0 || deleted.workflowRuns > 0) {
       if (env.storageDriver === "sqlite") await storage.maintenance.compact();
     }
-    res.json({ deleted, retentionDays: (await storage.settings.get()).logRetentionDays });
+    res.json({ deleted });
   });
   router.post("/api/admin/logs/clear", requireAdmin(storage.credentials), async (_req, res) => {
     try {
@@ -121,7 +110,7 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
         workflowRuns: await storage.workflows.clear(),
       };
       if (env.storageDriver === "sqlite") await storage.maintenance.compact();
-      res.json({ deleted, retentionDays: (await storage.settings.get()).logRetentionDays });
+      res.json({ deleted });
     } catch (error) {
       res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
     }
@@ -142,7 +131,10 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
     try {
       await storage.maintenance.resetOperationalData(DEFAULT_SETTINGS);
       if (env.storageDriver === "sqlite") await storage.maintenance.compact();
-      for (const name of ["proxy.pac", "proxy.source.pac"]) await storage.artifacts.delete(name);
+      // Settings fall back to custom mode, so the remote rule snapshot and the
+      // in-memory render built from the previous settings are no longer valid.
+      await clearRuleSource(storage);
+      invalidateRenderedPac();
       reschedule(storage, env.dataDir);
       res.json({
         ok: true,

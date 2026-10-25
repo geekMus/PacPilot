@@ -68,7 +68,7 @@ describe("isAdminAppRoute", () => {
   it("recognizes admin routes only", async () => {
     const { isAdminAppRoute } = await loadSessionModule();
 
-    expect(isAdminAppRoute("/admin")).toBe(false);
+    expect(isAdminAppRoute("/admin")).toBe(true);
     expect(isAdminAppRoute("/admin/dashboard")).toBe(true);
     expect(isAdminAppRoute("/")).toBe(false);
     expect(isAdminAppRoute("/administrator")).toBe(false);

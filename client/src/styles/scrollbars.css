@@ -2,7 +2,6 @@
   --scrollbar-size: 8px;
   --scrollbar-thumb: color-mix(in srgb, var(--text) 26%, transparent);
   --scrollbar-thumb-hover: color-mix(in srgb, var(--text) 44%, transparent);
-  --scrollbar-track: transparent;
 }
 
 @media (forced-colors: active) {

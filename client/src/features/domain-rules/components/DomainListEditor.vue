@@ -177,10 +177,6 @@ function jumpToLine(lineNumber: number) {
   }, 1500);
 }
 
-function isDark(): boolean {
-  return document.documentElement.classList.contains("theme-dark");
-}
-
 function buildExtensions(): Extension[] {
   const h = props.height;
   const base: Extension[] = [
@@ -236,10 +232,10 @@ function buildExtensions(): Extension[] {
         borderRadius: "3px",
       },
       "@keyframes cm-rule-jump-flash-a": {
-        "0%": { backgroundColor: "color-mix(in srgb, #a78bfa 38%, transparent)" },
+        "0%": { backgroundColor: "color-mix(in srgb, var(--violet) 38%, transparent)" },
         "40%": {
           backgroundColor:
-            "color-mix(in srgb, #a78bfa 25%, var(--cm-jump-target) var(--cm-jump-strength, 0%))",
+            "color-mix(in srgb, var(--violet) 25%, var(--cm-jump-target) var(--cm-jump-strength, 0%))",
         },
         "100%": {
           backgroundColor:
@@ -247,10 +243,10 @@ function buildExtensions(): Extension[] {
         },
       },
       "@keyframes cm-rule-jump-flash-b": {
-        "0%": { backgroundColor: "color-mix(in srgb, #a78bfa 38%, transparent)" },
+        "0%": { backgroundColor: "color-mix(in srgb, var(--violet) 38%, transparent)" },
         "40%": {
           backgroundColor:
-            "color-mix(in srgb, #a78bfa 25%, var(--cm-jump-target) var(--cm-jump-strength, 0%))",
+            "color-mix(in srgb, var(--violet) 25%, var(--cm-jump-target) var(--cm-jump-strength, 0%))",
         },
         "100%": {
           backgroundColor:
@@ -416,7 +412,6 @@ watch(
   @apply flex flex-col gap-px p-0;
   height: fit-content;
   max-height: 220px;
-  overscroll-behavior: contain;
 }
 .rule-diagnostic-list :deep(.rule-diagnostic-viewport) {
   @apply p-1;
@@ -541,11 +536,5 @@ watch(
   .rule-diagnostic-footer {
     @apply px-2 py-[5px] text-[10px] leading-tight;
   }
-}
-.ph {
-  @apply pointer-events-none absolute left-12 top-3 whitespace-pre-line font-mono text-[13px];
-  z-index: 2;
-  color: var(--muted);
-  opacity: 0.75;
 }
 </style>

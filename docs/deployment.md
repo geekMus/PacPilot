@@ -8,12 +8,12 @@
 
 ## 部署方式总览
 
-| 方式                       | 适用场景                                   | 要点                                                     |
-| -------------------------- | ------------------------------------------ | -------------------------------------------------------- |
-| Docker `run`               | 单机快速部署（推荐）                       | 镜像 `ghcr.io/geekmus/pacpilot:latest`，挂载 `/data` 持久化 |
-| Docker Compose             | 希望以代码形式维护部署配置                 | 仓库提供 [docker-compose.yml](../docker-compose.yml)，按需启用端口与卷 |
-| 源码运行（Bun）            | 本机开发或自建环境                         | 需要 Bun >= 1.1.0；`bun install && bun run start`         |
-| 前后端分离（纯静态前端）   | 前端托管在 Cloudflare Pages / Vercel 等平台 | 后端开启 `CORS_MODE=open`，前端用 Bearer 令牌访问         |
+| 方式                     | 适用场景                                    | 要点                                                                   |
+| ------------------------ | ------------------------------------------- | ---------------------------------------------------------------------- |
+| Docker `run`             | 单机快速部署（推荐）                        | 镜像 `ghcr.io/geekmus/pacpilot:latest`，挂载 `/data` 持久化            |
+| Docker Compose           | 希望以代码形式维护部署配置                  | 仓库提供 [docker-compose.yml](../docker-compose.yml)，按需启用端口与卷 |
+| 源码运行（Bun）          | 本机开发或自建环境                          | 需要 Bun >= 1.1.0；`bun install && bun run start`                      |
+| 前后端分离（纯静态前端） | 前端托管在 Cloudflare Pages / Vercel 等平台 | 后端开启 `CORS_MODE=open`，前端用 Bearer 令牌访问                      |
 
 ## 环境参数参考
 
@@ -21,21 +21,21 @@
 
 ### 参数一览
 
-| 变量                     | 默认值             | 作用域       | 说明                                                       |
-| ------------------------ | ------------------ | ------------ | ---------------------------------------------------------- |
-| `PORT`                   | `17321`            | 监听         | 服务监听端口；容器镜像按 `17321` 设计，对外换端口用端口映射实现。 |
-| `HOST`                   | `0.0.0.0`          | 监听         | 服务监听地址。                                             |
-| `STORAGE_DRIVER`         | `sqlite`           | 存储         | `sqlite` 持久化 / `memory` 临时演示（重启即清空）。        |
-| `DATA_DIR`               | 按运行环境决定     | 存储         | 数据目录；**容器内被忽略**（固定 `/data`）。               |
-| `DEFAULT_ADMIN_PASSWORD` | 空（随机生成）     | 管理员初始化 | 首次启动的初始管理员密码；至少 8 位；仅首次生效。          |
-| `ADMIN_SESSION_SECRET`   | 空（随机生成）     | 管理员初始化 | 首次初始化时写入的会话签名密钥；一般无需设置。             |
-| `CORS_ALLOWED_ORIGINS`   | 空                 | 跨域         | 显式信任的管理 API 跨域 Origin 白名单，逗号分隔。          |
-| `CORS_MODE`              | `strict`           | 跨域         | `strict` 同源/白名单；`open` 任意来源 + Bearer 令牌鉴权。  |
-| `TRUST_PROXY_HOPS`       | `1`                | 真实 IP      | 信任的反向代理跳数，`0`–`10`。                             |
-| `TRUSTED_PROXY_CIDRS`    | 空                 | 真实 IP      | 反向代理所在网段白名单（逗号分隔 CIDR）。                  |
-| `TRUST_CLOUDFLARE_IP`    | `0`                | 真实 IP      | 优先采用 `CF-Connecting-IP`；必须同时配置网段白名单。     |
-| `PACPILOT_ENV`           | 空                 | 运行模式     | `production` / `development`，覆盖 `NODE_ENV` 的判定。     |
-| `NODE_ENV`               | 空                 | 运行模式     | 常规运行模式变量；影响非容器部署的数据目录默认值。         |
+| 变量                     | 默认值         | 作用域       | 说明                                                              |
+| ------------------------ | -------------- | ------------ | ----------------------------------------------------------------- |
+| `PORT`                   | `17321`        | 监听         | 服务监听端口；容器镜像按 `17321` 设计，对外换端口用端口映射实现。 |
+| `HOST`                   | `0.0.0.0`      | 监听         | 服务监听地址。                                                    |
+| `STORAGE_DRIVER`         | `sqlite`       | 存储         | `sqlite` 持久化 / `memory` 临时演示（重启即清空）。               |
+| `DATA_DIR`               | 按运行环境决定 | 存储         | 数据目录；**容器内被忽略**（固定 `/data`）。                      |
+| `DEFAULT_ADMIN_PASSWORD` | 空（随机生成） | 管理员初始化 | 首次启动的初始管理员密码；至少 8 位；仅首次生效。                 |
+| `ADMIN_SESSION_SECRET`   | 空（随机生成） | 管理员初始化 | 首次初始化时写入的会话签名密钥；一般无需设置。                    |
+| `CORS_ALLOWED_ORIGINS`   | 空             | 跨域         | 显式信任的管理 API 跨域 Origin 白名单，逗号分隔。                 |
+| `CORS_MODE`              | `strict`       | 跨域         | `strict` 同源/白名单；`open` 任意来源 + Bearer 令牌鉴权。         |
+| `TRUST_PROXY_HOPS`       | `1`            | 真实 IP      | 信任的反向代理跳数，`0`–`10`。                                    |
+| `TRUSTED_PROXY_CIDRS`    | 空             | 真实 IP      | 反向代理所在网段白名单（逗号分隔 CIDR）。                         |
+| `TRUST_CLOUDFLARE_IP`    | `0`            | 真实 IP      | 优先采用 `CF-Connecting-IP`；必须同时配置网段白名单。             |
+| `PACPILOT_ENV`           | 空             | 运行模式     | `production` / `development`，覆盖 `NODE_ENV` 的判定。            |
+| `NODE_ENV`               | 空             | 运行模式     | 常规运行模式变量；影响非容器部署的数据目录默认值。                |
 
 ### 监听地址：PORT 与 HOST
 
@@ -47,7 +47,7 @@
 `STORAGE_DRIVER` 决定持久化方式：
 
 - `sqlite`（默认）：所有应用数据写入 SQLite 数据库文件，重启不丢。
-- `memory`：全部状态（配置、凭据、工作流、监控记录、PAC 产物）只保存在进程内存，**重启后完全清空**，也不创建数据文件。仅适合临时演示。
+- `memory`：全部状态（配置、凭据、工作流、监控记录、远程规则快照）只保存在进程内存，**重启后完全清空**，也不创建数据文件。仅适合临时演示。
 
 `DATA_DIR` 的解析优先级（从高到低）：
 
@@ -121,21 +121,22 @@ TRUSTED_PROXY_CIDRS=172.17.0.0/16
   ```
 
   修改后刷新页面即生效，无需重新构建。空字符串或省略表示同源。
+
 - **构建期**：`VITE_API_BASE_URL=https://api.example.com bun run build:client`，优先级高于 `config.json`。
 
 ### 参数校验：哪些配置错误会拒绝启动
 
 以下非法配置会让服务启动失败并输出明确错误（fail-fast，避免带隐患运行）：
 
-| 变量                     | 非法情形                                   |
-| ------------------------ | ------------------------------------------ |
-| `PORT`                   | 非整数、≤ 0 或 > 65535                    |
-| `STORAGE_DRIVER`         | 不是 `sqlite` / `memory`                   |
-| `CORS_MODE`              | 不是 `strict` / `open`                     |
-| `TRUST_PROXY_HOPS`       | 非 0–10 的整数                             |
-| `TRUSTED_PROXY_CIDRS`    | 任一条目不是合法 CIDR                      |
-| `TRUST_CLOUDFLARE_IP`    | 已开启但未配置 `TRUSTED_PROXY_CIDRS`       |
-| `DEFAULT_ADMIN_PASSWORD` | 非空且 trim 后少于 8 位                    |
+| 变量                     | 非法情形                             |
+| ------------------------ | ------------------------------------ |
+| `PORT`                   | 非整数、≤ 0 或 > 65535               |
+| `STORAGE_DRIVER`         | 不是 `sqlite` / `memory`             |
+| `CORS_MODE`              | 不是 `strict` / `open`               |
+| `TRUST_PROXY_HOPS`       | 非 0–10 的整数                       |
+| `TRUSTED_PROXY_CIDRS`    | 任一条目不是合法 CIDR                |
+| `TRUST_CLOUDFLARE_IP`    | 已开启但未配置 `TRUSTED_PROXY_CIDRS` |
+| `DEFAULT_ADMIN_PASSWORD` | 非空且 trim 后少于 8 位              |
 
 ## Docker 部署
 
@@ -230,9 +231,9 @@ bun run dev
 
 ## 首次启动行为
 
-使用全新数据库的**第一次启动**只做初始化：创建管理员凭据（随机密码打印在日志中，或使用 `DEFAULT_ADMIN_PASSWORD`），**不会自动生成 PAC**。生成 PAC 的途径：
+使用全新数据库的**第一次启动**只做初始化：创建管理员凭据（随机密码打印在日志中，或使用 `DEFAULT_ADMIN_PASSWORD`），**不会自动执行启动工作流**。首次启动后 `/pac` 已可用：默认是自定义模式 + 默认代理字符串，请求时按当前设置即时渲染。后续更新 PAC 的途径：
 
-- 登录后台修改任一影响 PAC 的设置（模式、代理、规则、远程地址、压缩开关）——修改即时保存并自动触发生成；
+- 登录后台修改任一影响 PAC 的设置（模式、代理、规则、远程地址、压缩开关）——保存后立即重新渲染；
 - 在后台总览点击「立即生成」；
 - 之后每次服务重启也会自动执行启动工作流刷新 PAC。
 
@@ -261,10 +262,14 @@ bun run dev
 | 公共状态页     | `http://<服务器地址>:17321/`                      |
 | PAC 源码       | `http://<服务器地址>:17321/pac`                   |
 | 下载 PAC       | `http://<服务器地址>:17321/pac?download=1`        |
+| 管理员登录     | `http://<服务器地址>:17321/admin/login`           |
 | 后台总览       | `http://<服务器地址>:17321/admin/dashboard`       |
 | 生成配置       | `http://<服务器地址>:17321/admin/settings`        |
 | 网络监控       | `http://<服务器地址>:17321/admin/monitor`         |
 | 工作流与历史   | `http://<服务器地址>:17321/admin/workflows`       |
+| 工作流详情     | `http://<服务器地址>:17321/admin/workflows/<id>`  |
+| 通知与 Webhook | `http://<服务器地址>:17321/admin/notifications`   |
+| 访问日志       | `http://<服务器地址>:17321/admin/logs`            |
 | 系统设置与维护 | `http://<服务器地址>:17321/admin/system-settings` |
 
 公共状态页与 PAC 地址无需管理员登录；管理后台及管理 API 需要管理员会话。

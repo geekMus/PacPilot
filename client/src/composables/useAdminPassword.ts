@@ -3,6 +3,7 @@ import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { api, ApiError } from "@/api/client";
 import { clearSessionToken } from "@/api/session-token";
+import { invalidateAdminSessionCache } from "@/composables/useAdminSession";
 import { useToast } from "@/composables/useToast";
 
 export function useAdminPassword() {
@@ -33,12 +34,6 @@ export function useAdminPassword() {
     if (code === "new_password_same_as_current") return "settings.passwordSameAsCurrent";
     return "";
   }
-  function passwordErrorKeyFromMessage(message: string): typeof passwordErrorKey.value {
-    if (message === "当前管理密码不正确。") return "settings.currentPasswordIncorrect";
-    if (message === "新密码不能为空。") return "settings.newPasswordEmpty";
-    if (message === "新密码不能与当前密码相同。") return "settings.passwordSameAsCurrent";
-    return "";
-  }
   async function changeAdminPassword(): Promise<void> {
     passwordError.value = "";
     if (!passwordForm.currentPassword) {
@@ -62,15 +57,12 @@ export function useAdminPassword() {
       // Changing the password rotates the server-side session secret, which
       // invalidates every issued token (including this browser's).
       clearSessionToken();
-      const { invalidateAdminSessionCache } = await import("@/composables/useAdminSession");
       invalidateAdminSessionCache();
       notify(t("settings.passwordChangedOk"), "success");
       await router.replace({ path: "/admin/login", query: { passwordChanged: "1" } });
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "";
-      const key =
-        (caught instanceof ApiError && passwordErrorKeyFromCode(caught.code)) ||
-        passwordErrorKeyFromMessage(message);
+      const key = caught instanceof ApiError ? passwordErrorKeyFromCode(caught.code) : "";
       if (key) passwordErrorKey.value = key;
       else passwordError.value = message || t("settings.passwordChangeFailed");
     } finally {

@@ -34,9 +34,9 @@ Open `http://<server-address>:17321/`. On first startup, a randomly generated ad
 docker logs pacpilot
 ```
 
-A fresh database does not generate a PAC file automatically. Sign in to the admin interface, configure a generation mode, and start generation manually. Once generation succeeds, configure the PAC URL in your client.
+A fresh database starts in custom mode with a default proxy string, so `/pac` serves a usable script immediately. Sign in to the admin interface to adjust the mode, proxy string, and rules; saving any PAC-affecting setting regenerates the response right away. Remote mode needs a rule list URL and fetches the rules the first time you save it.
 
-> **Data note:** `/data` stores the database, settings, workflow history, and PAC files. Do not delete the data volume if you need to keep your data; backing it up before upgrades is recommended.
+> **Data note:** `/data` stores the database, settings, workflow history, and the remote rule snapshot. PAC responses are rendered in memory and are not written to disk. Do not delete the data volume if you need to keep your data; backing it up before upgrades is recommended.
 
 ## Documentation
 

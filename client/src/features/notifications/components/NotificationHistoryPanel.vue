@@ -56,7 +56,6 @@ const {
           :empty-text="
             deliveries.length ? t('notifications.recordsNoMatch') : t('notifications.emptyRecords')
           "
-          :load-more="() => {}"
         >
           <template #columns>
             <col style="width: 128px" />

@@ -111,10 +111,13 @@ function buildExtensions() {
       if (!update.docChanged) return;
       const value = update.state.doc.toString();
       if (props.singleLine && /[\r\n]/.test(value)) {
+        // 单行模式下把换行折成空格，并把归一化后的值同步给父组件；
+        // 少了这次 emit，父层拿到的还是粘贴前的旧值。
         const normalized = value.replace(/[\r\n]+/g, " ");
         update.view.dispatch({
           changes: { from: 0, to: update.state.doc.length, insert: normalized },
         });
+        emit("update:modelValue", normalized);
         return;
       }
       emit("update:modelValue", value);

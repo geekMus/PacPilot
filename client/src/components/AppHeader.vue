@@ -46,15 +46,13 @@ const { t } = useI18n();
 .nav {
   @apply flex flex-wrap items-center justify-end gap-1.5;
 }
-.nav :deep(a),
-.nav :deep(button.linkish) {
+.nav :deep(a) {
   @apply inline-flex min-h-9 cursor-pointer items-center justify-center whitespace-nowrap rounded-[9px] border px-3 text-xs font-semibold no-underline;
   border-color: var(--line);
   background: var(--surface);
   color: var(--text);
 }
-.nav :deep(a:hover),
-.nav :deep(button.linkish:hover) {
+.nav :deep(a:hover) {
   border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
   color: var(--accent);
 }

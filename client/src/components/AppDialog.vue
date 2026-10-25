@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { DialogContent, DialogOverlay, DialogPortal, DialogRoot } from "reka-ui";
 import AppIcon from "@/components/AppIcon.vue";
 import AppScrollArea from "@/components/AppScrollArea.vue";
@@ -17,10 +18,14 @@ const props = withDefaults(
   {
     contentClass: "",
     bodyClass: "",
-    closeLabel: "Close dialog",
+    closeLabel: "",
     showClose: true,
   }
 );
+
+const { t } = useI18n();
+// The default cannot live in `withDefaults` because it is translated.
+const closeLabelText = computed(() => props.closeLabel || t("common.closeDialog"));
 
 const emit = defineEmits<{
   "update:open": [value: boolean];
@@ -72,8 +77,8 @@ function onCloseAutoFocus(event: Event): void {
                 v-if="props.showClose"
                 type="button"
                 class="app-dialog-close"
-                :aria-label="props.closeLabel"
-                :title="props.closeLabel"
+                :aria-label="closeLabelText"
+                :title="closeLabelText"
                 @click="emit('update:open', false)"
               >
                 <AppIcon name="x" :size="17" />

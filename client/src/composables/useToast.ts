@@ -3,10 +3,6 @@ import { toast } from "vue-sonner";
 export type ToastKind = "success" | "error" | "info" | "warning";
 
 export function useToast() {
-  function dismiss(id: string | number) {
-    toast.dismiss(id);
-  }
-
   function notify(message: string, kind: ToastKind = "info", duration = 4000) {
     const text = message.trim();
     if (!text) return;
@@ -28,5 +24,5 @@ export function useToast() {
     }
   }
 
-  return { notify, dismiss };
+  return { notify };
 }

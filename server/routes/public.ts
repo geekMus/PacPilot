@@ -2,7 +2,7 @@ import { Router } from "express";
 import { getRenderedPacBody } from "../services/pac-generator";
 import { parsePacStatus } from "../services/pac-parser";
 import type { ApplicationStorage } from "../storage/repositories";
-import { APP_VERSION, PROJECT_URL } from "../version";
+import { APP_VERSION } from "../version";
 import { runtimeLog } from "../utils/runtime-log";
 
 const FALLBACK_PAC =
@@ -76,16 +76,11 @@ export function publicRoutes(storage: ApplicationStorage): Router {
 
   router.get("/pac", (req, res) => void sendPac(req, res, storage));
 
-  router.get("/api/meta", async (_req, res) => {
-    const settings = await storage.settings.get();
+  router.get("/api/meta", (_req, res) => {
     res.json({
-      adminEnabled: true,
       version: APP_VERSION,
-      repositoryUrl: PROJECT_URL,
       storageDriver: (process.env.STORAGE_DRIVER || "sqlite").toLowerCase(),
       runtimeProfile: process.env.PACPILOT_RUNTIME_PROFILE || "production",
-      mode: settings.mode,
-      timezone: settings.timezone,
     });
   });
 

@@ -24,7 +24,7 @@ withDefaults(
   }>(),
   {
     orientation: "vertical",
-    type: "hover",
+    type: "auto",
     rootClass: "",
     viewportClass: "",
     overscroll: "auto",

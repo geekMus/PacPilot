@@ -66,12 +66,6 @@ export function useAdminSettings() {
     timezoneMenuOpen.value = false;
   }
 
-  function closeTimezoneMenu() {
-    window.setTimeout(() => {
-      timezoneMenuOpen.value = false;
-    }, 140);
-  }
-
   async function scrollToCurrentSection(): Promise<void> {
     await nextTick();
     const hash = route.hash;
@@ -184,13 +178,9 @@ export function useAdminSettings() {
 
   const blockRuleDiagnostics = computed(() => ruleAnalysis.value.block.diagnostics);
 
-  const directListError = computed(() =>
-    validateDomainRules(form.directListText, t("settings.directList"))
-  );
+  const directListError = computed(() => validateDomainRules(form.directListText, "direct"));
 
-  const blockListError = computed(() =>
-    validateDomainRules(form.blockListText, t("settings.blockList"))
-  );
+  const blockListError = computed(() => validateDomainRules(form.blockListText, "block"));
 
   const timezoneError = computed(() =>
     isValidTimeZone(form.timezone) ? "" : t("settings.timezoneInvalid")
@@ -303,7 +293,11 @@ export function useAdminSettings() {
   function onPacProxyCommit() {
     void tryApply(
       { pacProxy: form.pacProxy.trim() },
-      { generate: true, message: t("settings.savedPacProxy"), invalid: pacProxyError.value ?? undefined }
+      {
+        generate: true,
+        message: t("settings.savedPacProxy"),
+        invalid: pacProxyError.value ?? undefined,
+      }
     );
   }
 
@@ -319,7 +313,10 @@ export function useAdminSettings() {
   function onPacCompressToggle(checked: boolean) {
     if (form.pacCompress === checked) return;
     form.pacCompress = checked;
-    void tryApply({ pacCompress: checked }, { generate: true, message: t("settings.savedPacCompress") });
+    void tryApply(
+      { pacCompress: checked },
+      { generate: true, message: t("settings.savedPacCompress") }
+    );
   }
 
   /** 等待进行中的 cron 解析结束再校验提交，避免误报格式错误。 */
@@ -431,10 +428,7 @@ export function useAdminSettings() {
     timezoneQuery,
     form,
     commonTimeZones,
-    isValidTimeZone,
     filteredTimeZones,
-    selectTimeZone,
-    closeTimezoneMenu,
     onTimeZoneSelected,
     onTimeZoneChip,
     modeHint,

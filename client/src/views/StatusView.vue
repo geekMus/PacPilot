@@ -16,7 +16,6 @@ const {
   t,
   locale,
   status,
-  meta,
   error,
   loading,
   adminEntry,
@@ -38,9 +37,7 @@ const {
 <template>
   <main class="page status-page">
     <AppHeader brand="PacPilot" :sub="t('status.sub')">
-      <RouterLink v-if="meta?.adminEnabled" class="primary" :to="adminEntry">{{
-        t("nav.admin")
-      }}</RouterLink>
+      <RouterLink class="primary" :to="adminEntry">{{ t("nav.admin") }}</RouterLink>
     </AppHeader>
 
     <section class="page-hero">
@@ -258,7 +255,7 @@ const {
                 {{ t("statusPage.k36") }}
               </p>
             </div>
-            <RouterLink v-if="meta?.adminEnabled" to="/admin/settings" class="text-link"
+            <RouterLink to="/admin/settings" class="text-link"
               >{{ t("statusPage.k37") }} <AppIcon name="arrow-right" :size="14"
             /></RouterLink>
           </div>
@@ -579,7 +576,7 @@ const {
   color: var(--text);
   border-color: color-mix(in srgb, var(--accent) 38%, var(--line));
   background: var(--surface);
-  box-shadow: 0 1px 2px rgba(26, 35, 50, 0.06);
+  box-shadow: var(--shadow-sm);
 }
 .rule-tabs button strong {
   @apply ml-px inline-flex min-h-[22px] min-w-6 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-bold leading-none tabular-nums;
@@ -596,9 +593,6 @@ const {
 .direct-dot {
   background: var(--green);
 }
-.proxy-dot {
-  background: var(--accent);
-}
 .block-dot {
   background: var(--red);
 }
@@ -607,30 +601,6 @@ const {
 }
 .rule-description {
   @apply mb-2.5 mt-0 text-xs leading-normal;
-  color: var(--muted);
-}
-.default-proxy {
-  @apply flex flex-col items-start gap-2 rounded-[10px] border p-4;
-  border-color: color-mix(in srgb, var(--accent) 26%, var(--line));
-  background: linear-gradient(
-    112deg,
-    color-mix(in srgb, var(--accent) 7%, var(--surface)),
-    var(--surface) 82%
-  );
-}
-.default-proxy span {
-  @apply text-[11px] font-semibold;
-  color: var(--muted);
-}
-.default-proxy code {
-  @apply max-w-full rounded-[7px] border px-[9px] py-[7px] font-mono text-[13px] font-bold leading-normal;
-  border-color: color-mix(in srgb, var(--accent) 18%, var(--line));
-  background: var(--accent-soft);
-  color: var(--accent);
-  overflow-wrap: anywhere;
-}
-.default-proxy p {
-  @apply m-0 text-xs leading-normal;
   color: var(--muted);
 }
 .pac-access-card {
@@ -841,10 +811,6 @@ const {
   }
   .app-button {
     @apply min-h-[42px];
-  }
-  .source-actions a,
-  .source-actions button {
-    @apply min-h-9 px-2;
   }
 }
 </style>

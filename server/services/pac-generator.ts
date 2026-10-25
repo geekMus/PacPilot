@@ -122,35 +122,21 @@ function formatPacGeneratedAt(date: Date, timeZone = "Asia/Shanghai"): string {
   });
 }
 
+/** Strip a previously written PacPilot meta header so re-rendering stays idempotent. */
 function stripPacMetaHeaders(content: string): string {
   return content
-    .replace(/^\/\/ PacPilot (?:version:|版本[:：]).*(?:\r?\n|$)/gim, "")
-    .replace(
-      /^\/\/ PacPilot (?:PAC generated at:|Generated at:|PAC 生成时间[:：]|生成时间[:：]).*(?:\r?\n|$)/gim,
-      ""
-    )
+    .replace(/^\/\/ PacPilot version:.*(?:\r?\n|$)/gim, "")
+    .replace(/^\/\/ PacPilot PAC generated at:.*(?:\r?\n|$)/gim, "")
     .replace(/^\n+/, "");
 }
 
-/**
- * 写入或刷新 PAC 文件元数据头。
- * 真正生成时传入 generatedAt，便于运维查看规则产出时间；只读刷新时省略以保留已有时间戳。
- */
-function withPacVersionHeader(
-  content: string,
-  generatedAt?: Date | null,
-  timeZone = "Asia/Shanghai"
-): string {
-  const existingGenerated =
-    content
-      .match(
-        /^\/\/ PacPilot (?:PAC generated at:|Generated at:|PAC 生成时间[:：]|生成时间[:：])\s*(.+)\s*$/im
-      )?.[1]
-      ?.trim() || "";
+/** Prepend the PacPilot meta header (version + generation time) to a PAC body. */
+function withPacVersionHeader(content: string, generatedAt: Date, timeZone: string): string {
   const body = stripPacMetaHeaders(content);
-  const lines = ["// PacPilot version: " + APP_VERSION];
-  const stamp = generatedAt ? formatPacGeneratedAt(generatedAt, timeZone) : existingGenerated;
-  if (stamp) lines.push("// PacPilot PAC generated at: " + stamp);
+  const lines = [
+    "// PacPilot version: " + APP_VERSION,
+    "// PacPilot PAC generated at: " + formatPacGeneratedAt(generatedAt, timeZone),
+  ];
   return lines.join("\n") + "\n" + body;
 }
 

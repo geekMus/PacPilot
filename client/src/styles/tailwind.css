@@ -20,7 +20,7 @@
      (AdminLayout) styles them indirectly; Preflight resets heading
      font-size/weight to inherit.
    - Form controls draw their own tokens; Preflight's control reset would
-     need re-auditing on every AppInput / AppSelect / AppTextarea.
+     need re-auditing on every AppInput / AppSelect.
 
    Tailwind v4 puts Preflight in `layer(base)`, so unlayered scoped styles
    still win. The risk is therefore limited to elements with no explicit
@@ -113,16 +113,6 @@
     background: var(--accent-soft);
   }
 
-  .app-button--ghost {
-    @apply border-transparent bg-transparent;
-    color: var(--muted);
-  }
-
-  .app-button--ghost:hover:not(:disabled):not([aria-disabled="true"]) {
-    background: var(--surface-2);
-    color: var(--text);
-  }
-
   .app-button--danger {
     border-color: color-mix(in srgb, var(--red) 35%, var(--line));
     background: var(--red-soft);
@@ -145,10 +135,6 @@
 
   .app-button--sm {
     @apply min-h-[32px] px-[10px] text-[11px];
-  }
-
-  .app-button--lg {
-    @apply min-h-[42px] px-[16px];
   }
 
   .app-button--block {
@@ -200,10 +186,6 @@ a.app-button {
 
 a.app-button--primary {
   color: var(--accent-contrast);
-}
-
-a.app-button--ghost {
-  color: var(--accent);
 }
 
 a.app-button--danger {

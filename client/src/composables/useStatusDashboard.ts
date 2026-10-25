@@ -1,30 +1,25 @@
 import { useI18n } from "vue-i18n";
 import { onMounted, ref, computed, watch } from "vue";
-import { api, type Meta, type PacStatus } from "@/api/client";
+import { api, type PacStatus } from "@/api/client";
 import { matchesCustomRule, matchesRemoteDomain } from "@/utils/domain-matching";
 
 export function useStatusDashboard() {
   const { t, locale } = useI18n();
 
   const status = ref<PacStatus | null>(null);
-  const meta = ref<Meta | null>(null);
   const error = ref("");
   const loading = ref(true);
-  const adminEntry = ref<"/admin/dashboard" | "/admin/settings" | "/admin/login">(
-    "/admin/dashboard"
-  );
+  const adminEntry = ref<"/admin/dashboard" | "/admin/login">("/admin/dashboard");
 
   async function loadStatus() {
     loading.value = true;
     error.value = "";
     try {
-      const [currentStatus, currentMeta, currentSession] = await Promise.all([
+      const [currentStatus, currentSession] = await Promise.all([
         api.status(),
-        api.meta(),
         api.session().catch(() => null),
       ]);
       status.value = currentStatus;
-      meta.value = currentMeta;
       // 只有成功确认会话状态后才决定入口；未登录时直接进入登录页。
       if (currentSession && !currentSession.loggedIn) adminEntry.value = "/admin/login";
       else if (currentSession?.loggedIn) adminEntry.value = "/admin/dashboard";
@@ -62,6 +57,9 @@ export function useStatusDashboard() {
       case "custom_parse_error":
         return t("status.notice.customParseError");
       case "other":
+        return t("status.notice.other");
+      default:
+        // 后端新增了未知模式时仍然要给出可读提示，而不是渲染空白。
         return t("status.notice.other");
     }
   });
@@ -250,7 +248,6 @@ export function useStatusDashboard() {
     t,
     locale,
     status,
-    meta,
     error,
     loading,
     adminEntry,

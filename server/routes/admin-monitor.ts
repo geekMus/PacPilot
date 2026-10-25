@@ -30,8 +30,6 @@ export function adminMonitorRoutes(storage: ApplicationStorage): Router {
     const total = await storage.monitoring.count();
     res.json({
       items: rows.slice(0, limit),
-      nextCursor:
-        rows.length > limit ? (rows[limit - 1]?.id ?? null) : (rows[rows.length - 1]?.id ?? null),
       total,
       hasMore,
     });

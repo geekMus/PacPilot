@@ -20,25 +20,25 @@ const loading = ref(true),
   savingRetention = ref(false),
   cleaning = ref(false),
   clearingLogs = ref(false),
-  deletingPacFiles = ref(false),
+  clearingPacCache = ref(false),
   resetting = ref(false);
 const settings = ref<AppSettings | null>(null),
   storage = ref<StorageSummary | null>(null),
   error = ref("");
 const retention = ref(30);
-const confirmationOpen = reactive({ clearLogs: false, deletePacFiles: false, factoryReset: false });
+const confirmationOpen = reactive({ clearLogs: false, clearPacCache: false, factoryReset: false });
 function setConfirmation(key: keyof typeof confirmationOpen, open: boolean) {
   for (const name of Object.keys(confirmationOpen) as Array<keyof typeof confirmationOpen>)
     confirmationOpen[name] = false;
   if (open) confirmationOpen[key] = true;
 }
 const maintenanceBusy = () =>
-  cleaning.value || clearingLogs.value || deletingPacFiles.value || resetting.value;
+  cleaning.value || clearingLogs.value || clearingPacCache.value || resetting.value;
 const maintenanceDisabledReason = computed(() => {
   if (loading.value) return t("systemPage.k0");
   if (cleaning.value) return t("systemPage.k1");
   if (clearingLogs.value) return t("systemPage.k2");
-  if (deletingPacFiles.value) return t("systemPage.k3");
+  if (clearingPacCache.value) return t("systemPage.k3");
   if (resetting.value) return t("systemPage.k4");
   return "";
 });
@@ -49,13 +49,13 @@ const retentionDisabledReason = computed(() => {
   if (retention.value === settings.value.logRetentionDays) return t("systemPage.k8");
   return t("systemPage.k9");
 });
-const deletePacFilesDisabledReason = computed(() => {
+const clearPacCacheDisabledReason = computed(() => {
   if (loading.value) return t("systemPage.k10");
   if (maintenanceBusy()) return maintenanceDisabledReason.value || t("systemPage.k11");
   if (!storage.value) return t("systemPage.k12");
   return t("systemPage.clearPacCacheAction");
 });
-function fileDateLabel(value: string | null) {
+function timeLabel(value: string | null) {
   return value ? new Date(value).toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN") : "—";
 }
 function formatBytes(bytes: number) {
@@ -140,19 +140,19 @@ async function clearAllLogs() {
     clearingLogs.value = false;
   }
 }
-async function deletePacFiles() {
+async function clearPacCache() {
   if (maintenanceBusy() || !storage.value) return;
-  deletingPacFiles.value = true;
+  clearingPacCache.value = true;
   try {
-    const r = await api.deletePacFiles();
-    setConfirmation("deletePacFiles", false);
+    const r = await api.clearPacCache();
+    setConfirmation("clearPacCache", false);
     if (r.deleted.length) notify(t("systemPage.k17") + r.deleted.join("、") + "。", "success");
     else notify(t("systemPage.k18"), "info");
     await refreshStorage();
   } catch (e) {
     notify(e instanceof Error ? e.message : String(e), "error");
   } finally {
-    deletingPacFiles.value = false;
+    clearingPacCache.value = false;
   }
 }
 async function factoryReset() {
@@ -348,30 +348,34 @@ onMounted(() => void load());
             <AppIcon name="refresh-cw" :size="14" /> {{ t("systemPage.refreshStatus") }}
           </button>
         </div>
-        <div v-if="storage?.pac" class="pac-files">
-          <div class="pac-file">
-            <div class="pac-file-head">
+        <div v-if="storage?.pac" class="pac-status">
+          <div class="pac-entry">
+            <div class="pac-entry-head">
               <strong>/pac</strong
               ><span
-                class="file-state"
-                :class="storage.pac.rendered.exists ? 'file-exists' : 'file-missing'"
-                >{{ storage.pac.rendered.exists ? t("systemPage.k21") : t("systemPage.k22") }}</span
+                class="pac-state"
+                :class="storage.pac.rendered.exists ? 'pac-available' : 'pac-missing'"
+                >{{
+                  storage.pac.rendered.exists
+                    ? t("systemPage.pacRenderedReady")
+                    : t("systemPage.pacRenderedMissing")
+                }}</span
               >
             </div>
             <p>{{ t("systemPage.pacRenderedDesc") }}</p>
-            <div class="pac-file-meta">
+            <div class="pac-entry-meta">
               <span>{{
                 t("systemPage.pacBytes", { size: formatBytes(storage.pac.rendered.sizeBytes) })
               }}</span
               ><span>{{
                 storage.pac.rendered.builtAt
-                  ? t("systemPage.fileMtime", {
-                      time: fileDateLabel(storage.pac.rendered.builtAt),
+                  ? t("systemPage.updatedAt", {
+                      time: timeLabel(storage.pac.rendered.builtAt),
                     })
                   : "—"
               }}</span>
             </div>
-            <div class="pac-file-meta">
+            <div class="pac-entry-meta">
               <span>{{
                 storage.pac.rendered.compressed
                   ? t("systemPage.pacCompressed")
@@ -380,23 +384,25 @@ onMounted(() => void load());
               ><span class="pac-etag">{{ storage.pac.rendered.etag || "—" }}</span>
             </div>
           </div>
-          <div class="pac-file">
-            <div class="pac-file-head">
+          <div class="pac-entry">
+            <div class="pac-entry-head">
               <strong>{{ t("systemPage.ruleSnapshot") }}</strong
               ><span
-                class="file-state"
-                :class="storage.pac.ruleSource.exists ? 'file-exists' : 'file-missing'"
+                class="pac-state"
+                :class="storage.pac.ruleSource.exists ? 'pac-available' : 'pac-missing'"
                 >{{
-                  storage.pac.ruleSource.exists ? t("systemPage.k21") : t("systemPage.k22")
+                  storage.pac.ruleSource.exists
+                    ? t("systemPage.ruleSnapshotReady")
+                    : t("systemPage.ruleSnapshotNone")
                 }}</span
               >
             </div>
             <p>{{ t("systemPage.ruleSnapshotDesc") }}</p>
-            <div class="pac-file-meta">
+            <div class="pac-entry-meta">
               <span>{{
                 storage.pac.ruleSource.exists
-                  ? t("systemPage.fileMtime", {
-                      time: fileDateLabel(storage.pac.ruleSource.fetchedAt),
+                  ? t("systemPage.updatedAt", {
+                      time: timeLabel(storage.pac.ruleSource.fetchedAt),
                     })
                   : t("systemPage.ruleSnapshotNone")
               }}</span
@@ -407,7 +413,7 @@ onMounted(() => void load());
                 })
               }}</span>
             </div>
-            <div v-if="storage.pac.ruleSource.exists" class="pac-file-meta">
+            <div v-if="storage.pac.ruleSource.exists" class="pac-entry-meta">
               <span class="pac-etag">{{ storage.pac.ruleSource.url }}</span>
             </div>
           </div>
@@ -416,28 +422,28 @@ onMounted(() => void load());
           {{ t("systemPage.pacNotRendered") }}
         </p>
         <ConfirmPopover
-          :open="confirmationOpen.deletePacFiles"
+          :open="confirmationOpen.clearPacCache"
           :title="t('systemPage.clearPacCache')"
           :description="t('systemPage.clearPacCacheDesc')"
           :confirm-text="t('systemPage.k27')"
           :busy-text="t('systemPage.k28')"
           align="start"
           :disabled="loading || maintenanceBusy() || !storage"
-          :disabled-reason="deletePacFilesDisabledReason"
-          :busy="deletingPacFiles"
-          @update:open="setConfirmation('deletePacFiles', $event)"
-          @confirm="deletePacFiles"
+          :disabled-reason="clearPacCacheDisabledReason"
+          :busy="clearingPacCache"
+          @update:open="setConfirmation('clearPacCache', $event)"
+          @confirm="clearPacCache"
           ><template #trigger="{ toggle, open }"
             ><button
               class="app-button app-button--danger"
               type="button"
               :aria-expanded="open"
               :disabled="loading || maintenanceBusy() || !storage"
-              :title="deletePacFilesDisabledReason"
+              :title="clearPacCacheDisabledReason"
               @click="toggle"
             >
-              <AppIcon :name="deletingPacFiles ? 'loader-circle' : 'trash-2'" :size="15" />
-              {{ deletingPacFiles ? t("systemPage.k28") : t("systemPage.clearPacCache") }}
+              <AppIcon :name="clearingPacCache ? 'loader-circle' : 'trash-2'" :size="15" />
+              {{ clearingPacCache ? t("systemPage.k28") : t("systemPage.clearPacCache") }}
             </button></template
           ></ConfirmPopover
         >
@@ -602,7 +608,7 @@ onMounted(() => void load());
   @apply min-w-0 rounded-[13px] border p-[22px];
   border-color: var(--line);
   background: var(--surface);
-  box-shadow: var(--shadow-sm, 0 4px 18px #00000008);
+  box-shadow: var(--shadow);
 }
 .heading {
   @apply mb-[18px] flex items-center gap-3;
@@ -646,48 +652,43 @@ onMounted(() => void load());
   @apply mt-3.5 flex flex-wrap gap-x-[18px] gap-y-2 text-[11px];
   color: var(--muted);
 }
-.pac-files {
+.pac-status {
   @apply mb-3.5 grid grid-cols-2 gap-3;
 }
-.pac-file {
+.pac-entry {
   @apply grid min-w-0 gap-2 rounded-[10px] border p-3.5;
   border-color: var(--line);
   background: var(--surface-2);
 }
-.pac-file-head {
+.pac-entry-head {
   @apply flex items-center justify-between gap-2.5;
 }
-.pac-file-head strong {
+.pac-entry-head strong {
   @apply text-[13px];
   overflow-wrap: anywhere;
 }
-.pac-file p {
+.pac-entry p {
   @apply m-0 text-[11px] leading-normal;
   color: var(--muted);
 }
-.pac-file-meta {
+.pac-entry-meta {
   @apply grid gap-[5px] text-[11px];
   color: var(--muted);
   overflow-wrap: anywhere;
 }
-.file-state {
+.pac-state {
   @apply whitespace-nowrap rounded-full border px-[7px] py-[3px] text-[10px] font-bold;
   border-color: var(--line);
 }
-.file-exists {
+.pac-available {
   color: var(--green);
   border-color: color-mix(in srgb, var(--green) 35%, var(--line));
 }
-.file-missing {
+.pac-missing {
   color: var(--muted);
 }
 .empty-note {
   @apply mb-3.5 mt-0 rounded-[9px] border border-dashed p-3 text-xs leading-normal;
-  border-color: var(--line);
-  color: var(--muted);
-}
-.history-count {
-  @apply shrink-0 rounded-full border px-[9px] py-1 text-[11px];
   border-color: var(--line);
   color: var(--muted);
 }
@@ -763,7 +764,7 @@ onMounted(() => void load());
   .metrics {
     @apply grid-cols-1;
   }
-  .pac-files {
+  .pac-status {
     @apply grid-cols-1;
   }
   .metric strong {

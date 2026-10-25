@@ -4,7 +4,6 @@ import { readSessionToken, saveSessionToken, clearSessionToken } from "@/api/ses
 import { emitUnauthorized } from "@/api/auth-events";
 import type {
   AppSettings,
-  WebhookConfig,
   WorkflowRun,
   WorkflowStage,
   WorkflowStatus,
@@ -16,13 +15,8 @@ import type {
 } from "@shared/contracts";
 export type {
   AppSettings,
-  DingTalkMessageType,
-  WebhookConfig,
-  WebhookMethod,
-  WebhookProvider,
   WorkflowRun,
   WorkflowStage,
-  WorkflowStatus,
   NotificationChannel,
   NotificationRule,
   DomainEvent,
@@ -31,14 +25,9 @@ export type {
 } from "@shared/contracts";
 
 export interface Meta {
-  adminEnabled: boolean;
   version: string;
-  repositoryUrl: string;
   /** Backend storage driver; lets the UI show what actually stores the data. */
   storageDriver?: "sqlite" | "memory" | string;
-  runtimeProfile?: string;
-  mode?: "custom" | "remote";
-  timezone?: string;
 }
 
 export interface AdminSession {
@@ -68,14 +57,6 @@ export interface WebhookTestResult {
   message: string;
 }
 
-export interface GenerateResult {
-  workflowId?: number;
-  success: boolean;
-  mode: string;
-  message: string;
-  resultCode: string;
-}
-
 export interface SaveAndGenerateResult {
   settings: AppSettings;
   workflowId: number;
@@ -92,7 +73,6 @@ export interface WorkflowDetail {
 }
 export interface PagedResult<T> {
   items: T[];
-  nextCursor: number | null;
   total: number;
   hasMore: boolean;
 }
@@ -100,10 +80,8 @@ export interface WorkflowList {
   current: WorkflowRun | null;
   active: WorkflowRun[];
   runs: WorkflowRun[];
-  beforeId?: number;
-  nextCursor?: number | null;
-  total?: number;
-  hasMore?: boolean;
+  total: number;
+  hasMore: boolean;
 }
 /** In-memory PAC render reported by the backend (no PAC files on disk). */
 export interface PacRenderStatus {
@@ -128,11 +106,9 @@ export interface StorageSummary {
   dataBytes: number;
   dbBytes: number;
   logBytes: number;
-  retentionDays: number;
   counts: {
     accessEvents: number;
     workflows: number;
-    activeWorkflows: number;
   };
   pac?: PacRenderStatus;
 }
@@ -173,7 +149,6 @@ export interface MonitorSummary {
   requestsLastHour: number;
   requestsLast24h: number;
   uniqueSourcesLast24h: number;
-  errorRequestsLast24h: number;
   serverErrorsLast24h: number;
   averageResponseMs: number;
   p95ResponseMs: number;
@@ -209,6 +184,18 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Whether the backend expects bearer authentication. `POST /api/admin/login`
+ * always returns a token, but a same-origin deployment authenticates with the
+ * HttpOnly session cookie instead; persisting the token there would duplicate
+ * the credential into localStorage for no reason.
+ *
+ * Starts as `null` because the runtime config (which decides whether the API is
+ * cross-origin) is loaded asynchronously after the module is evaluated.
+ */
+let bearerRequired: boolean | null = null;
+const requiresBearerToken = (): boolean => bearerRequired ?? isCrossOriginApi();
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const token = readSessionToken();
   const headers: Record<string, string> = {
@@ -219,10 +206,11 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(resolveApiUrl(url), {
-    // Cross-origin deployments authenticate with the bearer token, and must not
-    // request credentials (the backend answers with `Access-Control-Allow-Origin: *`).
-    credentials: isCrossOriginApi() ? "omit" : "include",
     ...init,
+    // A bearer deployment authenticates with the token and must not request
+    // credentials (the backend answers with `Access-Control-Allow-Origin: *`).
+    // A cookie deployment keeps sending them even when the API is cross-origin.
+    credentials: init?.credentials ?? (requiresBearerToken() ? "omit" : "include"),
     headers,
     // A stalled API request must not leave admin pages in a permanent loading state.
     signal: init?.signal ?? AbortSignal.timeout(20_000),
@@ -246,12 +234,6 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
       // Non-JSON error responses retain their HTTP status text.
     }
 
-    // This endpoint was added with the server-side save-and-generate workflow.
-    // A 404 means the browser is talking to an older backend process/build,
-    // not that the submitted settings are invalid.
-    if (res.status === 404 && url === "/api/admin/settings/save-and-generate") {
-      msg = i18n.global.t("serverErrors.versionMismatch");
-    }
     if (msg === "setup_required") {
       msg = i18n.global.t("login.adminCredentialsMissing");
     }
@@ -265,13 +247,23 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
     throw new ApiError(msg, code, detail);
   }
-  return (await res.json()) as T;
+  // 204/空响应体没有 JSON 可解析，直接返回 undefined 交给调用方。
+  const text = await res.text();
+  if (!text) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 export const api = {
   meta: () => request<Meta>("/api/meta"),
   status: () => request<PacStatus>("/api/status"),
-  session: () => request<AdminSession>("/api/admin/session"),
+  session: async () => {
+    const result = await request<AdminSession>("/api/admin/session");
+    // The backend reports how it expects to be authenticated: cookie for a
+    // same-origin deployment, bearer for a split one. Remember it so login knows
+    // whether the returned token has to be persisted.
+    bearerRequired = result.authMode ? result.authMode === "bearer" : isCrossOriginApi();
+    return result;
+  },
   changePassword: (body: { currentPassword: string; newPassword: string }) =>
     request<{ ok: boolean }>("/api/admin/password", {
       method: "POST",
@@ -282,7 +274,9 @@ export const api = {
       "/api/admin/login",
       { method: "POST", body: JSON.stringify({ password }) }
     );
-    saveSessionToken(result.token, result.expiresAt);
+    // Only a bearer deployment needs the token in storage; a same-origin one is
+    // already authenticated by the HttpOnly session cookie.
+    if (requiresBearerToken()) saveSessionToken(result.token, result.expiresAt);
     return result;
   },
   logout: async () => {
@@ -349,11 +343,6 @@ export const api = {
       "/api/admin/notifications/deliveries/" + encodeURIComponent(id) + "/retry",
       { method: "POST" }
     ),
-  testWebhook: (body: { config: WebhookConfig }) =>
-    request<WebhookTestResult>("/api/admin/webhook-test", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
   generate: () => request<GenerateStartResult>("/api/admin/generate", { method: "POST" }),
   workflows: (limit = 50, beforeId = 0) =>
     request<WorkflowList>(`/api/admin/workflows?limit=${limit}&beforeId=${beforeId}`),
@@ -363,18 +352,17 @@ export const api = {
       method: "POST",
     }),
   storage: () => request<StorageSummary>("/api/admin/storage"),
-  deletePacFiles: () =>
-    request<{ ok: boolean; deleted: string[] }>("/api/admin/pac-files", { method: "DELETE" }),
+  clearPacCache: () =>
+    request<{ ok: boolean; deleted: string[] }>("/api/admin/pac-cache", { method: "DELETE" }),
   cleanupLogs: () =>
-    request<{
-      deleted: { accessEvents: number; workflowRuns: number };
-      retentionDays: number;
-    }>("/api/admin/logs/cleanup", { method: "POST" }),
+    request<{ deleted: { accessEvents: number; workflowRuns: number } }>(
+      "/api/admin/logs/cleanup",
+      { method: "POST" }
+    ),
   clearLogs: () =>
-    request<{
-      deleted: { accessEvents: number; workflowRuns: number };
-      retentionDays: number;
-    }>("/api/admin/logs/clear", { method: "POST" }),
+    request<{ deleted: { accessEvents: number; workflowRuns: number } }>("/api/admin/logs/clear", {
+      method: "POST",
+    }),
   factoryReset: () =>
     request<{ ok: boolean; message: string }>("/api/admin/factory-reset", {
       method: "POST",
@@ -382,7 +370,6 @@ export const api = {
     }),
   pacpilotStatus: () => request<PacPilotProbe>("/api/admin/pacpilot-status"),
   monitorSummary: () => request<MonitorSummary>("/api/admin/monitor/summary"),
-  monitorAccess: (limit = 50) => request<AccessEvent[]>(`/api/admin/monitor/access?limit=${limit}`),
   monitorAccessPage: (limit = 50, beforeId = 0) =>
     request<PagedResult<AccessEvent>>(
       `/api/admin/monitor/access?paged=1&limit=${limit}&beforeId=${beforeId}`

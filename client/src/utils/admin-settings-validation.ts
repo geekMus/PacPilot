@@ -132,10 +132,11 @@ export function createAdminSettingsValidators<T extends (...args: any[]) => stri
     return null;
   }
 
-  function validateDomainRules(rawValue: string, label: string): string | null {
+  function validateDomainRules(rawValue: string, list: "direct" | "block"): string | null {
+    const label = list === "direct" ? t("settings.directList") : t("settings.blockList");
     const analysis = analyzeDomainRules(
-      label === t("settings.directList") ? rawValue : "",
-      label === t("settings.blockList") ? rawValue : ""
+      list === "direct" ? rawValue : "",
+      list === "block" ? rawValue : ""
     );
     const firstError = [...analysis.direct.diagnostics, ...analysis.block.diagnostics].find(
       (item) => item.severity === "error"

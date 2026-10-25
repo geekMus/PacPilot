@@ -43,10 +43,6 @@ export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
   return current;
 }
 
-export function getApiBaseUrl(): string {
-  return current.apiBaseUrl;
-}
-
 /** True when the UI and the API live on different origins. */
 export function isCrossOriginApi(): boolean {
   return current.apiBaseUrl !== "";

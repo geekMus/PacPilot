@@ -8,23 +8,11 @@
 .admin-page {
   @apply min-w-0 pb-0;
 }
-.admin-logout-button {
-  @apply inline-flex min-h-[34px] cursor-pointer items-center justify-center rounded-lg border px-[11px] text-[11px] font-bold;
-  border-color: var(--line);
-  background: var(--surface);
-  color: var(--text);
-}
-.admin-logout-button:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-#security,
 #general,
 #mode,
 #proxy,
 #rules,
-#schedule,
-#logs {
+#schedule {
   scroll-margin-top: 110px;
 }
 .state-card {
@@ -140,7 +128,7 @@ h2 {
 .mode-card:active {
   @apply translate-y-px;
 }
-.check:not(.is-disabled):hover {
+.check:hover {
   border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
   background: color-mix(in srgb, var(--accent) 5%, var(--surface-2));
 }
@@ -154,12 +142,6 @@ h2 {
   @apply rounded-full px-2 py-0.5 text-[11px] font-semibold;
   background: var(--green-soft);
   color: var(--green);
-}
-.tag.muted {
-  @apply border;
-  background: var(--surface-2);
-  color: var(--muted);
-  border-color: var(--line);
 }
 .mode-desc {
   @apply m-0 text-[13px] leading-snug;
@@ -197,20 +179,15 @@ h2 {
   @apply ml-1.5 font-medium;
   color: var(--muted);
 }
-input:not(.app-input),
-textarea:not(.app-textarea) {
+input:not(.app-input) {
   @apply w-full rounded-[var(--radius-sm)] border px-3 py-2.5 transition-[border-color,box-shadow];
   border-color: var(--line);
   background: var(--bg);
   color: var(--text);
 }
-input:not(.app-input):focus,
-textarea:not(.app-textarea):focus {
+input:not(.app-input):focus {
   @apply border-[var(--accent)] outline-none;
   box-shadow: 0 0 0 3px var(--accent-soft);
-}
-textarea:not(.app-textarea) {
-  @apply resize-y font-mono text-[13px] leading-snug;
 }
 .checks {
   @apply mt-2 grid gap-3;
@@ -244,93 +221,9 @@ textarea:not(.app-textarea) {
 .split > .field {
   @apply min-w-0;
 }
-.actions {
-  @apply my-1 mb-2 flex flex-wrap gap-2.5;
-}
-.btn {
-  @apply min-h-[var(--touch)] cursor-pointer appearance-none rounded-[var(--radius-sm)] border px-[18px] py-2.5 text-sm font-semibold transition-[background,border-color];
-  border-color: var(--line);
-  background: var(--surface);
-  color: var(--text);
-}
-.btn:hover:not(:disabled) {
-  background: var(--surface-2);
-}
-.btn.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast);
-}
-.btn.primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  color: var(--accent-contrast);
-  filter: none;
-}
-.btn.primary:active:not(:disabled) {
-  background: var(--accent-active);
-  border-color: var(--accent-active);
-  color: var(--accent-contrast);
-}
-.btn:not(.primary):active:not(:disabled) {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.admin-logout-button:active:not(:disabled),
-.chip:active:not(:disabled),
-.webhook-test-button:active:not(:disabled) {
+.chip:active:not(:disabled) {
   background: var(--accent-soft);
   color: var(--accent);
-}
-.admin-page .actions .btn-save {
-  @apply inline-flex min-h-[46px] min-w-[190px] items-center justify-center gap-[9px] rounded-[var(--radius-sm)] border px-5 py-[11px] font-bold tracking-[0.01em] transition-[background,box-shadow,transform];
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast) !important;
-  -webkit-text-fill-color: var(--accent-contrast);
-  box-shadow: 0 5px 14px color-mix(in srgb, var(--accent) 22%, transparent);
-}
-.admin-page .actions .btn-save svg {
-  @apply shrink-0;
-}
-.admin-page .actions .btn-save:hover:not(:disabled),
-.admin-page .actions .btn-save:active:not(:disabled) {
-  @apply -translate-y-px;
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  color: var(--accent-contrast) !important;
-  -webkit-text-fill-color: var(--accent-contrast);
-  box-shadow: 0 7px 18px color-mix(in srgb, var(--accent) 28%, transparent);
-  filter: none;
-}
-.admin-page .actions .btn-save:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--accent) 34%, transparent);
-  outline-offset: 3px;
-}
-.admin-page .actions .btn-save:active:not(:disabled) {
-  @apply translate-y-0;
-  background: var(--accent-active);
-  border-color: var(--accent-active);
-  color: var(--accent-contrast) !important;
-  -webkit-text-fill-color: var(--accent-contrast);
-  box-shadow: 0 2px 6px color-mix(in srgb, var(--accent) 20%, transparent);
-}
-.admin-page .actions .btn-save:disabled {
-  @apply cursor-not-allowed opacity-100 shadow-none;
-  background: var(--surface-2);
-  border-color: var(--line);
-  color: var(--muted) !important;
-  -webkit-text-fill-color: var(--muted);
-  transform: none;
-}
-.admin-page .actions .btn-save.is-loading:disabled {
-  @apply cursor-progress;
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast) !important;
-  -webkit-text-fill-color: var(--accent-contrast);
-  box-shadow: none;
 }
 .save-spinner {
   @apply h-[17px] w-[17px] animate-[save-spin_0.8s_linear_infinite];
@@ -340,83 +233,18 @@ textarea:not(.app-textarea) {
     transform: rotate(360deg);
   }
 }
-.btn.ghost {
-  @apply bg-transparent;
-}
-.btn:disabled {
-  @apply cursor-not-allowed opacity-100 shadow-none;
-  color: var(--control-disabled-text);
-  background: var(--control-disabled-bg);
-  border-color: var(--control-disabled-border);
-  -webkit-text-fill-color: var(--control-disabled-text);
-}
 .field.is-disabled label,
 .field.is-disabled .field-hint,
 .field.is-disabled .disabled-hint,
 .field.is-disabled .lab-hint {
   color: var(--control-disabled-text);
 }
-.admin-page .field.is-disabled input:not(.app-input):disabled,
-.admin-page .field.is-disabled textarea:not(.app-textarea):disabled {
+.admin-page .field.is-disabled input:not(.app-input):disabled {
   @apply cursor-not-allowed opacity-100 shadow-none;
   color: var(--control-disabled-text);
   -webkit-text-fill-color: var(--control-disabled-text);
   background: var(--control-disabled-bg);
   border-color: var(--control-disabled-border);
-}
-.check.is-disabled {
-  @apply cursor-not-allowed;
-  color: var(--control-disabled-text);
-  border-color: var(--control-disabled-border);
-  background: var(--control-disabled-bg);
-}
-.check.is-disabled span {
-  color: var(--control-disabled-text);
-}
-.check.is-disabled .admin-checkbox {
-  @apply cursor-not-allowed;
-  accent-color: var(--control-disabled-text);
-}
-.linkish {
-  @apply cursor-pointer border-0 bg-transparent p-0 text-sm;
-  color: var(--accent);
-}
-table {
-  @apply w-full border-collapse text-[13px];
-}
-th,
-td {
-  @apply border-b px-3 py-2.5 text-left align-top;
-  border-color: var(--line);
-}
-th {
-  @apply font-semibold;
-  color: var(--muted);
-  background: var(--surface-2);
-}
-tr:last-child td {
-  @apply border-b-0;
-}
-.nowrap {
-  @apply whitespace-nowrap;
-}
-.msg {
-  @apply max-w-[360px];
-}
-.empty {
-  @apply text-center;
-  color: var(--muted);
-}
-.pill {
-  @apply inline-block rounded-full px-2 py-0.5 text-xs font-semibold;
-}
-.pill.ok {
-  background: var(--green-soft);
-  color: var(--green);
-}
-.pill.bad {
-  background: var(--red-soft);
-  color: var(--red);
 }
 .help {
   @apply mb-[var(--space-4)] mt-0 rounded-[var(--radius-sm)] border px-3.5;
@@ -498,102 +326,17 @@ tr:last-child td {
   @apply mb-0 mt-1.5 text-xs leading-snug;
   color: var(--muted);
 }
-.field-warn {
-  @apply mb-0 mt-1.5 text-xs leading-snug;
-  color: var(--warn);
-}
 .field-error {
   @apply mb-0 mt-1.5 text-xs font-semibold leading-snug;
   color: var(--red);
 }
-.admin-page input:not(.app-input)[aria-invalid="true"],
-.admin-page textarea:not(.app-textarea)[aria-invalid="true"] {
+.admin-page input:not(.app-input)[aria-invalid="true"] {
   border-color: var(--red) !important;
   box-shadow: 0 0 0 3px var(--red-soft) !important;
 }
-input.mono:not(.app-input),
-textarea.mono:not(.app-textarea) {
+/* `.mono` 也用在 AppInput 上（它自带 `.app-input`），所以这里不能排除 `.app-input`。 */
+input.mono {
   @apply font-mono text-[13px];
-}
-textarea.body-area:not(.app-textarea) {
-  @apply min-h-[110px] resize-y leading-snug;
-}
-.webhook-grid {
-  @apply grid grid-cols-2 gap-3.5;
-}
-.webhook-panel {
-  @apply rounded-[var(--radius-sm)] border px-3.5 pb-1.5 pt-3.5;
-  border-color: var(--line);
-  background: var(--surface-2);
-}
-.webhook-panel.ok {
-  border-color: color-mix(in srgb, var(--green) 28%, var(--line));
-}
-.webhook-panel.bad {
-  border-color: color-mix(in srgb, var(--red) 28%, var(--line));
-}
-.webhook-panel-title {
-  @apply mb-3 flex items-center justify-between gap-2.5 text-[13px] font-bold;
-}
-.webhook-panel-label {
-  @apply inline-flex items-center gap-2;
-}
-.webhook-test-button {
-  @apply min-h-[30px] cursor-pointer whitespace-nowrap rounded-[7px] border px-2.5 py-[5px] text-[11px] font-semibold;
-  border-color: var(--line);
-  background: var(--surface);
-  color: var(--text);
-}
-.webhook-test-button:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.webhook-test-button:disabled {
-  @apply cursor-not-allowed opacity-100 shadow-none;
-  color: var(--control-disabled-text);
-  -webkit-text-fill-color: var(--control-disabled-text);
-  background: var(--control-disabled-bg);
-  border-color: var(--control-disabled-border);
-}
-.webhook-test-result {
-  @apply mb-2.5 rounded-[7px] px-2.5 py-2 text-xs leading-snug;
-  overflow-wrap: anywhere;
-}
-.webhook-test-result.ok {
-  background: var(--green-soft);
-  color: var(--green);
-}
-.webhook-test-result.bad {
-  background: var(--red-soft);
-  color: var(--red);
-}
-.dot {
-  @apply h-2 w-2 shrink-0 rounded-full;
-}
-.dot.ok {
-  background: var(--green);
-}
-.dot.bad {
-  background: var(--red);
-}
-.security-card {
-  @apply mb-[18px];
-}
-.password-warning {
-  @apply mb-3.5 mt-0 rounded-[var(--radius-sm)] border px-3.5 py-3 text-[13px];
-  border-color: color-mix(in srgb, var(--warn) 45%, var(--line));
-  background: var(--warn-soft);
-  color: var(--text);
-}
-.password-warning p {
-  @apply mb-0 mt-[5px] leading-normal;
-  color: var(--muted);
-}
-.password-change-form {
-  @apply max-w-[620px];
-}
-.password-change-form .actions {
-  @apply mt-2.5;
 }
 .timezone-presets {
   @apply mb-0 mt-2;
@@ -627,100 +370,9 @@ textarea.body-area:not(.app-textarea) {
   @apply pointer-events-none absolute right-3;
   color: var(--muted);
 }
-.storage-metrics {
-  @apply mb-[18px] grid grid-cols-3 gap-2.5;
-}
-.storage-metric {
-  @apply grid min-w-0 gap-[7px] rounded-[9px] border p-3.5;
-  border-color: var(--line);
-  background: var(--surface-2);
-}
-.storage-metric span,
-.storage-metric small {
-  @apply text-[11px];
-  color: var(--muted);
-}
-.storage-metric strong {
-  @apply text-[21px] tabular-nums;
-  color: var(--text);
-  overflow-wrap: anywhere;
-}
-.storage-metric small {
-  @apply leading-normal;
-}
-.retention-setting {
-  @apply flex items-center justify-between gap-4 border-y py-[15px];
-  border-color: var(--line);
-}
-.retention-copy strong {
-  @apply text-[13px];
-  color: var(--text);
-}
-.retention-copy p,
-.storage-note {
-  @apply mb-0 mt-1.5 text-[11px] leading-normal;
-  color: var(--muted);
-}
-.storage-counts {
-  @apply mt-[13px] flex flex-wrap gap-2;
-}
-.storage-counts span {
-  @apply rounded-md px-2 py-[5px] text-[10px];
-  background: var(--surface-2);
-  color: var(--muted);
-}
-.storage-actions {
-  @apply mt-4 flex flex-wrap gap-[9px];
-}
-.storage-actions button {
-  @apply inline-flex min-h-[38px] cursor-pointer items-center justify-center gap-[7px] rounded-lg border px-3 text-xs font-bold;
-  border-color: var(--line);
-  background: var(--surface-2);
-  color: var(--text);
-}
-.storage-actions button:disabled {
-  @apply cursor-not-allowed opacity-55;
-}
-.storage-actions .danger-action {
-  border-color: color-mix(in srgb, var(--red) 40%, var(--line));
-  color: var(--red);
-}
-.storage-note {
-  @apply mt-3;
-}
-.sr-only {
-  @apply absolute -m-px h-px w-px overflow-hidden whitespace-nowrap border-0 p-0;
-  clip: rect(0, 0, 0, 0);
-}
 @media (max-width: 720px) {
   .mode-grid,
   .split {
     @apply grid-cols-1;
-  }
-  .actions {
-    @apply flex-col;
-  }
-  .actions .btn {
-    @apply w-full;
-  }
-  .webhook-grid {
-    @apply grid-cols-1;
-  }
-}
-@media (max-width: 600px) {
-  .storage-metrics {
-    @apply grid-cols-1;
-  }
-  .storage-metric {
-    @apply p-3;
-  }
-  .storage-metric strong {
-    @apply text-[19px];
-  }
-  .retention-setting {
-    @apply flex-col items-start;
-  }
-  .storage-actions {
-    @apply grid grid-cols-1;
   }
 }

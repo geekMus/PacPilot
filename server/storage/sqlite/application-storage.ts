@@ -5,7 +5,7 @@ import type { AppSettings } from "../../../shared/contracts";
 import type { ApplicationStorage } from "../repositories";
 import { asAsyncRepository } from "../async-repository";
 import { closeDatabase } from "./database";
-import { checkpointDatabase, resetOperationalData, vacuumDatabase } from "./maintenance";
+import { resetOperationalData, vacuumDatabase } from "./maintenance";
 import { SqliteAdminCredentialRepository } from "./credentials";
 import { createFilesystemArtifactRepository } from "../filesystem/artifact-repository";
 import { createSqliteSettingsRepository } from "./settings-repository";
@@ -41,7 +41,6 @@ export function createSqliteApplicationStorage(
           }
         }, 0),
       compact: () => vacuumDatabase(database, true),
-      checkpoint: () => checkpointDatabase(database),
       resetOperationalData: (settings: AppSettings) => {
         resetOperationalData(database, settings);
       },

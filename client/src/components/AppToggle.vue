@@ -82,7 +82,7 @@ const fieldId = useId();
 .app-toggle-track::after {
   @apply absolute top-[3px] left-[3px] h-4 w-4 rounded-full transition-transform;
   background: var(--surface);
-  box-shadow: 0 1px 3px #0002;
+  box-shadow: var(--shadow-sm);
   content: "";
 }
 

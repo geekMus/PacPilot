@@ -4,20 +4,20 @@ function tr(key: string, params?: Record<string, unknown>): string {
   return String(i18n.global.t(key, params ?? {}));
 }
 
-export type RuleSeverity = "error" | "warning" | "info";
+type RuleSeverity = "error" | "warning" | "info";
 export interface RuleDiagnostic {
   line: number;
   severity: RuleSeverity;
   message: string;
   relatedLine?: number;
 }
-export interface ParsedDomainRule {
+interface ParsedDomainRule {
   line: number;
   raw: string;
   host: string;
   scope: "exact" | "subdomains" | "both";
 }
-export interface DomainRuleAnalysis {
+interface DomainRuleAnalysis {
   diagnostics: RuleDiagnostic[];
   validCount: number;
   errorCount: number;

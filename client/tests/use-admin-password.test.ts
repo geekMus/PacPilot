@@ -175,7 +175,7 @@ describe("server-side failures", () => {
     }
   });
 
-  it("falls back to the Chinese message when the code is unknown", async () => {
+  it("falls back to the server message when the code is unknown", async () => {
     const { ApiError } = await import("@/api/client");
     api.changePassword.mockRejectedValue(new ApiError("新密码不能为空。", "something_else"));
     const password = await setup();
@@ -187,7 +187,7 @@ describe("server-side failures", () => {
 
     await password.changeAdminPassword();
 
-    expect(password.passwordError.value).toBe("settings.newPasswordEmpty");
+    expect(password.passwordError.value).toBe("新密码不能为空。");
   });
 
   it("shows a plain Error message when nothing matches", async () => {

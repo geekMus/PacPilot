@@ -39,6 +39,8 @@ export function useWorkflowDashboard() {
     if (isActiveRun(run)) {
       if (!pollHandle)
         pollHandle = setInterval(() => {
+          // 标签页在后台时不轮询，避免无意义的持续请求；回到前台立刻补一次。
+          if (document.hidden) return;
           if (isActiveRun(current.value)) void load(true);
           else stopPolling();
         }, 3000);
@@ -47,6 +49,10 @@ export function useWorkflowDashboard() {
   function stopPolling() {
     if (pollHandle) clearInterval(pollHandle);
     pollHandle = undefined;
+  }
+  // 从后台切回前台时立刻补一次刷新，避免用户看到过期状态。
+  function onVisibilityChange() {
+    if (!document.hidden && isActiveRun(current.value)) void load(true);
   }
 
   const active = computed(() => Boolean(current.value));
@@ -68,8 +74,13 @@ export function useWorkflowDashboard() {
     error.value = "";
     try {
       const session = await api.session();
+      // 路由守卫只在导航时校验；会话在停留期间失效时这里必须自己回登录页，
+      // 并带上当前地址，登录后才能回到这一页。
       if (!session.loggedIn) {
-        await router.replace("/admin/login");
+        await router.replace({
+          name: "login",
+          query: { redirect: router.currentRoute.value.fullPath },
+        });
         return;
       }
       const result = await api.workflows(historyPageSize, 0);
@@ -107,17 +118,17 @@ export function useWorkflowDashboard() {
       ]);
       statusSnapshotReady = true;
       current.value = result.current;
-      activeRuns.value = result.active ?? (result.current ? [result.current] : []);
+      activeRuns.value = result.active ?? [];
       if (resetHistory || runs.value.length === 0) {
         runs.value = result.runs;
-        historyHasMore.value = result.hasMore ?? false;
+        historyHasMore.value = result.hasMore;
       } else {
         const merged = new Map<number, WorkflowRun>();
         for (const run of [...result.runs, ...runs.value]) merged.set(run.id, run);
         runs.value = [...merged.values()].sort((a, b) => b.id - a.id);
-        historyHasMore.value = runs.value.length < (result.total ?? runs.value.length);
+        historyHasMore.value = runs.value.length < result.total;
       }
-      historyTotal.value = result.total ?? runs.value.length;
+      historyTotal.value = result.total;
       historyLoadError.value = "";
     } catch (caught) {
       error.value = caught instanceof Error ? caught.message : String(caught);
@@ -140,7 +151,7 @@ export function useWorkflowDashboard() {
       const seen = new Set(runs.value.map((run) => run.id));
       runs.value.push(...result.runs.filter((run) => !seen.has(run.id)));
       runs.value.sort((a, b) => b.id - a.id);
-      historyTotal.value = result.total ?? historyTotal.value;
+      historyTotal.value = result.total;
       historyHasMore.value = runs.value.length < historyTotal.value;
     } catch (caught) {
       historyLoadError.value = caught instanceof Error ? caught.message : String(caught);
@@ -186,9 +197,13 @@ export function useWorkflowDashboard() {
     }
   }
   onMounted(() => {
+    document.addEventListener("visibilitychange", onVisibilityChange);
     void load();
   });
-  onUnmounted(stopPolling);
+  onUnmounted(() => {
+    stopPolling();
+    document.removeEventListener("visibilitychange", onVisibilityChange);
+  });
 
   return {
     t,

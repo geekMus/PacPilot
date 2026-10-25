@@ -8,8 +8,8 @@ import {
   type NotificationDelivery,
   type NotificationEventDefinition,
   type NotificationRule,
-  type WebhookConfig,
 } from "@/api/client";
+import type { WebhookConfig } from "@shared/contracts";
 import type { AppSelectOption } from "@/components/AppSelect.vue";
 import { useToast } from "@/composables/useToast";
 import { createAdminSettingsValidators } from "@/utils/admin-settings-validation";
@@ -283,7 +283,6 @@ export function useNotificationWorkspace() {
   }
   async function deleteC(item?: NotificationChannel) {
     if (!item) return;
-    if (!confirm(t("notifications.confirmDeleteChannel", { name: item.name }))) return;
     try {
       await api.deleteNotificationChannel(item.id);
       if (cid.value === item.id) resetC();
@@ -357,7 +356,6 @@ export function useNotificationWorkspace() {
   }
   async function deleteR(item?: NotificationRule) {
     if (!item) return;
-    if (!confirm(t("notifications.confirmDeleteRule", { name: item.name }))) return;
     try {
       await api.deleteNotificationRule(item.id);
       if (rid.value === item.id) resetR();

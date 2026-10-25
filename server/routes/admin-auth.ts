@@ -42,7 +42,7 @@ export function adminAuthRoutes(env: EnvConfig, storage: ApplicationStorage): Ro
     const pw = String(req.body?.password ?? "");
     if (!(await verifyAdminPassword(storage.credentials, pw))) {
       recordLoginFailure(req);
-      res.status(401).json({ error: "Invalid password" });
+      res.status(401).json({ error: "Invalid password", errorCode: "invalid_password" });
       return;
     }
     clearLoginFailures(req);

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "danger-ghost";
+type ButtonVariant = "primary" | "secondary" | "danger" | "danger-ghost";
 
 const props = withDefaults(
   defineProps<{
     variant?: ButtonVariant;
-    size?: "sm" | "md" | "lg";
+    size?: "sm" | "md";
     block?: boolean;
     type?: "button" | "submit" | "reset";
     disabled?: boolean;

@@ -26,13 +26,13 @@ const loading = ref(true);
 const refreshing = ref(false);
 const generating = ref(false);
 const error = ref("");
+const errorTitle = ref("dashboard.loadFailed");
 const noticeWorkflowId = ref<number | null>(null);
 const notice = computed(() =>
   noticeWorkflowId.value === null
     ? ""
     : t("dashboard.workflowStarted", { id: noticeWorkflowId.value })
 );
-const noticeOkay = ref(true);
 const settings = ref<AppSettings | null>(null);
 const status = ref<PacStatus | null>(null);
 const workflows = ref<WorkflowRun[]>([]);
@@ -62,6 +62,7 @@ async function loadOverview(): Promise<void> {
   loading.value = !settings.value;
   refreshing.value = true;
   error.value = "";
+  errorTitle.value = "dashboard.loadFailed";
   try {
     const nextSession: AdminSession = await api.session();
     if (!nextSession.loggedIn) {
@@ -96,11 +97,10 @@ async function generateNow(): Promise<void> {
   error.value = "";
   try {
     const result = await api.generate();
-    noticeOkay.value = true;
     noticeWorkflowId.value = result.workflowId;
     await loadOverview();
   } catch (caught) {
-    noticeOkay.value = false;
+    errorTitle.value = "dashboard.generateFailed";
     error.value = caught instanceof Error ? caught.message : String(caught);
   } finally {
     generating.value = false;
@@ -179,18 +179,13 @@ onMounted(() => {
       </div>
 
       <div v-if="error" class="dashboard-alert is-error" role="alert">
-        <strong>{{ t("dashboard.loadFailed") }}</strong
+        <strong>{{ t(errorTitle) }}</strong
         ><span>{{ error }}</span>
         <button type="button" class="dashboard-alert-action" @click="loadOverview">
           {{ t("dashboard.reload") }}
         </button>
       </div>
-      <div
-        v-if="notice"
-        class="dashboard-alert"
-        :class="noticeOkay ? 'is-success' : 'is-error'"
-        role="status"
-      >
+      <div v-if="notice" class="dashboard-alert is-success" role="status">
         {{ notice }}
       </div>
       <RouterLink
@@ -304,11 +299,15 @@ onMounted(() => {
             </div>
             <div class="runtime-row">
               <dt>{{ t("dashboard.trend24hShort") }}</dt>
-              <dd><strong>{{ monitor ? monitor.requestsLast24h : "—" }}</strong></dd>
+              <dd>
+                <strong>{{ monitor ? monitor.requestsLast24h : "—" }}</strong>
+              </dd>
             </div>
             <div class="runtime-row">
               <dt>{{ t("dashboard.activeRequests") }}</dt>
-              <dd><strong>{{ monitor?.activeRequests ?? "—" }}</strong></dd>
+              <dd>
+                <strong>{{ monitor?.activeRequests ?? "—" }}</strong>
+              </dd>
             </div>
             <div class="runtime-row">
               <dt>{{ t("dashboard.errorRate") }}</dt>
@@ -375,7 +374,7 @@ onMounted(() => {
                     ><AppIcon
                       :name="run.status === 'succeeded' ? 'circle-check' : 'circle-x'"
                       :size="13"
-                      />{{ statusLabel(run.status) }}</span
+                    />{{ statusLabel(run.status) }}</span
                   >
                 </td>
                 <td>{{ sourceLabel(run.source) }}</td>
@@ -522,7 +521,7 @@ onMounted(() => {
 .overview-metric:hover {
   @apply -translate-y-px;
   border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
-  box-shadow: var(--shadow-sm, 0 5px 18px #0000000a);
+  box-shadow: var(--shadow);
 }
 .overview-metric:focus-visible {
   outline: 2px solid var(--accent);
@@ -532,8 +531,9 @@ onMounted(() => {
   .overview-metric {
     transition: none;
   }
+  /* 悬停位移用的是 Tailwind 的 translate 属性，复位也必须写 translate。 */
   .overview-metric:hover {
-    transform: none;
+    translate: none;
   }
 }
 .metric-top {
@@ -548,7 +548,7 @@ onMounted(() => {
   border-color: color-mix(in srgb, var(--accent) 18%, var(--line));
   background: var(--accent-soft);
   color: var(--accent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  box-shadow: inset 0 1px 0 var(--inset-highlight);
 }
 .metric-icon.is-file {
   color: var(--green);
@@ -774,9 +774,5 @@ onMounted(() => {
 .recent-log-row:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
-}
-.detail-kicker {
-  @apply mb-[5px] mt-0 text-[10px] font-extrabold tracking-[0.08em];
-  color: var(--muted);
 }
 </style>

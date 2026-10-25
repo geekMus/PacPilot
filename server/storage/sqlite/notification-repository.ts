@@ -26,7 +26,7 @@ export function createSqliteNotificationRepository(db: Database): SyncNotificati
           deliveries: Array.isArray(v.deliveries) ? v.deliveries : [],
         };
       } catch {
-        throw Error("Failed to read notification configuration");
+        throw new Error("通知配置读取失败：数据库中的 notifications 记录不是合法的 JSON。");
       }
     },
     set(d) {

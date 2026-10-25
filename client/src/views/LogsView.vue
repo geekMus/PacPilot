@@ -215,7 +215,7 @@ const {
       >
         <template #header>
           <div class="access-detail-heading">
-            <p class="access-detail-kicker">ACCESS LOG #{{ selectedAccess?.id }}</p>
+            <p class="access-detail-kicker">{{ t("logs.kicker") }} #{{ selectedAccess?.id }}</p>
             <DialogTitle class="access-detail-title">{{ t("monitor.k135") }}</DialogTitle>
             <DialogDescription class="app-dialog-visually-hidden">
               {{ t("monitor.k138") }}、{{ t("monitor.k139") }}、{{ t("monitor.k142") }}
@@ -290,7 +290,7 @@ const {
                 >
               </div>
               <div>
-                <span>Host</span>
+                <span>{{ t("monitor.k143") }}</span>
                 <strong
                   ><code>{{ selectedAccess.host || "—" }}</code></strong
                 >
@@ -309,11 +309,11 @@ const {
               <pre>{{ selectedAccess.query_string || t("monitor.k2") }}</pre>
             </div>
             <div class="access-detail-block">
-              <span>Referer</span>
+              <span>{{ t("monitor.k144") }}</span>
               <pre>{{ selectedAccess.referer || t("monitor.k2") }}</pre>
             </div>
             <div class="access-detail-block">
-              <span>Accept / Accept-Language</span>
+              <span>{{ t("monitor.k145") }} / {{ t("monitor.k146") }}</span>
               <pre
                 >{{ selectedAccess.accept || t("monitor.k2") }}
 {{ selectedAccess.accept_language || t("monitor.k2") }}</pre>

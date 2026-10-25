@@ -29,7 +29,6 @@ export function createMemoryApplicationStorage(): ApplicationStorage {
     maintenance: asAsyncRepository({
       databaseBytes: () => 0,
       compact: () => {},
-      checkpoint: () => {},
       resetOperationalData(value: AppSettings) {
         monitoring.clear();
         workflows.reset();

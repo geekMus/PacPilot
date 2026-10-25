@@ -58,13 +58,6 @@ export interface MonitorSummary {
   }>;
 }
 
-export interface Page<T> {
-  items: T[];
-  total: number;
-  hasMore: boolean;
-  nextCursor: number | null;
-}
-
 export interface SyncSettingsRepository {
   get(): AppSettings;
   set(settings: AppSettings): void;
@@ -138,7 +131,6 @@ export interface SyncArtifactRepository {
 export interface SyncStorageMaintenance {
   databaseBytes(): number;
   compact(): void;
-  checkpoint(): void;
   resetOperationalData(settings: AppSettings): void;
 }
 

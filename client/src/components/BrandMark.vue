@@ -60,6 +60,6 @@ withDefaults(
   /* Soft edge on light surfaces without a second colored plate behind the mark. */
   box-shadow:
     0 1px 2px rgba(26, 35, 50, 0.06),
-    0 4px 12px rgba(53, 86, 216, 0.18);
+    0 4px 12px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 </style>

@@ -162,7 +162,7 @@ function buildOption(): Record<string, unknown> {
     borderWidth: 1,
     padding: [10, 12],
     textStyle: { color: text, fontSize: 12, fontFamily: "var(--font)" },
-    extraCssText: "box-shadow:0 10px 28px rgba(0,0,0,.12);border-radius:10px;",
+    extraCssText: "box-shadow:var(--shadow);border-radius:10px;",
   };
 
   if (props.mode === "latency") {
@@ -210,8 +210,7 @@ function buildOption(): Record<string, unknown> {
         axisLabel: {
           color: muted,
           fontSize: isMobile ? 10 : 11,
-          formatter: (value: number) =>
-            value >= 1000 ? (value / 1000).toFixed(1) + "s" : String(Math.round(value)),
+          formatter: (value: number) => formatDuration(value),
         },
         splitLine: { lineStyle: { color: line, type: "dashed" } },
         axisLine: { show: false },

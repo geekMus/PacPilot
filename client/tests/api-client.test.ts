@@ -47,7 +47,7 @@ afterEach(() => {
 
 describe("request plumbing", () => {
   it("sends JSON headers without an Authorization header when unauthenticated", async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ adminEnabled: true }));
+    fetchMock.mockResolvedValue(jsonResponse({ version: "1.0.0" }));
     const { api } = await loadClient();
 
     await api.meta();
@@ -78,11 +78,11 @@ describe("request plumbing", () => {
     fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
     const { api } = await loadClient();
 
-    await api.testWebhook({ config: { provider: "custom" } as never });
+    await api.testNotificationChannel("c#1");
 
     const [, init] = fetchMock.mock.calls[0];
     expect(init.method).toBe("POST");
-    expect(init.body).toBe(JSON.stringify({ config: { provider: "custom" } }));
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/admin/notifications/channels/c%231/test");
   });
 
   it("routes requests through resolveApiUrl", async () => {
@@ -124,19 +124,6 @@ describe("error handling", () => {
     await expect(api.meta()).rejects.toThrow("Nope");
   });
 
-  it("explains a 404 from save-and-generate as a version mismatch", async () => {
-    fetchMock.mockResolvedValue(jsonResponse({}, 404));
-    const { api, ApiError } = await loadClient();
-
-    const failure = (await api
-      .saveAndGenerate({} as never)
-      .catch((error: unknown) => error)) as Error;
-
-    expect(failure).toBeInstanceOf(ApiError);
-    expect(failure.message).not.toBe("");
-    expect(failure.message).not.toBe("Not Found");
-  });
-
   it("translates a setup_required message", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ error: "setup_required" }, 400));
     const { api } = await loadClient();
@@ -168,13 +155,32 @@ describe("error handling", () => {
 });
 
 describe("session helpers", () => {
-  it("stores the token after a successful login", async () => {
+  it("keeps the token out of storage for same-origin cookie deployments", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ ok: true, token: "abc", expiresAt: 123 }));
     const { api } = await loadClient();
 
     const result = await api.login("secret");
 
     expect(result).toEqual({ ok: true, token: "abc", expiresAt: 123 });
+    expect(token.saveSessionToken).not.toHaveBeenCalled();
+  });
+
+  it("stores the token when the backend reports bearer auth", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === "/api/admin/session") {
+        return jsonResponse({
+          loggedIn: false,
+          adminCredentialsMissing: false,
+          authMode: "bearer",
+        });
+      }
+      return jsonResponse({ ok: true, token: "abc", expiresAt: 123 });
+    });
+    const { api } = await loadClient();
+
+    await api.session();
+    await api.login("secret");
+
     expect(token.saveSessionToken).toHaveBeenCalledWith("abc", 123);
   });
 
@@ -210,15 +216,13 @@ describe("endpoint shapes", () => {
 
     await api.workflows(20, 7);
     await api.monitorAccessPage(10, 3);
-    await api.monitorAccess(5);
     await api.workflows();
 
     expect(fetchMock.mock.calls[0][0]).toBe("/api/admin/workflows?limit=20&beforeId=7");
     expect(fetchMock.mock.calls[1][0]).toBe(
       "/api/admin/monitor/access?paged=1&limit=10&beforeId=3"
     );
-    expect(fetchMock.mock.calls[2][0]).toBe("/api/admin/monitor/access?limit=5");
-    expect(fetchMock.mock.calls[3][0]).toBe("/api/admin/workflows?limit=50&beforeId=0");
+    expect(fetchMock.mock.calls[2][0]).toBe("/api/admin/workflows?limit=50&beforeId=0");
   });
 
   it("sends the reset confirmation payload", async () => {

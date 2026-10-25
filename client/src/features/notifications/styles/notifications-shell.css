@@ -10,10 +10,6 @@
   --wh-heading-bg: var(--surface-2);
   --wh-item-hover: color-mix(in srgb, var(--accent) 6%, var(--surface-2));
 
-  --scrollbar-size: 10px;
-  --scrollbar-thumb: color-mix(in srgb, var(--text) 26%, transparent);
-  --scrollbar-thumb-hover: color-mix(in srgb, var(--text) 46%, transparent);
-
   --wh-directory-height: clamp(300px, 46dvh, 540px);
   --wh-editor-height: clamp(360px, 56dvh, 680px);
   --wh-history-height: clamp(320px, 50dvh, 620px);
@@ -259,8 +255,7 @@
   @apply font-mono text-[9px] opacity-85;
 }
 
-.webhook-page .empty-directory,
-.webhook-page .empty-history {
+.webhook-page .empty-directory {
   @apply flex flex-col items-center gap-2 px-5 py-7 text-center;
 }
 
@@ -272,13 +267,11 @@
   color: var(--muted);
 }
 
-.webhook-page .empty-directory strong,
-.webhook-page .empty-history strong {
+.webhook-page .empty-directory strong {
   @apply text-xs;
 }
 
-.webhook-page .empty-directory p,
-.webhook-page .empty-history p {
+.webhook-page .empty-directory p {
   @apply mb-1.5 mt-0 max-w-[260px] text-[10px] leading-normal;
   color: var(--muted);
 }
@@ -335,88 +328,6 @@
   color: var(--muted);
 }
 
-.webhook-page .event-row,
-.webhook-page .delivery-row {
-  @apply flex items-start gap-[11px] border-t px-[19px] py-[15px] transition-colors;
-  border-color: var(--line);
-}
-
-.webhook-page .event-row:hover,
-.webhook-page .delivery-row:hover {
-  background: var(--wh-item-hover);
-}
-
-.webhook-page .timeline-marker,
-.webhook-page .delivery-status-icon {
-  @apply grid h-8 w-8 shrink-0 place-items-center rounded-[var(--wh-radius-control)] border;
-  border-color: var(--line);
-  background: var(--wh-heading-bg);
-  color: var(--muted);
-}
-
-.webhook-page .event-row:has(.outcome-failure) .timeline-marker {
-  border-color: color-mix(in srgb, var(--red) 20%, var(--line));
-  background: var(--red-soft);
-  color: var(--red);
-}
-
-.webhook-page .history-row-content {
-  @apply min-w-0 flex-auto;
-}
-
-.webhook-page .history-row-title {
-  @apply flex flex-wrap items-center gap-[7px];
-}
-
-.webhook-page .history-row-title strong {
-  @apply text-[11px];
-}
-
-.webhook-page .history-row-content > p {
-  @apply my-1.5 text-[10px] leading-normal;
-  color: var(--muted);
-  overflow-wrap: anywhere;
-}
-
-.webhook-page .history-row-content > small {
-  @apply text-[9px] leading-normal;
-  color: var(--muted);
-}
-
-.webhook-page .phase-tag,
-.webhook-page .outcome-tag {
-  @apply inline-flex items-center whitespace-nowrap rounded-[5px] px-1.5 py-[3px] text-[9px];
-  background: var(--wh-heading-bg);
-  color: var(--muted);
-}
-
-.webhook-page .outcome-success {
-  background: var(--green-soft);
-  color: var(--green);
-}
-
-.webhook-page .outcome-failure {
-  background: var(--red-soft);
-  color: var(--red);
-}
-
-.webhook-page .delivery-succeeded {
-  border-color: color-mix(in srgb, var(--green) 22%, var(--line));
-  background: var(--green-soft);
-  color: var(--green);
-}
-
-.webhook-page .delivery-failed {
-  border-color: color-mix(in srgb, var(--red) 22%, var(--line));
-  background: var(--red-soft);
-  color: var(--red);
-}
-
-.webhook-page .delivery-sending {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
 .webhook-page .status-pill {
   @apply inline-flex shrink-0 items-center gap-[7px] whitespace-nowrap rounded-[20px] border px-[9px] py-1.5 text-[10px] font-semibold;
   border-color: var(--line);
@@ -444,11 +355,6 @@
   @apply w-[148px] shrink-0;
 }
 
-.webhook-page .delivery-error {
-  @apply rounded-[7px] px-[9px] py-2;
-  background: var(--red-soft);
-  color: var(--red) !important;
-}
 @media (hover: none) {
   .webhook-page .row-delete {
     @apply pointer-events-auto opacity-100;
@@ -533,10 +439,6 @@
   }
   .webhook-page .records-filter {
     @apply w-full;
-  }
-  .webhook-page .event-row,
-  .webhook-page .delivery-row {
-    @apply gap-[9px] p-[13px];
   }
 }
 @media (prefers-reduced-motion: reduce) {

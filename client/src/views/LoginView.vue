@@ -2,18 +2,31 @@
 import { computed, nextTick, ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter, useRoute } from "vue-router";
-import { api } from "@/api/client";
+import { api, ApiError } from "@/api/client";
 import AppHeader from "@/components/AppHeader.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AppInput from "@/components/AppInput.vue";
 import { useToast } from "@/composables/useToast";
+import { fetchAdminSession, invalidateAdminSessionCache } from "@/composables/useAdminSession";
 import { PROJECT_LINKS } from "@shared/project-links";
 const { t } = useI18n();
 const { notify } = useToast();
 
 const router = useRouter();
 const route = useRoute();
+
+/**
+ * 被路由守卫踢到登录页时会带上 `redirect`，登录成功后要回到原地址。
+ * 只接受站内 `/admin/` 开头的路径，避免被构造成外部跳转。
+ */
+const redirectTarget = computed(() => {
+  const raw = route.query.redirect;
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (typeof value !== "string") return "/admin/dashboard";
+  if (!value.startsWith("/admin/")) return "/admin/dashboard";
+  return value;
+});
 const password = ref("");
 const passwordInput = ref<InstanceType<typeof AppInput> | null>(null);
 const notice = computed(() =>
@@ -25,48 +38,44 @@ const errorKey = ref<"login.connectFailed" | "login.invalidPassword" | "login.lo
 const errorDetail = ref("");
 const error = computed(() => (errorKey.value ? t(errorKey.value) : errorDetail.value));
 const loading = ref(false);
-const adminEnabled = ref<boolean | null>(null);
 const adminCredentialsMissing = ref(false);
 
 onMounted(async () => {
   let shouldFocus = true;
   try {
-    const meta = await api.meta();
-    adminEnabled.value = meta.adminEnabled;
     const session = await api.session();
     if (session.adminCredentialsMissing) {
       adminCredentialsMissing.value = true;
       shouldFocus = false;
     } else if (session.loggedIn) {
       shouldFocus = false;
-      await router.replace("/admin/dashboard");
+      await router.replace(redirectTarget.value);
     }
   } catch (e) {
     if (e instanceof Error) errorDetail.value = e.message;
     else errorKey.value = "login.connectFailed";
   } finally {
-    if (shouldFocus && !adminCredentialsMissing.value && adminEnabled.value !== false) {
+    if (shouldFocus && !adminCredentialsMissing.value) {
       await nextTick();
       passwordInput.value?.focus();
     }
   }
 });
 async function onSubmit() {
-  if (!password.value || loading.value || adminEnabled.value === false) return;
+  if (!password.value || loading.value) return;
   errorKey.value = "";
   errorDetail.value = "";
   loading.value = true;
   try {
     await api.login(password.value);
-    const { invalidateAdminSessionCache, fetchAdminSession } =
-      await import("@/composables/useAdminSession");
     invalidateAdminSessionCache();
     await fetchAdminSession(true);
     notify(t("login.success"), "success");
-    await router.push("/admin/dashboard");
+    await router.push(redirectTarget.value);
   } catch (e) {
+    const code = e instanceof ApiError ? e.code : "";
     const message = e instanceof Error ? e.message : "";
-    if (message === "Invalid password") errorKey.value = "login.invalidPassword";
+    if (code === "invalid_password") errorKey.value = "login.invalidPassword";
     else if (!message) errorKey.value = "login.loginFailed";
     else errorDetail.value = message;
     notify(error.value, "error");
@@ -83,7 +92,7 @@ async function onSubmit() {
     </AppHeader>
     <section class="auth-layout">
       <div class="auth-intro">
-        <div class="page-kicker">ADMINISTRATION</div>
+        <div class="page-kicker">{{ t("login.kicker") }}</div>
         <h1 class="page-title">{{ t("login.pageTitle") }}</h1>
         <p>{{ t("login.pageDesc") }}</p>
         <div class="security-note">
@@ -102,7 +111,7 @@ async function onSubmit() {
           {{ t("login.adminCredentialsMissing") }}
         </div>
         <div v-if="notice" class="alert success-alert" role="status">{{ notice }}</div>
-        <div v-if="error" class="alert" :class="{ warning: adminEnabled === false }" role="alert">
+        <div v-if="error" class="alert" role="alert">
           {{ error }}
         </div>
         <form @submit.prevent="onSubmit">
@@ -115,21 +124,19 @@ async function onSubmit() {
             required
             autocomplete="current-password"
             :placeholder="t('login.passwordPlaceholder')"
-            :disabled="adminCredentialsMissing || adminEnabled === false"
+            :disabled="adminCredentialsMissing"
           />
           <button
             type="submit"
             class="login-submit"
             :class="{ 'is-loading': loading }"
-            :disabled="loading || !password || adminCredentialsMissing || adminEnabled === false"
+            :disabled="loading || !password || adminCredentialsMissing"
             :title="
               loading
                 ? t('login.verifying')
-                : adminEnabled === false
-                  ? t('login.adminDisabled')
-                  : !password
-                    ? t('login.needPassword')
-                    : t('login.titleButton')
+                : !password
+                  ? t('login.needPassword')
+                  : t('login.titleButton')
             "
           >
             {{ loading ? t("login.submitting") : t("login.submit")

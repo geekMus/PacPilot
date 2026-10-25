@@ -116,9 +116,9 @@ const {
             >
               {{ summary ? summary.errorRate.toFixed(1) + "%" : "0.0%" }}
             </strong>
-            <span class="metric-note"
-              >HTTP 4xx/5xx · 5xx {{ summary?.serverErrorsLast24h ?? 0 }}</span
-            >
+            <span class="metric-note">{{
+              t("monitor.k147", { count: summary?.serverErrorsLast24h ?? 0 })
+            }}</span>
           </article>
           <article class="metric-card">
             <span class="metric-label"

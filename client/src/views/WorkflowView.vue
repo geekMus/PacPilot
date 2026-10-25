@@ -1,37 +1,11 @@
 <script setup lang="ts">
 import AdminLayout from "@/components/layout/AdminLayout.vue";
-import { api, type WorkflowStage } from "@/api/client";
 import AppIcon from "@/components/AppIcon.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import ConfirmPopover from "@/components/ConfirmPopover.vue";
 import VirtualTable from "@/components/VirtualTable.vue";
 import AppSelect from "@/components/AppSelect.vue";
 import { useWorkflowDashboard } from "@/composables/useWorkflowDashboard";
-import { ref } from "vue";
-import AppDialog from "@/components/AppDialog.vue";
-import { DialogDescription, DialogTitle } from "reka-ui";
-
-const selectedRun = ref<any>(null);
-const selectedRunStages = ref<WorkflowStage[]>([]);
-const runDetailLoading = ref(false);
-const runDetailError = ref("");
-const runDetailOpen = ref(false);
-async function openRunDetail(run: any): Promise<void> {
-  selectedRun.value = run;
-  selectedRunStages.value = [];
-  runDetailError.value = "";
-  runDetailOpen.value = true;
-  runDetailLoading.value = true;
-  try {
-    const detail = await api.workflowDetail(run.id);
-    selectedRun.value = detail.run;
-    selectedRunStages.value = detail.stages;
-  } catch (error) {
-    runDetailError.value = error instanceof Error ? error.message : String(error);
-  } finally {
-    runDetailLoading.value = false;
-  }
-}
 
 const {
   t,
@@ -84,7 +58,7 @@ const {
       <section class="workflow-current panel">
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">WORKFLOW CATALOG</p>
+            <p class="eyebrow">{{ t("workflowPage.kickerCatalog") }}</p>
             <h2>{{ t("workflow.definition") }}</h2>
             <p class="panel-subtitle">{{ t("workflow.definitionDesc") }}</p>
           </div>
@@ -104,7 +78,7 @@ const {
       <section class="workflow-current panel">
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">CURRENT TASK</p>
+            <p class="eyebrow">{{ t("workflowPage.kickerCurrent") }}</p>
             <h2>{{ t("workflow.current") }}</h2>
           </div>
           <span class="status-pill" :class="active ? current!.status : 'idle'"
@@ -215,7 +189,7 @@ const {
       <section v-if="otherActiveRuns.length" class="workflow-queue panel">
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">ACTIVE QUEUE</p>
+            <p class="eyebrow">{{ t("workflowPage.kickerQueue") }}</p>
             <h2>{{ t("workflowPage.k60") }}</h2>
             <p class="panel-subtitle">{{ t("workflowPage.k61") }}</p>
           </div>
@@ -281,7 +255,7 @@ const {
       <section class="workflow-history panel">
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">HISTORY</p>
+            <p class="eyebrow">{{ t("workflowPage.kickerHistory") }}</p>
             <h2>{{ t("workflowPage.k62") }}</h2>
             <p v-if="activeRuns.length" class="panel-subtitle">
               {{ t("workflowPage.k63") }}
@@ -444,98 +418,6 @@ const {
           {{ t("workflowPage.loadedHint", { loaded: runs.length, total: historyTotal }) }}
         </p>
       </section>
-      <AppDialog
-        :open="runDetailOpen && !!selectedRun"
-        :label="t('workflowPage.viewRunDetails', { id: selectedRun?.id })"
-        width="min(720px, calc(100vw - 16px))"
-        @update:open="runDetailOpen = $event"
-      >
-        <template #header>
-          <div>
-            <p class="eyebrow">WORKFLOW RUN #{{ selectedRun?.id }}</p>
-            <DialogTitle>{{ t("workflow.pacGeneration") }}</DialogTitle>
-            <DialogDescription>{{
-              t("workflowPage.viewRunDetails", { id: selectedRun?.id })
-            }}</DialogDescription>
-          </div>
-        </template>
-        <template #body>
-          <div v-if="selectedRun" class="run-detail-content">
-            <div class="run-detail-grid">
-              <div>
-                <span>{{ t("workflow.trigger") }}</span
-                ><strong>{{ sourceLabel(selectedRun.source) }}</strong>
-              </div>
-              <div>
-                <span>{{ t("workflowPage.k71") }}</span
-                ><strong
-                  ><span class="status-pill" :class="selectedRun.status">{{
-                    statusLabel(selectedRun.status)
-                  }}</span></strong
-                >
-              </div>
-              <div>
-                <span>{{ t("workflowPage.k70") }}</span
-                ><strong>{{ dateLabel(selectedRun.started_at || selectedRun.created_at) }}</strong>
-              </div>
-              <div>
-                <span>{{ t("workflowPage.k72") }}</span
-                ><strong>{{ durationLabel(selectedRun) }}</strong>
-              </div>
-              <div>
-                <span>{{ t("workflowPage.k50") }}</span
-                ><strong>{{ modeLabel(selectedRun.mode) }}</strong>
-              </div>
-              <div>
-                <span>{{ t("workflowPage.stageField") }}</span
-                ><strong>{{ stageLabel(selectedRun.stage) || "—" }}</strong>
-              </div>
-              <div>
-                <span>{{ t("workflow.endTime") }}</span
-                ><strong>{{
-                  selectedRun.finished_at ? dateLabel(selectedRun.finished_at) : "—"
-                }}</strong>
-              </div>
-            </div>
-            <p v-if="runDetailLoading" class="run-detail-state">{{ t("common.loading") }}</p>
-            <p v-if="runDetailError" class="run-detail-error-message" role="alert">
-              {{ runDetailError }}
-            </p>
-            <section v-if="selectedRunStages.length" class="run-detail-stages">
-              <h3>{{ t("workflowPage.stagesTitle") }}</h3>
-              <article v-for="stage in selectedRunStages" :key="stage.id" class="run-detail-stage">
-                <div class="run-detail-stage-heading">
-                  <strong>{{ stageLabel(stage.stage_key) }}</strong
-                  ><span class="status-pill" :class="stage.status">{{
-                    statusLabel(stage.status)
-                  }}</span>
-                </div>
-                <div class="run-detail-stage-meta">
-                  <span>{{ stage.started_at ? dateLabel(stage.started_at) : "—" }}</span
-                  ><span>{{ stage.finished_at ? dateLabel(stage.finished_at) : "—" }}</span
-                  ><span>{{ stage.duration_ms == null ? "—" : stage.duration_ms + " ms" }}</span>
-                </div>
-                <pre v-if="stage.error" class="run-detail-error">{{ stage.error }}</pre>
-                <pre v-if="stage.detail" class="run-detail-stage-detail">{{
-                  JSON.stringify(stage.detail, null, 2)
-                }}</pre>
-              </article>
-            </section>
-            <div v-if="selectedRun.error" class="run-detail-error">
-              <strong>{{ t("workflowPage.k57") }}</strong>
-              <pre>{{ selectedRun.error }}</pre>
-            </div>
-            <div class="run-detail-actions">
-              <RouterLink
-                class="app-button app-button--secondary"
-                :to="`/admin/workflows/${selectedRun.id}`"
-                @click="runDetailOpen = false"
-                ><AppIcon name="external-link" :size="14" />{{ t("workflowPage.k53") }}</RouterLink
-              >
-            </div>
-          </div>
-        </template>
-      </AppDialog>
       <AppFooter />
     </div>
   </AdminLayout>
@@ -651,10 +533,6 @@ const {
     flex-basis: calc(100% - 50px);
   }
 }
-.delete-run-button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
 .status-pill {
   @apply gap-[5px];
 }
@@ -680,27 +558,11 @@ const {
   min-height: 40px;
   background: var(--surface-2);
 }
-.history-pagination {
-  @apply mt-4 flex items-center justify-between gap-3 text-xs;
-  color: var(--muted);
-}
-.history-pagination div {
-  @apply flex gap-2;
-}
-.history-pagination button {
-  @apply min-h-[34px] cursor-pointer rounded-[7px] border px-[11px];
-  border-color: var(--line);
-  background: var(--surface-2);
-  color: var(--text);
-}
-.history-pagination button:disabled {
-  @apply cursor-not-allowed opacity-45;
-}
 .panel {
   @apply min-w-0 rounded-[14px] border p-[22px];
   border-color: var(--line);
   background: var(--surface);
-  box-shadow: var(--shadow-sm, 0 4px 18px rgba(0, 0, 0, 0.03));
+  box-shadow: var(--shadow);
 }
 .panel-heading {
   @apply mb-[18px] flex items-start justify-between gap-4;
@@ -833,13 +695,6 @@ td {
 .duration-cell {
   @apply whitespace-nowrap tabular-nums;
 }
-.result-cell {
-  @apply min-w-0 max-w-[160px] overflow-hidden text-ellipsis whitespace-nowrap;
-}
-.empty-row {
-  @apply px-3 py-[30px] text-center;
-  color: var(--muted);
-}
 .workflow-error-detail {
   @apply mt-4 rounded-lg border p-[13px];
   border-color: color-mix(in srgb, var(--red) 30%, var(--line));
@@ -918,72 +773,5 @@ td {
   .actions-cell {
     @apply w-[100px] min-w-[100px];
   }
-}
-.run-detail-content {
-  @apply grid min-w-0 gap-[18px];
-}
-.run-detail-grid {
-  @apply grid grid-cols-2 gap-3;
-}
-.run-detail-grid > div {
-  @apply grid min-w-0 gap-1.5 rounded-[9px] border p-3;
-  border-color: var(--line);
-  background: var(--surface-2);
-}
-.run-detail-grid > div > span:first-child {
-  @apply text-[11px];
-  color: var(--muted);
-}
-.run-detail-grid strong {
-  @apply min-w-0 text-[13px];
-  overflow-wrap: anywhere;
-}
-.run-detail-error {
-  @apply grid gap-2;
-}
-.run-detail-error pre {
-  @apply m-0 rounded-lg border p-3 font-mono text-xs leading-normal whitespace-pre-wrap;
-  border-color: color-mix(in srgb, var(--red) 25%, var(--line));
-  background: var(--red-soft);
-  color: var(--red);
-  overflow-wrap: anywhere;
-}
-.run-detail-actions {
-  @apply flex justify-end;
-}
-@media (max-width: 520px) {
-  .run-detail-grid {
-    @apply grid-cols-1;
-  }
-}
-.run-detail-stages {
-  @apply grid gap-2.5;
-}
-.run-detail-stages h3 {
-  @apply m-0 text-[13px];
-}
-.run-detail-stage {
-  @apply grid min-w-0 gap-2 rounded-[9px] border p-3;
-  border-color: var(--line);
-}
-.run-detail-stage-heading {
-  @apply flex items-center justify-between gap-2.5;
-}
-.run-detail-stage-meta {
-  @apply flex flex-wrap gap-x-3.5 gap-y-2 text-[11px];
-  color: var(--muted);
-}
-.run-detail-stage-detail {
-  @apply m-0 rounded-[7px] p-2.5 font-mono text-[11px] leading-normal whitespace-pre-wrap;
-  background: var(--surface-2);
-  overflow-wrap: anywhere;
-}
-.run-detail-state,
-.run-detail-error-message {
-  @apply m-0 text-xs;
-  color: var(--muted);
-}
-.run-detail-error-message {
-  color: var(--red);
 }
 </style>

@@ -58,7 +58,7 @@ class FakeResponse extends EventEmitter {
 function fakeRepository(): MonitoringRepository & { record: ReturnType<typeof vi.fn> } {
   return {
     record: vi.fn(),
-    list: vi.fn(async () => ({ items: [], nextCursor: null, total: 0 })),
+    list: vi.fn(async () => []),
     count: vi.fn(async () => 0),
     storageBytes: vi.fn(async () => 0),
     cleanup: vi.fn(async () => 0),

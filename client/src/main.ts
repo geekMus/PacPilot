@@ -5,6 +5,7 @@ import { i18n, persistLocale, readStoredLocale } from "@/i18n";
 import { initThemeEarly } from "@/composables/useTheme";
 import { loadRuntimeConfig } from "@/api/runtime-config";
 import { onUnauthorized } from "@/api/auth-events";
+import { invalidateAdminSessionCache } from "@/composables/useAdminSession";
 import "@/styles/theme.css";
 import "@/styles/scrollbars.css";
 import "@/styles/overlays.css";
@@ -20,6 +21,8 @@ async function bootstrap(): Promise<void> {
   await loadRuntimeConfig();
 
   onUnauthorized(() => {
+    // 401 说明会话已失效，缓存的会话状态必须立刻作废，否则守卫可能继续认为已登录。
+    invalidateAdminSessionCache();
     const { pathname, search } = window.location;
     if (!pathname.startsWith("/admin") || pathname.startsWith("/admin/login")) return;
     void router.replace({ name: "login", query: { redirect: pathname + search } });

@@ -145,7 +145,7 @@ async function load() {
     const session = await api.session();
     if (!session.loggedIn) {
       stopPolling();
-      await router.replace("/admin/login");
+      await router.replace({ name: "login", query: { redirect: route.fullPath } });
       return;
     }
     const next = await api.workflowDetail(requestedId);
@@ -263,7 +263,9 @@ onUnmounted(() => {
       <section v-if="detail" class="detail-panel">
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">EXECUTION #{{ detail.run.id }}</p>
+            <p class="eyebrow">
+              {{ t("workflowDetailPage.kickerExecution", { id: detail.run.id }) }}
+            </p>
             <h2>{{ t("workflow.pacGeneration") }}</h2>
             <p class="muted">{{ t("workflow.fixedId") }}</p>
           </div>
@@ -324,7 +326,7 @@ onUnmounted(() => {
       <section v-if="detail" class="detail-panel">
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">STAGE TIMELINE</p>
+            <p class="eyebrow">{{ t("workflowDetailPage.kickerTimeline") }}</p>
             <h2>{{ t("workflowDetailPage.k27") }}</h2>
             <p class="muted">
               {{ t("workflowDetailPage.k28") }}
@@ -394,7 +396,9 @@ onUnmounted(() => {
       >
         <template #header>
           <div class="stage-detail-heading">
-            <p class="stage-detail-kicker">STAGE · {{ selectedStage?.stage_key ?? "" }}</p>
+            <p class="stage-detail-kicker">
+              {{ t("workflowDetailPage.kickerStage", { name: selectedStage?.stage_key ?? "" }) }}
+            </p>
             <DialogTitle class="stage-detail-title">
               {{ stageLabel(selectedStage?.stage_key ?? "") }}
             </DialogTitle>
@@ -596,8 +600,8 @@ onUnmounted(() => {
   background: var(--accent-soft);
 }
 .status.pending {
-  color: var(--warn, #b45309);
-  border-color: color-mix(in srgb, var(--warn, #d97706) 30%, var(--line));
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 30%, var(--line));
 }
 .stage-list {
   @apply m-0 list-none p-0;
@@ -721,8 +725,8 @@ onUnmounted(() => {
   color: var(--green);
 }
 .app-button.is-copy-error {
-  border-color: color-mix(in srgb, var(--red, #dc2626) 55%, var(--line));
-  color: var(--red, #dc2626);
+  border-color: color-mix(in srgb, var(--red) 55%, var(--line));
+  color: var(--red);
 }
 .stage-detail-body {
   @apply grid gap-4 p-0;

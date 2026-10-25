@@ -5,7 +5,6 @@ const toast = vi.hoisted(() => ({
   error: vi.fn(),
   warning: vi.fn(),
   info: vi.fn(),
-  dismiss: vi.fn(),
 }));
 
 vi.mock("vue-sonner", () => ({ toast }));
@@ -66,15 +65,5 @@ describe("useToast", () => {
     notify("quick", "success", 1200);
 
     expect(toast.success).toHaveBeenCalledWith("quick", { duration: 1200 });
-  });
-
-  it("forwards dismiss ids", async () => {
-    const { dismiss } = await loadToast();
-
-    dismiss("toast-1");
-    dismiss(7);
-
-    expect(toast.dismiss).toHaveBeenNthCalledWith(1, "toast-1");
-    expect(toast.dismiss).toHaveBeenNthCalledWith(2, 7);
   });
 });

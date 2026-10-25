@@ -17,6 +17,7 @@ export async function fetchAdminSession(force = false): Promise<AdminSession> {
   return data;
 }
 
+/** `/admin` 本身也是受保护入口：服务端会把裸 `/admin` 交给 SPA，需要一并校验。 */
 export function isAdminAppRoute(path: string): boolean {
-  return path.startsWith("/admin/");
+  return path === "/admin" || path.startsWith("/admin/");
 }

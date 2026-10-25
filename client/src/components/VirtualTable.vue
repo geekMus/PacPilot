@@ -18,7 +18,8 @@ const props = withDefaults(
     loading?: boolean;
     error?: string;
     emptyText?: string;
-    loadMore: () => void | Promise<void>;
+    /** Omit when the caller renders a complete list instead of a paged one. */
+    loadMore?: () => void | Promise<void>;
   }>(),
   {
     rowHeight: 56,
@@ -82,6 +83,9 @@ const bottomPadding = computed(() =>
 
 let resizeObserver: ResizeObserver | undefined;
 let previousItems: T[] = [];
+// A single scroll gesture can fire many scroll events before the parent flips
+// `loading`; this flag keeps them from starting overlapping loads.
+let loadInFlight = false;
 
 function measureViewport(element = scroller.value): void {
   if (!element) return;
@@ -100,9 +104,19 @@ function onReady(element: HTMLElement): void {
 }
 
 function maybeLoadMore(element: HTMLElement): void {
-  if (!props.hasMore || props.loading || props.error) return;
+  if (!props.hasMore || props.loading || props.error || loadInFlight || !props.loadMore) return;
   if (element.scrollHeight - element.scrollTop - element.clientHeight <= props.rowHeight * 3)
-    void props.loadMore();
+    void runLoadMore();
+}
+
+async function runLoadMore(): Promise<void> {
+  if (loadInFlight || !props.loadMore) return;
+  loadInFlight = true;
+  try {
+    await props.loadMore();
+  } finally {
+    loadInFlight = false;
+  }
 }
 
 function onScroll(element: HTMLElement): void {
@@ -111,7 +125,7 @@ function onScroll(element: HTMLElement): void {
 }
 
 function retry(): void {
-  if (!props.loading) void props.loadMore();
+  if (!props.loading) void runLoadMore();
 }
 
 async function preserveScrollAnchor(nextItems: T[]): Promise<void> {

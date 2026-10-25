@@ -20,12 +20,12 @@ describe("runtime config", () => {
         throw new Error("offline");
       })
     );
-    const { getApiBaseUrl, isCrossOriginApi, loadRuntimeConfig, resolveApiUrl } =
+    const { isCrossOriginApi, loadRuntimeConfig, resolveApiUrl } =
       await import("../src/api/runtime-config");
 
-    await loadRuntimeConfig();
+    const config = await loadRuntimeConfig();
 
-    expect(getApiBaseUrl()).toBe("");
+    expect(config.apiBaseUrl).toBe("");
     expect(isCrossOriginApi()).toBe(false);
     expect(resolveApiUrl("/api/meta")).toBe("/api/meta");
   });
@@ -36,16 +36,16 @@ describe("runtime config", () => {
       json: async () => ({ apiBaseUrl: "  https://api.example.com//  " }),
     }));
     vi.stubGlobal("fetch", fetchMock);
-    const { getApiBaseUrl, isCrossOriginApi, loadRuntimeConfig, resolveApiUrl } =
+    const { isCrossOriginApi, loadRuntimeConfig, resolveApiUrl } =
       await import("../src/api/runtime-config");
 
-    await loadRuntimeConfig();
+    const config = await loadRuntimeConfig();
 
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("config.json"),
       expect.objectContaining({ cache: "no-store", credentials: "omit" })
     );
-    expect(getApiBaseUrl()).toBe("https://api.example.com");
+    expect(config.apiBaseUrl).toBe("https://api.example.com");
     expect(isCrossOriginApi()).toBe(true);
     expect(resolveApiUrl("/api/meta")).toBe("https://api.example.com/api/meta");
     expect(resolveApiUrl("api/meta")).toBe("https://api.example.com/api/meta");
@@ -57,11 +57,11 @@ describe("runtime config", () => {
       "fetch",
       vi.fn(async () => ({ ok: false, json: async () => ({ apiBaseUrl: "https://ignored" }) }))
     );
-    const { getApiBaseUrl, loadRuntimeConfig } = await import("../src/api/runtime-config");
+    const { loadRuntimeConfig } = await import("../src/api/runtime-config");
 
-    await loadRuntimeConfig();
+    const config = await loadRuntimeConfig();
 
-    expect(getApiBaseUrl()).toBe("");
+    expect(config.apiBaseUrl).toBe("");
   });
 
   it("normalizes an empty apiBaseUrl to same origin", async () => {
@@ -69,12 +69,11 @@ describe("runtime config", () => {
       "fetch",
       vi.fn(async () => ({ ok: true, json: async () => ({ apiBaseUrl: "   " }) }))
     );
-    const { getApiBaseUrl, isCrossOriginApi, loadRuntimeConfig } =
-      await import("../src/api/runtime-config");
+    const { isCrossOriginApi, loadRuntimeConfig } = await import("../src/api/runtime-config");
 
-    await loadRuntimeConfig();
+    const config = await loadRuntimeConfig();
 
-    expect(getApiBaseUrl()).toBe("");
+    expect(config.apiBaseUrl).toBe("");
     expect(isCrossOriginApi()).toBe(false);
   });
 
@@ -82,12 +81,12 @@ describe("runtime config", () => {
     vi.stubEnv("VITE_API_BASE_URL", " https://build.example.com/ ");
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
-    const { getApiBaseUrl, loadRuntimeConfig } = await import("../src/api/runtime-config");
+    const { loadRuntimeConfig } = await import("../src/api/runtime-config");
 
-    await loadRuntimeConfig();
+    const config = await loadRuntimeConfig();
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(getApiBaseUrl()).toBe("https://build.example.com");
+    expect(config.apiBaseUrl).toBe("https://build.example.com");
   });
 
   it("returns the last loaded config on repeated calls", async () => {

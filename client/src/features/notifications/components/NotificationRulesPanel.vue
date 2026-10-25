@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import AppButton from "@/components/AppButton.vue";
 import AppCheckbox from "@/components/AppCheckbox.vue";
@@ -8,9 +9,13 @@ import AppInput from "@/components/AppInput.vue";
 import AppScrollArea from "@/components/AppScrollArea.vue";
 import AppSelect from "@/components/AppSelect.vue";
 import AppToggle from "@/components/AppToggle.vue";
+import ConfirmPopover from "@/components/ConfirmPopover.vue";
 import type { NotificationWorkspace } from "@/features/notifications/composables/useNotificationWorkspace";
+import type { NotificationRule } from "@shared/contracts";
 
 const props = defineProps<{ ws: NotificationWorkspace }>();
+// 逐行记录哪个规则正在等待删除确认，避免同一时间弹出多个确认气泡。
+const confirmingDeleteId = ref<string | null>(null);
 const { t } = useI18n();
 const {
   tab,
@@ -40,6 +45,16 @@ const {
   saveR,
   deleteR,
 } = props.ws;
+
+function toggleDelete(toggle: () => void, open: boolean) {
+  if (!open) confirmingDeleteId.value = null;
+  toggle();
+}
+
+async function confirmDeleteRule(item: NotificationRule) {
+  confirmingDeleteId.value = null;
+  await deleteR(item);
+}
 </script>
 
 <template>
@@ -86,14 +101,29 @@ const {
               item.enabled ? t('notifications.statusEnabled') : t('notifications.statusDisabled')
             "
           ></span>
-          <AppIconButton
-            class="row-delete"
-            size="sm"
-            danger
-            :label="t('notifications.deleteRuleTitle', { name: item.name })"
-            @click.stop="deleteR(item)"
-            ><AppIcon name="trash-2" :size="14"
-          /></AppIconButton>
+          <ConfirmPopover
+            :open="confirmingDeleteId === item.id"
+            :title="t('notifications.deleteRuleTitle', { name: item.name })"
+            :description="t('notifications.confirmDeleteRule', { name: item.name })"
+            :confirm-text="t('common.delete')"
+            :cancel-text="t('common.back')"
+            :busy-text="t('common.processing')"
+            :busy="busy"
+            @update:open="confirmingDeleteId = $event ? item.id : null"
+            @confirm="confirmDeleteRule(item)"
+          >
+            <template #trigger="{ toggle, open }">
+              <AppIconButton
+                class="row-delete"
+                size="sm"
+                danger
+                :label="t('notifications.deleteRuleTitle', { name: item.name })"
+                :disabled="busy"
+                @click.stop="toggleDelete(toggle, open)"
+                ><AppIcon name="trash-2" :size="14"
+              /></AppIconButton>
+            </template>
+          </ConfirmPopover>
         </div>
       </AppScrollArea>
       <footer v-if="rules.length" class="panel-footer">

@@ -186,15 +186,12 @@ watch(
 .admin-content :deep(.panel-heading p) {
   @apply text-[11px] leading-normal;
 }
-.admin-content :deep(.recent-table),
-.admin-content :deep(.table-wrap table) {
+.admin-content :deep(.recent-table) {
   @apply text-xs;
   min-width: 560px;
 }
 .admin-content :deep(.recent-table th),
-.admin-content :deep(.recent-table td),
-.admin-content :deep(.table-wrap th),
-.admin-content :deep(.table-wrap td) {
+.admin-content :deep(.recent-table td) {
   @apply px-3 py-2.5;
 }
 .admin-content :deep(.app-button.app-button) {
@@ -229,7 +226,7 @@ watch(
   }
   .sidebar-backdrop {
     @apply fixed inset-0 z-[45] block border-0;
-    background: rgba(12, 18, 30, 0.45);
+    background: var(--dialog-overlay-bg);
   }
   .admin-topbar {
     @apply min-h-[72px] gap-2.5 px-[18px] py-3;

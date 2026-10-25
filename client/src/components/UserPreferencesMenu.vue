@@ -143,7 +143,7 @@ const languages: { value: AppLocale; label: string }[] = [
 .preferences-option[data-state="checked"] {
   color: var(--accent);
   background: var(--surface);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
+  box-shadow: var(--shadow-sm);
 }
 .preferences-option:focus-visible {
   outline: 2px solid var(--accent);

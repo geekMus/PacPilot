@@ -59,7 +59,7 @@ bun run start
 覆盖率统计范围由 `server/vitest.config.ts` 和 `client/vitest.config.ts` 的 `coverage.include` 明确列出，只纳入能在 Node + jsdom 下完整执行的模块，避免把 0% 的路由层和 Bun-only 驱动混进阈值里稀释结果：
 
 - 后端：`server/domain/`、`server/services/`、`server/storage/`、`server/utils/`。排除 `server/storage/repositories.ts`（纯类型契约）和 `server/storage/sqlite/`（依赖 `bun:sqlite`，只由 `bun test server/tests/storage-sqlite.bun.ts` 覆盖）。
-- 前端：`client/src/api/`、`client/src/utils/`，以及 `client/src/composables/` 中可独立驱动的 `useTheme`、`useToast`、`useAdminSession`、`useViewportPanel`、`useWorkflowLabels`、`useCopyFeedback`、`useAdminPassword`。视图组件和依赖真实 DOM 布局的 dashboard composable 不纳入该门槛。
+- 前端：`client/src/api/`、`client/src/utils/`，以及 `client/src/composables/` 中可独立驱动的 `useTheme`、`useToast`、`useAdminSession`、`useWorkflowLabels`、`useCopyFeedback`、`useAdminPassword`。视图组件和依赖真实 DOM 布局的 dashboard composable 不纳入该门槛。
 
 新增可测试模块时应把它加入对应的 `coverage.include` 并同步补齐测试，而不是只依赖编译通过。
 

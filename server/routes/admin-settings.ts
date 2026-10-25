@@ -3,14 +3,13 @@ import type { ApplicationStorage } from "../storage/repositories";
 import type { EnvConfig } from "../config/env";
 
 import type { AppSettings, GenerationMode } from "../../shared/contracts";
-import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../domain/settings";
+import { DEFAULT_SETTINGS } from "../domain/settings";
 import { requireAdmin } from "../middleware/auth";
 import { validatePacProxyString } from "../services/pac-generator";
 import { startPacWorkflow } from "../services/workflow";
 import { reschedule } from "../services/scheduler";
 import { invalidateRenderedPac, readRuleSource } from "../services/pac-runtime";
 import { refreshRemoteRules } from "../services/pac-generator";
-import { sendWebhookTest, validateWebhookConfig } from "../services/webhook";
 import cron from "node-cron";
 import { resolveLocale, t as serverT } from "../../shared/i18n";
 import { assertSafeHttpUrl } from "../utils/url-safety";
@@ -148,14 +147,5 @@ export function adminSettingsRoutes(env: EnvConfig, storage: ApplicationStorage)
       }
     }
   );
-  router.post("/api/admin/webhook-test", requireAdmin(storage.credentials), async (req, res) => {
-    const c = normalizeWebhookConfig(req.body?.config ?? req.body),
-      errors = validateWebhookConfig(c);
-    if (errors.length) {
-      res.status(400).json({ error: errors.join("\n") });
-      return;
-    }
-    res.json(await sendWebhookTest(c, (await storage.settings.get()).timezone));
-  });
   return router;
 }

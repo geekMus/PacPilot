@@ -163,14 +163,6 @@ export function finishWorkflowStage(
     .run(status, error, detail || "", detail || "", now, now, stageId);
 }
 
-export function encodeWorkflowStageDetail(value: unknown): string {
-  const json = JSON.stringify(value ?? {});
-  if (json === undefined) throw new Error("Workflow stage detail is not JSON-serializable.");
-  return json.length > 32000
-    ? JSON.stringify({ truncated: true, originalLength: json.length })
-    : json;
-}
-
 export function cancelPendingWorkflow(
   database: AppDatabase,
   id: number

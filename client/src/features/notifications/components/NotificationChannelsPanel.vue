@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import AppButton from "@/components/AppButton.vue";
 import AppIcon from "@/components/AppIcon.vue";
@@ -9,10 +9,14 @@ import AppScrollArea from "@/components/AppScrollArea.vue";
 import AppSelect from "@/components/AppSelect.vue";
 import AppToggle from "@/components/AppToggle.vue";
 import CodeMirrorField from "@/components/CodeMirrorField.vue";
+import ConfirmPopover from "@/components/ConfirmPopover.vue";
 import WebhookBodyEditor from "@/features/webhooks/components/WebhookBodyEditor.vue";
 import type { NotificationWorkspace } from "@/features/notifications/composables/useNotificationWorkspace";
+import type { NotificationChannel } from "@shared/contracts";
 
 const props = defineProps<{ ws: NotificationWorkspace }>();
+// 逐行记录哪个渠道正在等待删除确认，避免同一时间弹出多个确认气泡。
+const confirmingDeleteId = ref<string | null>(null);
 const { t, tm } = useI18n();
 const {
   channels,
@@ -61,6 +65,16 @@ function rawTemplate(key: string): string {
 }
 const dingTalkTemplateDefault = computed(() => rawTemplate("settings.defaultMessageTemplate"));
 const dingTalkTestTemplateDefault = computed(() => rawTemplate("settings.testMessageTemplate"));
+
+function toggleDelete(toggle: () => void, open: boolean) {
+  if (!open) confirmingDeleteId.value = null;
+  toggle();
+}
+
+async function confirmDeleteChannel(item: NotificationChannel) {
+  confirmingDeleteId.value = null;
+  await deleteC(item);
+}
 </script>
 
 <template>
@@ -111,14 +125,29 @@ const dingTalkTestTemplateDefault = computed(() => rawTemplate("settings.testMes
               item.enabled ? t('notifications.statusEnabled') : t('notifications.statusDisabled')
             "
           ></span>
-          <AppIconButton
-            class="row-delete"
-            size="sm"
-            danger
-            :label="t('notifications.deleteChannelTitle', { name: item.name })"
-            @click.stop="deleteC(item)"
-            ><AppIcon name="trash-2" :size="14"
-          /></AppIconButton>
+          <ConfirmPopover
+            :open="confirmingDeleteId === item.id"
+            :title="t('notifications.deleteChannelTitle', { name: item.name })"
+            :description="t('notifications.confirmDeleteChannel', { name: item.name })"
+            :confirm-text="t('common.delete')"
+            :cancel-text="t('common.back')"
+            :busy-text="t('common.processing')"
+            :busy="busy"
+            @update:open="confirmingDeleteId = $event ? item.id : null"
+            @confirm="confirmDeleteChannel(item)"
+          >
+            <template #trigger="{ toggle, open }">
+              <AppIconButton
+                class="row-delete"
+                size="sm"
+                danger
+                :label="t('notifications.deleteChannelTitle', { name: item.name })"
+                :disabled="busy"
+                @click.stop="toggleDelete(toggle, open)"
+                ><AppIcon name="trash-2" :size="14"
+              /></AppIconButton>
+            </template>
+          </ConfirmPopover>
         </div>
       </AppScrollArea>
       <footer v-if="channels.length" class="panel-footer">

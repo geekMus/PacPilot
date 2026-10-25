@@ -70,7 +70,7 @@ async function copyContent(): Promise<void> {
     </template>
     <template #footer>
       <button
-        class="text-detail-button secondary"
+        class="text-detail-button"
         :class="{
           'is-copy-success': copyState === 'success',
           'is-copy-error': copyState === 'error',
@@ -142,8 +142,8 @@ async function copyContent(): Promise<void> {
   color: var(--green);
 }
 .text-detail-button.is-copy-error {
-  border-color: color-mix(in srgb, var(--red, #dc2626) 55%, var(--line));
-  color: var(--red, #dc2626);
+  border-color: color-mix(in srgb, var(--red) 55%, var(--line));
+  color: var(--red);
 }
 @media (max-width: 560px) {
   .text-detail-content {

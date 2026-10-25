@@ -116,11 +116,11 @@ export function useMonitoringDashboard() {
       `${t("monitor.k133")}：${formatBytes(event.response_bytes)}`,
       `${t("monitor.k141")}：${event.response_content_type || t("monitor.k2")}`,
       `${t("monitor.k128")}：${event.source_ip || "unknown"}`,
-      `Host：${event.host || t("monitor.k2")}`,
+      `${t("monitor.k143")}：${event.host || t("monitor.k2")}`,
       `${t("monitor.k138")}：${event.user_agent || t("monitor.k2")}`,
-      `Referer：${event.referer || t("monitor.k2")}`,
-      `Accept：${event.accept || t("monitor.k2")}`,
-      `Accept-Language：${event.accept_language || t("monitor.k2")}`,
+      `${t("monitor.k144")}：${event.referer || t("monitor.k2")}`,
+      `${t("monitor.k145")}：${event.accept || t("monitor.k2")}`,
+      `${t("monitor.k146")}：${event.accept_language || t("monitor.k2")}`,
       `${t("monitor.k140")}：${event.content_type || t("monitor.k2")}`,
       "",
       t("monitor.k3"),
@@ -290,13 +290,20 @@ export function useMonitoringDashboard() {
   async function initialise(): Promise<void> {
     try {
       const session: AdminSession = await api.session();
+      // 路由守卫只在导航时校验；会话在停留期间失效时这里必须自己回登录页，
+      // 并带上当前地址，登录后才能回到这一页。
       if (!session.loggedIn) {
-        await router.replace("/admin/login");
+        await router.replace({
+          name: "login",
+          query: { redirect: router.currentRoute.value.fullPath },
+        });
         return;
       }
       authChecking.value = false;
       await refreshDashboard();
       refreshTimer = setInterval(() => {
+        // 标签页在后台时不轮询。
+        if (document.hidden) return;
         void refreshDashboard(true);
       }, 10_000);
     } catch (caught) {
@@ -306,12 +313,19 @@ export function useMonitoringDashboard() {
     }
   }
 
+  // 从后台切回前台时立刻补一次刷新。
+  function onVisibilityChange() {
+    if (!document.hidden) void refreshDashboard(true);
+  }
+
   onMounted(() => {
+    document.addEventListener("visibilitychange", onVisibilityChange);
     void initialise();
   });
 
   onUnmounted(() => {
     if (refreshTimer) clearInterval(refreshTimer);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
   });
 
   return {

@@ -10,7 +10,7 @@ const { t } = useI18n();
     <AppHeader brand="PacPilot" />
     <section class="not-found-card">
       <div class="not-found-code">404</div>
-      <div class="page-kicker">PAGE NOT FOUND</div>
+      <div class="page-kicker">{{ t("notFound.kicker") }}</div>
       <h1 class="page-title">{{ t("notFound.title") }}</h1>
       <p>{{ t("notFound.desc") }}</p>
       <div class="not-found-actions">

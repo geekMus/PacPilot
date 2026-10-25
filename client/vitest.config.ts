@@ -31,7 +31,6 @@ export default defineConfig({
         "client/src/composables/useTheme.ts",
         "client/src/composables/useToast.ts",
         "client/src/composables/useAdminSession.ts",
-        "client/src/composables/useViewportPanel.ts",
         "client/src/composables/useWorkflowLabels.ts",
         "client/src/composables/useCopyFeedback.ts",
         "client/src/composables/useAdminPassword.ts",

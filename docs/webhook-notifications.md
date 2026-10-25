@@ -13,14 +13,14 @@ PacPilot 内置事件驱动的通知服务：**渠道**保存接收方配置（�
 
 ## 支持的事件
 
-| 事件             | 业务语义         | 生命周期阶段                                  |
-| ---------------- | ---------------- | --------------------------------------------- |
-| `task.execution` | 工作流执行       | `started`、`finished`                         |
-| `config.publish` | 配置发布         | `started`、`finished`、`state_changed`        |
-| `request.process`| 请求处理         | `started`、`finished`                         |
-| `system.error`   | 系统错误         | `state_changed`                               |
+| 事件              | 业务语义   | 生命周期阶段                           |
+| ----------------- | ---------- | -------------------------------------- |
+| `task.execution`  | 工作流执行 | `started`、`finished`                  |
+| `config.publish`  | 配置发布   | `started`、`finished`、`state_changed` |
+| `request.process` | 请求处理   | `started`、`finished`                  |
+| `system.error`    | 系统错误   | `state_changed`                        |
 
-`started` 阶段的事件没有最终结果（outcome）；`finished` 事件携带成功/失败结果。事件名描述的是**业务语义**而非当前 PAC 文件的实现细节，便于未来扩展到实时配置或请求处理后端。
+`started` 阶段的事件没有最终结果（outcome）；`finished` 事件携带成功/失败结果。事件名描述的是**业务语义**而非当前 PAC 渲染的实现细节，便于未来扩展到实时配置或请求处理后端。
 
 ## 规则匹配
 

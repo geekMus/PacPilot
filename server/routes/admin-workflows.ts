@@ -24,9 +24,6 @@ export function adminWorkflowRoutes(storage: ApplicationStorage): Router {
       current: await storage.workflows.current(),
       active: await storage.workflows.listActive(),
       runs: page.slice(0, limit),
-      beforeId,
-      nextCursor:
-        page.length > limit ? (page[limit - 1]?.id ?? null) : (page[page.length - 1]?.id ?? null),
       total,
       hasMore,
     });

@@ -1,10 +1,10 @@
-import { nextTick } from "vue";
+import { nextTick, watch } from "vue";
 import { createRouter, createWebHistory } from "vue-router";
 import { i18n } from "@/i18n";
 import { fetchAdminSession, isAdminAppRoute } from "@/composables/useAdminSession";
 
 /** Site brand matches package.json / GitHub repo (kebab-case), like many OSS tools. */
-export const APP_BRAND = "PacPilot";
+const APP_BRAND = "PacPilot";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -14,6 +14,11 @@ const router = createRouter({
       name: "home",
       meta: { titleKey: "status.sub" },
       component: () => import("@/views/StatusView.vue"),
+    },
+    {
+      path: "/admin",
+      // 服务端把裸 `/admin` 交给 SPA，这里统一重定向到控制台。
+      redirect: "/admin/dashboard",
     },
     {
       path: "/admin/dashboard",
@@ -77,7 +82,7 @@ const router = createRouter({
       component: () => import("@/views/NotFoundView.vue"),
     },
   ],
-  scrollBehavior(to) {
+  scrollBehavior(to, _from, savedPosition) {
     return nextTick().then(() => {
       const selector =
         to.meta.layout === "admin"
@@ -85,6 +90,12 @@ const router = createRouter({
           : ".app-public-scroll .app-scroll-area-viewport";
       const viewport = document.querySelector<HTMLElement>(selector);
       if (!viewport) return { top: 0 };
+
+      // 浏览器前进/后退时恢复离开时的位置，而不是一律回到顶部。
+      if (savedPosition) {
+        viewport.scrollTo({ top: savedPosition.top, behavior: "auto" });
+        return false;
+      }
 
       if (to.hash) {
         // Resolve anchors inside the active scroll viewport first. A document-wide
@@ -137,6 +148,12 @@ router.beforeEach(async (to) => {
 router.afterEach((to) => {
   const titleKey = typeof to.meta.titleKey === "string" ? to.meta.titleKey : "";
   applyDocumentTitle(titleKey ? i18n.global.t(titleKey) : "");
+});
+
+// 切换语言时当前页面不会重新导航，标题需要主动跟着刷新。
+watch(i18n.global.locale, () => {
+  const titleKey = router.currentRoute.value.meta.titleKey;
+  applyDocumentTitle(typeof titleKey === "string" ? i18n.global.t(titleKey) : "");
 });
 
 export default router;

@@ -23,7 +23,11 @@ const backendOnline = ref(true);
 const storageLabel = computed(() => {
   const driver = backendInfo.value?.storageDriver;
   if (!driver) return "—";
-  return driver === "memory" ? t("layout.storageMemory") : "SQLite";
+  if (driver === "memory") return t("layout.storageMemory");
+  if (driver === "sqlite") return "SQLite";
+  // A driver this build does not know about: show the raw identifier instead of
+  // pretending it is SQLite.
+  return driver;
 });
 
 onMounted(async () => {
@@ -40,8 +44,11 @@ async function logout(): Promise<void> {
   logoutBusy.value = true;
   try {
     await api.logout();
-    invalidateAdminSessionCache();
+  } catch {
+    // The local session is dropped regardless of whether the backend answered;
+    // a failed logout must not leave the user stuck on an authenticated page.
   } finally {
+    invalidateAdminSessionCache();
     try {
       await router.replace("/admin/login");
     } finally {
@@ -236,7 +243,7 @@ async function logout(): Promise<void> {
   color: var(--text);
   background: var(--surface-2);
 }
-.sidebar-link:active:not(.active):not(.is-disabled) {
+.sidebar-link:active:not(.active) {
   color: var(--accent);
   background: var(--accent-soft);
   border-color: color-mix(in srgb, var(--accent) 24%, var(--line));
@@ -246,11 +253,6 @@ async function logout(): Promise<void> {
   background: var(--accent-soft);
   border-color: color-mix(in srgb, var(--accent) 22%, var(--line));
   box-shadow: inset 3px 0 0 var(--accent);
-}
-.sidebar-link.is-disabled,
-.sidebar-link.is-disabled:hover {
-  @apply cursor-not-allowed border-transparent bg-transparent opacity-50;
-  color: var(--muted);
 }
 .sidebar-bottom {
   @apply border-t px-2.5 pt-3.5;
@@ -330,7 +332,7 @@ async function logout(): Promise<void> {
   }
   .admin-sidebar.is-open {
     left: 0;
-    box-shadow: 18px 0 48px rgba(10, 20, 35, 0.18);
+    box-shadow: var(--sidebar-shadow);
   }
 }
 @media (prefers-reduced-motion: reduce) {

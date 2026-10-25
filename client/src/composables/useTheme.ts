@@ -5,9 +5,23 @@ export type ThemeMode = "system" | "light" | "dark";
 const STORAGE_KEY = "pacpilot-theme";
 
 function getStored(): ThemeMode {
-  const v = localStorage.getItem(STORAGE_KEY);
-  if (v === "light" || v === "dark" || v === "system") return v;
+  // 隐私模式或禁用了存储时 localStorage 会抛错，这里必须降级为默认值，
+  // 否则模块顶层求值失败会让整个应用启动失败。
+  try {
+    const v = localStorage.getItem(STORAGE_KEY);
+    if (v === "light" || v === "dark" || v === "system") return v;
+  } catch {
+    // 无法读取时按系统主题处理。
+  }
   return "system";
+}
+
+function persist(mode: ThemeMode) {
+  try {
+    localStorage.setItem(STORAGE_KEY, mode);
+  } catch {
+    // 存储不可用时只是无法记住选择，不影响当前会话。
+  }
 }
 
 function resolve(mode: ThemeMode): "light" | "dark" {
@@ -30,7 +44,7 @@ export function useTheme() {
 
   const setMode = (next: ThemeMode) => {
     mode.value = next;
-    localStorage.setItem(STORAGE_KEY, next);
+    persist(next);
     apply();
   };
 

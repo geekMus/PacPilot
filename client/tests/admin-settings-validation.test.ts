@@ -126,12 +126,12 @@ describe("PAC and domain validation", () => {
     }
   });
 
-  it("validates domain rules using the matching list label", () => {
-    expect(validators.validateDomainRules("example.com", "other")).toBeNull();
-    expect(validators.validateDomainRules("bad*host", t("settings.directList"))).toContain(
+  it("validates domain rules using the matching list", () => {
+    expect(validators.validateDomainRules("example.com", "direct")).toBeNull();
+    expect(validators.validateDomainRules("bad*host", "direct")).toContain(
       "settings.domainLineError"
     );
-    expect(validators.validateDomainRules("bad*host", t("settings.blockList"))).toContain(
+    expect(validators.validateDomainRules("bad*host", "block")).toContain(
       "settings.domainLineError"
     );
   });

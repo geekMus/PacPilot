@@ -29,10 +29,13 @@
   --teal: #0e9f9a;
   --teal-soft: color-mix(in srgb, var(--teal) 11%, transparent);
   --shadow: 0 1px 2px rgba(35, 55, 85, 0.04), 0 8px 24px rgba(47, 73, 112, 0.055);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 10%);
+  /* 图标底板顶部的内高光，模拟受光面。 */
+  --inset-highlight: rgba(255, 255, 255, 0.28);
+  /* 移动端侧边栏抽屉展开时投向页面内容的阴影。 */
+  --sidebar-shadow: 18px 0 48px rgba(10, 20, 35, 0.18);
   --radius: 14px;
   --radius-sm: 10px;
-  --space-1: 8px;
-  --space-2: 12px;
   --space-3: 16px;
   --space-4: 20px;
   --space-5: 28px;
@@ -68,7 +71,6 @@ html.theme-dark {
   --control-disabled-text: #a1aec0;
   --control-disabled-border: #404b5b;
   --green: #4ecf9a;
-  --green-contrast: #06231a;
   --red: #f08a98;
   --red-contrast: #2a0b10;
   --warn: #e0b35a;
@@ -76,6 +78,9 @@ html.theme-dark {
   --violet: #b598ff;
   --teal: #4fd1c5;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 10px 28px rgba(0, 0, 0, 0.28);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 45%);
+  --inset-highlight: rgba(255, 255, 255, 0.1);
+  --sidebar-shadow: 18px 0 48px rgba(0, 0, 0, 0.55);
 }
 
 *,
@@ -186,7 +191,7 @@ select {
   opacity: 1;
   cursor: not-allowed;
   box-shadow: none;
-  transform: none;
+  translate: none;
   filter: none;
 }
 
@@ -203,7 +208,7 @@ select {
   opacity: 1;
   cursor: progress;
   box-shadow: none;
-  transform: none;
+  translate: none;
   filter: none;
 }
 
@@ -233,9 +238,13 @@ select {
   opacity: 1;
 }
 
-/* 桌面点击与触屏按下都提供轻微反馈；颜色仍由组件的主题状态决定。 */
+/*
+ * 桌面点击与触屏按下都提供轻微反馈；颜色仍由组件的主题状态决定。
+ * 这里用独立的 `translate` 属性而不是 `transform`：Tailwind v4 的
+ * translate-* 工具类写的也是 `translate`，两者混用会同时生效且无法互相复位。
+ */
 :where(button, a, [role="button"], [role="tab"], summary):active {
-  transform: translateY(1px);
+  translate: 0 1px;
 }
 
 code {
@@ -280,65 +289,6 @@ code {
   max-width: 38em;
   font-size: 0.95rem;
   line-height: 1.6;
-}
-
-/* Shared nav pill button (used via :deep in header) */
-.nav-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 36px;
-  padding: 0 14px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  text-decoration: none;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s;
-  white-space: nowrap;
-}
-
-.nav-btn:hover {
-  background: var(--surface-2);
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
-  color: var(--accent);
-  text-decoration: none;
-}
-
-.nav-btn.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast);
-}
-
-.nav-btn.primary:hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  color: var(--accent-contrast);
-  filter: none;
-}
-
-.nav-btn.primary:active {
-  background: var(--accent-active);
-  border-color: var(--accent-active);
-  color: var(--accent-contrast);
-}
-
-.nav-btn:not(.primary):active {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.nav-btn.ghost {
-  background: transparent;
 }
 
 @media (max-width: 640px) {

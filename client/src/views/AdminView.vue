@@ -103,13 +103,13 @@ const {
                 </div>
               </div>
             </div>
-            <div class="field" data-validation-target="timezone">
+            <div class="field">
               <label for="timezone">{{ t("settings.timezone") }}</label>
               <ComboboxRoot
                 :model-value="form.timezone"
                 :open="timezoneMenuOpen"
                 :search-term="timezoneQuery"
-                class="timezone-combobox desktop-timezone-picker"
+                class="timezone-combobox"
                 @update:open="timezoneMenuOpen = $event"
                 @update:model-value="onTimeZoneSelected(String($event))"
                 @update:search-term="timezoneQuery = $event"
@@ -290,7 +290,7 @@ const {
               </div>
             </div>
 
-            <div class="field" data-validation-target="pac-proxy">
+            <div class="field">
               <label for="pacProxy">{{ t("settings.pacProxy") }}</label>
               <AppInput
                 id="pacProxy"
@@ -304,11 +304,7 @@ const {
               </p>
               <p v-if="pacProxyError" class="field-error" role="alert">{{ pacProxyError }}</p>
             </div>
-            <div
-              class="field"
-              :class="{ 'is-disabled': form.mode !== 'remote' }"
-              data-validation-target="list-url"
-            >
+            <div class="field" :class="{ 'is-disabled': form.mode !== 'remote' }">
               <label for="listUrl"
                 >{{ t("settings.listUrlLabel") }}
                 <span class="lab-hint">{{ t("settings.listUrlLabHint") }}</span></label
@@ -405,7 +401,7 @@ const {
             </details>
 
             <div class="split editors">
-              <div class="field" data-validation-target="direct-list">
+              <div class="field">
                 <label>{{ t("settings.directList") }}</label>
                 <DomainListEditor
                   v-model="form.directListText"
@@ -416,7 +412,7 @@ const {
                 />
                 <p v-if="directListError" class="field-error" role="alert">{{ directListError }}</p>
               </div>
-              <div class="field" data-validation-target="block-list">
+              <div class="field">
                 <label>{{ t("settings.blockList") }}</label>
                 <DomainListEditor
                   v-model="form.blockListText"
@@ -480,7 +476,7 @@ const {
                   {{ t(p.labelKey) }}
                 </button>
               </div>
-              <div class="field" data-validation-target="cron">
+              <div class="field">
                 <label for="cron"
                   >{{ t("settings.cronExpr") }}
                   <span class="lab-hint">{{ t("settings.cronFields") }}</span></label
@@ -505,7 +501,6 @@ const {
               </div>
             </div>
           </section>
-
         </form>
       </template>
       <AppFooter />

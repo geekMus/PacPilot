@@ -7,9 +7,6 @@ export function vacuumDatabase(database: AppDatabase, truncateWal = false): void
   if (truncateWal) database.run("PRAGMA wal_checkpoint(TRUNCATE);");
   database.run("VACUUM;");
 }
-export function checkpointDatabase(database: AppDatabase): void {
-  database.run("PRAGMA wal_checkpoint(TRUNCATE);");
-}
 export function resetOperationalData(
   database: AppDatabase,
   settings = DEFAULT_SETTINGS
