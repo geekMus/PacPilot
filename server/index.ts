@@ -21,7 +21,7 @@ async function main(): Promise<void> {
   // exists it is ignored so a redeploy never silently resets the password.
   const initialAdmin = await createInitialAdminCredentials(
     storage.credentials,
-    env.defaultAdminPassword ?? process.env.ADMIN_PASSWORD,
+    env.defaultAdminPassword,
     process.env.ADMIN_SESSION_SECRET
   );
   const adminCredentialsMissing = await isAdminCredentialsMissing(storage.credentials);

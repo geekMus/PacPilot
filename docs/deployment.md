@@ -28,7 +28,6 @@
 | `STORAGE_DRIVER`         | `sqlite`           | 存储         | `sqlite` 持久化 / `memory` 临时演示（重启即清空）。        |
 | `DATA_DIR`               | 按运行环境决定     | 存储         | 数据目录；**容器内被忽略**（固定 `/data`）。               |
 | `DEFAULT_ADMIN_PASSWORD` | 空（随机生成）     | 管理员初始化 | 首次启动的初始管理员密码；至少 8 位；仅首次生效。          |
-| `ADMIN_PASSWORD`         | 空                 | 管理员初始化 | 旧变量名，仍兼容但优先级低于 `DEFAULT_ADMIN_PASSWORD`。    |
 | `ADMIN_SESSION_SECRET`   | 空（随机生成）     | 管理员初始化 | 首次初始化时写入的会话签名密钥；一般无需设置。             |
 | `CORS_ALLOWED_ORIGINS`   | 空                 | 跨域         | 显式信任的管理 API 跨域 Origin 白名单，逗号分隔。          |
 | `CORS_MODE`              | `strict`           | 跨域         | `strict` 同源/白名单；`open` 任意来源 + Bearer 令牌鉴权。  |
@@ -62,10 +61,9 @@
 
 数据目录中包含哪些文件参见[配置说明](configuration.md#数据文件与数据库)。开发模式会自动加载项目根目录的 `.env`（可从 [.env.example](../.env.example) 复制）；**Docker 容器不会读取挂载目录里的 `.env`**，请用 `-e` 或 Compose `environment` 注入。
 
-### 管理员初始化：DEFAULT_ADMIN_PASSWORD、ADMIN_PASSWORD、ADMIN_SESSION_SECRET
+### 管理员初始化：DEFAULT_ADMIN_PASSWORD 与 ADMIN_SESSION_SECRET
 
 - `DEFAULT_ADMIN_PASSWORD`：仅在数据库**尚无管理员凭据的首次启动**时生效；trim 后少于 8 位会**拒绝启动**。已有凭据后修改该变量并重启不会重置密码（重置方法见[管理员密码重置](configuration.md#管理员密码重置)）。设置了该变量时，启动日志只提示已初始化、不打印密码。
-- `ADMIN_PASSWORD`：旧变量名，仍被接受，但优先级低于 `DEFAULT_ADMIN_PASSWORD`；两者同时设置时新变量生效。新部署请只用 `DEFAULT_ADMIN_PASSWORD`。
 - `ADMIN_SESSION_SECRET`：首次创建管理员凭据时写入数据库的会话签名密钥；未设置则随机生成。密钥此后持久化在数据库中，重启不受该变量影响。一般无需设置；修改管理员密码会轮换该密钥并使所有已发放的会话/令牌立即失效。
 
 ### 跨域来源：CORS_ALLOWED_ORIGINS 与 CORS_MODE
