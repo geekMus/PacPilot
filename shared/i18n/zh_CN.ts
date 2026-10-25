@@ -1059,7 +1059,7 @@ export default {
     k3: "JSON 语法错误，请检查括号、引号和逗号。",
     k4: "格式化 JSON",
     k5: "格式化",
-    k6: "填入示例",
+    k6: "填入默认值",
   },
   footerExtra: {
     k0: "版本查询失败：HTTP",

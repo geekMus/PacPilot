@@ -57,15 +57,12 @@ export function useAdminSettings() {
       provider: "custom",
       url: "",
       method: "POST",
-      headers: "{}",
+      headers: "",
       body: "",
       dingTalkSecret: "",
       dingTalkMessageType: "text",
-      testBody: JSON.stringify(
-        { ok: "{{ok}}", event: "{{event}}", message: "{{message}}", timestamp: "{{timestamp}}" },
-        null,
-        2
-      ),
+      // 内置默认值不落存储：留空时由服务端回退默认，UI 用 placeholder 展示。
+      testBody: "",
       messageTemplate: "",
       testMessageTemplate: "",
     };

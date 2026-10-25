@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import AppButton from "@/components/AppButton.vue";
 import AppIcon from "@/components/AppIcon.vue";
@@ -12,7 +13,7 @@ import WebhookBodyEditor from "@/features/webhooks/components/WebhookBodyEditor.
 import type { NotificationWorkspace } from "@/features/notifications/composables/useNotificationWorkspace";
 
 const props = defineProps<{ ws: NotificationWorkspace }>();
-const { t } = useI18n();
+const { t, tm } = useI18n();
 const {
   channels,
   enabledChannels,
@@ -38,6 +39,28 @@ const {
   deleteC,
   testC,
 } = props.ws;
+
+// 默认内容只以 placeholder 展示，用户点「填入默认值」时才写入编辑框；
+// 占位符变量（{{event}} 等）在发送时由服务端替换。
+const headersDefault = JSON.stringify({ Authorization: "Bearer …" }, null, 2);
+const bodyTemplateDefault = JSON.stringify(
+  {
+    event: "{{event}}",
+    status: "{{status}}",
+    ok: "{{ok}}",
+    message: "{{message}}",
+    timestamp: "{{timestamp}}",
+  },
+  null,
+  2
+);
+// 模板默认值含 {{var}} 占位符，必须用 tm() 取原始文案，避免 t() 做插值。
+function rawTemplate(key: string): string {
+  const message = tm(key);
+  return typeof message === "string" ? message : "";
+}
+const dingTalkTemplateDefault = computed(() => rawTemplate("settings.defaultMessageTemplate"));
+const dingTalkTestTemplateDefault = computed(() => rawTemplate("settings.testMessageTemplate"));
 </script>
 
 <template>
@@ -216,10 +239,12 @@ const {
               /></label>
               <label class="field"
                 ><span>{{ t("notifications.fieldMessageTemplate") }}</span
-                ><CodeMirrorField
+                ><WebhookBodyEditor
                   :model-value="ch.config.messageTemplate"
                   language="text"
+                  :line-numbers="false"
                   :height="120"
+                  :sample="dingTalkTemplateDefault"
                   :aria-label="t('notifications.fieldMessageTemplate')"
                   @update:model-value="ch.config.messageTemplate = $event"
                 /><small class="field-hint"
@@ -233,10 +258,12 @@ const {
               >
               <label class="field"
                 ><span>{{ t("notifications.fieldTestMessage") }}</span
-                ><CodeMirrorField
+                ><WebhookBodyEditor
                   :model-value="ch.config.testMessageTemplate"
                   language="text"
+                  :line-numbers="false"
                   :height="82"
+                  :sample="dingTalkTestTemplateDefault"
                   :aria-label="t('notifications.fieldTestMessage')"
                   @update:model-value="ch.config.testMessageTemplate = $event"
               /></label>
@@ -265,7 +292,8 @@ const {
                 ><WebhookBodyEditor
                   :model-value="ch.config.headers"
                   :height="126"
-                  placeholder='{"Authorization":"Bearer …"}'
+                  :sample="headersDefault"
+                  :aria-label="t('notifications.fieldHeaders')"
                   @update:model-value="ch.config.headers = $event"
                 /><small class="field-hint">{{
                   t("notifications.hintHeadersRedacted")
@@ -277,20 +305,8 @@ const {
                 ><WebhookBodyEditor
                   :model-value="ch.config.body"
                   :height="190"
-                  :sample="
-                    JSON.stringify(
-                      {
-                        event: '{{event}}',
-                        status: '{{status}}',
-                        ok: '{{ok}}',
-                        message: '{{message}}',
-                        timestamp: '{{timestamp}}',
-                      },
-                      null,
-                      2
-                    )
-                  "
-                  placeholder='{"event":"{{event}}","status":"{{status}}","message":"{{message}}"}'
+                  :sample="bodyTemplateDefault"
+                  :aria-label="t('notifications.fieldBody')"
                   @update:model-value="ch.config.body = $event"
                 /><small class="field-hint">{{ t("notifications.hintBodyJson") }}</small></label
               >
@@ -301,20 +317,8 @@ const {
                 ><WebhookBodyEditor
                   :model-value="ch.config.testBody"
                   :height="144"
-                  :sample="
-                    JSON.stringify(
-                      {
-                        event: '{{event}}',
-                        status: '{{status}}',
-                        ok: '{{ok}}',
-                        message: '{{message}}',
-                        timestamp: '{{timestamp}}',
-                      },
-                      null,
-                      2
-                    )
-                  "
-                  placeholder='{"event":"PacPilot test","status":"test"}'
+                  :sample="bodyTemplateDefault"
+                  :aria-label="t('notifications.fieldTestBody')"
                   @update:model-value="ch.config.testBody = $event"
               /></label>
             </template>

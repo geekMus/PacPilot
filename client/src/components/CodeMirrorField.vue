@@ -142,7 +142,8 @@ function buildExtensions() {
       },
       // CodeMirror ships its own grey (#888), which lands at 3.24:1 on our
       // surfaces — below WCAG AA. Use the muted token instead (4.58:1).
-      ".cm-placeholder": { color: "var(--muted)", fontStyle: "normal" },
+      // pre-wrap keeps multi-line placeholder templates readable.
+      ".cm-placeholder": { color: "var(--muted)", fontStyle: "normal", whiteSpace: "pre-wrap" },
       ".cm-cursor": { borderLeftColor: "var(--text)" },
       ".cm-selectionBackground": { background: "var(--accent-soft)" },
       "&.cm-focused": { outline: "none" },

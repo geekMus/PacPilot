@@ -1097,7 +1097,7 @@ export default {
     k3: "Invalid JSON syntax. Check the brackets, quotes, and commas.",
     k4: "Format JSON",
     k5: "Format",
-    k6: "Insert example",
+    k6: "Insert default",
   },
   footerExtra: {
     k0: "Version check failed: HTTP",
