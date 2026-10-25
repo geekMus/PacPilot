@@ -105,11 +105,6 @@ export interface WorkflowList {
   total?: number;
   hasMore?: boolean;
 }
-export interface PacFileStatus {
-  exists: boolean;
-  sizeBytes: number;
-  modifiedAt: string | null;
-}
 /** In-memory PAC render reported by the backend (no PAC files on disk). */
 export interface PacRenderStatus {
   rendered: {
@@ -140,7 +135,6 @@ export interface StorageSummary {
     activeWorkflows: number;
   };
   pac?: PacRenderStatus;
-  pacFiles: { proxyPac: PacFileStatus; proxySourcePac: PacFileStatus };
 }
 export interface PacPilotProbe {
   available: boolean;
@@ -370,10 +364,7 @@ export const api = {
     }),
   storage: () => request<StorageSummary>("/api/admin/storage"),
   deletePacFiles: () =>
-    request<{ ok: boolean; deleted: string[]; pacFiles: StorageSummary["pacFiles"] }>(
-      "/api/admin/pac-files",
-      { method: "DELETE" }
-    ),
+    request<{ ok: boolean; deleted: string[] }>("/api/admin/pac-files", { method: "DELETE" }),
   cleanupLogs: () =>
     request<{
       deleted: { accessEvents: number; workflowRuns: number };

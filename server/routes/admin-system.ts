@@ -25,12 +25,6 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
       workflows: await storage.workflows.count(),
       activeWorkflows: (await storage.workflows.listActive()).length,
     };
-    const pacFileInfo = async (name: string) => {
-      const stat = await storage.artifacts.stat(name);
-      return stat
-        ? { exists: true, sizeBytes: stat.size, modifiedAt: stat.modifiedAt }
-        : { exists: false, sizeBytes: 0, modifiedAt: null };
-    };
     // The PAC body is rendered in memory now; report that instead of files.
     const rendered = getRenderedPac();
     const ruleSource = await readRuleSource(storage);
@@ -69,27 +63,6 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
             }
           : { exists: false, fetchedAt: null, url: "", format: "", proxyHosts: 0, directHosts: 0 },
       },
-      // Retained for older clients; both entries describe the in-memory render.
-      pacFiles: {
-        proxyPac: rendered
-          ? {
-              exists: true,
-              sizeBytes: Buffer.byteLength(rendered.body, "utf8"),
-              modifiedAt: rendered.builtAt,
-            }
-          : { exists: false, sizeBytes: 0, modifiedAt: null },
-        proxySourcePac: ruleSource
-          ? {
-              exists: true,
-              sizeBytes: Buffer.byteLength(JSON.stringify(ruleSource), "utf8"),
-              modifiedAt: ruleSource.fetchedAt,
-            }
-          : { exists: false, sizeBytes: 0, modifiedAt: null },
-      },
-      legacyPacFiles: {
-        proxyPac: await pacFileInfo("proxy.pac"),
-        proxySourcePac: await pacFileInfo("proxy.source.pac"),
-      },
     });
   });
   router.delete("/api/admin/pac-files", requireAdmin(storage.credentials), async (req, res) => {
@@ -124,18 +97,6 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
           ruleSource: ruleSource
             ? { exists: true, fetchedAt: ruleSource.fetchedAt }
             : { exists: false, fetchedAt: null },
-        },
-        pacFiles: {
-          proxyPac: rendered
-            ? {
-                exists: true,
-                sizeBytes: Buffer.byteLength(rendered.body, "utf8"),
-                modifiedAt: rendered.builtAt,
-              }
-            : { exists: false, sizeBytes: 0, modifiedAt: null },
-          proxySourcePac: ruleSource
-            ? { exists: true, sizeBytes: 0, modifiedAt: ruleSource.fetchedAt }
-            : { exists: false, sizeBytes: 0, modifiedAt: null },
         },
       });
     } catch (error) {
