@@ -1,6 +1,6 @@
 /**
- * 解析实际生成的 PAC，识别当前生成器模板并提取规则摘要。
- * 不依赖旧版注释标记，兼容历史 custom 与目前的 remote 模板。
+ * 解析实际生成的 PAC，通过变量初始化表达式识别当前生成器的 custom 与 remote
+ * 模板并提取规则摘要；兼容 Terser 压缩输出（引号选择、声明合并）。
  */
 export type PacMode = "custom" | "remote" | "custom_parse_error" | "other" | "empty";
 

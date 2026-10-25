@@ -18,5 +18,5 @@ export async function fetchAdminSession(force = false): Promise<AdminSession> {
 }
 
 export function isAdminAppRoute(path: string): boolean {
-  return path === "/admin" || path.startsWith("/admin/");
+  return path.startsWith("/admin/");
 }

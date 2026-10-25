@@ -40,11 +40,6 @@ const router = createRouter({
       component: () => import("@/views/SystemSettingsView.vue"),
     },
     {
-      // 兼容旧地址，并将后台默认入口统一指向总览。
-      path: "/admin",
-      redirect: { name: "admin-dashboard" },
-    },
-    {
       path: "/admin/workflows",
       name: "admin-workflows",
       meta: { titleKey: "nav.workflow", layout: "admin" },
