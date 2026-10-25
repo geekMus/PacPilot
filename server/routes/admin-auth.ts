@@ -57,7 +57,7 @@ export function adminAuthRoutes(env: EnvConfig, storage: ApplicationStorage): Ro
     }
     res.json({ ok: true, token, expiresAt });
   });
-  router.post("/api/admin/logout", (req, res) => {
+  router.post("/api/admin/logout", (_req, res) => {
     clearSessionCookie(res);
     res.json({ ok: true });
   });
