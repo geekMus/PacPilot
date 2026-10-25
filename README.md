@@ -9,7 +9,7 @@ The project uses Bun, TypeScript, Vue 3, and SQLite. For deployment, use the pre
 ## Features
 
 - Two generation modes: custom rules and remote domain lists.
-- Manual generation, generation after saving settings, scheduled generation, and compressed output.
+- Manual generation, instant-apply settings with automatic PAC regeneration, scheduled generation, and compressed output.
 - Workflow queues, stages, error details, and execution history.
 - Success/failure webhook notifications, with support for custom HTTP webhooks and DingTalk bots.
 - Request monitoring, log and storage usage inspection, log cleanup, and factory reset.

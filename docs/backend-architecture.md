@@ -8,7 +8,7 @@ Backend TypeScript source files use **kebab-case** (for example, `request-monito
 
 `server/storage/repositories.ts` is the storage contract: it describes the application-facing repository interfaces and the aggregate `ApplicationStorage` shape. It must not import a concrete database driver.
 
-- `server/storage/memory/` contains in-process adapters. `application-storage.ts` composes the adapters; `settings-repository.ts`, `monitoring-repository.ts`, `workflow-repository.ts`, `artifact-repository.ts`, and `admin-credential-repository.ts` each own one repository responsibility. Shared memory-only primitives belong in `utils.ts`. These adapters are volatile and must not import SQLite or Bun database APIs.
+- `server/storage/memory/` contains in-process adapters. `application-storage.ts` composes the adapters; `settings-repository.ts`, `monitoring-repository.ts`, `workflow-repository.ts`, `artifact-repository.ts`, `notification-repository.ts`, and `admin-credential-repository.ts` each own one repository responsibility. Shared memory-only primitives belong in `utils.ts`. These adapters are volatile and must not import SQLite or Bun database APIs.
 - `server/storage/sqlite/` contains SQLite-specific adapters, schema, connection lifecycle, and SQL queries. Keep SQL and database types inside this directory.
 - `server/storage/filesystem/` contains persistent filesystem-backed repositories such as artifacts. These are separate from database adapters and may be composed by a database-backed application storage adapter.
 - `server/storage/index.ts` is the composition/factory boundary. It chooses the adapter from configuration and dynamically imports SQLite only when the SQLite driver is selected.

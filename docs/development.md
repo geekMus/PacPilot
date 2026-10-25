@@ -74,12 +74,12 @@ bun run format:check
 
 ## 项目结构
 
-- `client/src/`：Vue 3 前端、路由、组件、界面与中英文翻译。
+- `client/src/`：Vue 3 前端、路由、组件、界面与中英文翻译；跨页面通用组件在 `components/`，业务专属组件在 `features/<feature>/components/`。
 - `client/tests/`：仅属于前端的 Vitest 单元测试。
 - `server/tests/`：仅属于后端的 Vitest 单元测试。
 - `server/routes/`：HTTP 路由与管理 API。
 - `server/services/`：PAC 生成、远程列表、工作流、定时任务、Webhook 与请求监控。
-- `server/db/`：SQLite 连接、schema、设置、工作流和监控数据。
+- `server/storage/`：存储契约与适配器（`memory/` 内存实现、`sqlite/` SQLite 连接/schema/查询、`filesystem/` 文件产物）。
 - `shared/`：客户端与服务端共享的契约和翻译类型。
 - `scripts/`：开发启动、翻译检查、生产启动和管理员密码重置脚本。
 - `docs/`：部署、配置、开发、运维和故障排查文档。

@@ -14,7 +14,7 @@
 
 - 编辑器实例的创建、销毁、文档同步与选区保留；
 - 单行/多行、行号、换行、占位文本、只读/错误外观等通用能力；
-- `text`、`json`、`javascript`、`java` 语言支持、默认语法着色，以及可传入的 CodeMirror 扩展；
+- `text`、`json` 语言支持、默认语法着色，以及可传入的 CodeMirror 扩展；
 - 深色主题适配；
 - 与 `AppScrollArea.vue` 的滚动同步。
 

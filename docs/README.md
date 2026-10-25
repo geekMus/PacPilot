@@ -12,6 +12,9 @@ This directory contains the project's user, deployment, development, and operati
 | [Frontend architecture](frontend-architecture.md) | Shared component boundaries, editor architecture, naming, and validation              |
 | [Operations and releases](operations.md)          | Workflows, log and data maintenance, image releases, and upgrades                     |
 | [Troubleshooting](troubleshooting.md)             | Web UI, login, PAC generation, remote lists, and upgrade issues                       |
+| [Webhook notifications](webhook-notifications.md) | Event-driven success/failure webhook and DingTalk notifications                       |
+| [Backend architecture](backend-architecture.md)   | Backend layering, dependency direction, and the storage contract boundary             |
+| [Storage adapter contract](storage-adapter-contract.md) | Repository contracts every storage adapter must implement                       |
 
 ## Documentation conventions
 
