@@ -49,17 +49,6 @@ export function emptyConfig(): WebhookConfig {
   };
 }
 
-/** 旧版本把内置默认值预填进输入框并随频道保存；这些值与留空语义等价（发送时服务端回退内置默认），读取时统一显示为空，由 placeholder 接管展示。 */
-export function normalizeLoadedConfig(config: WebhookConfig): WebhookConfig {
-  const next = { ...config };
-  if (next.headers.trim() === "{}") next.headers = "";
-  if (next.testBody.trim() === '{"event":"{{event}}","status":"{{status}}","message":"{{message}}"}')
-    next.testBody = "";
-  if (next.messageTemplate === "{{event}}\\n{{status}}\\n{{message}}") next.messageTemplate = "";
-  if (next.testMessageTemplate === "PacPilot test") next.testMessageTemplate = "";
-  return next;
-}
-
 /**
  * State machine for the notification workspace: list loading, channel/rule
  * drafts, delivery filtering and the CRUD/retry actions. Extracted from the
@@ -270,11 +259,7 @@ export function useNotificationWorkspace() {
     channelEditorOpen.value = true;
     cid.value = item.id;
     showSecret.value = false;
-    Object.assign(ch, {
-      name: item.name,
-      enabled: item.enabled,
-      config: normalizeLoadedConfig(item.config),
-    });
+    Object.assign(ch, { name: item.name, enabled: item.enabled, config: { ...item.config } });
   }
   async function saveC() {
     if (channelErrors.value.length) {

@@ -79,22 +79,6 @@ describe("normalizeWebhookConfig", () => {
     expect(config.testBody).toBe("1");
   });
 
-  it("keeps custom templates but clears values equal to the built-in default", () => {
-    const defaults = createDefaultWebhookConfig();
-    expect(
-      normalizeWebhookConfig({ messageTemplate: defaults.messageTemplate }).messageTemplate
-    ).toBe("");
-    expect(normalizeWebhookConfig({ messageTemplate: "{{event}}" }).messageTemplate).toBe(
-      "{{event}}"
-    );
-    expect(
-      normalizeWebhookConfig({ testMessageTemplate: defaults.testMessageTemplate })
-        .testMessageTemplate
-    ).toBe("");
-    expect(normalizeWebhookConfig({ testMessageTemplate: "ping" }).testMessageTemplate).toBe(
-      "ping"
-    );
-  });
 });
 
 describe("normalizeAppSettings", () => {

@@ -39,12 +39,6 @@ export function createDefaultWebhookConfig(locale: AppLocale = "zh_CN"): Webhook
   };
 }
 
-function normalizeDefaultTemplate(value: unknown, defaultValue: string): string {
-  const template = String(value ?? "");
-  // Older settings stored the built-in template as a value; treat it as unset so the UI can show it as a placeholder.
-  return template === defaultValue ? "" : template;
-}
-
 export function normalizeWebhookConfig(input: unknown, locale: AppLocale = "zh_CN"): WebhookConfig {
   const defaults = createDefaultWebhookConfig(locale);
   const raw = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
@@ -57,11 +51,8 @@ export function normalizeWebhookConfig(input: unknown, locale: AppLocale = "zh_C
     dingTalkSecret: String(raw.dingTalkSecret ?? ""),
     dingTalkMessageType: raw.dingTalkMessageType === "markdown" ? "markdown" : "text",
     testBody: String(raw.testBody ?? defaults.testBody),
-    messageTemplate: normalizeDefaultTemplate(raw.messageTemplate, defaults.messageTemplate),
-    testMessageTemplate: normalizeDefaultTemplate(
-      raw.testMessageTemplate,
-      defaults.testMessageTemplate
-    ),
+    messageTemplate: String(raw.messageTemplate ?? ""),
+    testMessageTemplate: String(raw.testMessageTemplate ?? ""),
   };
 }
 
