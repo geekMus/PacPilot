@@ -34,7 +34,12 @@ const BUILTIN_TEMPLATE_VALUES = new Set<string>(
 function templateForEditor(value: string): string {
   return BUILTIN_TEMPLATE_VALUES.has(value) ? "" : value;
 }
-export { templateForEditor };
+
+/** 旧版 UI 曾把读回的 "{}" 请求头保存为真实值；它语义上等于未设置，按空处理。 */
+function headersForEditor(value: string): string {
+  return value.trim() === "{}" ? "" : value;
+}
+export { templateForEditor, headersForEditor };
 
 interface ChannelDraft {
   name: string;
@@ -288,6 +293,7 @@ export function useNotificationWorkspace() {
       enabled: item.enabled,
       config: {
         ...item.config,
+        headers: headersForEditor(item.config.headers),
         messageTemplate: templateForEditor(item.config.messageTemplate),
         testMessageTemplate: templateForEditor(item.config.testMessageTemplate),
       },

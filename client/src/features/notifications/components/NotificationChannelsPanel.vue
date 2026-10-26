@@ -12,11 +12,13 @@ import ConfirmPopover from "@/components/ConfirmPopover.vue";
 import type { NotificationWorkspace } from "@/features/notifications/composables/useNotificationWorkspace";
 import type { NotificationChannel } from "@shared/contracts";
 
-// 编辑器（CodeMirror）约 300KB，异步加载：仅在真正打开渠道编辑器时才拉取，
-// 通知页首屏不再为此付出加载与解析成本。
+// CodeMirror（约 300KB）全部走异步分块：模板编辑器与 URL 单行输入框共用同一
+// 分块，仅在真正打开渠道编辑器时加载，通知页首屏不为此付出加载与解析成本。
+// 加载完成前以固定高度占位，避免内容出现时布局跳动。
 const WebhookBodyEditor = defineAsyncComponent(
   () => import("@/features/webhooks/components/WebhookBodyEditor.vue")
 );
+const UrlCodeMirrorField = defineAsyncComponent(() => import("@/components/CodeMirrorField.vue"));
 
 const props = defineProps<{ ws: NotificationWorkspace }>();
 // 逐行记录哪个渠道正在等待删除确认，避免同一时间弹出多个确认气泡。
@@ -246,19 +248,21 @@ async function confirmDeleteChannel(item: NotificationChannel) {
             </div>
             <label class="field">
               <span>{{ t("notifications.fieldUrl") }} <i>*</i></span>
-              <CodeMirrorField
-                :model-value="ch.config.url"
-                single-line
-                :height="42"
-                language="text"
-                :aria-label="t('notifications.fieldUrl')"
-                :placeholder="
-                  ch.config.provider === 'dingtalk'
-                    ? t('notifications.placeholderUrlDingTalk')
-                    : t('notifications.placeholderUrlHttp')
-                "
-                @update:model-value="ch.config.url = $event"
-              />
+              <div class="min-h-[42px]">
+                <UrlCodeMirrorField
+                  :model-value="ch.config.url"
+                  single-line
+                  :height="42"
+                  language="text"
+                  :aria-label="t('notifications.fieldUrl')"
+                  :placeholder="
+                    ch.config.provider === 'dingtalk'
+                      ? t('notifications.placeholderUrlDingTalk')
+                      : t('notifications.placeholderUrlHttp')
+                  "
+                  @update:model-value="ch.config.url = $event"
+                />
+              </div>
               <small class="field-hint"
                 ><AppIcon name="shield-check" :size="13" />
                 {{ t("notifications.hintUrlRedacted") }}</small

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { t } from "@shared/i18n";
 import {
   emptyConfig,
+  headersForEditor,
   templateForEditor,
 } from "../src/features/notifications/composables/useNotificationWorkspace";
 
@@ -22,5 +23,11 @@ describe("notification webhook 默认值规范化", () => {
     expect(templateForEditor("自定义模板内容")).toBe("自定义模板内容");
     expect(templateForEditor("PacPilot test notification")).toBe("PacPilot test notification");
     expect(templateForEditor("")).toBe("");
+  });
+
+  it('存量 "{}" 请求头在编辑器中按未设置处理', () => {
+    expect(headersForEditor("{}")).toBe("");
+    expect(headersForEditor('{"Authorization": "Bearer …"}')).toBe('{"Authorization": "Bearer …"}');
+    expect(headersForEditor("")).toBe("");
   });
 });
