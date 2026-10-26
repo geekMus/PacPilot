@@ -11,6 +11,7 @@
     "build": "bun run build:client",
     "build:client": "bun run vite build --config client/vite.config.ts",
     "start": "bun run scripts/start-prod.ts",
+    "preview": "bun run build && bun run scripts/preview.ts",
     "typecheck": "bun run tsc --project tsconfig.json --noEmit && bun run tsc --project server/tsconfig.json --noEmit && bun run vue-tsc --project client/tsconfig.json --noEmit",
     "check": "bun run typecheck && bun run build && bun run check:i18n && bun run check:icons",
     "check:icons": "bun run scripts/check-app-icons.ts",

@@ -227,6 +227,12 @@ bun run start      # 生产模式启动
 bun run dev
 ```
 
+本机预览生产构建（自动构建后以生产模式启动到 `4173`，数据目录 `./data/preview`）：
+
+```bash
+bun run preview
+```
+
 开发环境的端口、数据目录与参数细节见[开发指南](development.md)。
 
 ## 首次启动行为
