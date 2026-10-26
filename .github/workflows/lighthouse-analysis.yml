@@ -11,6 +11,11 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  # 项目性能目标：所有页面 Lighthouse 性能分 ≥ 90，低于阈值即判定失败。
+  # 声明在工作流级别，分析和判定两个步骤共用同一个值，避免改一处漏一处。
+  MIN_SCORE: "90"
+
 jobs:
   lighthouse:
     name: 全页面 Lighthouse 分析
@@ -47,6 +52,9 @@ jobs:
       - name: 启动 PacPilot 服务
         id: server
         env:
+          # 与部署形态保持一致：分析要量的是生产 profile 的响应，
+          # 而不是会自动读取仓库 .env 的 development profile。
+          NODE_ENV: production
           DATA_DIR: ${{ runner.temp }}/pacpilot-data
           PORT: "17321"
           HOST: 127.0.0.1
@@ -79,12 +87,17 @@ jobs:
           ADMIN_PASSWORD: lighthouse-ci-password
           OUTPUT_DIR: lighthouse-reports
           CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          # 空实例的页面偏快，先写入固定规则集再测量。
+          SEED_RULES: "1"
         run: |
           set +e
           node scripts/lighthouse/analyze.mjs > "$RUNNER_TEMP/analyze.log" 2>&1
           ANALYZE_STATUS=$?
           set -e
           cat "$RUNNER_TEMP/analyze.log"
+          # 必须把判定结果作为步骤退出码传出去：只在日志里打印的话，
+          # 步骤永远以 0 结束，后面的门槛检查就永远不会失败。
+          exit "$ANALYZE_STATUS"
 
       - name: 保存 Lighthouse 报告
         id: upload-reports
@@ -138,7 +151,7 @@ jobs:
             exit 1
           fi
           if [[ "$ANALYZE_RESULT" != "success" ]]; then
-            echo "::error::存在性能得分低于阈值（默认 70 分）的页面，详见上方报告与 lighthouse-reports 构建产物。"
+            echo "::error::分析未通过：存在性能得分低于阈值（${MIN_SCORE} 分）的页面，或页面未能正常渲染（被重定向、会话失效、报告生成失败），详见上方报告与 lighthouse-reports 构建产物。"
             exit 1
           fi
-          echo "所有页面均达到阈值，报告见上方摘要与构建产物。"
+          echo "所有页面均达到 ${MIN_SCORE} 分阈值，报告见上方摘要与构建产物。"
