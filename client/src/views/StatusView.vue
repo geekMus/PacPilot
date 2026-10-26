@@ -420,7 +420,7 @@ const {
 }
 .stats-grid {
   /* remote 模式固定 3 张卡：宽屏 3 等分铺满整行，不会像 4 列网格那样留空位；
-     窄屏直接改为单列堆叠，避免 2 列布局在最后一行留下空单元格。 */
+     窄屏改为 2 列，并由下面的媒体查询让最后一张跨两列补满，同样不留空单元格。 */
   @apply mb-[22px] grid gap-3.5;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
