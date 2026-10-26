@@ -148,13 +148,7 @@ export function useNotificationWorkspace() {
   );
   /** 保存前的前端校验：与服务端一致地拦截非法 URL、JSON 与钉钉配置。 */
   const channelErrors = computed(() =>
-    webhookErrorMessages(
-      validateWebhookDraft(ch.config, t("notifications.channelKickerEdit"), {
-        hasSavedSecret: Boolean(
-          cid.value && channels.value.find((x) => x.id === cid.value)?.hasSecret
-        ),
-      })
-    )
+    webhookErrorMessages(validateWebhookDraft(ch.config, t("notifications.channelKickerEdit")))
   );
   const phaseDescription = computed(() => {
     switch (rule.phase) {

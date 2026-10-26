@@ -22,11 +22,7 @@ export function createAdminSettingsValidators<T extends (...args: any[]) => stri
     }
   }
 
-  function validateWebhookDraft(
-    config: WebhookConfig,
-    label: string,
-    options?: { hasSavedSecret?: boolean }
-  ): WebhookFieldErrors {
+  function validateWebhookDraft(config: WebhookConfig, label: string): WebhookFieldErrors {
     const errors: WebhookFieldErrors = { url: "", headers: "", body: "", testBody: "", secret: "" };
     if (config.provider === "custom") {
       const url = config.url.trim();
@@ -67,17 +63,14 @@ export function createAdminSettingsValidators<T extends (...args: any[]) => stri
         }
       }
     } else if (config.provider === "dingtalk") {
-      // 编辑已有渠道时密钥不回显；留空表示沿用已保存的密钥（服务端 mergeSecrets 负责），不算错误。
-      const keepsSavedSecret = !config.dingTalkSecret.trim() && Boolean(options?.hasSavedSecret);
-      if (config.url.trim()) {
-        if (!looksLikeUrl(config.url.trim())) errors.url = t("settings.dingTalkUrl", { label });
-        else if (!new URL(config.url.trim()).searchParams.has("access_token"))
-          errors.url = t("settings.dingTalkToken", { label });
-        if (!config.dingTalkSecret.trim() && !keepsSavedSecret)
-          errors.secret = t("settings.dingTalkSecret", { label });
-      } else if (config.dingTalkSecret.trim()) {
-        errors.url = t("settings.dingTalkSecretNeedsUrl", { label });
-      }
+      const url = config.url.trim();
+      const secret = config.dingTalkSecret.trim();
+      // 未启用加签的钉钉机器人是合法配置，Secret 为空不再报错；
+      // 编辑已有渠道时密钥不回显，服务端 mergeSecrets 负责沿用已保存的值。
+      if (!url && secret) errors.url = t("settings.dingTalkSecretNeedsUrl", { label });
+      else if (url && !looksLikeUrl(url)) errors.url = t("settings.dingTalkUrl", { label });
+      else if (url && !new URL(url).searchParams.has("access_token"))
+        errors.url = t("settings.dingTalkToken", { label });
     }
     return errors;
   }

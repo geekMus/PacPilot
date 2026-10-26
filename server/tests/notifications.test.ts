@@ -204,6 +204,46 @@ describe("notification channels", () => {
     expect(document.channels[0].config.url).toBe("https://hooks.example.com/notify?token=abc123");
   });
 
+  it("restores a masked access_token when the URL was edited", async () => {
+    // 编辑表单只能读到脱敏 URL；只改参数位的值不应写入真实链接。
+    const created = await saveNotificationChannel(
+      storage,
+      channelDraft({
+        config: config({ url: "https://oapi.dingtalk.com/robot/send?access_token=realtoken" }),
+      })
+    );
+    expect(created.config.url).toContain("access_token=***");
+
+    await saveNotificationChannel(
+      storage,
+      channelDraft({ config: config({ url: "https://oapi.dingtalk.com/robot/send?access_token=***" }) }),
+      created.id
+    );
+    const document = await rawDocument(storage);
+    expect(document.channels[0].config.url).toBe(
+      "https://oapi.dingtalk.com/robot/send?access_token=realtoken"
+    );
+
+    // 改写路径但仍保留占位符时，只能回填同名参数的真实值。
+    await saveNotificationChannel(
+      storage,
+      channelDraft({ config: config({ url: "https://oapi.dingtalk.com/robot/send?access_token=***&extra=1" }) }),
+      created.id
+    );
+    const updated = await rawDocument(storage);
+    expect(updated.channels[0].config.url).toContain("access_token=realtoken");
+    expect(updated.channels[0].config.url).toContain("extra=1");
+
+    // 收到明文 token 时写入真实值，不覆盖为旧值。
+    await saveNotificationChannel(
+      storage,
+      channelDraft({ config: config({ url: "https://oapi.dingtalk.com/robot/send?access_token=newtoken" }) }),
+      created.id
+    );
+    const replaced = await rawDocument(storage);
+    expect(replaced.channels[0].config.url).toContain("access_token=newtoken");
+  });
+
   it("restores redacted header values from the previous revision", async () => {
     const created = await saveNotificationChannel(
       storage,

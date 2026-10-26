@@ -69,15 +69,44 @@ async function withLock<T>(storage: ApplicationStorage, action: () => Promise<T>
   }
 }
 
+const SECRET_PARAM_PATTERN = /token|secret|key|sign|authorization/i;
+
+/** 判断一个查询参数值是否是前端写回的脱敏占位符（与 redactUrl 写入的 "***" 对齐）。 */
+function isSecretPlaceholder(value: string, name: string): boolean {
+  return SECRET_PARAM_PATTERN.test(name) && /^\*{3,}$/.test(value);
+}
 function redactUrl(raw: string): string {
   try {
     const url = new URL(raw);
     for (const key of [...url.searchParams.keys()]) {
-      if (/token|secret|key|sign|authorization/i.test(key)) url.searchParams.set(key, "***");
+      if (SECRET_PARAM_PATTERN.test(key)) url.searchParams.set(key, "***");
     }
     return url.toString();
   } catch {
     return raw;
+  }
+}
+
+/**
+ * 把表单回传的脱敏占位符回填为上一版保存的真实值。只要参数名是密钥类、
+ * 且值是至少三个连续星号就扫描上一版同名参数回填；其余值（含单个星号）按真实内容保留。
+ */
+function restoreUrlSecrets(url: string, previousUrl: string): string {
+  if (!url || !previousUrl) return url;
+  try {
+    const target = new URL(url);
+    const previous = new URL(previousUrl);
+    let changed = false;
+    for (const [key, value] of target.searchParams.entries()) {
+      if (!isSecretPlaceholder(value, key)) continue;
+      const real = previous.searchParams.get(key);
+      if (!real || isSecretPlaceholder(real, key)) continue;
+      target.searchParams.set(key, real);
+      changed = true;
+    }
+    return changed ? target.toString() : url;
+  } catch {
+    return url;
   }
 }
 function redactHeaders(raw: string): string {
@@ -112,14 +141,17 @@ function publicChannel(channel: NotificationChannel): NotificationChannel {
 function mergeSecrets(input: WebhookConfig, previous?: WebhookConfig): WebhookConfig {
   const config = normalizeWebhookConfig(input);
   if (!previous) return config;
-  if (redactUrl(previous.url) === config.url) config.url = previous.url;
+  if (config.url.trim() && redactUrl(previous.url) === config.url) config.url = previous.url;
   if (!config.dingTalkSecret.trim()) config.dingTalkSecret = previous.dingTalkSecret;
   if (config.provider !== "dingtalk") config.dingTalkSecret = "";
+  // 密钥被前端脱敏成 "***" 时回填已保存值；编辑表单会把参数值改成字面量
+  // "***"，若不比对参数位，保存后会写进真实 URL 并破坏签名。
+  if (config.url.trim()) config.url = restoreUrlSecrets(config.url, previous.url);
   try {
     const oldHeaders = JSON.parse(previous.headers || "{}") as Record<string, string>;
     const newHeaders = JSON.parse(config.headers || "{}") as Record<string, string>;
     for (const [key, value] of Object.entries(newHeaders)) {
-      if (value === "***" && oldHeaders[key]) newHeaders[key] = oldHeaders[key];
+      if (isSecretPlaceholder(value, key) && oldHeaders[key]) newHeaders[key] = oldHeaders[key];
     }
     config.headers = JSON.stringify(newHeaders, null, 2);
   } catch {
@@ -184,6 +216,7 @@ export async function saveNotificationChannel(
     if (id && !previous) throw new Error("通知渠道不存在。");
     const config = mergeSecrets((input.config || {}) as WebhookConfig, previous?.config);
     const errors = validateWebhookConfig(config);
+    // 允许 URL 为空的草稿渠道（前端保存按钮会禁用）；其它字段仍需完整校验。
     if (config.url.trim() && errors.length) throw new Error(errors.join("\n"));
     if (!input.name?.trim()) throw new Error("通知渠道名称不能为空。");
     const timestamp = now();

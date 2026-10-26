@@ -63,28 +63,26 @@ describe("validateWebhookConfig", () => {
     expect(validateWebhookConfig(config({ headers: '{"Authorization":"Bearer ok"}' }))).toEqual([]);
   });
 
-  it("requires a signed DingTalk robot URL with an access token", () => {
-    const dingTalk = config({
-      provider: "dingtalk",
-      url: "https://oapi.dingtalk.com/robot/send",
-      dingTalkSecret: "SECabc",
-    });
-    expect(validateWebhookConfig(dingTalk)).toEqual([expect.stringContaining("缺少 access_token")]);
+  it("requires a DingTalk robot URL with an access token", () => {
+    expect(
+      validateWebhookConfig(config({ provider: "dingtalk", url: "https://oapi.dingtalk.com/robot/send" }))
+    ).toEqual([
+      expect.stringContaining("缺少 access_token"),
+    ]);
 
-    const noSecret = config({
+    // 未启用加签的钉钉机器人同样合法：access_token 必填，Secret 可留空。
+    const unsigned = config({
       provider: "dingtalk",
       url: "https://oapi.dingtalk.com/robot/send?access_token=abc",
       dingTalkSecret: "",
     });
-    expect(validateWebhookConfig(noSecret)).toEqual([
-      expect.stringContaining("必须配置 Secret 加签密钥"),
-    ]);
+    expect(validateWebhookConfig(unsigned)).toEqual([]);
 
-    const valid = config({
+    const signed = config({
       provider: "dingtalk",
       url: "https://oapi.dingtalk.com/robot/send?access_token=abc",
       dingTalkSecret: "SECabc",
     });
-    expect(validateWebhookConfig(valid)).toEqual([]);
+    expect(validateWebhookConfig(signed)).toEqual([]);
   });
 });

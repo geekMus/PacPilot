@@ -249,15 +249,32 @@ describe("sendWebhook for DingTalk robots", () => {
     expect(payload.text.content).toBe("PacPilot test");
   });
 
-  it("rejects a robot without a signing secret before sending", async () => {
+  it("posts an unsigned robot request without timestamp or sign", async () => {
     const mock = stubFetch(() => jsonResponse({ errcode: 0 }));
     const result = await sendWebhook(
       config({ provider: "dingtalk", url: dingTalkUrl, dingTalkSecret: "" }),
       "success"
     );
-    expect(result.success).toBe(false);
-    expect(result.message).toContain("钉钉机器人必须配置 Secret 加签密钥。");
-    expect(mock).not.toHaveBeenCalled();
+    expect(result.success).toBe(true);
+    const parsed = new URL(String(lastCall(mock)[0]));
+    expect(parsed.searchParams.get("access_token")).toBe("abc");
+    expect(parsed.searchParams.has("timestamp")).toBe(false);
+    expect(parsed.searchParams.has("sign")).toBe(false);
+  });
+
+  it("reports a Bun-style timeout when the message only carries the host name", async () => {
+    // Bun 的 AbortSignal.timeout 抛出的错误类型名是 TimeoutError，
+    // message 形如 "request to https://example.com/hook failed"，不含 timeout 字样。
+    stubFetch(() => {
+      throw Object.assign(new Error("request to https://example.com/hook failed"), {
+        name: "TimeoutError",
+        code: "UND_ERR_CONNECT_TIMEOUT",
+      });
+    });
+    expect(await sendWebhook(config(), "success")).toEqual({
+      success: false,
+      message: "Webhook请求超时（10 秒）。",
+    });
   });
 
   it("maps a DingTalk transport failure to the 钉钉 label", async () => {

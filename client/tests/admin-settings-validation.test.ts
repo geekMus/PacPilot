@@ -76,7 +76,7 @@ describe("validateWebhookDraft", () => {
     ).toContain("settings.headersTransport");
   });
 
-  it("validates DingTalk access token and signing secret", () => {
+  it("validates the DingTalk access token without requiring a signing secret", () => {
     const missingToken = validators.validateWebhookDraft(
       webhook({
         provider: "dingtalk",
@@ -86,28 +86,28 @@ describe("validateWebhookDraft", () => {
       "success"
     );
     expect(missingToken.url).toContain("settings.dingTalkToken");
-    const missingSecret = validators.validateWebhookDraft(
-      webhook({
-        provider: "dingtalk",
-        url: "https://oapi.dingtalk.com/robot/send?access_token=abc",
-      }),
-      "success"
-    );
-    expect(missingSecret.secret).toContain("settings.dingTalkSecret");
     expect(
       validators.validateWebhookDraft(
         webhook({ provider: "dingtalk", dingTalkSecret: "secret" }),
         "x"
       ).url
     ).toContain("settings.dingTalkSecretNeedsUrl");
-    // 编辑已有渠道时密钥不回显，留空表示沿用已保存的密钥，不应报错。
-    const keepsSavedSecret = validators.validateWebhookDraft(
+    // 未启用加签的机器人是合法的，Secret 留空不再报错。
+    const unsigned = validators.validateWebhookDraft(
       webhook({
         provider: "dingtalk",
         url: "https://oapi.dingtalk.com/robot/send?access_token=abc",
       }),
-      "success",
-      { hasSavedSecret: true }
+      "success"
+    );
+    expect(unsigned).toEqual({ url: "", headers: "", body: "", testBody: "", secret: "" });
+    // 编辑已有加签渠道时密钥不回显，留空表示沿用已保存的密钥，同样不应报错。
+    const keepsSavedSecret = validators.validateWebhookDraft(
+      webhook({
+        provider: "dingtalk",
+        url: "https://oapi.dingtalk.com/robot/send?access_token=***",
+      }),
+      "success"
     );
     expect(keepsSavedSecret.secret).toBe("");
     expect(keepsSavedSecret.url).toBe("");
