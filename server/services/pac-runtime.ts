@@ -113,6 +113,9 @@ export function computeSourceVersion(settings: AppSettings, source: PacRuleSourc
     pacProxy: settings.pacProxy,
     pacCompress: settings.pacCompress,
     pacObfuscate: settings.pacObfuscate,
+    // 时区只影响头部生成时间的格式，但头部同样属于输出字节，必须计入指纹，
+    // 否则改时区后命中旧缓存会保留旧的时区时间。
+    timezone: settings.timezone,
     blockList: settings.blockList,
     directList: settings.directList,
     listUrl: settings.listUrl,

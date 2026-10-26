@@ -607,7 +607,7 @@ export default {
       "When enabled, comments and extra indentation are removed from the generated PAC regardless of generation mode or rule source. When disabled, the readable formatting is preserved.",
     obfuscatePac: "Obfuscate PAC",
     obfuscatePacHintFull:
-      "When enabled, the PAC is minified first and then handed to the obfuscator: identifiers become hexadecimal names and strings move into an indexed array. Obfuscation always minifies, so the result is a single line; the PAC grows by roughly 10%.",
+      "When enabled, the PAC is minified first and then handed to the obfuscator: identifiers become hexadecimal names and strings move into an indexed array. Obfuscation always minifies, so the result is a single line. The obfuscator runtime carries a fixed cost, so the relative growth shrinks as the rule list grows (roughly double for tiny configs, about 15% for large lists).",
     customRulesTitle: "Custom rules",
     customRulesDesc: "Direct and block lists apply in both Custom and Remote rule list modes.",
     howToConfig: "Configuration and rule priority",

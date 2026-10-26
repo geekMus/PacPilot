@@ -45,6 +45,9 @@ describe("computeSourceVersion", () => {
     expect(computeSourceVersion(settings({ blockList: ["a.example"] }), null)).not.toBe(base);
     expect(computeSourceVersion(settings({ mode: "remote" }), null)).not.toBe(base);
     expect(computeSourceVersion(settings({ pacObfuscate: true }), null)).not.toBe(base);
+    // The generated-at stamp in the inline header is rendered in this timezone,
+    // so changing it changes the served bytes.
+    expect(computeSourceVersion(settings({ timezone: "UTC" }), null)).not.toBe(base);
   });
 
   it("changes when the rule snapshot changes", () => {
