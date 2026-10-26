@@ -34,8 +34,14 @@ export default defineConfig(({ mode }) => {
       host: true,
       proxy: {
         // 后端不再产出 PAC 文件，/pac 由后端实时渲染；开发时转发到后端端口。
-        "/api": apiTarget,
-        "/pac": apiTarget,
+        // 这里必须显式写出对象形式并关闭 changeOrigin：Vite 对字符串写法的代理会
+        // 默认补上 changeOrigin: true，把 Host 头改写成后端地址，于是后端算出的
+        // requestOrigin 变成 127.0.0.1:17321，而浏览器发来的 Origin 仍是
+        // localhost:5174，两者的来源校验不通过，所有 /api/admin/* 写操作都会 403
+        // untrusted_origin。保留原始 Host 后 Origin 与 Host 同源，5173 被占用、
+        // Vite 递增到 5174/5175 时也能正常工作。
+        "/api": { target: apiTarget, changeOrigin: false },
+        "/pac": { target: apiTarget, changeOrigin: false },
       },
     },
     build: {

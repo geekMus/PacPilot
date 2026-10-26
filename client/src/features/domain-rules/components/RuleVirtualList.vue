@@ -156,10 +156,13 @@ watch(
 .virtual-row:last-child {
   @apply border-b-0;
 }
-.virtual-row > .domain-detail {
+/* TextDetail 是 fragment root 组件，它渲染出的按钮只带自己的 scope id，拿不到本
+   组件的 scope id，因此这里必须用 :deep() 穿透，否则选择器编译成
+   `.domain-detail[data-v-xxx]` 后永远匹配不到，样式会静默失效。 */
+.virtual-row > :deep(.domain-detail) {
   @apply flex-auto text-xs;
 }
-.virtual-row > .domain-detail :deep(code) {
+.virtual-row > :deep(.domain-detail) code {
   @apply inline border-0 bg-transparent p-0 text-xs;
   color: var(--text);
 }

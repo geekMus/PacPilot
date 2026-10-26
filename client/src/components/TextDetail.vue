@@ -7,6 +7,12 @@ import { useI18n } from "vue-i18n";
 import { computed, ref } from "vue";
 const { t } = useI18n();
 
+// 模板有两个根节点（触发按钮 + 详情弹窗），属于 fragment root，Vue 无法自动
+// 继承 class/style 等非 props 属性，会在开发环境每条记录刷一条 "Extraneous
+// non-props attributes" 警告且样式静默失效。这里关闭自动继承，显式把属性绑到
+// 触发按钮上：弹窗走 Teleport 渲染到 body，属性绑到它上面没有意义。
+defineOptions({ inheritAttrs: false });
+
 const props = withDefaults(
   defineProps<{
     text?: string | null;
@@ -41,6 +47,7 @@ async function copyContent(): Promise<void> {
 
 <template>
   <button
+    v-bind="$attrs"
     class="text-detail-trigger"
     type="button"
     :title="t('common.viewDetail', { label: resolvedLabel })"
