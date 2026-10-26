@@ -301,7 +301,9 @@ async function confirmDeleteChannel(item: NotificationChannel) {
                   :options="messageTypeOptions"
                   @update:model-value="setMessageType"
               /></label>
-              <label class="field"
+              <!-- 编辑器内部有「填入默认值」按钮，这里必须用 div 而不是 label：
+                   label 的激活行为会把点击转发给按钮，导致点编辑框就写入默认值、并且无法聚焦输入。 -->
+              <div class="field"
                 ><span>{{ t("notifications.fieldMessageTemplate") }}</span
                 ><WebhookBodyEditor
                   :model-value="ch.config.messageTemplate"
@@ -319,9 +321,9 @@ async function confirmDeleteChannel(item: NotificationChannel) {
                   >、<code v-pre>{{ timestamp }}</code
                   >、<code v-pre>{{ ok }}</code
                   >。</small
-                ></label
+                ></div
               >
-              <label class="field"
+              <div class="field"
                 ><span>{{ t("notifications.fieldTestMessage") }}</span
                 ><WebhookBodyEditor
                   :model-value="ch.config.testMessageTemplate"
@@ -332,7 +334,7 @@ async function confirmDeleteChannel(item: NotificationChannel) {
                   :placeholder="dingTalkTestTemplatePlaceholder"
                   :aria-label="t('notifications.fieldTestMessage')"
                   @update:model-value="ch.config.testMessageTemplate = $event"
-              /></label>
+              /></div>
             </template>
             <template v-else>
               <div class="field-grid">
@@ -351,7 +353,7 @@ async function confirmDeleteChannel(item: NotificationChannel) {
                   </div></label
                 >
               </div>
-              <label class="field"
+              <div class="field"
                 ><span
                   >{{ t("notifications.fieldHeaders") }}
                   <em>{{ t("notifications.json") }}</em></span
@@ -364,9 +366,9 @@ async function confirmDeleteChannel(item: NotificationChannel) {
                   @update:model-value="ch.config.headers = $event"
                 /><small class="field-hint">{{
                   t("notifications.hintHeadersRedacted")
-                }}</small></label
+                }}</small></div
               >
-              <label class="field"
+              <div class="field"
                 ><span
                   >{{ t("notifications.fieldBody") }} <em>{{ t("notifications.json") }}</em></span
                 ><WebhookBodyEditor
@@ -376,9 +378,9 @@ async function confirmDeleteChannel(item: NotificationChannel) {
                   :placeholder="bodyPlaceholder"
                   :aria-label="t('notifications.fieldBody')"
                   @update:model-value="ch.config.body = $event"
-                /><small class="field-hint">{{ t("notifications.hintBodyJson") }}</small></label
+                /><small class="field-hint">{{ t("notifications.hintBodyJson") }}</small></div
               >
-              <label class="field"
+              <div class="field"
                 ><span
                   >{{ t("notifications.fieldTestBody") }}
                   <em>{{ t("notifications.json") }}</em></span
@@ -389,7 +391,7 @@ async function confirmDeleteChannel(item: NotificationChannel) {
                   :placeholder="bodyPlaceholder"
                   :aria-label="t('notifications.fieldTestBody')"
                   @update:model-value="ch.config.testBody = $event"
-              /></label>
+              /></div>
             </template>
           </section>
           <section class="form-section compact-section">
