@@ -594,8 +594,12 @@ const {
   border-color: var(--line);
   background: var(--surface-2);
 }
-.rule-tabs-viewport {
+.rule-tabs :deep(.rule-tabs-viewport) {
+  /* 视口在子组件内部，scoped 样式必须用 :deep 才能命中。
+     圆角只由外层 .rule-tabs 负责：视口若保留继承来的 10px 圆角并裁剪内容，
+     就会把紧贴视口边角的按钮圆角切掉，看起来像边框连不上。 */
   @apply min-w-0;
+  border-radius: 0;
 }
 .rule-tabs-track {
   @apply flex w-full gap-1.5;
