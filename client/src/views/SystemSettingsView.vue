@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { api, type AppSettings, type StorageSummary } from "@/api/client";
 import AdminLayout from "@/components/layout/AdminLayout.vue";
+import AppButton from "@/components/AppButton.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AppInput from "@/components/AppInput.vue";
 import AppFooter from "@/components/AppFooter.vue";
@@ -16,6 +17,15 @@ const router = useRouter(),
   { notify } = useToast();
 const { t, locale } = useI18n();
 const { passwordSaving, passwordError, passwordForm, changeAdminPassword } = useAdminPassword();
+// 回车在三个密码输入框之间跳转：原密码 → 新密码 → 确认 → 提交表单。
+const newPasswordInput = ref<InstanceType<typeof AppInput> | null>(null);
+const confirmPasswordInput = ref<InstanceType<typeof AppInput> | null>(null);
+const passwordFormEl = ref<HTMLFormElement | null>(null);
+function focusPasswordNext(target: "new" | "confirm" | "submit"): void {
+  if (target === "new") newPasswordInput.value?.focus();
+  else if (target === "confirm") confirmPasswordInput.value?.focus();
+  else passwordFormEl.value?.requestSubmit();
+}
 const loading = ref(true),
   savingRetention = ref(false),
   cleaning = ref(false),
@@ -186,7 +196,11 @@ onMounted(() => void load());
             <p>{{ t("settings.passwordStoredLocal") }}</p>
           </div>
         </div>
-        <form class="system-password-form" @submit.prevent="changeAdminPassword">
+        <form
+          ref="passwordFormEl"
+          class="system-password-form"
+          @submit.prevent="changeAdminPassword"
+        >
           <label
             ><span>{{ t("settings.currentPassword") }}</span
             ><AppInput
@@ -196,26 +210,31 @@ onMounted(() => void load());
               required
               :placeholder="t('settings.currentPassword')"
               @input="passwordError = ''"
+              @keydown.enter.prevent="focusPasswordNext('new')"
           /></label>
           <label
             ><span>{{ t("settings.newPassword") }}</span
             ><AppInput
+              ref="newPasswordInput"
               v-model="passwordForm.newPassword"
               type="password"
               autocomplete="new-password"
               required
               :placeholder="t('settings.newPasswordPlaceholder')"
               @input="passwordError = ''"
+              @keydown.enter.prevent="focusPasswordNext('confirm')"
           /></label>
           <label
             ><span>{{ t("settings.confirmPassword") }}</span
             ><AppInput
+              ref="confirmPasswordInput"
               v-model="passwordForm.confirmPassword"
               type="password"
               autocomplete="new-password"
               required
               :placeholder="t('settings.confirmPassword')"
               @input="passwordError = ''"
+              @keydown.enter.prevent="focusPasswordNext('submit')"
           /></label>
           <p v-if="passwordError" class="system-password-error" role="alert">{{ passwordError }}</p>
           <p class="system-password-help">
@@ -586,15 +605,6 @@ onMounted(() => void load());
 }
 .password-settings-actions {
   @apply col-span-full flex justify-end;
-}
-.password-settings-actions button {
-  @apply inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border px-3.5;
-  border-color: var(--accent);
-  color: var(--accent-contrast);
-  background: var(--accent);
-}
-.password-settings-actions button:disabled {
-  @apply cursor-progress opacity-65;
 }
 @media (max-width: 800px) {
   .system-password-form {

@@ -22,6 +22,17 @@ const host = ref<HTMLElement | null>(null);
 const visible = ref(false);
 let observer: IntersectionObserver | null = null;
 
+function mountIfVisible(): void {
+  if (visible.value || !host.value) return;
+  const rect = host.value.getBoundingClientRect();
+  if (rect.top < window.innerHeight + props.rootMargin && rect.bottom > -props.rootMargin) {
+    visible.value = true;
+    observer?.disconnect();
+    observer = null;
+    document.removeEventListener("scroll", mountIfVisible, true);
+  }
+}
+
 onMounted(() => {
   if (!host.value || typeof IntersectionObserver === "undefined") {
     visible.value = true;
@@ -29,20 +40,21 @@ onMounted(() => {
   }
   observer = new IntersectionObserver(
     (entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        visible.value = true;
-        observer?.disconnect();
-        observer = null;
-      }
+      if (entries.some((entry) => entry.isIntersecting)) mountIfVisible();
     },
     { rootMargin: `${props.rootMargin}px 0px` }
   );
   observer.observe(host.value);
+  // 兜底：某些嵌入环境（后台标签页）IntersectionObserver 回调会被冻结，
+  // 初始几何检查 + capture 阶段滚动监听保证挂载确定性。
+  mountIfVisible();
+  document.addEventListener("scroll", mountIfVisible, { capture: true, passive: true });
 });
 
 onBeforeUnmount(() => {
   observer?.disconnect();
   observer = null;
+  document.removeEventListener("scroll", mountIfVisible, true);
 });
 </script>
 

@@ -258,6 +258,10 @@ export const api = {
     // same-origin deployment, bearer for a split one. Remember it so login knows
     // whether the returned token has to be persisted.
     bearerRequired = result.authMode ? result.authMode === "bearer" : isCrossOriginApi();
+    // 服务端读取凭据时 Authorization 头优先于 Cookie：cookie 部署下残留的旧
+    // bearer token（此前跨域部署或旧会话密钥签发）会让每个请求被判为未登录，
+    // 即使有效 Cookie 在场。cookie 模式必须清掉它。
+    if (!bearerRequired) clearSessionToken();
     return result;
   },
   changePassword: (body: { currentPassword: string; newPassword: string }) =>
@@ -271,8 +275,10 @@ export const api = {
       { method: "POST", body: JSON.stringify({ password }) }
     );
     // Only a bearer deployment needs the token in storage; a same-origin one is
-    // already authenticated by the HttpOnly session cookie.
+    // already authenticated by the HttpOnly session cookie — and any stale
+    // stored token would override that cookie server-side, so drop it.
     if (requiresBearerToken()) saveSessionToken(result.token, result.expiresAt);
+    else clearSessionToken();
     return result;
   },
   logout: async () => {
