@@ -195,6 +195,25 @@ describe("generatePac in custom mode", () => {
     await storage.close();
   });
 
+  it("produces identical bytes for identical obfuscated input", async () => {
+    // 混淆器默认用随机种子，会让每次重建都生成不同的标识符与字符串数组，
+    // ETag 随之每次变化，客户端缓存与条件请求全部失效。固定 seed 后必须可复现。
+    const storage = await storageWith({ mode: "custom", pacCompress: true, pacObfuscate: true });
+    await generatePac(storage);
+
+    const strip = (body: string) => body.replace(/^\/\*[\s\S]*?\*\//, "");
+    const bodies: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      invalidateRenderedPac();
+      const rendered = await getRenderedPacBody(storage, { force: true });
+      bodies.push(strip(rendered.body));
+      expect(rendered.obfuscated).toBe(true);
+    }
+    // 三次重建的混淆产物必须逐字节一致。
+    expect(new Set(bodies).size).toBe(1);
+    await storage.close();
+  });
+
   it("keeps the readable body when compression is disabled", async () => {
     const storage = await storageWith({ mode: "custom", pacCompress: false });
     const result = await generatePac(storage);
