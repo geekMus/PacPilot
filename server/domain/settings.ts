@@ -59,6 +59,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   mode: "custom",
   pacProxy: "SOCKS5 127.0.0.1:1080; DIRECT",
   pacCompress: true,
+  pacObfuscate: false,
   listUrl: DEFAULT_LIST_URL,
   blockList: [],
   directList: [],
@@ -89,6 +90,7 @@ export function normalizeAppSettings(input: unknown): AppSettings {
     mode: merged.mode === "remote" ? "remote" : "custom",
     pacProxy: String(merged.pacProxy || DEFAULT_SETTINGS.pacProxy).trim(),
     pacCompress: Boolean(merged.pacCompress),
+    pacObfuscate: Boolean(merged.pacObfuscate),
     listUrl: String(merged.listUrl || "").trim(),
     blockList: Array.isArray(merged.blockList)
       ? merged.blockList

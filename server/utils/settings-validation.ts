@@ -17,6 +17,10 @@ export function validateSettingsPayload(body: Record<string, unknown>): string |
     return "pacCompress must be a boolean";
   }
 
+  if (body.pacObfuscate !== undefined && typeof body.pacObfuscate !== "boolean") {
+    return "pacObfuscate must be a boolean";
+  }
+
   for (const key of ["blockList", "directList"] as const) {
     const value = body[key];
     if (

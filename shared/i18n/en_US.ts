@@ -36,6 +36,7 @@ export default {
       custom: {
         compressed: "Generated successfully (custom rules mode, compressed)",
         uncompressed: "Generated successfully (custom rules mode, uncompressed)",
+        obfuscated: "Generated successfully (custom rules mode, compressed and obfuscated)",
       },
     },
   },
@@ -604,6 +605,9 @@ export default {
     compressPac: "Minify PAC",
     compressPacHintFull:
       "When enabled, comments and extra indentation are removed from the generated PAC regardless of generation mode or rule source. When disabled, the readable formatting is preserved.",
+    obfuscatePac: "Obfuscate PAC",
+    obfuscatePacHintFull:
+      "When enabled, the PAC is minified first and then handed to the obfuscator: identifiers become hexadecimal names and strings move into an indexed array. Obfuscation always minifies, so the result is a single line; the PAC grows by roughly 10%.",
     customRulesTitle: "Custom rules",
     customRulesDesc: "Direct and block lists apply in both Custom and Remote rule list modes.",
     howToConfig: "Configuration and rule priority",
@@ -657,6 +661,7 @@ export default {
     savedPacProxy: "Proxy settings updated; the PAC file is being regenerated",
     savedListUrl: "Remote rule list URL updated; the PAC file is being regenerated",
     savedPacCompress: "PAC compression updated; the PAC file is being regenerated",
+    savedPacObfuscate: "PAC obfuscation updated; the PAC file is being regenerated",
     savedCron: "Schedule updated",
     savedRules: "Custom rules saved; the PAC file is being regenerated",
     saveRulesBtn: "Save rules",
@@ -913,6 +918,7 @@ export default {
       "The rendered body is kept in memory and served directly from /pac; no file is read from disk.",
     pacBytes: "Response size {size}",
     pacCompressed: "Compressed (terser)",
+    pacObfuscated: "Compressed and obfuscated (terser + obfuscator)",
     pacPlain: "Uncompressed",
     ruleSnapshot: "Remote rule snapshot",
     ruleSnapshotDesc:

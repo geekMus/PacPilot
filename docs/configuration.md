@@ -52,7 +52,9 @@ PAC 不再以文件形式产出。`/pac` 返回的内容由进程内存中的渲
 
 - 代理字符串、压缩、规则列表、远程 URL 提交后**立即生效**，无需手动生成；生成模式需点击「保存模式」按钮才会写入并触发重渲染；
 - 进程启动时会预热内存缓存；远程模式从 `pac.rule-source.json` 重建，若快照不存在则 `/pac` 返回全量直连脚本并在日志中告警；
-- 响应带 `ETag`，客户端再次请求时命中 `304` 只回传头部，节省带宽；响应头 `X-Pac-Cache` 标识本次是 `hit` / `stale` / `fallback`；响应头 `X-Pac-Compressed` 为 `1` / `0`，标识本次 PAC 主体是否经过「压缩 PAC」开关的 terser 压缩（传输层的 gzip 对两种状态都生效，不能靠响应大小判断）。
+- 响应带 `ETag`，客户端再次请求时命中 `304` 只回传头部，节省带宽；响应头 `X-Pac-Cache` 标识本次是 `hit` / `stale` / `fallback`；响应头 `X-Pac-Compressed` 为 `1` / `0`，标识本次 PAC 主体是否经过压缩，响应头 `X-Pac-Obfuscated` 为 `1` / `0`，标识是否进一步经过混淆（传输层的 gzip 对两种状态都生效，不能靠响应大小判断）。
+- 「压缩 PAC」由 terser 完成，输出**单行、无多余空白**；版本与生成时间折成一行块注释写在正文前，不再产生额外换行。
+- 「混淆 PAC」由 `javascript-obfuscator` 完成，开关打开后必然先压缩再混淆（顺序反了会被 terser 把字符串数组求值内联），因此同样输出单行；`renameGlobals` 保持关闭，`FindProxyForURL`、`proxyHosts`、`USER_BLOCK` 等顶层名称不变，状态页解析器仍然可用，代价是体积约增加 10%。
 
 数据库使用 `PRAGMA user_version` 记录 schema 版本，启动时通过 `server/storage/sqlite/migrations.ts` 中的迁移链自动升级：旧版本数据库在启动时逐迁移原子升级到最新结构（升级前自动在 `backups/` 生成快照）；低于 v4 基线或来自更新版本（回滚场景）的数据库会拒绝启动，详见[部署文档的升级与备份说明](deployment.md#升级时的自动迁移)。SQLite 文件本身不加密；管理员密码以带随机盐的 scrypt 哈希保存。
 

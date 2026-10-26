@@ -75,6 +75,8 @@ export interface RenderedPac {
   stale: boolean;
   /** Whether `body` is terser-minified; surfaced as the X-Pac-Compressed header. */
   compressed: boolean;
+  /** Whether `body` went through the obfuscator; surfaced as the X-Pac-Obfuscated header. */
+  obfuscated: boolean;
 }
 
 let rendered: RenderedPac | null = null;
@@ -110,6 +112,7 @@ export function computeSourceVersion(settings: AppSettings, source: PacRuleSourc
     mode: settings.mode,
     pacProxy: settings.pacProxy,
     pacCompress: settings.pacCompress,
+    pacObfuscate: settings.pacObfuscate,
     blockList: settings.blockList,
     directList: settings.directList,
     listUrl: settings.listUrl,

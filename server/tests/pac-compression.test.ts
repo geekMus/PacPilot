@@ -98,4 +98,28 @@ describe("PAC 传输压缩", () => {
     expect(res.headers["content-disposition"]).toBe('attachment; filename="proxy.pac"');
     expect(gunzipSync(res.body).toString("utf8")).toContain("FindProxyForURL");
   });
+
+  it("serves a single-line body without a trailing newline", async () => {
+    storage.settings.set({ ...DEFAULT_SETTINGS });
+    const res = await request(base, "/pac");
+    const text = res.body.toString("utf8");
+    // 压缩态的头部被折成一个块注释，整份响应只有一行。
+    expect(text.split("\n")).toHaveLength(1);
+    expect(text.endsWith("\n")).toBe(false);
+  });
+
+  it("reports the obfuscation state in X-Pac-Obfuscated", async () => {
+    storage.settings.set({ ...DEFAULT_SETTINGS });
+    const plain = await request(base, "/pac");
+    expect(plain.headers["x-pac-obfuscated"]).toBe("0");
+
+    storage.settings.set({ ...DEFAULT_SETTINGS, pacObfuscate: true });
+    const obfuscated = await request(base, "/pac", { "accept-encoding": "gzip" });
+    expect(obfuscated.headers["x-pac-obfuscated"]).toBe("1");
+    expect(obfuscated.headers["x-pac-compressed"]).toBe("1");
+    const text = gunzipSync(obfuscated.body).toString("utf8");
+    expect(text.split("\n")).toHaveLength(1);
+    expect(text).toContain("FindProxyForURL");
+    expect(text).toContain("_0x");
+  });
 });

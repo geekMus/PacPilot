@@ -31,6 +31,7 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
     // The PAC body is rendered in memory now; report that instead of files.
     const rendered = getRenderedPac();
     const ruleSource = await readRuleSource(storage);
+    const settings = await storage.settings.get();
     res.json({
       dataBytes,
       dbBytes,
@@ -44,7 +45,8 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
               sourceBytes: Buffer.byteLength(rendered.source, "utf8"),
               builtAt: rendered.builtAt,
               etag: rendered.etag,
-              compressed: (await storage.settings.get()).pacCompress,
+              compressed: Boolean(settings.pacCompress || settings.pacObfuscate),
+              obfuscated: rendered.obfuscated,
             }
           : {
               exists: false,
@@ -53,6 +55,7 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
               builtAt: null,
               etag: "",
               compressed: false,
+              obfuscated: false,
             },
         ruleSource: ruleSource
           ? {

@@ -49,6 +49,7 @@ const {
   onPacProxyCommit,
   onListUrlCommit,
   onPacCompressToggle,
+  onPacObfuscateToggle,
   pacProxyError,
   listUrlError,
   ruleAnalysis,
@@ -338,9 +339,24 @@ const {
                 </CheckboxRoot>
                 <span>{{ t("settings.compressPac") }}</span>
               </label>
+              <label class="check">
+                <CheckboxRoot
+                  :model-value="form.pacObfuscate"
+                  class="admin-checkbox"
+                  @update:model-value="onPacObfuscateToggle($event === true)"
+                >
+                  <CheckboxIndicator>
+                    <AppIcon name="check" :size="14" aria-hidden="true" />
+                  </CheckboxIndicator>
+                </CheckboxRoot>
+                <span>{{ t("settings.obfuscatePac") }}</span>
+              </label>
             </div>
             <p class="field-hint">
               {{ t("settings.compressPacHintFull") }}
+            </p>
+            <p class="field-hint">
+              {{ t("settings.obfuscatePacHintFull") }}
             </p>
           </section>
 

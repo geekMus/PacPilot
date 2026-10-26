@@ -43,6 +43,7 @@ export function useAdminSettings() {
     mode: "custom" as "custom" | "remote",
     pacProxy: "",
     pacCompress: true,
+    pacObfuscate: false,
     listUrl: DEFAULT_LIST_URL,
     directListText: "",
     blockListText: "",
@@ -320,6 +321,15 @@ export function useAdminSettings() {
     );
   }
 
+  function onPacObfuscateToggle(checked: boolean) {
+    if (form.pacObfuscate === checked) return;
+    form.pacObfuscate = checked;
+    void tryApply(
+      { pacObfuscate: checked },
+      { generate: true, message: t("settings.savedPacObfuscate") }
+    );
+  }
+
   /** 等待进行中的 cron 解析结束再校验提交，避免误报格式错误。 */
   async function waitCronParsing(): Promise<void> {
     const deadline = Date.now() + 800;
@@ -377,6 +387,7 @@ export function useAdminSettings() {
     form.mode = s.mode;
     form.pacProxy = s.pacProxy;
     form.pacCompress = s.pacCompress;
+    form.pacObfuscate = Boolean(s.pacObfuscate);
     form.listUrl = s.listUrl === DEFAULT_LIST_URL ? "" : s.listUrl;
     form.directListText = s.directList.join("\n");
     form.blockListText = s.blockList.join("\n");
@@ -443,6 +454,7 @@ export function useAdminSettings() {
     onPacProxyCommit,
     onListUrlCommit,
     onPacCompressToggle,
+    onPacObfuscateToggle,
     pacProxyError,
     listUrlError,
     ruleAnalysis,

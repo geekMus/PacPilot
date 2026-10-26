@@ -35,6 +35,7 @@ function settings(overrides: Partial<AppSettings> = {}): AppSettings {
     mode: "custom",
     pacProxy: "",
     pacCompress: true,
+    pacObfuscate: false,
     listUrl: "",
     blockList: [],
     directList: [],

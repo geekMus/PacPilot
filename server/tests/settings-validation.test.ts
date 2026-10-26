@@ -12,6 +12,7 @@ describe("validateSettingsPayload", () => {
         cronSchedule: "0 */6 * * *",
         timezone: "Asia/Shanghai",
         pacCompress: true,
+        pacObfuscate: false,
         blockList: ["blocked.example.com"],
         directList: "internal.example.com",
         logRetentionDays: 30,
@@ -30,6 +31,9 @@ describe("validateSettingsPayload", () => {
       expect(validateSettingsPayload({ [key]: 1 })).toBe(key + " must be a string");
     }
     expect(validateSettingsPayload({ pacCompress: "true" })).toBe("pacCompress must be a boolean");
+    expect(validateSettingsPayload({ pacObfuscate: "true" })).toBe(
+      "pacObfuscate must be a boolean"
+    );
   });
 
   it("validates domain lists and log retention bounds", () => {

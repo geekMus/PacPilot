@@ -30,6 +30,7 @@ export default {
       custom: {
         compressed: "生成成功（自定义规则模式，已压缩）",
         uncompressed: "生成成功（自定义规则模式，未压缩）",
+        obfuscated: "生成成功（自定义规则模式，已压缩并混淆）",
       },
     },
   },
@@ -578,6 +579,9 @@ export default {
     compressPac: "压缩 PAC",
     compressPacHintFull:
       "开启后，无论启动模式和规则来源，生成完成的 PAC 都会去除注释与多余缩进；关闭后保留完整的可读格式。",
+    obfuscatePac: "混淆 PAC",
+    obfuscatePacHintFull:
+      "开启后，PAC 会先压缩再交给混淆器处理：变量名被替换为十六进制标识符、字符串被抽取到数组并按索引读取。混淆必然压缩，因此只会输出单行结果；PAC 体积会增大约 10%。",
     customRulesTitle: "自定义规则",
     customRulesDesc: "直连与黑名单在「自定义」和「远程列表」两种模式下都会生效",
     howToConfig: "如何配置？生效顺序说明",
@@ -625,6 +629,7 @@ export default {
     savedPacProxy: "代理配置已更新，PAC 正在重新生成",
     savedListUrl: "远程规则地址已更新，PAC 正在重新生成",
     savedPacCompress: "PAC 压缩开关已更新，PAC 正在重新生成",
+    savedPacObfuscate: "PAC 混淆开关已更新，PAC 正在重新生成",
     savedCron: "定时任务已更新",
     savedRules: "自定义规则已保存，PAC 正在重新生成",
     saveRulesBtn: "保存规则",
@@ -877,6 +882,7 @@ export default {
     pacRenderedDesc: "实时渲染结果常驻内存，客户端请求 /pac 时直接返回，不读取磁盘文件。",
     pacBytes: "响应大小 {size}",
     pacCompressed: "已压缩（terser）",
+    pacObfuscated: "已压缩并混淆（terser + obfuscator）",
     pacPlain: "未压缩",
     ruleSnapshot: "远程规则快照",
     ruleSnapshotDesc: "远程规则的规范化结果，重启后据此重建 PAC，无需重新联网拉取。",

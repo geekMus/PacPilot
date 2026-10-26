@@ -92,6 +92,7 @@ export interface PacRenderStatus {
     builtAt: string | null;
     etag: string;
     compressed: boolean;
+    obfuscated: boolean;
   };
   ruleSource: {
     exists: boolean;

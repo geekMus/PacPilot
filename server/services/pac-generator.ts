@@ -5,6 +5,7 @@ import { APP_VERSION } from "../version";
 import { t } from "../../shared/i18n";
 import type { AppSettings } from "../../shared/contracts";
 import { fetchAndParseRemoteList } from "./remote-list";
+import { obfuscatePac } from "./pac-obfuscator";
 import { runtimeLog } from "../utils/runtime-log";
 import {
   computeEtag,
@@ -126,10 +127,11 @@ function stripPacMetaHeaders(content: string): string {
   return content
     .replace(/^\/\/ PacPilot version:.*(?:\r?\n|$)/gim, "")
     .replace(/^\/\/ PacPilot PAC generated at:.*(?:\r?\n|$)/gim, "")
+    .replace(/^\/\* PacPilot version: [^*]*\*\/\s*/i, "")
     .replace(/^\n+/, "");
 }
 
-/** Prepend the PacPilot meta header (version + generation time) to a PAC body. */
+/** Prepend the PacPilot meta header (version + generation time) to a readable PAC body. */
 function withPacVersionHeader(content: string, generatedAt: Date, timeZone: string): string {
   const body = stripPacMetaHeaders(content);
   const lines = [
@@ -137,6 +139,21 @@ function withPacVersionHeader(content: string, generatedAt: Date, timeZone: stri
     "// PacPilot PAC generated at: " + formatPacGeneratedAt(generatedAt, timeZone),
   ];
   return lines.join("\n") + "\n" + body;
+}
+
+/**
+ * 压缩/混淆态的单行头部：同样写入版本与生成时间，但用块注释紧贴在正文前，
+ * 保证整份响应里没有换行。
+ */
+function withPacInlineHeader(content: string, generatedAt: Date, timeZone: string): string {
+  const body = stripPacMetaHeaders(content);
+  const header =
+    "/* PacPilot version: " +
+    APP_VERSION +
+    " | generated at: " +
+    formatPacGeneratedAt(generatedAt, timeZone) +
+    " */";
+  return header + body;
 }
 
 function toJsArray(list: string[], compress: boolean): string {
@@ -262,7 +279,8 @@ export async function generatePac(
         mode: "remote",
         pac_proxy: settings.pacProxy,
         list_url: settings.listUrl,
-        compressed: Boolean(settings.pacCompress),
+        compressed: Boolean(settings.pacCompress || settings.pacObfuscate),
+        obfuscated: Boolean(settings.pacObfuscate),
         fetch: parsed.fetch || null,
         parse: {
           format: parsed.format,
@@ -285,13 +303,21 @@ export async function generatePac(
     } else {
       invalidateRenderedPac();
       const rendered = await getRenderedPacBody(storage, { force: true });
-      resultCode = settings.pacCompress ? "custom.compressed" : "custom.uncompressed";
-      resultData = { compressed: Boolean(settings.pacCompress) };
+      resultCode = settings.pacObfuscate
+        ? "custom.obfuscated"
+        : settings.pacCompress
+          ? "custom.compressed"
+          : "custom.uncompressed";
+      resultData = {
+        compressed: Boolean(settings.pacCompress || settings.pacObfuscate),
+        obfuscated: Boolean(settings.pacObfuscate),
+      };
       message = t("zh_CN", `gen.success.${resultCode}`);
       detail = {
         mode: "custom",
         pac_proxy: settings.pacProxy,
-        compressed: Boolean(settings.pacCompress),
+        compressed: Boolean(settings.pacCompress || settings.pacObfuscate),
+        obfuscated: Boolean(settings.pacObfuscate),
         parse: {
           custom_block_list: settings.blockList.length,
           custom_direct_list: settings.directList.length,
@@ -364,9 +390,16 @@ export async function getRenderedPacBody(
     const raw = renderPacSource(freshSettings, freshSource, buildCustomPac);
     const generatedAt = new Date();
     const sourceBody = withPacVersionHeader(raw, generatedAt, freshSettings.timezone);
-    const body = freshSettings.pacCompress
-      ? withPacVersionHeader(await compressPac(raw), generatedAt, freshSettings.timezone)
-      : sourceBody;
+    const obfuscate = Boolean(freshSettings.pacObfuscate);
+    const compress = Boolean(freshSettings.pacCompress);
+    let body = sourceBody;
+    if (compress || obfuscate) {
+      // 先压缩再混淆：反过来的话 terser 会把混淆器生成的字符串数组求值内联，
+      // 混淆强度会被削弱（实测字符串数组条目从 9 处降到 0 处）。
+      const minified = await compressPac(raw);
+      const finalCode = obfuscate ? obfuscatePac(minified) : minified;
+      body = withPacInlineHeader(finalCode, generatedAt, freshSettings.timezone);
+    }
 
     const value: RenderedPac = {
       body,
@@ -375,7 +408,8 @@ export async function getRenderedPacBody(
       builtAt: generatedAt.toISOString(),
       sourceVersion: computeSourceVersion(freshSettings, freshSource),
       stale: false,
-      compressed: Boolean(freshSettings.pacCompress),
+      compressed: compress || obfuscate,
+      obfuscated: obfuscate,
     };
     setRenderedPac(value);
     return value;

@@ -119,10 +119,11 @@ describe("generatePac in custom mode", () => {
 
     expect(result.success).toBe(true);
     expect(result.resultCode).toBe("custom.compressed");
-    expect(result.resultData).toEqual({ compressed: true });
+    expect(result.resultData).toEqual({ compressed: true, obfuscated: false });
     expect(result.detail).toMatchObject({
       mode: "custom",
       compressed: true,
+      obfuscated: false,
       parse: { custom_block_list: 1, custom_direct_list: 1 },
       output: { pac_path: "/pac" },
     });
@@ -132,13 +133,75 @@ describe("generatePac in custom mode", () => {
     await storage.close();
   });
 
+  it("serves the compressed body as a single line with no extra whitespace", async () => {
+    const storage = await storageWith({ mode: "custom", pacCompress: true });
+    await generatePac(storage);
+
+    const rendered = await getRenderedPacBody(storage);
+    // 整份响应只有一行：版本信息被压进块注释，正文没有换行。
+    expect(rendered.body).not.toContain("\n");
+    expect(rendered.body).toContain("/* PacPilot version: ");
+    expect(rendered.body).toContain("function FindProxyForURL");
+    // 去掉头部块注释与字符串字面量后只允许保留 `else if` 这类语法必需的单空格。
+    const code = rendered.body
+      .replace(/^\/\*[\s\S]*?\*\//, "")
+      .replace(/"(?:[^"\\]|\\.)*"/g, '""')
+      .replace(/'(?:[^'\\]|\\.)*'/g, "''");
+    expect(code).not.toMatch(/\s{2,}/);
+    expect(code.trim()).toBe(code);
+    expect(rendered.compressed).toBe(true);
+    expect(rendered.obfuscated).toBe(false);
+    await storage.close();
+  });
+
+  it("obfuscates the body when obfuscation is enabled", async () => {
+    const storage = await storageWith({
+      mode: "custom",
+      pacCompress: true,
+      pacObfuscate: true,
+    });
+    const result = await generatePac(storage);
+
+    expect(result.success).toBe(true);
+    expect(result.resultCode).toBe("custom.obfuscated");
+    expect(result.resultData).toEqual({ compressed: true, obfuscated: true });
+
+    const rendered = await getRenderedPacBody(storage);
+    expect(rendered.obfuscated).toBe(true);
+    expect(rendered.compressed).toBe(true);
+    // 混淆后仍是单行。
+    expect(rendered.body).not.toContain("\n");
+    // 全局入口与顶层变量名必须保留，PAC 客户端和状态页解析器都依赖它们。
+    expect(rendered.body).toContain("FindProxyForURL");
+    expect(rendered.body).toContain("BLOCK_LIST");
+    // 字符串被抽进数组：原文里的域名不再以字面量出现。
+    expect(rendered.body).toContain("_0x");
+    await storage.close();
+  });
+
+  it("minifies even when only obfuscation is enabled", async () => {
+    const storage = await storageWith({
+      mode: "custom",
+      pacCompress: false,
+      pacObfuscate: true,
+    });
+    await generatePac(storage);
+
+    const rendered = await getRenderedPacBody(storage);
+    // 混淆必须先压缩，因此即使压缩开关关闭也输出单行。
+    expect(rendered.body).not.toContain("\n");
+    expect(rendered.compressed).toBe(true);
+    expect(rendered.obfuscated).toBe(true);
+    await storage.close();
+  });
+
   it("keeps the readable body when compression is disabled", async () => {
     const storage = await storageWith({ mode: "custom", pacCompress: false });
     const result = await generatePac(storage);
 
     expect(result.success).toBe(true);
     expect(result.resultCode).toBe("custom.uncompressed");
-    expect(result.resultData).toEqual({ compressed: false });
+    expect(result.resultData).toEqual({ compressed: false, obfuscated: false });
 
     const rendered = await getRenderedPacBody(storage);
     expect(rendered.body).toContain("function FindProxyForURL");
@@ -286,7 +349,8 @@ describe("getRenderedPacBody", () => {
 
     const rendered = await getRenderedPacBody(storage);
     expect(rendered.body).toContain("blocked.example");
-    expect(rendered.body).toContain("// PacPilot version:");
+    // 默认设置开启压缩，因此头部是单行块注释而不是两行行注释。
+    expect(rendered.body).toContain("/* PacPilot version:");
     await storage.close();
   });
 });

@@ -42,6 +42,7 @@ function bodyToSettings(b: Record<string, unknown>): AppSettings {
     mode,
     pacProxy: String(b.pacProxy ?? ""),
     pacCompress: Boolean(b.pacCompress),
+    pacObfuscate: Boolean(b.pacObfuscate),
     listUrl: String(b.listUrl ?? ""),
     blockList: parseList(b.blockList),
     directList: parseList(b.directList),

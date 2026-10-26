@@ -417,9 +417,11 @@ onMounted(() => void load());
             </div>
             <div class="pac-entry-meta">
               <span>{{
-                storage.pac.rendered.compressed
-                  ? t("systemPage.pacCompressed")
-                  : t("systemPage.pacPlain")
+                storage.pac.rendered.obfuscated
+                  ? t("systemPage.pacObfuscated")
+                  : storage.pac.rendered.compressed
+                    ? t("systemPage.pacCompressed")
+                    : t("systemPage.pacPlain")
               }}</span
               ><span class="pac-etag">{{ storage.pac.rendered.etag || "—" }}</span>
             </div>

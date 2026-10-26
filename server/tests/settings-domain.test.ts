@@ -145,5 +145,11 @@ describe("normalizeAppSettings", () => {
     expect(normalizeAppSettings({ pacCompress: "yes" }).pacCompress).toBe(true);
   });
 
+  it("defaults pacObfuscate to false and coerces it to a boolean", () => {
+    expect(normalizeAppSettings({}).pacObfuscate).toBe(false);
+    expect(normalizeAppSettings({ pacObfuscate: true }).pacObfuscate).toBe(true);
+    expect(normalizeAppSettings({ pacObfuscate: "yes" }).pacObfuscate).toBe(true);
+  });
+
 });
 

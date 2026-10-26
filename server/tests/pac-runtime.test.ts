@@ -44,6 +44,7 @@ describe("computeSourceVersion", () => {
     expect(computeSourceVersion(settings({ pacCompress: false }), null)).not.toBe(base);
     expect(computeSourceVersion(settings({ blockList: ["a.example"] }), null)).not.toBe(base);
     expect(computeSourceVersion(settings({ mode: "remote" }), null)).not.toBe(base);
+    expect(computeSourceVersion(settings({ pacObfuscate: true }), null)).not.toBe(base);
   });
 
   it("changes when the rule snapshot changes", () => {
@@ -86,6 +87,7 @@ describe("render freshness", () => {
       sourceVersion: computeSourceVersion(s, null),
       stale: false,
       compressed: true,
+      obfuscated: false,
     });
     expect(isRenderFresh(s, null)).toBe(true);
     // Changing any input invalidates it.

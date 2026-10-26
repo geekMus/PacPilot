@@ -25,6 +25,7 @@ export interface AppSettings {
   mode: GenerationMode;
   pacProxy: string;
   pacCompress: boolean;
+  pacObfuscate: boolean;
   listUrl: string;
   blockList: string[];
   directList: string[];
