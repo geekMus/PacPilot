@@ -103,6 +103,12 @@ export function createApp(env: EnvConfig, storage: ApplicationStorage): express.
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
 
+  // PAC 的规则集可能很小：默认配置没有任何规则时，产物只有 1KB 左右，而 compression()
+  // 的默认阈值正好是 1KB，这类响应会被整段跳过压缩——表现出来就是「已经打开压缩 PAC，
+  // 但访问 /pac 依然没有 Content-Encoding」。PAC 是机器读取的文本，任何体积都值得压缩，
+  // 所以单独把它的阈值降到 0。与上面的中间件重叠挂载不会造成二次压缩：先决策的实例会
+  // 写入 Content-Encoding，后一个实例据此判定「already encoded」后跳过。
+  app.use("/pac", compression({ threshold: 0 }));
   app.use(publicRoutes(storage));
   app.use(adminRoutes(env, storage));
 
