@@ -26,7 +26,7 @@ const {
   domainInput,
   activeRuleType,
   directEntries,
-  remoteProxyEntries,
+  proxyEntries,
   blockEntries,
   checkDomain,
   domainRoute,
@@ -145,17 +145,10 @@ const {
             ><strong class="stat-number">{{ status.remoteProxyCount }}</strong
             ><span class="stat-caption">{{ t("statusPage.k20") }}</span>
           </article>
-          <article v-if="status.mode === 'remote'" class="stat-card">
-            <span class="stat-label">{{ t("statusPage.k21") }}</span
-            ><strong class="stat-number">{{ status.remoteDirectCount }}</strong
-            ><span class="stat-caption">{{ t("statusPage.k22") }}</span>
-          </article>
           <article class="stat-card">
             <span class="stat-label">{{ t("statusPage.k23") }}</span
             ><strong class="stat-number">{{ directEntries.length }}</strong
-            ><span class="stat-caption">{{
-              t(status.mode === "remote" ? "statusPage.remoteDirectCaption" : "statusPage.k24")
-            }}</span>
+            ><span class="stat-caption">{{ t("statusPage.k24") }}</span>
           </article>
           <article class="stat-card">
             <span class="stat-label">{{ t("statusPage.k25") }}</span
@@ -280,7 +273,7 @@ const {
               @click="activeRuleType = 'proxy'"
             >
               <span class="rule-dot proxy-dot"></span><span>{{ t("statusPage.k42") }}</span
-              ><strong>{{ remoteProxyEntries.length }}</strong>
+              ><strong>{{ proxyEntries.length }}</strong>
             </button>
 
             <button
@@ -311,7 +304,7 @@ const {
                 {{ t("statusPage.k43") }}
               </p>
               <RuleVirtualList
-                :items="remoteProxyEntries"
+                :items="proxyEntries"
                 :empty-text="t('statusPage.k44')"
                 :height="300"
               />

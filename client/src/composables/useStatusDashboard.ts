@@ -114,10 +114,10 @@ export function useStatusDashboard() {
   );
 
   /**
-   * 远程代理列表可能有几千条，它既不是直连也不是拦截，之前只统计在概览卡片里，
-   * 明细列表看不到，容易被误认为数据缺失，所以单独作为一个规则分组。
+   * 规则只按类型分组（直连 / 代理 / 黑名单），不再按来源拆分类别：远程代理列表可能有几千条，
+   * 之前只统计在概览卡片里、明细列表看不到，容易被误认为数据缺失。
    */
-  const remoteProxyEntries = computed<RuleEntry[]>(() =>
+  const proxyEntries = computed<RuleEntry[]>(() =>
     (status.value?.remoteProxyList ?? []).map((domain) => ({
       domain,
       source: t("status.sourceRemoteProxy"),
@@ -269,7 +269,7 @@ export function useStatusDashboard() {
     domainInput,
     activeRuleType,
     directEntries,
-    remoteProxyEntries,
+    proxyEntries,
     blockEntries,
     checkDomain,
     domainRoute,
