@@ -25,9 +25,62 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <title>PacPilot</title>
+    <!--
+      启动占位（boot shell）：这里必须写原生 CSS，不能用 Tailwind。
+      它的唯一作用是让浏览器在 JS 包下载、解析、执行完成之前就有内容可绘制；
+      此时 @/styles/tailwind.css 尚未加载，使用 @apply 或设计令牌都会失效。
+      颜色统一用系统颜色关键字（Canvas / CanvasText），随 color-scheme 自动适配明暗，
+      因此不需要硬编码主题色，也不会在深色模式下闪白。
+      Vue 挂载时会清空 #app，占位随之消失。
+    -->
+    <style>
+      #app {
+        min-height: 100vh;
+      }
+      .boot {
+        display: flex;
+        min-height: 100vh;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        background: Canvas;
+        color: CanvasText;
+        font: 600 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      .boot__mark {
+        letter-spacing: 0.02em;
+      }
+      .boot__spinner {
+        box-sizing: border-box;
+        width: 20px;
+        height: 20px;
+        border: 2.5px solid transparent;
+        border-top-color: currentColor;
+        border-right-color: currentColor;
+        border-radius: 50%;
+        opacity: 0.55;
+        animation: boot-spin 0.8s linear infinite;
+      }
+      @keyframes boot-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .boot__spinner {
+          animation: none;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div class="boot" role="status" aria-label="PacPilot">
+        <span class="boot__mark">PacPilot</span>
+        <span class="boot__spinner" aria-hidden="true"></span>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

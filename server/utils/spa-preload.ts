@@ -2,11 +2,13 @@ import fs from "fs";
 import path from "path";
 
 /**
- * 把当前路由要用的 JS/CSS 以 <link> 预加载提示注入 SPA 的 index.html。
+ * 把当前路由要用的 JS/CSS 注入 SPA 的 index.html。
  *
  * 没有这些提示时，浏览器必须先下载并执行入口脚本，才能知道当前页面还要哪个
  * 视图块，首屏因此白白多等一次往返。构建配置已开启 `build.manifest`，这里按
- * Vite manifest 解析出「视图块 + 它的静态依赖 + 关联样式」的完整集合。
+ * Vite manifest 解析出「视图块 + 它的静态依赖 + 关联样式」的完整集合：
+ * 脚本用 `<link rel=modulepreload>` 提前下载，样式直接内联进 HTML，省掉
+ * 5-9 个渲染阻塞请求在 HTTP/1.1 连接池里的排队等待。
  */
 type ManifestChunk = {
   file: string;
@@ -52,6 +54,13 @@ const EARLY_FETCH_PRELOADS = [
 export interface SpaPreloads {
   /** 给定请求路径，返回要注入到 </head> 前的标签串。 */
   forPath(requestPath: string): string;
+  /**
+   * 注入预加载标签，并把入口样式表换成内联样式。
+   *
+   * 入口样式是首屏最后一个渲染阻塞请求；只有它也被内联后，首帧才不再等待任何
+   * 样式往返。样式未能内联时保持原来的 <link>，绝不为了少一次请求而丢样式。
+   */
+  renderHead(html: string, requestPath: string): string;
 }
 
 function readManifest(clientDir: string): ViteManifest | null {
@@ -115,43 +124,107 @@ function collectFiles(manifest: ViteManifest, key: string): string[] {
 }
 
 function toTag(file: string): string {
-  // 先排样式：CSS 才能参与首帧渲染，放在脚本提示之后会晚一个来回。
-  return file.endsWith(".css")
-    ? `<link rel="stylesheet" crossorigin href="/${file}">`
-    : `<link rel="modulepreload" crossorigin href="/${file}">`;
+  return `<link rel="modulepreload" crossorigin href="/${file}">`;
+}
+
+function toStyleTag(file: string): string {
+  return `<link rel="stylesheet" crossorigin href="/${file}">`;
+}
+
+/**
+ * 读取一份构建产物样式，供内联使用。
+ *
+ * 把路由用到的样式直接内联进 HTML，可以让首帧不再等待 5-9 个渲染阻塞请求：这些字节
+ * 本来就要下载，内联只是省掉了每个文件各一次往返和连接占用（服务端是 HTTP/1.1）。
+ */
+function readStyleFile(clientDir: string, file: string): string | null {
+  try {
+    return fs
+      .readFileSync(path.join(clientDir, file), "utf8")
+      // `@charset` 只允许出现在样式表最前面，拼接后属于非法 at-rule；文档本身是 UTF-8，可直接去掉。
+      .replace(/^\s*@charset\s+"[^"]*";/, "")
+      // 样式里出现 `</style` 会提前结束内联样式块；`<\/style` 在 CSS 里解析结果相同。
+      .replace(/<\/style/gi, "<\\/style");
+  } catch {
+    // 返回 null 而不是空串：空样式表是合法的，读不到文件必须让调用方退回 <link>。
+    return null;
+  }
 }
 
 export function createSpaPreloads(clientDir: string): SpaPreloads {
   const manifest = readManifest(clientDir);
-  // 入口自身的 chunk 与样式已由 index.html 声明，重复提示只是噪声。
+  // 入口自身的 chunk 已由 index.html 声明，重复提示只是噪声；入口样式则改为内联。
   const declared = new Set<string>();
   const entry = manifest?.[ENTRY_KEY];
   if (entry) {
     declared.add(entry.file);
     for (const css of entry.css ?? []) declared.add(css);
   }
+  const entryStyles = entry?.css ?? [];
   const cache = new Map<string, string>();
+  const styleCache = new Map<string, string>();
+  /** 记录哪些路径成功内联了入口样式，供 renderHead 决定是否摘掉入口样式表。 */
+  const entryInlined = new Set<string>();
+
+  /** 读取一组样式；任何一份读不到就返回 null，让调用方退回 <link>。 */
+  const readStyles = (files: readonly string[]): string[] | null => {
+    const bodies: string[] = [];
+    for (const file of files) {
+      const cached = styleCache.get(file);
+      const body = cached !== undefined ? cached : readStyleFile(clientDir, file);
+      if (body === null) return null;
+      if (cached === undefined) styleCache.set(file, body);
+      bodies.push(body);
+    }
+    return bodies;
+  };
+
+  const forPath = (requestPath: string): string => {
+    // 早期请求预加载不依赖构建 manifest：即使还没构建也要尽早发出探测请求。
+    if (!manifest) return EARLY_FETCH_PRELOADS;
+    const hit = cache.get(requestPath);
+    if (hit !== undefined) return hit;
+
+    const source = ROUTE_SOURCES.find(([pattern]) => pattern.test(requestPath))?.[1];
+    const key = source ? resolveEntryKey(manifest, source) : null;
+    const files = key ? collectFiles(manifest, key) : [];
+    const unique = [...new Set(files)].filter((file) => !declared.has(file));
+    const styles = unique.filter((file) => file.endsWith(".css"));
+    const scripts = unique.filter((file) => !file.endsWith(".css"));
+
+    // 入口样式排在前面：它承载全局样式与设计令牌，必须保持在路由样式之前。
+    const bodies = readStyles([...entryStyles, ...styles]);
+    let head: string;
+    if (bodies) {
+      entryInlined.add(requestPath);
+      head = bodies.length > 0 ? `<style data-spa-route-css>${bodies.join("")}</style>` : "";
+    } else {
+      head = styles.map(toStyleTag).join("");
+    }
+    const tags = EARLY_FETCH_PRELOADS + head + scripts.map(toTag).join("");
+    cache.set(requestPath, tags);
+    return tags;
+  };
 
   return {
-    forPath(requestPath: string): string {
-      // 早期请求预加载不依赖构建 manifest：即使还没构建也要尽早发出探测请求。
-      if (!manifest) return EARLY_FETCH_PRELOADS;
-      const hit = cache.get(requestPath);
-      if (hit !== undefined) return hit;
-
-      const source = ROUTE_SOURCES.find(([pattern]) => pattern.test(requestPath))?.[1];
-      const key = source ? resolveEntryKey(manifest, source) : null;
-      const files = key ? collectFiles(manifest, key) : [];
-      const unique = [...new Set(files)].filter((file) => !declared.has(file));
-      const ordered = [
-        ...unique.filter((file) => file.endsWith(".css")),
-        ...unique.filter((file) => !file.endsWith(".css")),
-      ];
-      const tags = EARLY_FETCH_PRELOADS + ordered.map(toTag).join("");
-      cache.set(requestPath, tags);
-      return tags;
+    forPath,
+    renderHead(html: string, requestPath: string): string {
+      const tags = forPath(requestPath);
+      const target = entryInlined.has(requestPath) ? stripStyleLinks(html, entryStyles) : html;
+      return injectPreloadTags(target, tags);
     },
   };
+}
+
+/** 摘掉指定样式表在 HTML 里的 <link>：内容已经内联，留着只会产生重复请求。 */
+function stripStyleLinks(html: string, files: readonly string[]): string {
+  if (files.length === 0) return html;
+  const hrefs = new Set(files.map((file) => `/${file}`));
+  return html.replace(/<link\b[^>]*>/g, (tag) => {
+    if (!tag.includes('rel="stylesheet"')) return tag;
+    const href = /href="([^"]*)"/.exec(tag)?.[1];
+    return href && hrefs.has(href) ? "" : tag;
+  });
 }
 
 /** 在 </head> 前插入预加载标签；没有 </head> 时原样返回。 */

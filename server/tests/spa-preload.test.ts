@@ -134,6 +134,88 @@ describe("createSpaPreloads", () => {
 
     expect(tags).toContain('<link rel="modulepreload" crossorigin href="/assets/WorkflowDetailView-HHH.js">');
   });
+
+  it("样式文件存在时内联进 HTML，省掉渲染阻塞请求", () => {
+    const dir = makeDir(manifest);
+    fs.mkdirSync(path.join(dir, "assets"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "assets/index-AAA.css"), ".entry{}", "utf8");
+    fs.writeFileSync(path.join(dir, "assets/LogsView-BBB.css"), ".a{color:red}", "utf8");
+    fs.writeFileSync(path.join(dir, "assets/AppSelect-DDD.css"), ".b{color:blue}", "utf8");
+
+    const tags = createSpaPreloads(dir).forPath("/admin/logs");
+
+    expect(tags).toContain("<style data-spa-route-css>");
+    // 入口样式在最前，随后是路由样式；没有样式表请求。
+    expect(tags).toContain(".entry{}.a{color:red}.b{color:blue}");
+    expect(tags).not.toContain('rel="stylesheet"');
+    expect(tags).toContain('<link rel="modulepreload" crossorigin href="/assets/LogsView-BBB.js">');
+  });
+
+  it("内联样式时去掉 @charset 并转义 </style", () => {
+    const dir = makeDir(manifest);
+    fs.mkdirSync(path.join(dir, "assets"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "assets/index-AAA.css"), ".entry{}", "utf8");
+    fs.writeFileSync(
+      path.join(dir, "assets/LogsView-BBB.css"),
+      '@charset "UTF-8";.a{content:"</style>"}',
+      "utf8"
+    );
+    fs.writeFileSync(path.join(dir, "assets/AppSelect-DDD.css"), ".b{}", "utf8");
+
+    const tags = createSpaPreloads(dir).forPath("/admin/logs");
+
+    expect(tags).not.toContain("@charset");
+    expect(tags).not.toContain('content:"</style>"');
+    expect(tags).toContain("<\\/style>");
+  });
+
+  it("任何一份样式读不到时退回 <link>，不丢样式", () => {
+    const dir = makeDir(manifest);
+    fs.mkdirSync(path.join(dir, "assets"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "assets/LogsView-BBB.css"), ".a{}", "utf8");
+    // AppSelect-DDD.css 故意不写，模拟产物缺失。
+
+    const tags = createSpaPreloads(dir).forPath("/admin/logs");
+
+    expect(tags).not.toContain("<style data-spa-route-css>");
+    expect(tags).toContain('<link rel="stylesheet" crossorigin href="/assets/LogsView-BBB.css">');
+    expect(tags).toContain('<link rel="stylesheet" crossorigin href="/assets/AppSelect-DDD.css">');
+  });
+});
+
+describe("renderHead", () => {
+  const html =
+    '<html><head><link rel="stylesheet" crossorigin href="/assets/index-AAA.css">' +
+    '<script type="module" crossorigin src="/assets/index-AAA.js"></script></head><body></body></html>';
+
+  function writeStyles(dir: string, files: Record<string, string>): void {
+    fs.mkdirSync(path.join(dir, "assets"), { recursive: true });
+    for (const [name, body] of Object.entries(files)) {
+      fs.writeFileSync(path.join(dir, "assets", name), body, "utf8");
+    }
+  }
+
+  it("内联入口样式并摘掉它的 <link>，入口样式排在路由样式之前", () => {
+    const dir = makeDir(manifest);
+    writeStyles(dir, { "index-AAA.css": ".entry{}", "LogsView-BBB.css": ".route{}", "AppSelect-DDD.css": ".shared{}" });
+
+    const result = createSpaPreloads(dir).renderHead(html, "/admin/logs");
+
+    expect(result).not.toContain('href="/assets/index-AAA.css"');
+    expect(result).toContain("<style data-spa-route-css>.entry{}.route{}.shared{}</style>");
+    // 入口脚本仍然由 index.html 自己声明，不受内联影响。
+    expect(result).toContain('src="/assets/index-AAA.js"');
+  });
+
+  it("入口样式读不到时保留 <link>，不为了少一次请求而丢样式", () => {
+    const dir = makeDir(manifest);
+    writeStyles(dir, { "LogsView-BBB.css": ".route{}", "AppSelect-DDD.css": ".shared{}" });
+
+    const result = createSpaPreloads(dir).renderHead(html, "/admin/logs");
+
+    expect(result).toContain('href="/assets/index-AAA.css"');
+    expect(result).toContain('<link rel="stylesheet" crossorigin href="/assets/LogsView-BBB.css">');
+  });
 });
 
 describe("injectPreloadTags", () => {

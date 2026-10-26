@@ -128,7 +128,7 @@ export function createApp(env: EnvConfig, storage: ApplicationStorage): express.
     if (cachedIndexHtml === null) {
       cachedIndexHtml = fs.readFileSync(indexHtml, "utf8");
     }
-    return injectPreloadTags(cachedIndexHtml, inlineRuntimeConfig + spaPreloads.forPath(requestPath));
+    return injectPreloadTags(spaPreloads.renderHead(cachedIndexHtml, requestPath), inlineRuntimeConfig);
   };
 
   const sendSpa = (req: express.Request, res: express.Response) => {
