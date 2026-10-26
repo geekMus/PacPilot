@@ -4,6 +4,7 @@ import AppFooter from "@/components/AppFooter.vue";
 import RuleVirtualList from "@/features/domain-rules/components/RuleVirtualList.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AppInput from "@/components/AppInput.vue";
+import AppScrollArea from "@/components/AppScrollArea.vue";
 import { useStatusDashboard } from "@/composables/useStatusDashboard";
 import { resolveApiUrl } from "@/api/runtime-config";
 
@@ -136,10 +137,11 @@ const {
       </section>
 
       <template v-else-if="hasRuleSummary">
-        <section
-          class="stats-grid"
-          :class="status.mode === 'remote' ? 'remote-stats' : 'custom-stats'"
-        >
+        <!--
+          列数按实际卡片数量决定（remote 3 张 / custom 2 张 + 1 张通栏），
+          不写死 4 列，避免 remote 模式在第 4 格留一个空位。
+        -->
+        <section class="stats-grid" :class="{ 'custom-stats': status.mode === 'custom' }">
           <article v-if="status.mode === 'remote'" class="stat-card">
             <span class="stat-label">{{ t("statusPage.k19") }}</span
             ><strong class="stat-number">{{ status.remoteProxyCount }}</strong
@@ -252,47 +254,58 @@ const {
             /></RouterLink>
           </div>
 
-          <div class="rule-tabs" role="tablist" :aria-label="t('statusPage.k8')">
-            <button
-              type="button"
-              role="tab"
-              class="rule-tab--direct"
-              :aria-selected="activeRuleType === 'direct'"
-              :class="{ active: activeRuleType === 'direct' }"
-              @click="activeRuleType = 'direct'"
-            >
-              <span class="rule-dot direct-dot"></span
-              ><span class="rule-tab-label">{{ t("statusPage.k38") }}</span
-              ><strong>{{ directEntries.length }}</strong>
-            </button>
+          <!--
+            分段控件铺满整行，宽屏不留空档；每段最小宽度取 max-content，
+            文案不会被截断——真的放不下时由 AppScrollArea 横向滚动。
+          -->
+          <AppScrollArea
+            class="rule-tabs"
+            orientation="horizontal"
+            type="auto"
+            viewport-class="rule-tabs-viewport"
+          >
+            <div class="rule-tabs-track" role="tablist" :aria-label="t('statusPage.k8')">
+              <button
+                type="button"
+                role="tab"
+                class="rule-tab--direct"
+                :aria-selected="activeRuleType === 'direct'"
+                :class="{ active: activeRuleType === 'direct' }"
+                @click="activeRuleType = 'direct'"
+              >
+                <span class="rule-dot direct-dot"></span
+                ><span class="rule-tab-label">{{ t("statusPage.k38") }}</span
+                ><strong>{{ directEntries.length }}</strong>
+              </button>
 
-            <button
-              v-if="status.mode === 'remote'"
-              type="button"
-              role="tab"
-              class="rule-tab--proxy"
-              :aria-selected="activeRuleType === 'proxy'"
-              :class="{ active: activeRuleType === 'proxy' }"
-              @click="activeRuleType = 'proxy'"
-            >
-              <span class="rule-dot proxy-dot"></span
-              ><span class="rule-tab-label">{{ t("statusPage.k42") }}</span
-              ><strong>{{ proxyEntries.length }}</strong>
-            </button>
+              <button
+                v-if="status.mode === 'remote'"
+                type="button"
+                role="tab"
+                class="rule-tab--proxy"
+                :aria-selected="activeRuleType === 'proxy'"
+                :class="{ active: activeRuleType === 'proxy' }"
+                @click="activeRuleType = 'proxy'"
+              >
+                <span class="rule-dot proxy-dot"></span
+                ><span class="rule-tab-label">{{ t("statusPage.k42") }}</span
+                ><strong>{{ proxyEntries.length }}</strong>
+              </button>
 
-            <button
-              type="button"
-              role="tab"
-              class="rule-tab--block"
-              :aria-selected="activeRuleType === 'block'"
-              :class="{ active: activeRuleType === 'block' }"
-              @click="activeRuleType = 'block'"
-            >
-              <span class="rule-dot block-dot"></span
-              ><span class="rule-tab-label">{{ t("statusPage.k39") }}</span
-              ><strong>{{ blockEntries.length }}</strong>
-            </button>
-          </div>
+              <button
+                type="button"
+                role="tab"
+                class="rule-tab--block"
+                :aria-selected="activeRuleType === 'block'"
+                :class="{ active: activeRuleType === 'block' }"
+                @click="activeRuleType = 'block'"
+              >
+                <span class="rule-dot block-dot"></span
+                ><span class="rule-tab-label">{{ t("statusPage.k39") }}</span
+                ><strong>{{ blockEntries.length }}</strong>
+              </button>
+            </div>
+          </AppScrollArea>
 
           <div class="rule-content" role="tabpanel">
             <template v-if="activeRuleType === 'direct'">
@@ -406,10 +419,10 @@ const {
   background: var(--warn);
 }
 .stats-grid {
+  /* remote 模式固定 3 张卡：宽屏 3 等分铺满整行，不会像 4 列网格那样留空位；
+     窄屏直接改为单列堆叠，避免 2 列布局在最后一行留下空单元格。 */
   @apply mb-[22px] grid gap-3.5;
-}
-.remote-stats {
-  @apply grid-cols-4;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .custom-stats {
   @apply grid-cols-2;
@@ -575,14 +588,21 @@ const {
   overflow-wrap: anywhere;
 }
 .rule-tabs {
-  /* 三档分段控件：flex 等分保证始终单行，不随档位数量变化而换行；
-     限制最大宽度避免在宽屏被拉成三个过宽的大按钮。 */
-  @apply mb-3.5 flex max-w-[520px] gap-1.5 rounded-[10px] border p-[5px];
+  /* 分段控件铺满整行，宽屏不留空档；内容按 max-content 排布，
+     真正放不下时才由 AppScrollArea 出现横向滚动条，永不换行。 */
+  @apply mb-3.5 rounded-[10px] border p-[5px];
   border-color: var(--line);
   background: var(--surface-2);
 }
+.rule-tabs-viewport {
+  @apply min-w-0;
+}
+.rule-tabs-track {
+  @apply flex w-full gap-1.5;
+  min-width: max-content;
+}
 .rule-tabs button {
-  @apply flex min-h-10 min-w-0 flex-1 cursor-pointer items-center justify-center gap-[7px] rounded-[7px] border border-transparent bg-transparent px-2.5 text-xs font-semibold transition-[background,border-color,color,box-shadow];
+  @apply flex min-h-10 flex-1 cursor-pointer items-center justify-center gap-[7px] rounded-[7px] border border-transparent bg-transparent px-3 text-xs font-semibold whitespace-nowrap transition-[background,border-color,color,box-shadow];
   color: var(--muted);
 }
 .rule-tabs button:hover {
@@ -605,7 +625,8 @@ const {
   box-shadow: var(--shadow-sm);
 }
 .rule-tab-label {
-  @apply truncate;
+  /* 不截断：宽度不够时整行横向滚动，而不是把文案裁成省略号。 */
+  @apply whitespace-nowrap;
 }
 .rule-tabs button strong {
   @apply ml-px inline-flex min-h-[22px] min-w-6 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-bold leading-none tabular-nums;
@@ -790,13 +811,15 @@ const {
   }
 }
 @media (max-width: 960px) {
-  .remote-stats,
-  .custom-stats {
+  .stats-grid {
     @apply grid-cols-2;
+  }
+  /* 2 列时 3 张卡会在第二行留一个空位，让最后一张跨两列补满整行。 */
+  .stats-grid:not(.custom-stats) > .stat-card:last-child {
+    @apply col-span-2;
   }
 }
 @media (max-width: 480px) {
-  .remote-stats,
   .custom-stats {
     @apply grid-cols-2 gap-2;
   }
@@ -839,10 +862,15 @@ const {
     @apply col-span-full;
   }
   .rule-tabs {
-    @apply gap-[5px] p-1;
+    @apply p-1;
+  }
+  .rule-tabs-track {
+    @apply gap-[5px];
   }
   .rule-tabs button {
-    @apply gap-1.5 px-2 text-xs;
+    /* 窄屏收紧内边距，让三档在 360px 这类极窄宽度下也能整行放下，
+       避免仅溢出几个像素就出现横向滚动条。 */
+    @apply gap-1 px-1.5 text-xs;
   }
   .rule-tabs button strong {
     @apply min-h-5 min-w-5 px-1;
