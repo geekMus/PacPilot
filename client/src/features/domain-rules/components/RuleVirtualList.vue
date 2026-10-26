@@ -40,6 +40,9 @@ const visibleItems = computed(() =>
 );
 const totalHeight = computed(() => props.items.length * props.rowHeight);
 const offsetY = computed(() => startIndex.value * props.rowHeight);
+// 来源标签只在列表混合了多个来源时才有区分价值；整列同源时逐行重复同一个标签
+// 只会变成视觉噪音（例如远程代理列表的上千行、全部来自自定义的黑名单）。
+const showSources = computed(() => new Set(props.items.map((item) => item.source ?? "")).size > 1);
 
 function sourceClass(source?: string): string {
   if (!source) return "source-neutral";
@@ -114,7 +117,7 @@ watch(
           <TextDetail :text="item.domain" :label="t('common.domainRules')" class="domain-detail"
             ><code>{{ item.domain }}</code></TextDetail
           >
-          <span v-if="item.source" class="row-source" :class="sourceClass(item.source)">{{
+          <span v-if="showSources && item.source" class="row-source" :class="sourceClass(item.source)">{{
             item.source
           }}</span>
         </div>

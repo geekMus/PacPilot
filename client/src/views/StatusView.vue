@@ -241,7 +241,7 @@ const {
 
         <section class="rules-section section-card">
           <div class="section-head rules-section-head">
-            <div>
+            <div class="rules-section-copy">
               <h2>{{ t("statusPage.k35") }}</h2>
               <p class="section-description">
                 {{ t("statusPage.k36") }}
@@ -256,11 +256,13 @@ const {
             <button
               type="button"
               role="tab"
+              class="rule-tab--direct"
               :aria-selected="activeRuleType === 'direct'"
               :class="{ active: activeRuleType === 'direct' }"
               @click="activeRuleType = 'direct'"
             >
-              <span class="rule-dot direct-dot"></span><span>{{ t("statusPage.k38") }}</span
+              <span class="rule-dot direct-dot"></span
+              ><span class="rule-tab-label">{{ t("statusPage.k38") }}</span
               ><strong>{{ directEntries.length }}</strong>
             </button>
 
@@ -268,22 +270,26 @@ const {
               v-if="status.mode === 'remote'"
               type="button"
               role="tab"
+              class="rule-tab--proxy"
               :aria-selected="activeRuleType === 'proxy'"
               :class="{ active: activeRuleType === 'proxy' }"
               @click="activeRuleType = 'proxy'"
             >
-              <span class="rule-dot proxy-dot"></span><span>{{ t("statusPage.k42") }}</span
+              <span class="rule-dot proxy-dot"></span
+              ><span class="rule-tab-label">{{ t("statusPage.k42") }}</span
               ><strong>{{ proxyEntries.length }}</strong>
             </button>
 
             <button
               type="button"
               role="tab"
+              class="rule-tab--block"
               :aria-selected="activeRuleType === 'block'"
               :class="{ active: activeRuleType === 'block' }"
               @click="activeRuleType = 'block'"
             >
-              <span class="rule-dot block-dot"></span><span>{{ t("statusPage.k39") }}</span
+              <span class="rule-dot block-dot"></span
+              ><span class="rule-tab-label">{{ t("statusPage.k39") }}</span
               ><strong>{{ blockEntries.length }}</strong>
             </button>
           </div>
@@ -569,12 +575,14 @@ const {
   overflow-wrap: anywhere;
 }
 .rule-tabs {
-  @apply mb-3.5 grid grid-cols-2 gap-1.5 rounded-[10px] border p-[5px];
+  /* 三档分段控件：flex 等分保证始终单行，不随档位数量变化而换行；
+     限制最大宽度避免在宽屏被拉成三个过宽的大按钮。 */
+  @apply mb-3.5 flex max-w-[520px] gap-1.5 rounded-[10px] border p-[5px];
   border-color: var(--line);
   background: var(--surface-2);
 }
 .rule-tabs button {
-  @apply flex min-h-10 min-w-0 cursor-pointer items-center justify-center gap-[7px] rounded-[7px] border border-transparent bg-transparent px-2.5 text-xs font-semibold transition-[background,border-color,color,box-shadow];
+  @apply flex min-h-10 min-w-0 flex-1 cursor-pointer items-center justify-center gap-[7px] rounded-[7px] border border-transparent bg-transparent px-2.5 text-xs font-semibold transition-[background,border-color,color,box-shadow];
   color: var(--muted);
 }
 .rule-tabs button:hover {
@@ -596,6 +604,9 @@ const {
   background: var(--surface);
   box-shadow: var(--shadow-sm);
 }
+.rule-tab-label {
+  @apply truncate;
+}
 .rule-tabs button strong {
   @apply ml-px inline-flex min-h-[22px] min-w-6 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-bold leading-none tabular-nums;
   background: var(--bg);
@@ -604,6 +615,21 @@ const {
 .rule-tabs button.active strong {
   background: var(--accent-soft);
   color: var(--accent);
+}
+/* 激活档位沿用该类型的主色，让「直连/代理/黑名单」在视觉上一眼可辨。 */
+.rule-tabs button.rule-tab--direct.active {
+  border-color: color-mix(in srgb, var(--green) 42%, var(--line));
+}
+.rule-tabs button.rule-tab--direct.active strong {
+  background: var(--green-soft);
+  color: var(--green);
+}
+.rule-tabs button.rule-tab--block.active {
+  border-color: color-mix(in srgb, var(--red) 42%, var(--line));
+}
+.rule-tabs button.rule-tab--block.active strong {
+  background: var(--red-soft);
+  color: var(--red);
 }
 .rule-dot {
   @apply h-2 w-2 shrink-0 rounded-full;
@@ -813,7 +839,7 @@ const {
     @apply col-span-full;
   }
   .rule-tabs {
-    @apply grid-cols-2 gap-[5px] p-1;
+    @apply gap-[5px] p-1;
   }
   .rule-tabs button {
     @apply gap-1.5 px-2 text-xs;
