@@ -26,6 +26,7 @@ const {
   domainInput,
   activeRuleType,
   directEntries,
+  remoteProxyEntries,
   blockEntries,
   checkDomain,
   domainRoute,
@@ -271,6 +272,18 @@ const {
             </button>
 
             <button
+              v-if="status.mode === 'remote'"
+              type="button"
+              role="tab"
+              :aria-selected="activeRuleType === 'proxy'"
+              :class="{ active: activeRuleType === 'proxy' }"
+              @click="activeRuleType = 'proxy'"
+            >
+              <span class="rule-dot proxy-dot"></span><span>{{ t("statusPage.k42") }}</span
+              ><strong>{{ remoteProxyEntries.length }}</strong>
+            </button>
+
+            <button
               type="button"
               role="tab"
               :aria-selected="activeRuleType === 'block'"
@@ -290,6 +303,16 @@ const {
               <RuleVirtualList
                 :items="directEntries"
                 :empty-text="t('statusPage.k9')"
+                :height="300"
+              />
+            </template>
+            <template v-else-if="activeRuleType === 'proxy'">
+              <p class="rule-description">
+                {{ t("statusPage.k43") }}
+              </p>
+              <RuleVirtualList
+                :items="remoteProxyEntries"
+                :empty-text="t('statusPage.k44')"
                 :height="300"
               />
             </template>
@@ -594,6 +617,9 @@ const {
 }
 .direct-dot {
   background: var(--green);
+}
+.proxy-dot {
+  background: var(--accent);
 }
 .block-dot {
   background: var(--red);

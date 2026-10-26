@@ -75,7 +75,7 @@ export function useStatusDashboard() {
 
   const domainInput = ref("");
   const checkedDomain = ref("");
-  const activeRuleType = ref<"direct" | "block">("direct");
+  const activeRuleType = ref<"direct" | "proxy" | "block">("direct");
 
   interface RuleEntry {
     domain: string;
@@ -110,6 +110,17 @@ export function useStatusDashboard() {
     (status.value?.blockList ?? []).map((domain) => ({
       domain,
       source: t("status.sourceCustomBlock"),
+    }))
+  );
+
+  /**
+   * 远程代理列表可能有几千条，它既不是直连也不是拦截，之前只统计在概览卡片里，
+   * 明细列表看不到，容易被误认为数据缺失，所以单独作为一个规则分组。
+   */
+  const remoteProxyEntries = computed<RuleEntry[]>(() =>
+    (status.value?.remoteProxyList ?? []).map((domain) => ({
+      domain,
+      source: t("status.sourceRemoteProxy"),
     }))
   );
 
@@ -258,6 +269,7 @@ export function useStatusDashboard() {
     domainInput,
     activeRuleType,
     directEntries,
+    remoteProxyEntries,
     blockEntries,
     checkDomain,
     domainRoute,
