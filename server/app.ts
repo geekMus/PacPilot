@@ -16,6 +16,7 @@ import {
   normalizeOrigin,
 } from "./utils/origin-policy";
 import { configureClientIp } from "./utils/client-ip";
+import { createSpaPreloads, injectPreloadTags, readInlineRuntimeConfig } from "./utils/spa-preload";
 
 export function createApp(env: EnvConfig, storage: ApplicationStorage): express.Application {
   const app = express();
@@ -116,12 +117,26 @@ export function createApp(env: EnvConfig, storage: ApplicationStorage): express.
     app.use(express.static(clientDir, { index: false, maxAge: "1h" }));
   }
 
-  const sendSpa = (_req: express.Request, res: express.Response) => {
+  // 首屏要在入口脚本执行后才知道当前路由要下载哪个视图块，注入 <link rel=modulepreload>
+  // 可以让这次下载与入口脚本并行，少等一次往返（见 utils/spa-preload.ts）。
+  const spaPreloads = createSpaPreloads(clientDir);
+  // 运行时配置直接内联：它是首屏第一个串行往返，而会话探测与首个 API 请求都必须等
+  // 它解析完（config → session → 数据）。内联后这一跳消失，见 utils/spa-preload.ts。
+  const inlineRuntimeConfig = readInlineRuntimeConfig(clientDir);
+  let cachedIndexHtml: string | null = null;
+  const renderSpa = (requestPath: string): string | null => {
+    if (cachedIndexHtml === null) {
+      cachedIndexHtml = fs.readFileSync(indexHtml, "utf8");
+    }
+    return injectPreloadTags(cachedIndexHtml, inlineRuntimeConfig + spaPreloads.forPath(requestPath));
+  };
+
+  const sendSpa = (req: express.Request, res: express.Response) => {
     if (!fs.existsSync(indexHtml)) {
       res.status(503).type("text/plain").send("Frontend not built. Run: bun run build");
       return;
     }
-    res.sendFile(indexHtml);
+    res.type("html").send(renderSpa(req.path));
   };
 
   // Vue SPA：首页与后台
@@ -136,8 +151,7 @@ export function createApp(env: EnvConfig, storage: ApplicationStorage): express.
       return;
     }
     if (fs.existsSync(indexHtml)) {
-      res.status(404);
-      res.sendFile(indexHtml);
+      res.status(404).type("html").send(renderSpa(req.path));
       return;
     }
     res.status(404).type("text/plain").send("Not Found");

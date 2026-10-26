@@ -2,6 +2,7 @@
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { Toaster, toast } from "vue-sonner";
+import { markToastHostReady } from "@/composables/toast-bridge";
 
 const { locale } = useI18n();
 const theme = ref<"light" | "dark">("light");
@@ -18,6 +19,8 @@ onMounted(() => {
     attributes: true,
     attributeFilter: ["class"],
   });
+  // Toaster 已订阅 store，现在可以把挂载前排队/丢失的提示补投出去。
+  markToastHostReady();
 });
 
 onBeforeUnmount(() => {

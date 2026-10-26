@@ -315,7 +315,11 @@ const {
         </div>
       </section>
     </template>
-    <AppFooter />
+    <!--
+      加载完成前不渲染页脚：加载态页面很短，页脚会落在首屏可见；数据到达后内容变长
+      把页脚推到折叠线以下，Lighthouse 记为一次 CLS（实测 0.057）。后插入的元素不产生位移。
+    -->
+    <AppFooter v-if="!loading" />
   </main>
 </template>
 

@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const runtime = vi.hoisted(() => ({
   resolveApiUrl: vi.fn((path: string) => path),
   isCrossOriginApi: vi.fn(() => false),
+  // 真实实现会等运行配置解析完成；单测里直接视为已就绪。
+  ensureRuntimeConfig: vi.fn(() => Promise.resolve()),
 }));
 const token = vi.hoisted(() => ({
   readSessionToken: vi.fn(() => ""),
@@ -33,6 +35,7 @@ beforeEach(() => {
   fetchMock.mockReset();
   runtime.resolveApiUrl.mockImplementation((path: string) => path);
   runtime.isCrossOriginApi.mockReturnValue(false);
+  runtime.ensureRuntimeConfig.mockImplementation(() => Promise.resolve());
   token.readSessionToken.mockReturnValue("");
   token.saveSessionToken.mockReset();
   token.clearSessionToken.mockReset();

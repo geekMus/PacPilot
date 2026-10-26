@@ -506,7 +506,8 @@ const {
           </section>
         </form>
       </template>
-      <AppFooter />
+      <!-- 加载完成前不渲染页脚，避免它先从首屏内被推到折叠线以下而计入 CLS。 -->
+      <AppFooter v-if="!loading && !error" />
     </div>
   </AdminLayout>
 </template>

@@ -1,3 +1,5 @@
+import { BUILTIN_MESSAGE_TEMPLATES } from "./builtin-templates";
+
 export default {
   app: {
     zh: "中文",
@@ -483,7 +485,6 @@ export default {
     subtitle: "查看 PAC 配置、生成状态、访问情况与常用管理入口。",
     refreshTitle: "刷新系统总览",
     refreshingTitle: "正在刷新系统总览，请稍候",
-    loadingTitle: "正在读取系统总览",
     loadingDesc: "正在读取生成状态与工作流，请稍候。",
     quickActions: "快捷操作",
     toolbarHint: "刷新当前状态，或立即重新生成 PAC 规则。",
@@ -672,9 +673,8 @@ export default {
     ruleCheckFixErrors: "请先修正规则格式错误；格式错误会阻止保存。",
     ruleCheckHints:
       "提示包含重复、可能冗余及直连/黑名单匹配范围重叠。重叠不会自动修改；黑名单优先于直连列表。",
-    defaultMessageTemplate:
-      "PacPilot 通知\n事件：{{event}}\n状态：{{status}}\n时间：{{timestamp}}\n详情：{{message}}",
-    testMessageTemplate: "PacPilot 测试通知\n时间：{{timestamp}}\n结果：{{message}}",
+    defaultMessageTemplate: BUILTIN_MESSAGE_TEMPLATES.zh_CN.defaultMessageTemplate,
+    testMessageTemplate: BUILTIN_MESSAGE_TEMPLATES.zh_CN.testMessageTemplate,
     tzShanghai: "中国标准时间（UTC+08:00）",
     tzTaipei: "中国台湾 · 台北",
     tzHongKong: "中国香港",

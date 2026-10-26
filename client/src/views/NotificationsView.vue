@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { defineAsyncComponent, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppButton from "@/components/AppButton.vue";
@@ -7,10 +7,24 @@ import AppFooter from "@/components/AppFooter.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import { useNotificationWorkspace } from "@/features/notifications/composables/useNotificationWorkspace";
 import NotificationChannelsPanel from "@/features/notifications/components/NotificationChannelsPanel.vue";
-import NotificationDeliveryDialog from "@/features/notifications/components/NotificationDeliveryDialog.vue";
-import NotificationHistoryPanel from "@/features/notifications/components/NotificationHistoryPanel.vue";
 import NotificationOverview from "@/features/notifications/components/NotificationOverview.vue";
-import NotificationRulesPanel from "@/features/notifications/components/NotificationRulesPanel.vue";
+
+/**
+ * 非默认标签页与投递详情弹窗改按需加载。
+ *
+ * 它们静态导入时属于视图模块的静态依赖，浏览器必须先下载并执行完整模块图才能挂载
+ * 视图；其中历史面板引入虚拟表格、详情弹窗引入弹窗与浮层依赖，把首屏关键路径的
+ * 模块链拉长了 2-3 跳。默认标签页与页面骨架保持静态导入，首次绘制不受影响。
+ */
+const NotificationRulesPanel = defineAsyncComponent(
+  () => import("@/features/notifications/components/NotificationRulesPanel.vue")
+);
+const NotificationHistoryPanel = defineAsyncComponent(
+  () => import("@/features/notifications/components/NotificationHistoryPanel.vue")
+);
+const NotificationDeliveryDialog = defineAsyncComponent(
+  () => import("@/features/notifications/components/NotificationDeliveryDialog.vue")
+);
 import "@/features/notifications/styles/notifications-shell.css";
 import "@/features/notifications/styles/notifications-editor.css";
 import "@/features/notifications/styles/notifications-overview.css";
@@ -72,7 +86,8 @@ onMounted(() => {
           <NotificationDeliveryDialog :ws="ws" />
         </section>
       </template>
-      <AppFooter />
+      <!-- 加载完成前不渲染页脚，避免它先从首屏内被推到折叠线以下而计入 CLS。 -->
+      <AppFooter v-if="!loading" />
     </main>
   </AdminLayout>
 </template>

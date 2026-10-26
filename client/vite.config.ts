@@ -43,8 +43,16 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 600,
       outDir: path.resolve(import.meta.dirname, "../dist/client"),
       emptyOutDir: true,
+      // 服务端按路由把视图块的 <link rel=modulepreload> 注入 index.html，
+      // 少了它每个页面都要等入口脚本执行完才知道去下载哪个视图块（多一次往返）。
+      manifest: true,
       rollupOptions: {
         output: {
+          // 首屏请求数同样关键：服务端走 HTTP/1.1，每个小 chunk 都要占一条连接并各付
+          // 一次往返延迟。共享组件被拆成十几个 1-4KB 的小块时，慢网下最后一个模块要
+          // 200ms 才到（实测 logs 27 个请求 vs dashboard 20 个），Lighthouse 会按 4 倍
+          // 放大成 0.3s 的 FCP/LCP 差距。把小于 30KB 的块并入相邻块可以显著减少请求数。
+          experimentalMinChunkSize: 30_000,
           // cron 解析（cron-parser 传递依赖 luxon，合计约 100KB）只在生成配置页的
           // 定时预览里使用；单独分包，避免混进全站共享块导致每个页面都要下载。
           manualChunks(id: string) {

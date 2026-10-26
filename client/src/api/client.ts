@@ -1,5 +1,5 @@
 import { i18n, resolveLocale } from "@/i18n";
-import { resolveApiUrl, isCrossOriginApi } from "@/api/runtime-config";
+import { resolveApiUrl, isCrossOriginApi, ensureRuntimeConfig } from "@/api/runtime-config";
 import { readSessionToken, saveSessionToken, clearSessionToken } from "@/api/session-token";
 import { emitUnauthorized } from "@/api/auth-events";
 import type {
@@ -196,6 +196,10 @@ let bearerRequired: boolean | null = null;
 const requiresBearerToken = (): boolean => bearerRequired ?? isCrossOriginApi();
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
+  // 首屏挂载不再等待运行时配置，第一个请求必须自己等它解析完成，
+  // 否则静态部署会把请求打到前端自身源上。
+  await ensureRuntimeConfig();
+
   const token = readSessionToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",

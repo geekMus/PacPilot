@@ -1,4 +1,4 @@
-import { toast } from "vue-sonner";
+import { enqueueToast } from "@/composables/toast-bridge";
 
 export type ToastKind = "success" | "error" | "info" | "warning";
 
@@ -7,21 +7,8 @@ export function useToast() {
     const text = message.trim();
     if (!text) return;
 
-    const options = { duration: duration > 0 ? duration : Infinity };
-
-    switch (kind) {
-      case "success":
-        toast.success(text, options);
-        break;
-      case "error":
-        toast.error(text, options);
-        break;
-      case "warning":
-        toast.warning(text, options);
-        break;
-      default:
-        toast.info(text, options);
-    }
+    // 先排队再由运行时投递：vue-sonner 只在第一次提示时下载，首屏不为它付费。
+    enqueueToast({ message: text, kind, duration: duration > 0 ? duration : Infinity });
   }
 
   return { notify };

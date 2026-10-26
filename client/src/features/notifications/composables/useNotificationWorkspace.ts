@@ -10,9 +10,10 @@ import {
   type NotificationRule,
 } from "@/api/client";
 import type { WebhookConfig } from "@shared/contracts";
-import { t as sharedT, type AppLocale } from "@shared/i18n";
+import { BUILTIN_MESSAGE_TEMPLATES } from "@shared/i18n/builtin-templates";
 import type { AppSelectOption } from "@/components/AppSelect.vue";
 import { useToast } from "@/composables/useToast";
+import { fetchAdminSession } from "@/composables/useAdminSession";
 import { createAdminSettingsValidators } from "@/utils/admin-settings-validation";
 import { useNotificationLabels } from "./useNotificationLabels";
 
@@ -25,9 +26,9 @@ export type DeliveryStatusFilter = NotificationDelivery["status"] | "all";
  * 发送时空模板由服务端回退内置默认，语义不变。
  */
 const BUILTIN_TEMPLATE_VALUES = new Set<string>(
-  (["zh_CN", "en_US"] as AppLocale[]).flatMap((locale) => [
-    sharedT(locale, "settings.defaultMessageTemplate"),
-    sharedT(locale, "settings.testMessageTemplate"),
+  Object.values(BUILTIN_MESSAGE_TEMPLATES).flatMap((templates) => [
+    templates.defaultMessageTemplate,
+    templates.testMessageTemplate,
   ])
 );
 
@@ -255,7 +256,8 @@ export function useNotificationWorkspace() {
     if (!preserveView) loading.value = true;
     error.value = "";
     try {
-      if (!(await api.session()).loggedIn) {
+      // 复用路由守卫刚做过的会话探测（带短 TTL 缓存），避免首屏再串一次网络往返。
+      if (!(await fetchAdminSession()).loggedIn) {
         await router.replace("/admin/login");
         return;
       }

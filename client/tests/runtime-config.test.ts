@@ -11,6 +11,7 @@ describe("runtime config", () => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     vi.unstubAllEnvs?.();
+    delete (window as unknown as { __PAC_CONFIG__?: unknown }).__PAC_CONFIG__;
   });
 
   it("defaults to same-origin when config.json is missing", async () => {
@@ -104,5 +105,37 @@ describe("runtime config", () => {
 
     expect(first).toEqual({ apiBaseUrl: "https://api.example.com" });
     expect(second).toEqual(first);
+  });
+
+  it("prefers the inline window.__PAC_CONFIG__ and skips the config.json request", async () => {
+    (window as unknown as { __PAC_CONFIG__?: unknown }).__PAC_CONFIG__ = {
+      apiBaseUrl: "  https://inline.example.com//  ",
+    };
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const { isCrossOriginApi, loadRuntimeConfig, resolveApiUrl } =
+      await import("../src/api/runtime-config");
+
+    const config = await loadRuntimeConfig();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(config.apiBaseUrl).toBe("https://inline.example.com");
+    expect(isCrossOriginApi()).toBe(true);
+    expect(resolveApiUrl("/api/meta")).toBe("https://inline.example.com/api/meta");
+  });
+
+  it("falls back to config.json when the inline config is malformed", async () => {
+    (window as unknown as { __PAC_CONFIG__?: unknown }).__PAC_CONFIG__ = { apiBaseUrl: 42 };
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ apiBaseUrl: "https://api.example.com" }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { loadRuntimeConfig } = await import("../src/api/runtime-config");
+
+    const config = await loadRuntimeConfig();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(config.apiBaseUrl).toBe("https://api.example.com");
   });
 });

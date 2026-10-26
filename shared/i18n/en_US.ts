@@ -1,3 +1,5 @@
+import { BUILTIN_MESSAGE_TEMPLATES } from "./builtin-templates";
+
 export default {
   app: {
     zh: "中文",
@@ -503,7 +505,6 @@ export default {
     subtitle: "PAC configuration, generation status, access stats, and common actions.",
     refreshTitle: "Refresh overview",
     refreshingTitle: "Refreshing overview…",
-    loadingTitle: "Loading overview",
     loadingDesc: "Reading the generation state and workflows…",
     quickActions: "Quick actions",
     toolbarHint: "Refresh the current state, or rebuild the PAC rules now.",
@@ -708,9 +709,8 @@ export default {
     ruleCheckFixErrors: "Fix rule syntax errors before saving. Syntax errors prevent saving.",
     ruleCheckHints:
       "Warnings include duplicates, possible redundancies, and overlaps between direct and block rules. Overlaps are not changed automatically; block rules take priority over direct rules.",
-    defaultMessageTemplate:
-      "PacPilot notification\nEvent: {{event}}\nStatus: {{status}}\nTime: {{timestamp}}\nDetails: {{message}}",
-    testMessageTemplate: "PacPilot test notification\nTime: {{timestamp}}\nResult: {{message}}",
+    defaultMessageTemplate: BUILTIN_MESSAGE_TEMPLATES.en_US.defaultMessageTemplate,
+    testMessageTemplate: BUILTIN_MESSAGE_TEMPLATES.en_US.testMessageTemplate,
     tzShanghai: "China Standard Time (UTC+08:00)",
     tzTaipei: "Taiwan · Taipei",
     tzHongKong: "Hong Kong",

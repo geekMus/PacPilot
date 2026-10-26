@@ -110,12 +110,13 @@ describe("useWorkflowLabels", () => {
     vi.useRealTimers();
   });
 
-  it("formats dates for both locales and falls back to a dash", () => {
-    setAppLocale("zh_CN");
+  it("formats dates for both locales and falls back to a dash", async () => {
+    await setAppLocale("zh_CN");
     const { labels, wrapper } = captureLabels();
     const zh = labels.dateLabel("2026-10-25T00:00:00.000Z");
 
-    setAppLocale("en_US");
+    // 英文目录按需下载，切换语言因此是异步的。
+    await setAppLocale("en_US");
     const en = labels.dateLabel("2026-10-25T00:00:00.000Z");
 
     expect(zh).not.toBe("—");
@@ -124,6 +125,6 @@ describe("useWorkflowLabels", () => {
     expect(labels.dateLabel(null)).toBe("—");
 
     wrapper.unmount();
-    setAppLocale("zh_CN");
+    await setAppLocale("zh_CN");
   });
 });

@@ -19,6 +19,7 @@ import LazyMount from "@/components/LazyMount.vue";
 import ResponsiveTrendChart from "@/components/ResponsiveTrendChart.vue";
 import TableFrame from "@/components/TableFrame.vue";
 import { useWorkflowLabels } from "@/composables/useWorkflowLabels";
+import { fetchAdminSession } from "@/composables/useAdminSession";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -56,7 +57,8 @@ async function loadOverview(): Promise<void> {
   error.value = "";
   errorTitle.value = "dashboard.loadFailed";
   try {
-    const nextSession: AdminSession = await api.session();
+    // 复用路由守卫刚做过的会话探测（带短 TTL 缓存），避免首屏再串一次网络往返。
+    const nextSession: AdminSession = await fetchAdminSession();
     if (!nextSession.loggedIn) {
       await router.replace("/admin/login");
       return;
@@ -111,18 +113,16 @@ onMounted(() => {
 <template>
   <AdminLayout active="dashboard" :title="t('dashboard.title')" :subtitle="t('dashboard.subtitle')">
     <div class="dashboard-view">
-      <section v-if="loading && !settings" class="dash-loading" aria-live="polite">
-        <span class="spinner" aria-hidden="true"></span>
-        <div>
-          <strong>{{ t("dashboard.loadingTitle") }}</strong>
-          <p>{{ t("dashboard.loadingDesc") }}</p>
-        </div>
-      </section>
-
       <div class="dashboard-toolbar">
+        <!--
+          加载提示必须留在工具栏里：独立横幅在数据到达时被移除，会把下方
+          全部内容上推一屏（Lighthouse 记为 CLS 0.12），因此始终占用同一块空间。
+        -->
         <div class="toolbar-copy">
           <h2>{{ t("dashboard.quickActions") }}</h2>
-          <p>{{ t("dashboard.toolbarHint") }}</p>
+          <p aria-live="polite">
+            {{ loading && !settings ? t("dashboard.loadingDesc") : t("dashboard.toolbarHint") }}
+          </p>
         </div>
         <div class="toolbar-actions">
           <button
@@ -420,35 +420,6 @@ onMounted(() => {
 
 .dashboard-view {
   @apply min-w-0;
-}
-.dash-loading {
-  @apply mb-[18px] flex items-start gap-3.5 rounded-xl border p-[18px];
-  border-color: var(--line);
-  background: var(--surface);
-  color: var(--muted);
-}
-.dash-loading strong {
-  @apply block text-sm;
-  color: var(--text);
-}
-.dash-loading p {
-  @apply mb-0 mt-[5px] text-[13px];
-}
-.spinner {
-  @apply h-[18px] w-[18px] shrink-0 animate-[dash-spin_0.8s_linear_infinite] rounded-full border-2;
-  border-color: var(--line);
-  border-top-color: var(--accent);
-}
-@keyframes dash-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation-duration: 0.01ms;
-    animation-iteration-count: 1;
-  }
 }
 .dashboard-toolbar {
   @apply mb-[18px] flex flex-wrap items-end justify-between gap-[18px];

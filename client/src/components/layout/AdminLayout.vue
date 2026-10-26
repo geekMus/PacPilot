@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import AppIcon from "@/components/AppIcon.vue";
-import UserPreferencesMenu from "@/components/UserPreferencesMenu.vue";
+import {
+  UserPreferencesMenu,
+  prefetchUserPreferencesMenu,
+} from "@/components/lazy-user-preferences-menu";
 import AdminSidebar from "@/components/layout/AdminSidebar.vue";
 import AppScrollArea from "@/components/AppScrollArea.vue";
 
@@ -26,6 +29,9 @@ watch(
     menuOpen.value = false;
   }
 );
+
+// 顶栏是绝对定位的浮层，偏好菜单晚一点出现不会推动页面内容，因此可以安全地延后加载。
+onMounted(prefetchUserPreferencesMenu);
 </script>
 
 <template>

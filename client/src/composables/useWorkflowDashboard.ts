@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { api, type WorkflowRun } from "@/api/client";
 import { useToast } from "@/composables/useToast";
 import { useWorkflowLabels } from "@/composables/useWorkflowLabels";
+import { fetchAdminSession } from "@/composables/useAdminSession";
 
 export function useWorkflowDashboard() {
   const { t } = useI18n();
@@ -73,7 +74,8 @@ export function useWorkflowDashboard() {
     if (!silent) refreshing.value = true;
     error.value = "";
     try {
-      const session = await api.session();
+      // 优先复用路由守卫刚做过的会话探测；缓存过期时仍会重新校验。
+      const session = await fetchAdminSession();
       // 路由守卫只在导航时校验；会话在停留期间失效时这里必须自己回登录页，
       // 并带上当前地址，登录后才能回到这一页。
       if (!session.loggedIn) {

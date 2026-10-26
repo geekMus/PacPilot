@@ -1,10 +1,22 @@
 import { nextTick, watch } from "vue";
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHistory, type RouteLocationNormalized } from "vue-router";
 import { i18n } from "@/i18n";
 import { fetchAdminSession, isAdminAppRoute } from "@/composables/useAdminSession";
 
 /** Site brand matches package.json / GitHub repo (kebab-case), like many OSS tools. */
 const APP_BRAND = "PacPilot";
+
+/**
+ * 路由组件的动态 import 默认在守卫放行之后才发起，于是首屏要连续等两次往返
+ * （先会话探测、再下载组件块）。这里提前触发模块下载，让两者并行。
+ * 只预热下载：组件仍由 vue-router 自己解析，失败也不会影响导航。
+ */
+function prewarmRouteComponent(to: RouteLocationNormalized): void {
+  const record = to.matched[to.matched.length - 1];
+  const component: unknown = record?.components?.default;
+  if (typeof component !== "function") return;
+  void Promise.resolve((component as () => unknown)()).catch(() => undefined);
+}
 
 const router = createRouter({
   history: createWebHistory(),
@@ -127,6 +139,10 @@ function applyDocumentTitle(pageTitle?: unknown): void {
 router.beforeEach(async (to) => {
   const isAdminPath = isAdminAppRoute(to.path);
   if (!isAdminPath && to.path !== "/") return true;
+
+  // 会话探测要占用一次网络往返，路由组件的动态 import 默认排在它之后才发起。
+  // 这里先触发组件模块下载，让两次往返并行，而不是串行叠加在首屏之前。
+  prewarmRouteComponent(to);
 
   try {
     const session = await fetchAdminSession();

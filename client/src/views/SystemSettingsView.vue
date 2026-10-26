@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { api, type AppSettings, type StorageSummary } from "@/api/client";
+import { fetchAdminSession } from "@/composables/useAdminSession";
 import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppButton from "@/components/AppButton.vue";
 import AppIcon from "@/components/AppIcon.vue";
@@ -78,7 +79,8 @@ async function load() {
   loading.value = true;
   error.value = "";
   try {
-    const session = await api.session();
+    // 复用路由守卫刚做过的会话探测（带短 TTL 缓存），避免首屏再串一次网络往返。
+    const session = await fetchAdminSession();
     if (!session.loggedIn) {
       await router.replace("/admin/login");
       return;
@@ -272,12 +274,27 @@ onMounted(() => void load());
             <AppIcon name="refresh-cw" :size="14" /> {{ t("common.refresh") }}
           </button>
         </div>
-        <div v-if="loading" class="state state-loading" aria-live="polite">
-          <span class="spinner" aria-hidden="true"></span>
-          <div>
-            <strong>{{ t("system.readingSystem") }}</strong>
-            <p>{{ t("system.checkingStorage") }}</p>
+        <!--
+          加载态直接渲染与数据到达后同构的指标网格：若改用一块紧凑的加载横幅，数据回来时
+          面板会从 191px 撑到 494px，把后面几个面板整体下推（Lighthouse 记为 CLS 0.073）。
+          这里只把数值换成占位符，几何完全不变。
+        -->
+        <div v-if="loading" class="metrics" aria-busy="true">
+          <div class="metric">
+            <span>{{ t("system.dataDir") }}</span
+            ><strong>—</strong><small>{{ t("system.dataDirHint") }}</small>
           </div>
+          <div class="metric">
+            <span>{{ t("system.dbFile") }}</span
+            ><strong>—</strong><small>{{ t("system.dbFileHint") }}</small>
+          </div>
+          <div class="metric">
+            <span>{{ t("system.logEstimate") }}</span
+            ><strong>—</strong><small>{{ t("system.logEstimateHint") }}</small>
+          </div>
+          <span class="loading-announce" role="status"
+            >{{ t("system.readingSystem") }} {{ t("system.checkingStorage") }}</span
+          >
         </div>
         <div v-else-if="error" class="state error" role="alert">
           {{ error }}
@@ -300,7 +317,11 @@ onMounted(() => void load());
             ><small>{{ t("system.logEstimateHint") }}</small>
           </div>
         </div>
-        <div v-if="storage" class="counts">
+        <div v-if="loading" class="counts">
+          <span>{{ t("systemPage.countAccess", { n: "—" }) }}</span
+          ><span>{{ t("systemPage.countWorkflow", { n: "—" }) }}</span>
+        </div>
+        <div v-else-if="storage" class="counts">
           <span>{{ t("systemPage.countAccess", { n: storage.counts.accessEvents }) }}</span
           ><span>{{ t("systemPage.countWorkflow", { n: storage.counts.workflows }) }}</span>
         </div>
@@ -739,33 +760,14 @@ onMounted(() => void load());
 .state.error {
   color: var(--red);
 }
-.state-loading {
-  @apply flex items-start gap-3 rounded-[10px] border p-4;
-  border-color: var(--line);
-  background: var(--surface-2);
-}
-.state-loading strong {
-  @apply block text-[13px];
-  color: var(--text);
-}
-.state-loading p {
-  @apply mb-0 mt-1 text-xs leading-normal;
-}
-.spinner {
-  @apply h-[18px] w-[18px] shrink-0 animate-[sys-spin_0.8s_linear_infinite] rounded-full border-2;
-  border-color: var(--line);
-  border-top-color: var(--accent);
-}
-@keyframes sys-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation-duration: 0.01ms;
-    animation-iteration-count: 1;
-  }
+/*
+  加载提示只留给读屏：可见部分已由指标网格里的占位符表达。若这里再显示一块横幅，
+  面板高度会随加载态变化，正是要避免的 CLS 来源。
+*/
+.loading-announce {
+  @apply absolute h-px w-px overflow-hidden whitespace-nowrap;
+  margin: -1px;
+  clip-path: inset(50%);
 }
 @media (max-width: 650px) {
   .settings-panel {

@@ -3,6 +3,7 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { api, type AccessEvent, type AdminSession, type MonitorSummary } from "@/api/client";
 import { useCopyFeedback } from "@/composables/useCopyFeedback";
+import { fetchAdminSession } from "@/composables/useAdminSession";
 
 export function useMonitoringDashboard() {
   const { t, locale } = useI18n();
@@ -271,7 +272,8 @@ export function useMonitoringDashboard() {
 
   async function initialise(): Promise<void> {
     try {
-      const session: AdminSession = await api.session();
+      // 复用路由守卫刚做过的会话探测（带短 TTL 缓存），避免首屏再串一次网络往返。
+      const session: AdminSession = await fetchAdminSession();
       // 路由守卫只在导航时校验；会话在停留期间失效时这里必须自己回登录页，
       // 并带上当前地址，登录后才能回到这一页。
       if (!session.loggedIn) {

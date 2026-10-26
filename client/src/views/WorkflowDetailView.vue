@@ -8,6 +8,7 @@ import AppIcon from "@/components/AppIcon.vue";
 import AppDialog from "@/components/AppDialog.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 import { useCopyFeedback } from "@/composables/useCopyFeedback";
+import { fetchAdminSession } from "@/composables/useAdminSession";
 import AppFooter from "@/components/AppFooter.vue";
 import ConfirmPopover from "@/components/ConfirmPopover.vue";
 import { useToast } from "@/composables/useToast";
@@ -142,7 +143,8 @@ async function load() {
   requestInFlight = true;
   const requestedId = Number(route.params.id);
   try {
-    const session = await api.session();
+    // 复用路由守卫刚做过的会话探测（带短 TTL 缓存），避免首屏再串一次网络往返。
+    const session = await fetchAdminSession();
     if (!session.loggedIn) {
       stopPolling();
       await router.replace({ name: "login", query: { redirect: route.fullPath } });

@@ -43,7 +43,8 @@ const adminCredentialsMissing = ref(false);
 onMounted(async () => {
   let shouldFocus = true;
   try {
-    const session = await api.session();
+    // 守卫进入登录页前已经探测过一次，这里复用它的结果，省掉首屏一次往返。
+    const session = await fetchAdminSession();
     if (session.adminCredentialsMissing) {
       adminCredentialsMissing.value = true;
       shouldFocus = false;

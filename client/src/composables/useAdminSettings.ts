@@ -7,6 +7,7 @@ import { DEFAULT_LIST_URL } from "@shared/contracts";
 import { createAdminSettingsValidators } from "@/utils/admin-settings-validation";
 import { commonTimeZones, isValidTimeZone } from "@/utils/time-zones";
 import { useToast } from "@/composables/useToast";
+import { fetchAdminSession } from "@/composables/useAdminSession";
 
 export function useAdminSettings() {
   const { t, locale } = useI18n();
@@ -388,7 +389,8 @@ export function useAdminSettings() {
     loading.value = true;
     error.value = "";
     try {
-      const session = await api.session();
+      // 复用路由守卫刚做过的会话探测（带短 TTL 缓存），避免首屏再串一次网络往返。
+      const session = await fetchAdminSession();
       if (!session.loggedIn) {
         await router.replace("/admin/login");
         return;

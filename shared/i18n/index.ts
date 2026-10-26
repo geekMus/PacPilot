@@ -1,22 +1,17 @@
 import en_US from "./en_US";
 import zh_CN from "./zh_CN";
+import { resolveLocale, type AppLocale } from "./locale";
 
-export type AppLocale = "zh_CN" | "en_US";
+// 语言类型与归一化逻辑单独放在 `./locale`，浏览器端只导入那个文件就不会把两份
+// 完整词条拖进入口 chunk；这里继续导出同一个 API，服务端与脚本调用方无需改动。
+export { resolveLocale };
+export type { AppLocale };
 
 interface LocaleTree {
   [key: string]: string | LocaleTree;
 }
 
 export const catalogs: Record<AppLocale, LocaleTree> = { en_US, zh_CN };
-
-export function resolveLocale(raw: unknown): AppLocale {
-  const value = String(raw ?? "")
-    .trim()
-    .toLowerCase();
-  return value === "en_us" || value === "en-us" || value.startsWith("en-") || value === "en"
-    ? "en_US"
-    : "zh_CN";
-}
 
 function resolveMessage(catalog: LocaleTree, key: string): string | undefined {
   let value: string | LocaleTree = catalog;
