@@ -113,6 +113,13 @@
 
 .webhook-page .field {
   @apply grid min-w-0 gap-[7px] text-[11px] font-semibold;
+  /*
+    隐式列默认是 auto 轨道，其最小尺寸取内容的 min-content。CodeMirror 的
+    .cm-content（white-space: break-spaces）遇到一行较长的 placeholder 后，
+    min-content 会超过字段宽度，编辑器于是顶出卡片右边缘、把正文挤成窄条。
+    显式声明 minmax(0, 1fr) 让轨道可以被压缩，超出部分交给编辑器内部滚动。
+  */
+  grid-template-columns: minmax(0, 1fr);
   color: var(--text);
 }
 
@@ -140,12 +147,17 @@
 }
 
 .webhook-page .field-hint {
-  @apply m-0 flex items-start gap-1.5 text-[10px] font-normal leading-normal;
+  @apply m-0 flex flex-wrap items-start gap-1.5 text-[10px] font-normal leading-normal;
   color: var(--muted);
 }
 
+/*
+  提示里混排着中文与多个 <code> 变量占位。默认的 nowrap flex 会把每个
+  <code> 挤到最小宽度，在手机上排成一列竖条；这里允许换行并让 <code>
+  保持自身宽度不被压缩。
+*/
 .webhook-page .field-hint code {
-  @apply rounded-[4px] px-1 py-px font-mono text-[9px];
+  @apply shrink-0 whitespace-nowrap rounded-[4px] px-1 py-px font-mono text-[9px];
   background: var(--wh-heading-bg);
 }
 

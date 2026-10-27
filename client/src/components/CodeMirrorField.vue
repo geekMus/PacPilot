@@ -284,13 +284,22 @@ watch(
   @apply h-full min-h-0;
 }
 
-/* A one-line field is a single-line control, not a scroll container. */
-.cm-field-frame.single-line .cm-field-host :deep(.cm-editor),
-.cm-field-frame.single-line .cm-field-host :deep(.cm-scroller) {
+/*
+  单行控件不是滚动容器，但长内容仍要能横向滚动并保持光标可见：
+  CodeMirror 把 .cm-content 设成 flex: 2 0 auto + white-space: pre，
+  内容比容器宽时既不会收缩也无法滚动，文字会被直接裁掉。
+*/
+.cm-field-frame.single-line .cm-field-host :deep(.cm-editor) {
   @apply box-border h-full max-h-full w-full min-h-0 overflow-hidden;
 }
+.cm-field-frame.single-line .cm-field-host :deep(.cm-scroller) {
+  @apply box-border h-full max-h-full w-full min-h-0 overflow-x-auto overflow-y-hidden;
+}
 .cm-field-frame.single-line .cm-field-host :deep(.cm-content) {
-  @apply whitespace-nowrap;
+  @apply min-w-0 flex-shrink whitespace-nowrap;
+}
+.cm-field-frame.single-line .cm-field-host :deep(.cm-placeholder) {
+  @apply block overflow-hidden text-ellipsis whitespace-nowrap;
 }
 .cm-field-host {
   @apply w-full min-w-0 max-w-full;
