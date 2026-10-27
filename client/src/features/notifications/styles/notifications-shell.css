@@ -410,6 +410,21 @@
     @apply h-[var(--wh-history-height)];
     flex: 0 0 auto;
   }
+  /*
+    空态必须塞得进目录面板：面板高度是 clamp(260px, 42dvh, 440px)，扣掉标题栏
+    后最窄只剩约 192px；而默认间距（py-7 + 44px 图标 + 按钮）约 204px 高，
+    在 640px 高的手机上溢出 3px、600px 高溢出 12px，滚动容器于是渲染出滚动条。
+    桌面端面板更高，不需要压缩，只在移动端收紧间距与图标尺寸。
+  */
+  .webhook-page .empty-directory {
+    @apply justify-center gap-1.5 px-4 py-4;
+  }
+  .webhook-page .empty-directory .empty-icon {
+    @apply mb-0 h-9 w-9 rounded-[11px];
+  }
+  .webhook-page .empty-directory p {
+    @apply mb-1;
+  }
 }
 @media (max-width: 640px) {
   .webhook-page {
