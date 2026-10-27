@@ -296,8 +296,17 @@
   }
 }
 @media (max-width: 900px) {
+  /* 面板基础规则里的 w-0 与 flex:1 1 0% 是为桌面左右分栏准备的。本文件在
+     notifications-shell.css 之后加载，同权重下会覆盖那里 @media 里的 w-full，
+     于是堆叠布局中面板宽度塌成 0，占位文案被压成逐字换行的竖条。这里还原宽度。 */
   .webhook-page .editor-panel {
-    @apply h-[var(--wh-editor-height)];
+    @apply h-[var(--wh-editor-height)] w-full;
+    flex: 0 0 auto;
+  }
+  /* 未选中条目时的占位面板不必撑满一整屏，留一个紧凑提示块即可。 */
+  .webhook-page .editor-panel.editor-placeholder {
+    @apply h-auto min-h-[132px];
+    flex: 0 0 auto;
   }
   .webhook-page .editor-heading,
   .webhook-page .editor-body,
