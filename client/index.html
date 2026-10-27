@@ -34,12 +34,29 @@
       Vue 挂载时会清空 #app，占位随之消失。
     -->
     <style>
+      /*
+        启动阶段整页只有一个占位，必须去掉浏览器默认的 body 外边距（8px），
+        否则文档高度会变成 100vh + 16px，右侧/底部凭空多出一根滚动条。
+        padding 一并清零，避免其他 UA 样式差异。
+      */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      /* 用 svh 跟随移动端可视高度，避免地址栏收起时 100vh 超出可视区产生滚动。 */
       #app {
         min-height: 100vh;
+        min-height: 100svh;
+      }
+      /* Vue 挂载后占位被替换，这条规则自动失效，不影响应用自身的滚动行为。 */
+      body:has(.boot) {
+        overflow: hidden;
       }
       .boot {
         display: flex;
         min-height: 100vh;
+        min-height: 100svh;
         flex-direction: column;
         align-items: center;
         justify-content: center;
