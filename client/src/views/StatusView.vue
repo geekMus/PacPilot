@@ -1,15 +1,21 @@
 <script setup lang="ts">
-import AppHeader from "../components/AppHeader.vue";
-import AppFooter from "../components/AppFooter.vue";
-import RuleVirtualList from "../components/RuleVirtualList.vue";
-import AppIcon from "../components/AppIcon.vue";
-import { useStatusDashboard } from "../composables/useStatusDashboard";
+import AppHeader from "@/components/AppHeader.vue";
+import AppFooter from "@/components/AppFooter.vue";
+import RuleVirtualList from "@/features/domain-rules/components/RuleVirtualList.vue";
+import AppIcon from "@/components/AppIcon.vue";
+import AppInput from "@/components/AppInput.vue";
+import AppScrollArea from "@/components/AppScrollArea.vue";
+import { useStatusDashboard } from "@/composables/useStatusDashboard";
+import { resolveApiUrl } from "@/api/runtime-config";
+
+// PAC links must follow the configured backend origin: a purely static
+// frontend is served from a different host than `/pac`. Resolved lazily
+// so it always reflects the loaded runtime config.
+const pacUrl = () => resolveApiUrl("/pac");
 
 const {
   t,
-  locale,
   status,
-  meta,
   error,
   loading,
   adminEntry,
@@ -19,9 +25,9 @@ const {
   statusNotice,
   formattedUpdatedAt,
   domainInput,
-  checkedDomain,
   activeRuleType,
   directEntries,
+  proxyEntries,
   blockEntries,
   checkDomain,
   domainRoute,
@@ -31,9 +37,7 @@ const {
 <template>
   <main class="page status-page">
     <AppHeader brand="PacPilot" :sub="t('status.sub')">
-      <RouterLink v-if="meta?.adminEnabled" class="primary" :to="adminEntry">{{
-        t("nav.admin")
-      }}</RouterLink>
+      <RouterLink class="primary" :to="adminEntry">{{ t("nav.admin") }}</RouterLink>
     </AppHeader>
 
     <section class="page-hero">
@@ -41,7 +45,7 @@ const {
       <h1 class="page-title">{{ t("status.title") }}</h1>
       <p class="page-intro">
         {{ t("statusPage.k11") }}
-        <code>proxy.pac</code>
+        <code>/pac</code>
         {{ t("statusPage.k12") }}
       </p>
       <div v-if="status" class="hero-meta">
@@ -68,13 +72,13 @@ const {
       <div class="pac-access-actions">
         <a
           class="pac-access-link primary"
-          href="/proxy.pac"
+          :href="pacUrl()"
           target="_blank"
           rel="noopener noreferrer"
         >
           <AppIcon name="external-link" :size="17" />{{ t("status.viewPac") }}
         </a>
-        <a class="pac-access-link secondary" href="/proxy.pac?download=1">
+        <a class="pac-access-link secondary" :href="pacUrl() + '?download=1'">
           <AppIcon name="download" :size="17" />{{ t("status.downloadPac") }}
         </a>
         <button
@@ -108,7 +112,7 @@ const {
       <div class="state-copy">
         <strong>{{ t("statusPage.k14") }}</strong>
         <p>{{ error }}</p>
-        <button class="action-button" type="button" @click="loadStatus">
+        <button class="app-button app-button--secondary" type="button" @click="loadStatus">
           {{ t("statusPage.k15") }}
         </button>
       </div>
@@ -124,33 +128,29 @@ const {
           {{ t("statusPage.emptyHint") }}
         </p>
         <p class="empty-pac-note">
-          {{ t("statusPage.k17") }}<code>/proxy.pac</code>
+          {{ t("statusPage.k17") }}<code>{{ pacUrl() }}</code>
           {{ t("statusPage.k18") }}
         </p>
-        <RouterLink class="action-button primary" :to="adminEntry">{{ t("nav.admin") }}</RouterLink>
+        <RouterLink class="app-button app-button--primary" :to="adminEntry">{{
+          t("nav.admin")
+        }}</RouterLink>
       </section>
 
       <template v-else-if="hasRuleSummary">
-        <section
-          class="stats-grid"
-          :class="status.mode === 'remote' ? 'remote-stats' : 'custom-stats'"
-        >
+        <!--
+          列数按实际卡片数量决定（remote 3 张 / custom 2 张 + 1 张通栏），
+          不写死 4 列，避免 remote 模式在第 4 格留一个空位。
+        -->
+        <section class="stats-grid" :class="{ 'custom-stats': status.mode === 'custom' }">
           <article v-if="status.mode === 'remote'" class="stat-card">
             <span class="stat-label">{{ t("statusPage.k19") }}</span
             ><strong class="stat-number">{{ status.remoteProxyCount }}</strong
             ><span class="stat-caption">{{ t("statusPage.k20") }}</span>
           </article>
-          <article v-if="status.mode === 'remote'" class="stat-card">
-            <span class="stat-label">{{ t("statusPage.k21") }}</span
-            ><strong class="stat-number">{{ status.remoteDirectCount }}</strong
-            ><span class="stat-caption">{{ t("statusPage.k22") }}</span>
-          </article>
           <article class="stat-card">
             <span class="stat-label">{{ t("statusPage.k23") }}</span
             ><strong class="stat-number">{{ directEntries.length }}</strong
-            ><span class="stat-caption">{{
-              t(status.mode === "remote" ? "statusPage.remoteDirectCaption" : "statusPage.k24")
-            }}</span>
+            ><span class="stat-caption">{{ t("statusPage.k24") }}</span>
           </article>
           <article class="stat-card">
             <span class="stat-label">{{ t("statusPage.k25") }}</span
@@ -177,7 +177,7 @@ const {
             </div>
           </div>
           <form class="domain-check-form" @submit.prevent="checkDomain">
-            <input
+            <AppInput
               v-model="domainInput"
               type="text"
               inputmode="url"
@@ -188,7 +188,7 @@ const {
             />
             <button
               type="submit"
-              class="action-button primary"
+              class="app-button app-button--primary"
               :disabled="!domainInput.trim()"
               :title="
                 !domainInput.trim()
@@ -243,40 +243,69 @@ const {
 
         <section class="rules-section section-card">
           <div class="section-head rules-section-head">
-            <div>
+            <div class="rules-section-copy">
               <h2>{{ t("statusPage.k35") }}</h2>
               <p class="section-description">
                 {{ t("statusPage.k36") }}
               </p>
             </div>
-            <RouterLink v-if="meta?.adminEnabled" to="/admin/settings" class="text-link"
+            <RouterLink to="/admin/settings" class="text-link"
               >{{ t("statusPage.k37") }} <AppIcon name="arrow-right" :size="14"
             /></RouterLink>
           </div>
 
-          <div class="rule-tabs" role="tablist" :aria-label="t('statusPage.k8')">
-            <button
-              type="button"
-              role="tab"
-              :aria-selected="activeRuleType === 'direct'"
-              :class="{ active: activeRuleType === 'direct' }"
-              @click="activeRuleType = 'direct'"
-            >
-              <span class="rule-dot direct-dot"></span><span>{{ t("statusPage.k38") }}</span
-              ><strong>{{ directEntries.length }}</strong>
-            </button>
+          <!--
+            分段控件铺满整行，宽屏不留空档；每段最小宽度取 max-content，
+            文案不会被截断——真的放不下时由 AppScrollArea 横向滚动。
+          -->
+          <AppScrollArea
+            class="rule-tabs"
+            orientation="horizontal"
+            type="auto"
+            viewport-class="rule-tabs-viewport"
+          >
+            <div class="rule-tabs-track" role="tablist" :aria-label="t('statusPage.k8')">
+              <button
+                type="button"
+                role="tab"
+                class="rule-tab--direct"
+                :aria-selected="activeRuleType === 'direct'"
+                :class="{ active: activeRuleType === 'direct' }"
+                @click="activeRuleType = 'direct'"
+              >
+                <span class="rule-dot direct-dot"></span
+                ><span class="rule-tab-label">{{ t("statusPage.k38") }}</span
+                ><strong>{{ directEntries.length }}</strong>
+              </button>
 
-            <button
-              type="button"
-              role="tab"
-              :aria-selected="activeRuleType === 'block'"
-              :class="{ active: activeRuleType === 'block' }"
-              @click="activeRuleType = 'block'"
-            >
-              <span class="rule-dot block-dot"></span><span>{{ t("statusPage.k39") }}</span
-              ><strong>{{ blockEntries.length }}</strong>
-            </button>
-          </div>
+              <button
+                v-if="status.mode === 'remote'"
+                type="button"
+                role="tab"
+                class="rule-tab--proxy"
+                :aria-selected="activeRuleType === 'proxy'"
+                :class="{ active: activeRuleType === 'proxy' }"
+                @click="activeRuleType = 'proxy'"
+              >
+                <span class="rule-dot proxy-dot"></span
+                ><span class="rule-tab-label">{{ t("statusPage.k42") }}</span
+                ><strong>{{ proxyEntries.length }}</strong>
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                class="rule-tab--block"
+                :aria-selected="activeRuleType === 'block'"
+                :class="{ active: activeRuleType === 'block' }"
+                @click="activeRuleType = 'block'"
+              >
+                <span class="rule-dot block-dot"></span
+                ><span class="rule-tab-label">{{ t("statusPage.k39") }}</span
+                ><strong>{{ blockEntries.length }}</strong>
+              </button>
+            </div>
+          </AppScrollArea>
 
           <div class="rule-content" role="tabpanel">
             <template v-if="activeRuleType === 'direct'">
@@ -286,6 +315,16 @@ const {
               <RuleVirtualList
                 :items="directEntries"
                 :empty-text="t('statusPage.k9')"
+                :height="300"
+              />
+            </template>
+            <template v-else-if="activeRuleType === 'proxy'">
+              <p class="rule-description">
+                {{ t("statusPage.k43") }}
+              </p>
+              <RuleVirtualList
+                :items="proxyEntries"
+                :empty-text="t('statusPage.k44')"
                 :height="300"
               />
             </template>
@@ -311,23 +350,24 @@ const {
         </div>
       </section>
     </template>
-    <AppFooter />
+    <!--
+      加载完成前不渲染页脚：加载态页面很短，页脚会落在首屏可见；数据到达后内容变长
+      把页脚推到折叠线以下，Lighthouse 记为一次 CLS（实测 0.057）。后插入的元素不产生位移。
+    -->
+    <AppFooter v-if="!loading" />
   </main>
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .status-page {
+  @apply mx-auto pb-14;
   width: min(1080px, calc(100% - var(--page-pad) * 2));
-  margin: 0 auto;
-  padding-bottom: 56px;
 }
 .page-hero {
-  position: relative;
-  overflow: hidden;
-  margin-bottom: 22px;
-  padding: clamp(22px, 3.8vw, 34px) clamp(22px, 4vw, 38px);
-  border: 1px solid color-mix(in srgb, var(--accent) 15%, var(--line));
-  border-radius: 18px;
+  @apply relative mb-[22px] overflow-hidden rounded-[18px] border p-[clamp(22px,3.8vw,34px)_clamp(22px,4vw,38px)];
+  border-color: color-mix(in srgb, var(--accent) 15%, var(--line));
   background: linear-gradient(
     128deg,
     color-mix(in srgb, var(--accent) 7%, var(--surface)) 0%,
@@ -336,61 +376,39 @@ const {
   box-shadow: var(--shadow);
 }
 .page-hero::before {
-  position: absolute;
-  inset: 18px auto 18px 0;
-  width: 3px;
-  border-radius: 0 6px 6px 0;
+  @apply absolute left-0 w-[3px] rounded-r-md;
+  top: 18px;
+  bottom: 18px;
   background: var(--accent);
   content: "";
 }
 .status-page .page-kicker {
-  display: inline-flex;
-  align-items: center;
-  min-height: 25px;
-  padding: 4px 9px;
-  border-radius: 999px;
+  @apply inline-flex min-h-[25px] items-center rounded-full px-[9px] py-1 text-[10px] tracking-[0.12em];
   background: var(--accent-soft);
   color: var(--accent);
-  font-size: 10px;
-  letter-spacing: 0.12em;
 }
 .status-page .page-title {
-  margin: 12px 0 10px;
+  @apply mb-2.5 mt-3 leading-[1.18] tracking-[-0.045em];
   font-size: clamp(1.8rem, 4vw, 2.35rem);
-  line-height: 1.18;
-  letter-spacing: -0.045em;
 }
 .status-page .page-intro {
-  max-width: 760px;
-  font-size: 13px;
-  line-height: 1.75;
+  @apply max-w-[760px] text-[13px] leading-[1.75];
 }
 .hero-meta {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 9px;
-  margin-top: 20px;
-  padding: 8px 12px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  @apply mt-5 inline-flex flex-wrap items-center gap-[9px] rounded-[10px] border px-3 py-2 text-[11px];
+  border-color: var(--line);
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   color: var(--muted);
-  font-size: 11px;
 }
-
 .hero-meta strong {
+  @apply font-semibold;
   color: var(--text);
-  font-weight: 650;
 }
 .meta-divider {
-  opacity: 0.6;
+  @apply opacity-60;
 }
 .status-indicator {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  @apply inline-block h-2 w-2 rounded-full;
   background: var(--muted);
 }
 .status-indicator.online {
@@ -401,63 +419,47 @@ const {
   background: var(--warn);
 }
 .stats-grid {
-  display: grid;
-  gap: 14px;
-  margin-bottom: 22px;
-}
-.remote-stats {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* remote 模式固定 3 张卡：宽屏 3 等分铺满整行，不会像 4 列网格那样留空位；
+     窄屏改为 2 列，并由下面的媒体查询让最后一张跨两列补满，同样不留空单元格。 */
+  @apply mb-[22px] grid gap-3.5;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .custom-stats {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  @apply grid-cols-2;
 }
 .stat-card {
-  position: relative;
-  min-width: 0;
+  @apply relative min-w-0 rounded-[15px] border px-5 py-[19px] transition-[border-color,transform];
   min-height: 120px;
-  padding: 19px 20px;
-  border: 1px solid var(--line);
-  border-radius: 15px;
+  border-color: var(--line);
   background: var(--surface);
   box-shadow: var(--shadow);
-  transition:
-    border-color 0.18s,
-    transform 0.18s;
 }
 .stat-card:hover {
+  @apply -translate-y-px;
   border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
-  transform: translateY(-1px);
 }
 .stat-card-wide {
-  grid-column: 1 / -1;
+  @apply col-span-full;
 }
 .stat-label {
-  display: block;
+  @apply mb-[11px] block text-[11px] font-bold tracking-[0.02em];
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  margin-bottom: 11px;
 }
 .stat-number {
-  display: block;
+  @apply block leading-none tracking-[-0.04em] tabular-nums;
   font-size: clamp(25px, 3vw, 32px);
   line-height: 1.1;
-  letter-spacing: -0.04em;
-  font-variant-numeric: tabular-nums;
 }
 .stat-caption {
-  display: block;
+  @apply mt-[9px] block text-[11px] leading-normal;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.55;
-  margin-top: 9px;
 }
 .stat-proxy {
-  display: block;
+  @apply block font-mono font-bold;
   overflow-wrap: anywhere;
   color: var(--accent);
-  font: 700 clamp(13px, 1.7vw, 16px) / 1.55 var(--font-mono);
+  font-size: clamp(13px, 1.7vw, 16px);
+  line-height: 1.55;
 }
 .stat-proxy-card {
   border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
@@ -468,136 +470,78 @@ const {
   );
 }
 .proxy-card-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  @apply flex items-center justify-between gap-3;
 }
 .proxy-card-heading .stat-label {
-  margin-bottom: 13px;
+  @apply mb-[13px];
 }
 .proxy-card-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  flex: 0 0 auto;
-  padding: 5px 8px;
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
-  border-radius: 999px;
+  @apply inline-flex shrink-0 items-center gap-[5px] rounded-full border px-2 py-[5px] text-[10px] font-bold;
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--line));
   background: var(--accent-soft);
   color: var(--accent);
-  font-size: 10px;
-  font-weight: 750;
 }
 .section-card,
 .empty-hero {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  @apply rounded-[var(--radius)] border;
+  border-color: var(--line);
   background: var(--surface);
   box-shadow: var(--shadow);
 }
 .section-card {
-  padding: clamp(17px, 2.8vw, 26px);
-  margin-bottom: 20px;
+  @apply mb-5 p-[clamp(17px,2.8vw,26px)];
 }
 .section-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
+  @apply mb-[18px] flex items-start justify-between gap-4;
 }
 .section-head h2 {
-  margin: 0;
-  font-size: 18px;
-  letter-spacing: -0.025em;
+  @apply m-0 text-lg tracking-tight;
 }
 .rules-section {
-  margin-top: 0;
+  @apply mt-0;
 }
 .rules-section-head {
-  align-items: end;
-  margin-bottom: 16px;
+  @apply mb-4 items-end;
 }
 .section-description {
-  margin: 7px 0 0;
+  @apply mb-0 mt-[7px] text-xs;
   color: var(--muted);
-  font-size: 12px;
 }
 .text-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+  @apply inline-flex items-center gap-[5px] whitespace-nowrap text-xs font-semibold;
   color: var(--accent);
-  font-size: 12px;
-  font-weight: 650;
-  white-space: nowrap;
 }
 .domain-check {
-  margin-bottom: 22px;
+  @apply mb-[22px];
 }
 .domain-check-head h2 {
-  margin: 0;
-  font-size: 18px;
-  letter-spacing: -0.02em;
+  @apply m-0 text-lg tracking-tight;
 }
 .domain-check-head p {
-  margin: 7px 0 0;
+  @apply mb-0 mt-[7px] text-xs;
   color: var(--muted);
-  font-size: 12px;
 }
 .domain-check-form {
-  display: grid;
+  @apply mt-4 grid gap-2.5;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  margin-top: 16px;
 }
-.domain-check-form input {
-  box-sizing: border-box;
-  width: 100%;
-  min-width: 0;
-  min-height: 40px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 9px 12px;
-  color: var(--text);
+.domain-check-form .app-input {
   background: var(--bg);
-  font: inherit;
-  font-size: 13px;
-}
-.domain-check-form input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .domain-check-form button {
-  white-space: nowrap;
+  @apply whitespace-nowrap;
 }
 .domain-check-note {
-  margin: 8px 0 0;
+  @apply mb-0 mt-2 text-[11px] leading-normal;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.5;
 }
 .domain-check-result {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-top: 16px;
-  padding: 13px 14px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
+  @apply mt-4 flex items-start gap-3 rounded-[9px] border px-3.5 py-[13px];
+  border-color: var(--line);
   background: var(--surface-2);
 }
 .result-mark {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 800;
+  @apply grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg text-base font-extrabold;
 }
 .result-direct .result-mark {
   color: var(--green);
@@ -617,75 +561,53 @@ const {
   background: var(--warn-soft);
 }
 .result-copy {
-  flex: 1;
-  min-width: 0;
+  @apply min-w-0 flex-1;
 }
 .result-title-row {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 9px;
+  @apply flex flex-wrap items-baseline gap-[9px];
 }
 .result-title-row strong {
-  font-size: 14px;
+  @apply text-sm;
 }
 .result-title-row code {
+  @apply text-xs;
   color: var(--muted);
-  font-size: 12px;
   overflow-wrap: anywhere;
 }
 .result-copy > p {
-  margin: 6px 0 0;
+  @apply mb-0 mt-1.5 text-xs leading-normal;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.5;
 }
 .result-copy .matched-rule {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 9px;
+  @apply mt-[9px] flex flex-wrap items-baseline gap-[7px];
 }
 .matched-rule code {
-  padding: 3px 6px;
-  border-radius: 5px;
+  @apply rounded-[5px] px-1.5 py-[3px] text-[11px];
   background: var(--bg);
   color: var(--text);
-  font-size: 11px;
   overflow-wrap: anywhere;
 }
 .rule-tabs {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  margin-bottom: 14px;
-  padding: 5px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  /* 分段控件铺满整行，宽屏不留空档；内容按 max-content 排布，
+     真正放不下时才由 AppScrollArea 出现横向滚动条，永不换行。 */
+  @apply mb-3.5 rounded-[10px] border p-[5px];
+  border-color: var(--line);
   background: var(--surface-2);
 }
+.rule-tabs :deep(.rule-tabs-viewport) {
+  /* 视口在子组件内部，scoped 样式必须用 :deep 才能命中。
+     圆角只由外层 .rule-tabs 负责：视口若保留继承来的 10px 圆角并裁剪内容，
+     就会把紧贴视口边角的按钮圆角切掉，看起来像边框连不上。 */
+  @apply min-w-0;
+  border-radius: 0;
+}
+.rule-tabs-track {
+  @apply flex w-full gap-1.5;
+  min-width: max-content;
+}
 .rule-tabs button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-width: 0;
-  min-height: 40px;
-  padding: 0 10px;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  background: transparent;
+  @apply flex min-h-10 flex-1 cursor-pointer items-center justify-center gap-[7px] rounded-[7px] border border-transparent bg-transparent px-3 text-xs font-semibold whitespace-nowrap transition-[background,border-color,color,box-shadow];
   color: var(--muted);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s,
-    box-shadow 0.15s;
 }
 .rule-tabs button:hover {
   background: var(--surface);
@@ -704,34 +626,38 @@ const {
   color: var(--text);
   border-color: color-mix(in srgb, var(--accent) 38%, var(--line));
   background: var(--surface);
-  box-shadow: 0 1px 2px rgba(26, 35, 50, 0.06);
+  box-shadow: var(--shadow-sm);
+}
+.rule-tab-label {
+  /* 不截断：宽度不够时整行横向滚动，而不是把文案裁成省略号。 */
+  @apply whitespace-nowrap;
 }
 .rule-tabs button strong {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  min-width: 24px;
-  min-height: 22px;
-  margin-left: 1px;
-  padding: 0 6px;
-  border-radius: 999px;
+  @apply ml-px inline-flex min-h-[22px] min-w-6 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-bold leading-none tabular-nums;
   background: var(--bg);
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
 }
 .rule-tabs button.active strong {
   background: var(--accent-soft);
   color: var(--accent);
 }
+/* 激活档位沿用该类型的主色，让「直连/代理/黑名单」在视觉上一眼可辨。 */
+.rule-tabs button.rule-tab--direct.active {
+  border-color: color-mix(in srgb, var(--green) 42%, var(--line));
+}
+.rule-tabs button.rule-tab--direct.active strong {
+  background: var(--green-soft);
+  color: var(--green);
+}
+.rule-tabs button.rule-tab--block.active {
+  border-color: color-mix(in srgb, var(--red) 42%, var(--line));
+}
+.rule-tabs button.rule-tab--block.active strong {
+  background: var(--red-soft);
+  color: var(--red);
+}
 .rule-dot {
-  width: 8px;
-  height: 8px;
-  flex: 0 0 auto;
-  border-radius: 50%;
+  @apply h-2 w-2 shrink-0 rounded-full;
 }
 .direct-dot {
   background: var(--green);
@@ -743,58 +669,15 @@ const {
   background: var(--red);
 }
 .rule-content {
-  min-width: 0;
+  @apply min-w-0;
 }
 .rule-description {
-  margin: 0 0 10px;
+  @apply mb-2.5 mt-0 text-xs leading-normal;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.55;
-}
-.default-proxy {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 16px;
-  border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--line));
-  border-radius: 10px;
-  background: linear-gradient(
-    112deg,
-    color-mix(in srgb, var(--accent) 7%, var(--surface)),
-    var(--surface) 82%
-  );
-}
-.default-proxy span {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 650;
-}
-.default-proxy code {
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  padding: 7px 9px;
-  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--line));
-  border-radius: 7px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font: 700 13px/1.5 var(--font-mono);
-}
-.default-proxy p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.5;
 }
 .pac-access-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  margin: 0 0 22px;
-  padding: clamp(20px, 3vw, 28px);
-  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
-  border-radius: 17px;
+  @apply mb-[22px] mt-0 flex items-center justify-between gap-6 rounded-[17px] border p-[clamp(20px,3vw,28px)];
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--line));
   background: linear-gradient(
     115deg,
     color-mix(in srgb, var(--accent) 8%, var(--surface)),
@@ -803,74 +686,42 @@ const {
   box-shadow: var(--shadow);
 }
 .pac-access-copy {
-  min-width: 0;
+  @apply min-w-0;
 }
 .pac-access-kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  @apply inline-flex items-center gap-1.5 text-[11px] font-bold;
   color: var(--accent);
-  font-size: 11px;
-  font-weight: 750;
 }
 .pac-access-copy h2 {
-  margin: 10px 0 6px;
+  @apply mb-1.5 mt-2.5 tracking-tight;
   color: var(--text);
   font-size: clamp(1.15rem, 2.6vw, 1.45rem);
-  letter-spacing: -0.025em;
 }
 .pac-access-copy p {
-  margin: 0;
+  @apply m-0 text-xs leading-normal;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.6;
 }
 .pac-access-updated {
-  display: block;
-  margin-top: 12px;
+  @apply mt-3 block text-[11px] tabular-nums;
   color: var(--muted);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
 }
 .pac-access-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-shrink: 0;
+  @apply flex shrink-0 flex-wrap items-center justify-end gap-2;
 }
 .pac-access-link,
 .pac-access-refresh {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 16px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 750;
-  text-decoration: none;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    transform 0.15s;
+  @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-[10px] border px-4 text-xs font-bold no-underline transition-[background,border-color,transform];
+  border-color: var(--line);
 }
 .pac-access-link.primary {
   border-color: var(--accent);
   background: var(--accent);
-  color: var(--on-accent, #fff);
+  color: var(--accent-contrast);
   box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 .pac-access-link.primary:hover {
+  @apply -translate-y-px no-underline;
   filter: brightness(1.04);
-  transform: translateY(-1px);
-  text-decoration: none;
 }
 .pac-access-link.secondary {
   background: var(--surface);
@@ -878,48 +729,42 @@ const {
 }
 .pac-access-link.secondary:hover,
 .pac-access-refresh:hover:not(:disabled) {
+  @apply no-underline;
   border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
   background: var(--surface-2);
-  text-decoration: none;
 }
 .pac-access-refresh {
-  background: transparent;
+  @apply bg-transparent;
   color: var(--accent);
 }
 .pac-access-refresh:disabled {
+  @apply cursor-not-allowed;
   color: var(--control-disabled-text);
   background: var(--control-disabled-bg);
   border-color: var(--control-disabled-border);
-  cursor: not-allowed;
 }
 .pac-access-refresh.is-loading:disabled {
+  @apply cursor-progress;
   color: var(--text);
   background: var(--surface);
   border-color: var(--line);
-  cursor: progress;
 }
 .pac-access-link:focus-visible,
 .pac-access-refresh:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
-
 .state-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  @apply flex items-start gap-3.5 rounded-[var(--radius)] border p-[18px];
+  border-color: var(--line);
   background: var(--surface);
 }
 .state-card strong {
-  font-size: 14px;
+  @apply text-sm;
 }
 .state-card p {
-  margin: 5px 0 12px;
+  @apply mb-3 mt-[5px] text-[13px];
   color: var(--muted);
-  font-size: 13px;
 }
 .error-card,
 .warning-card {
@@ -927,100 +772,34 @@ const {
 }
 .state-icon,
 .empty-icon {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  @apply grid h-9 w-9 shrink-0 place-items-center rounded-[10px] font-bold;
   background: var(--surface-2);
   color: var(--muted);
-  font-weight: 700;
 }
 .empty-hero {
-  padding: clamp(24px, 6vw, 42px);
-  text-align: center;
+  @apply p-[clamp(24px,6vw,42px)] text-center;
 }
 .empty-icon {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 14px;
+  @apply mx-auto mb-3.5 h-12 w-12 text-2xl;
   color: var(--accent);
-  font-size: 24px;
 }
 .empty-hero h2 {
-  margin: 0;
-  font-size: 19px;
+  @apply m-0 text-[19px];
 }
 .empty-hero p {
-  max-width: 36em;
-  margin: 10px auto 18px;
+  @apply mx-auto mb-[18px] mt-2.5 max-w-[36em] text-[13px];
   color: var(--muted);
-  font-size: 13px;
 }
 .empty-hero .empty-pac-note {
-  margin-top: -8px;
-  font-size: 11px;
-  line-height: 1.6;
-}
-.action-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 38px;
-  padding: 0 14px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--surface);
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 650;
-  text-decoration: none;
-  cursor: pointer;
-}
-.action-button.primary {
-  color: var(--accent-contrast);
-  background: var(--accent);
-  border-color: var(--accent);
-}
-.action-button:not(.primary):hover:not(:disabled) {
-  background: var(--surface-2);
-  border-color: color-mix(in srgb, var(--accent) 32%, var(--line));
-  color: var(--text);
-}
-.action-button.primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  color: var(--accent-contrast);
-}
-.action-button.primary:active:not(:disabled) {
-  background: var(--accent-active);
-  border-color: var(--accent-active);
-  color: var(--accent-contrast);
-}
-.action-button:not(.primary):active:not(:disabled) {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.action-button:disabled {
-  opacity: 1;
-  color: var(--control-disabled-text);
-  background: var(--control-disabled-bg);
-  border-color: var(--control-disabled-border);
-  cursor: not-allowed;
+  @apply -mt-2 text-[11px] leading-normal;
 }
 .spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--line);
+  @apply h-[18px] w-[18px] shrink-0 animate-[spin_0.8s_linear_infinite] rounded-full border-2;
+  border-color: var(--line);
   border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  flex: 0 0 auto;
 }
 .state-copy {
-  min-width: 0;
+  @apply min-w-0;
 }
 .icon-spinning {
   animation: status-icon-spin 0.9s linear infinite;
@@ -1036,101 +815,81 @@ const {
   }
 }
 @media (max-width: 960px) {
-  .remote-stats,
-  .custom-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .stats-grid {
+    @apply grid-cols-2;
+  }
+  /* 2 列时 3 张卡会在第二行留一个空位，让最后一张跨两列补满整行。 */
+  .stats-grid:not(.custom-stats) > .stat-card:last-child {
+    @apply col-span-2;
   }
 }
 @media (max-width: 480px) {
-  .remote-stats,
   .custom-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+    @apply grid-cols-2 gap-2;
   }
   .page-hero {
-    padding: 22px 18px 22px 22px;
-    border-radius: 15px;
+    @apply rounded-[15px] py-[22px] pl-[22px] pr-[18px];
   }
   .status-page .page-title {
     font-size: clamp(1.65rem, 7vw, 2rem);
   }
   .status-page .page-intro {
-    font-size: 12px;
+    @apply text-xs;
   }
   .hero-meta {
-    align-items: flex-start;
-    gap: 7px;
-    border-radius: 10px;
+    @apply items-start gap-[7px] rounded-[10px];
   }
   .stats-grid {
-    gap: 8px;
+    @apply gap-2;
   }
   .stat-card {
+    @apply rounded-xl px-3 py-[13px];
     min-height: 108px;
-    padding: 13px 12px;
-    border-radius: 12px;
   }
   .stat-number {
-    font-size: 25px;
+    @apply text-[25px];
   }
   .section-head {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
+    @apply flex-col items-start gap-1.5;
   }
   .pac-access-card {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 18px;
-    padding: 18px;
+    @apply flex-col items-stretch gap-[18px] p-[18px];
   }
   .pac-access-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    justify-content: stretch;
+    @apply grid grid-cols-2 justify-stretch;
   }
   .pac-access-link,
   .pac-access-refresh {
-    min-height: 44px;
-    padding: 0 10px;
+    @apply min-h-11 px-2.5;
   }
   .pac-access-refresh {
-    grid-column: 1 / -1;
+    @apply col-span-full;
   }
   .rule-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 5px;
-    padding: 4px;
+    @apply p-1;
+  }
+  .rule-tabs-track {
+    @apply gap-[5px];
   }
   .rule-tabs button {
-    gap: 6px;
-    padding: 0 8px;
-    font-size: 12px;
+    /* 窄屏收紧内边距，让三档在 360px 这类极窄宽度下也能整行放下，
+       避免仅溢出几个像素就出现横向滚动条。 */
+    @apply gap-1 px-1.5 text-xs;
   }
   .rule-tabs button strong {
-    min-width: 20px;
-    min-height: 20px;
-    padding: 0 4px;
+    @apply min-h-5 min-w-5 px-1;
   }
   .domain-check-form {
-    grid-template-columns: minmax(0, 1fr);
+    @apply grid-cols-1;
   }
-  .domain-check-form input {
-    min-height: 44px;
-    font-size: 16px;
+  .domain-check-form .app-input {
+    @apply min-h-11 text-base;
   }
   .domain-check-form button {
-    width: 100%;
-    min-height: 44px;
+    @apply w-full min-h-11;
   }
-  .action-button {
-    min-height: 42px;
-  }
-  .source-actions a,
-  .source-actions button {
-    min-height: 36px;
-    padding-right: 8px;
-    padding-left: 8px;
+  .app-button {
+    @apply min-h-[42px];
   }
 }
 </style>

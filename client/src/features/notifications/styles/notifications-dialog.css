@@ -1,0 +1,68 @@
+@reference "@/styles/tailwind.css";
+
+/* Rendered inside AppDialog's DialogPortal, which teleports the content to
+   <body> — so these selectors must NOT be scoped under .webhook-page. The
+   `record-detail-*` / `dialog-title` / `dialog-sub` names are unique to the
+   delivery detail dialog (checked across client/src). */
+.dialog-eyebrow {
+  @apply flex items-center gap-[7px] text-[9px] font-extrabold tracking-[0.13em];
+  color: var(--accent);
+}
+
+.dialog-title {
+  @apply mb-0.5 mt-1 text-[17px] font-extrabold;
+}
+
+.dialog-sub {
+  @apply m-0 text-[11px];
+  color: var(--muted);
+}
+
+.record-detail {
+  @apply grid gap-4;
+}
+
+.record-detail-grid {
+  @apply grid gap-x-[18px] gap-y-[13px];
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.record-detail-grid > div {
+  @apply grid min-w-0 gap-1;
+}
+
+.record-detail-grid span {
+  @apply text-[10px];
+  color: var(--muted);
+}
+
+.record-detail-grid strong {
+  @apply text-xs;
+  overflow-wrap: anywhere;
+}
+
+.record-detail-block {
+  @apply grid gap-2 border-t pt-[13px];
+  border-color: var(--line);
+}
+
+.record-detail-block h3 {
+  @apply m-0 text-[11px] font-bold;
+}
+
+.record-detail-block p {
+  @apply m-0 text-[11px] leading-normal;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.record-detail-block pre {
+  @apply m-0 whitespace-pre-wrap rounded-lg p-2.5 font-mono text-[10px] leading-normal;
+  background: var(--red-soft);
+  color: var(--red);
+  overflow-wrap: anywhere;
+}
+
+.record-detail-actions {
+  @apply flex justify-end gap-2;
+}

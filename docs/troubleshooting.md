@@ -16,10 +16,18 @@
 
 ## PAC 仍是全量直连
 
-- 新数据库首次启动不会自动生成 PAC。
-- 在后台启动生成，并在工作流页面确认结果成功。
-- 检查生成模式、代理地址、自定义规则和远程列表的可访问性。
-- 生成前访问 `/proxy.pac` 可能返回临时的全量直连脚本，这不代表配置已经生效。
+- PAC 由内存实时渲染。代理字符串、压缩、规则列表、远程地址等配置在提交后立即保存并自动重新渲染；生成模式属于独立开关，必须点击「保存模式」按钮才会写入并触发重渲染。
+- 检查代理字符串、自定义规则是否已保存到后台设置（文本输入在失焦/回车后提交，规则列表需点击「保存规则」）。
+- 远程规则模式下，若从未成功拉取过规则，`/pac` 会返回全量直连脚本。修改任一影响 PAC 的设置（如远程地址）或触发定时任务即可拉取规则。
+- 响应头 `X-Pac-Cache` 为 `fallback` 表示本次渲染失败，查看容器日志中的 `PAC rendering failed` 定位原因。
+- 修改设置后仍无变化时，确认反向代理/CDN 没有缓存 `/pac`；服务端返回 `Cache-Control: no-cache`，但中间层可能覆盖。
+
+## 改了远程规则但 PAC 没有更新
+
+- 远程规则**不会自动轮询**。刷新只在两种时机发生：配置变更触发重新生成时，以及定时任务触发时。
+- 检查“定时任务”是否配置了 cron 表达式；未配置则永远不会自动刷新。
+- 定时任务刷新失败会记录 `Scheduled remote rule refresh failed`，确认远程 URL 可访问。
+- 可在系统设置页手动清空 PAC 缓存，然后在配置管理页修改任一影响 PAC 的设置并保存（切换模式需点击「保存模式」按钮）触发重新生成以强制刷新。
 
 ## 远程列表生成失败
 
@@ -31,11 +39,30 @@
 
 - 检查容器是否始终挂载到同一个持久化卷或数据目录。
 - 没有挂载 `/data` 时，删除容器可能导致应用数据丢失。
-- 不要在需要保留数据时删除 Docker 命名卷；升级前请备份数据库和 PAC 文件。
+- 不要在需要保留数据时删除 Docker 命名卷；升级前请备份数据目录中的数据库。
 
 ## 跨域管理 API 请求失败
 
-- 默认不开放跨域浏览器访问管理 API。
-- 仅在前端确实部署于其他 Origin 时配置 `CORS_ALLOWED_ORIGINS`。
+- 默认不开放跨域浏览器访问管理 API（`CORS_MODE=strict`）。
+- **同站子域**（如 `app.example.com` 调 `api.example.com`）走 Cookie：把前端来源加进 `CORS_ALLOWED_ORIGINS`。
+- **独立静态前端**（Cloudflare Pages / Vercel 等任意源）走令牌：设置 `CORS_MODE=open`，并确认前端 `config.json` 的 `apiBaseUrl` 指向后端；预检响应应含 `Access-Control-Allow-Origin: *`。
+- `open` 模式下浏览器请求不能带凭据，前端会自动使用 `credentials: "omit"` 并携带 `Authorization`。若手动联调，请勿同时发送 Cookie。
 - 检查 Origin 是否完整匹配白名单中的来源，且不要使用通配符。
-- 参考[配置说明中的跨域与访问安全](configuration.md#跨域与访问安全)。
+- 参考[部署指南的跨域来源与真实 IP 参数](deployment.md#环境参数参考)。
+
+## 登录返回 403 `untrusted_origin`
+
+- 出现在 `CORS_MODE=strict`：管理写请求的 Origin 不在白名单内。
+- 把前端来源加入 `CORS_ALLOWED_ORIGINS`，或改用 `CORS_MODE=open`（纯静态前端场景）。
+
+## 访问日志里的 IP 是 172.x / 127.0.0.1
+
+- 说明请求经过反向代理或 Cloudflare Tunnel，但应用没有读取转发头。
+- 配置 `TRUSTED_PROXY_CIDRS` 为代理所在网段（`docker network inspect` 确认）。
+- 走 Cloudflare Tunnel 时再加上 `TRUST_CLOUDFLARE_IP=1`；只写该项而不写 `TRUSTED_PROXY_CIDRS` 会导致启动失败。
+- 反向代理层数与 `TRUST_PROXY_HOPS` 不一致时，取到的是中间跳的地址。
+
+## 修改 `DEFAULT_ADMIN_PASSWORD` 后密码没有变化
+
+- 该变量只在**数据库尚无管理员凭据**时生效。重新部署不会重置已有密码。
+- 需要重置请使用[管理员密码重置](configuration.md#管理员密码重置)中的脚本。

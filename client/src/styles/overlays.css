@@ -1,0 +1,84 @@
+/*
+ * Styles for portaled overlay content live here rather than in scoped view styles.
+ * Reka UI renders Portal content outside the originating Vue component subtree,
+ * so view-scoped selectors cannot reliably style these nodes.
+ */
+@reference "@/styles/tailwind.css";
+
+.timezone-options-menu {
+  @apply z-[1200] box-border flex flex-col overflow-hidden rounded-[10px] border p-1;
+  width: min(var(--reka-combobox-trigger-width, 100%), calc(100vw - 16px));
+  min-width: min(var(--reka-combobox-trigger-width, 100%), calc(100vw - 16px));
+  max-width: calc(100vw - 16px);
+  max-height: min(320px, var(--reka-combobox-content-available-height, calc(100dvh - 24px)));
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.timezone-options-scroll-area {
+  @apply box-border w-full min-h-0 overflow-hidden;
+  flex: 0 1 auto;
+  height: min(320px, var(--reka-combobox-content-available-height, calc(100dvh - 24px)));
+  max-height: min(320px, var(--reka-combobox-content-available-height, calc(100dvh - 24px)));
+}
+
+.timezone-options-viewport {
+  @apply box-border h-full w-full min-h-0 p-1;
+  max-height: 100%;
+}
+
+.timezone-option {
+  @apply box-border flex w-full min-w-0 cursor-pointer items-center justify-between gap-3 rounded-[7px] border-0 bg-transparent px-2.5 py-[9px] text-left;
+  min-height: 44px;
+  color: var(--text);
+}
+
+.timezone-option[data-highlighted],
+.timezone-option[aria-selected="true"],
+.timezone-option[data-state="checked"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.timezone-option:active:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.timezone-option span {
+  @apply min-w-0 text-xs;
+  overflow-wrap: anywhere;
+}
+
+.timezone-option code {
+  @apply shrink-0 whitespace-nowrap text-[11px];
+  color: var(--muted);
+}
+
+.timezone-no-results {
+  @apply m-0 px-2.5 py-3 text-xs;
+  color: var(--muted);
+}
+
+@media (max-width: 720px) {
+  .timezone-option {
+    @apply min-h-12;
+  }
+
+  .timezone-option code {
+    @apply max-w-1/2 whitespace-normal text-right;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Touch scrolling can move Reka's transient highlight between options.
+   Keep real selection styling, but suppress hover/press paint on unselected rows. */
+@media (hover: none) and (pointer: coarse) {
+  .timezone-option[data-highlighted]:not([aria-selected="true"]):not([data-state="checked"]),
+  .timezone-option:active:not(:disabled):not([aria-selected="true"]):not([data-state="checked"]) {
+    @apply bg-transparent;
+    color: var(--text);
+  }
+}

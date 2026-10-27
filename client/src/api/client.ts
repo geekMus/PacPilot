@@ -1,31 +1,40 @@
-import { i18n, resolveLocale } from "../i18n";
+import { i18n, resolveLocale } from "@/i18n";
+import { resolveApiUrl, isCrossOriginApi, ensureRuntimeConfig } from "@/api/runtime-config";
+import { readSessionToken, saveSessionToken, clearSessionToken } from "@/api/session-token";
+import { emitUnauthorized } from "@/api/auth-events";
 import type {
   AppSettings,
-  WebhookConfig,
   WorkflowRun,
   WorkflowStage,
   WorkflowStatus,
-} from "../../../shared/contracts";
+  NotificationChannel,
+  NotificationRule,
+  DomainEvent,
+  NotificationDelivery,
+  NotificationEventDefinition,
+} from "@shared/contracts";
 export type {
   AppSettings,
-  DingTalkMessageType,
-  WebhookConfig,
-  WebhookMethod,
-  WebhookProvider,
   WorkflowRun,
   WorkflowStage,
-  WorkflowStatus,
-} from "../../../shared/contracts";
+  NotificationChannel,
+  NotificationRule,
+  DomainEvent,
+  NotificationDelivery,
+  NotificationEventDefinition,
+} from "@shared/contracts";
 
 export interface Meta {
-  adminEnabled: boolean;
   version: string;
-  repositoryUrl: string;
+  /** Backend storage driver; lets the UI show what actually stores the data. */
+  storageDriver?: "sqlite" | "memory" | string;
 }
 
 export interface AdminSession {
   loggedIn: boolean;
   adminCredentialsMissing: boolean;
+  /** Transport the backend expects: cookie for same-origin, bearer for split deployments. */
+  authMode?: "cookie" | "bearer";
 }
 
 export interface PacStatus {
@@ -48,24 +57,6 @@ export interface WebhookTestResult {
   message: string;
 }
 
-export interface GenerationLog {
-  id: number;
-  success: boolean;
-  mode: string;
-  result_code: string;
-  detail: Record<string, string | number | boolean>;
-  error: string;
-  created_at: string;
-}
-export interface GenerateResult {
-  workflowId?: number;
-  success: boolean;
-  mode: string;
-  message: string;
-  resultCode: string;
-  pacPath: string;
-}
-
 export interface SaveAndGenerateResult {
   settings: AppSettings;
   workflowId: number;
@@ -82,7 +73,6 @@ export interface WorkflowDetail {
 }
 export interface PagedResult<T> {
   items: T[];
-  nextCursor: number | null;
   total: number;
   hasMore: boolean;
 }
@@ -90,28 +80,38 @@ export interface WorkflowList {
   current: WorkflowRun | null;
   active: WorkflowRun[];
   runs: WorkflowRun[];
-  beforeId?: number;
-  nextCursor?: number | null;
-  total?: number;
-  hasMore?: boolean;
+  total: number;
+  hasMore: boolean;
 }
-export interface PacFileStatus {
-  exists: boolean;
-  sizeBytes: number;
-  modifiedAt: string | null;
+/** In-memory PAC render reported by the backend (no PAC files on disk). */
+export interface PacRenderStatus {
+  rendered: {
+    exists: boolean;
+    sizeBytes: number;
+    sourceBytes: number;
+    builtAt: string | null;
+    etag: string;
+    compressed: boolean;
+    obfuscated: boolean;
+  };
+  ruleSource: {
+    exists: boolean;
+    fetchedAt: string | null;
+    url: string;
+    format: string;
+    proxyHosts: number;
+    directHosts: number;
+  };
 }
 export interface StorageSummary {
   dataBytes: number;
   dbBytes: number;
   logBytes: number;
-  retentionDays: number;
   counts: {
-    generationLogs: number;
     accessEvents: number;
     workflows: number;
-    activeWorkflows: number;
   };
-  pacFiles: { proxyPac: PacFileStatus; proxySourcePac: PacFileStatus };
+  pac?: PacRenderStatus;
 }
 export interface PacPilotProbe {
   available: boolean;
@@ -150,7 +150,6 @@ export interface MonitorSummary {
   requestsLastHour: number;
   requestsLast24h: number;
   uniqueSourcesLast24h: number;
-  errorRequestsLast24h: number;
   serverErrorsLast24h: number;
   averageResponseMs: number;
   p95ResponseMs: number;
@@ -178,73 +177,122 @@ export interface MonitorSummary {
 export class ApiError extends Error {
   constructor(
     message: string,
-    readonly code = "",
-    readonly detail = ""
+    readonly code = ""
   ) {
     super(message);
     this.name = "ApiError";
   }
 }
 
+/**
+ * Whether the backend expects bearer authentication. `POST /api/admin/login`
+ * always returns a token, but a same-origin deployment authenticates with the
+ * HttpOnly session cookie instead; persisting the token there would duplicate
+ * the credential into localStorage for no reason.
+ *
+ * Starts as `null` because the runtime config (which decides whether the API is
+ * cross-origin) is loaded asynchronously after the module is evaluated.
+ */
+let bearerRequired: boolean | null = null;
+const requiresBearerToken = (): boolean => bearerRequired ?? isCrossOriginApi();
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      "Accept-Language": resolveLocale(i18n.global.locale.value) === "en_US" ? "en-US" : "zh-CN",
-      ...(init?.headers || {}),
-    },
+  // 首屏挂载不再等待运行时配置，第一个请求必须自己等它解析完成，
+  // 否则静态部署会把请求打到前端自身源上。
+  await ensureRuntimeConfig();
+
+  const token = readSessionToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "Accept-Language": resolveLocale(i18n.global.locale.value) === "en_US" ? "en-US" : "zh-CN",
+    ...((init?.headers as Record<string, string> | undefined) ?? {}),
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(resolveApiUrl(url), {
     ...init,
+    // A bearer deployment authenticates with the token and must not request
+    // credentials (the backend answers with `Access-Control-Allow-Origin: *`).
+    // A cookie deployment keeps sending them even when the API is cross-origin.
+    credentials: init?.credentials ?? (requiresBearerToken() ? "omit" : "include"),
+    headers,
+    // A stalled API request must not leave admin pages in a permanent loading state.
+    signal: init?.signal ?? AbortSignal.timeout(20_000),
   });
   if (!res.ok) {
     let msg = res.statusText;
     let code = "";
-    let detail = "";
     try {
       const data = (await res.json()) as {
         error?: string;
         message?: string;
         errorCode?: string;
-        errorDetail?: string;
       };
       if (data.error) msg = data.error;
       else if (data.message) msg = data.message;
       code = data.errorCode ?? "";
-      detail = data.errorDetail ?? "";
     } catch {
       // Non-JSON error responses retain their HTTP status text.
     }
 
-    // This endpoint was added with the server-side save-and-generate workflow.
-    // A 404 means the browser is talking to an older backend process/build,
-    // not that the submitted settings are invalid.
-    if (res.status === 404 && url === "/api/admin/settings/save-and-generate") {
-      msg = i18n.global.t("serverErrors.versionMismatch");
-    }
     if (msg === "setup_required") {
       msg = i18n.global.t("login.adminCredentialsMissing");
     }
 
-    throw new ApiError(msg, code, detail);
+    // A revoked session (password changed elsewhere, token expired) must drop
+    // the local credential and bounce the user back to the login screen.
+    if (res.status === 401 && !url.startsWith("/api/admin/login")) {
+      clearSessionToken();
+      emitUnauthorized();
+    }
+
+    throw new ApiError(msg, code);
   }
-  return (await res.json()) as T;
+  // 204/空响应体没有 JSON 可解析，直接返回 undefined 交给调用方。
+  const text = await res.text();
+  if (!text) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 export const api = {
   meta: () => request<Meta>("/api/meta"),
   status: () => request<PacStatus>("/api/status"),
-  session: () => request<AdminSession>("/api/admin/session"),
+  session: async () => {
+    const result = await request<AdminSession>("/api/admin/session");
+    // The backend reports how it expects to be authenticated: cookie for a
+    // same-origin deployment, bearer for a split one. Remember it so login knows
+    // whether the returned token has to be persisted.
+    bearerRequired = result.authMode ? result.authMode === "bearer" : isCrossOriginApi();
+    // 服务端读取凭据时 Authorization 头优先于 Cookie：cookie 部署下残留的旧
+    // bearer token（此前跨域部署或旧会话密钥签发）会让每个请求被判为未登录，
+    // 即使有效 Cookie 在场。cookie 模式必须清掉它。
+    if (!bearerRequired) clearSessionToken();
+    return result;
+  },
   changePassword: (body: { currentPassword: string; newPassword: string }) =>
     request<{ ok: boolean }>("/api/admin/password", {
       method: "POST",
       body: JSON.stringify(body),
     }),
-  login: (password: string) =>
-    request<{ ok: boolean }>("/api/admin/login", {
-      method: "POST",
-      body: JSON.stringify({ password }),
-    }),
-  logout: () => request<{ ok: boolean }>("/api/admin/logout", { method: "POST" }),
+  login: async (password: string) => {
+    const result = await request<{ ok: boolean; token?: string; expiresAt?: number }>(
+      "/api/admin/login",
+      { method: "POST", body: JSON.stringify({ password }) }
+    );
+    // Only a bearer deployment needs the token in storage; a same-origin one is
+    // already authenticated by the HttpOnly session cookie — and any stale
+    // stored token would override that cookie server-side, so drop it.
+    if (requiresBearerToken()) saveSessionToken(result.token, result.expiresAt);
+    else clearSessionToken();
+    return result;
+  },
+  logout: async () => {
+    try {
+      return await request<{ ok: boolean }>("/api/admin/logout", { method: "POST" });
+    } finally {
+      clearSessionToken();
+    }
+  },
   settings: () => request<AppSettings>("/api/admin/settings"),
   saveSettings: (body: AppSettings) =>
     request<AppSettings>("/api/admin/settings", {
@@ -256,42 +304,72 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
-  testWebhook: (body: { config: WebhookConfig }) =>
-    request<WebhookTestResult>("/api/admin/webhook-test", {
+  notifications: () =>
+    request<{
+      channels: NotificationChannel[];
+      rules: NotificationRule[];
+      events: DomainEvent[];
+      deliveries: NotificationDelivery[];
+      eventCatalog: NotificationEventDefinition[];
+    }>("/api/admin/notifications"),
+  createNotificationChannel: (body: Partial<NotificationChannel>) =>
+    request<NotificationChannel>("/api/admin/notifications/channels", {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  updateNotificationChannel: (id: string, body: Partial<NotificationChannel>) =>
+    request<NotificationChannel>("/api/admin/notifications/channels/" + encodeURIComponent(id), {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  deleteNotificationChannel: (id: string) =>
+    request<{ ok: boolean }>("/api/admin/notifications/channels/" + encodeURIComponent(id), {
+      method: "DELETE",
+    }),
+  testNotificationChannel: (id: string) =>
+    request<WebhookTestResult>(
+      "/api/admin/notifications/channels/" + encodeURIComponent(id) + "/test",
+      { method: "POST" }
+    ),
+  createNotificationRule: (body: Partial<NotificationRule>) =>
+    request<NotificationRule>("/api/admin/notifications/rules", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateNotificationRule: (id: string, body: Partial<NotificationRule>) =>
+    request<NotificationRule>("/api/admin/notifications/rules/" + encodeURIComponent(id), {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  deleteNotificationRule: (id: string) =>
+    request<{ ok: boolean }>("/api/admin/notifications/rules/" + encodeURIComponent(id), {
+      method: "DELETE",
+    }),
+  retryNotificationDelivery: (id: string) =>
+    request<{ ok: boolean }>(
+      "/api/admin/notifications/deliveries/" + encodeURIComponent(id) + "/retry",
+      { method: "POST" }
+    ),
   generate: () => request<GenerateStartResult>("/api/admin/generate", { method: "POST" }),
-  logs: () => request<GenerationLog[]>("/api/admin/logs"),
-  logsPage: (limit = 50, beforeId = 0) =>
-    request<PagedResult<GenerationLog>>(`/api/admin/logs/page?limit=${limit}&beforeId=${beforeId}`),
   workflows: (limit = 50, beforeId = 0) =>
     request<WorkflowList>(`/api/admin/workflows?limit=${limit}&beforeId=${beforeId}`),
-  clearWorkflowHistory: () =>
-    request<{ ok: boolean; deletedRuns: number }>("/api/admin/workflows", { method: "DELETE" }),
   workflowDetail: (id: number) => request<WorkflowDetail>(`/api/admin/workflows/${id}`),
-  deleteWorkflow: (id: number) =>
-    request<{ ok: boolean; id: number }>(`/api/admin/workflows/${id}`, { method: "DELETE" }),
   cancelWorkflow: (id: number) =>
     request<{ ok: boolean; id: number; status: "cancelled" }>(`/api/admin/workflows/${id}/cancel`, {
       method: "POST",
     }),
   storage: () => request<StorageSummary>("/api/admin/storage"),
-  deletePacFiles: () =>
-    request<{ ok: boolean; deleted: string[]; pacFiles: StorageSummary["pacFiles"] }>(
-      "/api/admin/pac-files",
-      { method: "DELETE" }
-    ),
+  clearPacCache: () =>
+    request<{ ok: boolean; deleted: string[] }>("/api/admin/pac-cache", { method: "DELETE" }),
   cleanupLogs: () =>
-    request<{
-      deleted: { generationLogs: number; accessEvents: number };
-      retentionDays: number;
-    }>("/api/admin/logs/cleanup", { method: "POST" }),
+    request<{ deleted: { accessEvents: number; workflowRuns: number } }>(
+      "/api/admin/logs/cleanup",
+      { method: "POST" }
+    ),
   clearLogs: () =>
-    request<{
-      deleted: { generationLogs: number; accessEvents: number };
-      retentionDays: number;
-    }>("/api/admin/logs/clear", { method: "POST" }),
+    request<{ deleted: { accessEvents: number; workflowRuns: number } }>("/api/admin/logs/clear", {
+      method: "POST",
+    }),
   factoryReset: () =>
     request<{ ok: boolean; message: string }>("/api/admin/factory-reset", {
       method: "POST",
@@ -299,7 +377,6 @@ export const api = {
     }),
   pacpilotStatus: () => request<PacPilotProbe>("/api/admin/pacpilot-status"),
   monitorSummary: () => request<MonitorSummary>("/api/admin/monitor/summary"),
-  monitorAccess: (limit = 50) => request<AccessEvent[]>(`/api/admin/monitor/access?limit=${limit}`),
   monitorAccessPage: (limit = 50, beforeId = 0) =>
     request<PagedResult<AccessEvent>>(
       `/api/admin/monitor/access?paged=1&limit=${limit}&beforeId=${beforeId}`

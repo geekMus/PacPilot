@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
+  BellRing,
   CalendarClock,
   ChartNoAxesCombined,
   Check,
@@ -30,6 +31,7 @@ import {
   Globe,
   Info,
   LayoutDashboard,
+  KeyRound,
   ListChecks,
   LoaderCircle,
   LockKeyhole,
@@ -50,34 +52,21 @@ import {
   Zap,
 } from "@lucide/vue";
 
-const props = withDefaults(
-  defineProps<{
-    name: string;
-    size?: number;
-    strokeWidth?: number;
-  }>(),
-  {
-    size: 18,
-    strokeWidth: 1.9,
-  }
-);
-
 const iconMap = {
   activity: Activity,
   "alert-triangle": AlertTriangle,
-  "triangle-alert": AlertTriangle,
   "arrow-left": ArrowLeft,
   "arrow-right": ArrowRight,
   "arrow-up-right": ArrowUpRight,
+  "bell-ring": BellRing,
   "calendar-clock": CalendarClock,
   chart: ChartNoAxesCombined,
   "circle-alert": CircleAlert,
-  circle: Circle,
   check: Check,
   "circle-check": CircleCheck,
-  "circle-help": CircleHelp,
   "check-circle-2": CheckCircle2,
-  "check-circle": CircleCheck,
+  "circle-help": CircleHelp,
+  circle: Circle,
   "circle-x": CircleX,
   "chevron-down": ChevronDown,
   clock: Clock,
@@ -95,6 +84,7 @@ const iconMap = {
   globe: Globe,
   info: Info,
   "layout-dashboard": LayoutDashboard,
+  "key-round": KeyRound,
   "list-checks": ListChecks,
   "loader-circle": LoaderCircle,
   "lock-keyhole": LockKeyhole,
@@ -105,7 +95,6 @@ const iconMap = {
   route: Route,
   "rotate-ccw": RotateCcw,
   save: Save,
-  settings: Settings2,
   "settings-2": Settings2,
   "sliders-horizontal": SlidersHorizontal,
   "shield-check": ShieldCheck,
@@ -116,8 +105,24 @@ const iconMap = {
   zap: Zap,
 } as const;
 
+const props = withDefaults(
+  defineProps<{
+    name: keyof typeof iconMap;
+    size?: number;
+    strokeWidth?: number;
+  }>(),
+  {
+    size: 18,
+    strokeWidth: 1.9,
+  }
+);
+
 const selectedIcon = computed(() => {
-  return iconMap[props.name as keyof typeof iconMap] ?? CircleHelp;
+  const icon = iconMap[props.name];
+  if (!icon) {
+    console.warn(`[AppIcon] 未注册的图标名称："${props.name}"`);
+  }
+  return icon ?? CircleHelp;
 });
 </script>
 
@@ -132,9 +137,9 @@ const selectedIcon = computed(() => {
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .app-icon {
-  display: inline-block;
-  flex: 0 0 auto;
-  vertical-align: middle;
+  @apply inline-block shrink-0 align-middle;
 }
 </style>

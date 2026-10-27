@@ -1,15 +1,25 @@
-import fs from "fs";
 import { minify } from "terser";
-import path from "path";
 import { isIP } from "node:net";
-import type { AppDatabase } from "../db/sqlite";
-import { appendGenerationLog, getSettings } from "../db/sqlite";
-import { notifyFailure, notifySuccess } from "./webhook";
+import type { ApplicationStorage } from "../storage/repositories";
 import { APP_VERSION } from "../version";
 import { t } from "../../shared/i18n";
-import type { AppSettings } from "../db/settings";
-import { buildRemoteListPac, fetchAndParseRemoteList } from "./remote-list";
+import type { AppSettings } from "../../shared/contracts";
+import { fetchAndParseRemoteList } from "./remote-list";
+import { obfuscatePac } from "./pac-obfuscator";
 import { runtimeLog } from "../utils/runtime-log";
+import {
+  computeEtag,
+  computeSourceVersion,
+  getRenderedPac,
+  invalidateRenderedPac,
+  isRenderFresh,
+  readRuleSource,
+  renderPacSource,
+  setRenderedPac,
+  withPacBuildLock,
+  writeRuleSource,
+  type RenderedPac,
+} from "./pac-runtime";
 
 export interface GenerateResult {
   success: boolean;
@@ -17,7 +27,6 @@ export interface GenerateResult {
   message: string;
   resultCode: string;
   resultData?: Record<string, string | number | boolean>;
-  pacPath: string;
   /** Structured diagnostics for workflow stage detail panels. */
   detail?: Record<string, unknown>;
 }
@@ -97,7 +106,8 @@ async function compressPac(content: string): Promise<string> {
     compress: { defaults: true, passes: 2 },
     // 不混淆变量名，避免无意义的可读性损失。
     mangle: false,
-    format: { comments: false, beautify: false, ecma: 5 },
+    // 固定双引号输出：pac-parser 按此契约解析，不再兼容其他引号风格。
+    format: { comments: false, beautify: false, ecma: 5, quote_style: 2 },
   });
   if (typeof result.code !== "string" || !result.code.trim()) {
     throw new Error("PAC 压缩失败：压缩器未生成有效代码。");
@@ -112,36 +122,38 @@ function formatPacGeneratedAt(date: Date, timeZone = "Asia/Shanghai"): string {
   });
 }
 
+/** Strip a previously written PacPilot meta header so re-rendering stays idempotent. */
 function stripPacMetaHeaders(content: string): string {
   return content
-    .replace(/^\/\/ PacPilot (?:version:|版本[:：]).*(?:\r?\n|$)/gim, "")
-    .replace(
-      /^\/\/ PacPilot (?:PAC generated at:|Generated at:|PAC 生成时间[:：]|生成时间[:：]).*(?:\r?\n|$)/gim,
-      ""
-    )
+    .replace(/^\/\/ PacPilot version:.*(?:\r?\n|$)/gim, "")
+    .replace(/^\/\/ PacPilot PAC generated at:.*(?:\r?\n|$)/gim, "")
+    .replace(/^\/\* PacPilot version: [^*]*\*\/\s*/i, "")
     .replace(/^\n+/, "");
 }
 
-/**
- * 写入或刷新 PAC 文件元数据头。
- * 真正生成时传入 generatedAt，便于运维查看规则产出时间；只读刷新时省略以保留已有时间戳。
- */
-function withPacVersionHeader(
-  content: string,
-  generatedAt?: Date | null,
-  timeZone = "Asia/Shanghai"
-): string {
-  const existingGenerated =
-    content
-      .match(
-        /^\/\/ PacPilot (?:PAC generated at:|Generated at:|PAC 生成时间[:：]|生成时间[:：])\s*(.+)\s*$/im
-      )?.[1]
-      ?.trim() || "";
+/** Prepend the PacPilot meta header (version + generation time) to a readable PAC body. */
+function withPacVersionHeader(content: string, generatedAt: Date, timeZone: string): string {
   const body = stripPacMetaHeaders(content);
-  const lines = ["// PacPilot version: " + APP_VERSION];
-  const stamp = generatedAt ? formatPacGeneratedAt(generatedAt, timeZone) : existingGenerated;
-  if (stamp) lines.push("// PacPilot PAC generated at: " + stamp);
+  const lines = [
+    "// PacPilot version: " + APP_VERSION,
+    "// PacPilot PAC generated at: " + formatPacGeneratedAt(generatedAt, timeZone),
+  ];
   return lines.join("\n") + "\n" + body;
+}
+
+/**
+ * 压缩/混淆态的单行头部：同样写入版本与生成时间，但用块注释紧贴在正文前，
+ * 保证整份响应里没有换行。
+ */
+function withPacInlineHeader(content: string, generatedAt: Date, timeZone: string): string {
+  const body = stripPacMetaHeaders(content);
+  const header =
+    "/* PacPilot version: " +
+    APP_VERSION +
+    " | generated at: " +
+    formatPacGeneratedAt(generatedAt, timeZone) +
+    " */";
+  return header + body;
 }
 
 function toJsArray(list: string[], compress: boolean): string {
@@ -209,85 +221,12 @@ export async function probePacPilot(): Promise<EngineProbe> {
   };
 }
 
-async function runRemoteMode(
-  settings: AppSettings,
-  outFile: string
-): Promise<{
-  message: string;
-  resultCode: string;
-  resultData: Record<string, number | boolean>;
-  detail: Record<string, unknown>;
-}> {
-  if (!settings.listUrl) {
-    throw new Error("Remote list mode requires listUrl to be configured.");
-  }
-  const parsed = await fetchAndParseRemoteList(settings.listUrl);
-  // 内部源文件始终保留未压缩版本，状态页只解析该文件。
-  const pac = buildRemoteListPac(
-    settings.pacProxy,
-    parsed.proxyHosts,
-    parsed.directHosts,
-    settings.blockList,
-    settings.directList,
-    false
-  );
-  const generatedAt = new Date();
-  const source = withPacVersionHeader(pac, generatedAt, settings.timezone);
-  const output = settings.pacCompress
-    ? withPacVersionHeader(await compressPac(pac), generatedAt, settings.timezone)
-    : source;
-  const sourcePath = path.join(path.dirname(outFile), "proxy.source.pac");
-  fs.writeFileSync(sourcePath, source, "utf8");
-  fs.writeFileSync(outFile, output, "utf8");
-  const formatKey =
-    parsed.format === "gfwlist-base64"
-      ? "format.gfwlist"
-      : parsed.format === "abp"
-        ? "format.abp"
-        : "format.plain";
-  const formatSuffix =
-    parsed.format === "gfwlist-base64" ? "gfwlist" : parsed.format === "abp" ? "abp" : "plain";
-  const resultCode = `remote.${formatSuffix}`;
-  const resultData = {
-    proxy: parsed.proxyHosts.length,
-    direct: parsed.directHosts.length,
-  };
-  const formatLabel = t("zh_CN", formatKey);
-  const message = t("zh_CN", `gen.success.${resultCode}`, resultData);
-  return {
-    message,
-    resultCode,
-    resultData,
-    detail: {
-      mode: "remote",
-      pac_proxy: settings.pacProxy,
-      list_url: settings.listUrl,
-      compressed: Boolean(settings.pacCompress),
-      fetch: parsed.fetch || null,
-      parse: {
-        format: parsed.format,
-        format_label: formatLabel,
-        proxy_hosts: parsed.proxyHosts.length,
-        direct_hosts: parsed.directHosts.length,
-        raw_line_count: parsed.rawLineCount,
-        custom_block_list: settings.blockList.length,
-        custom_direct_list: settings.directList.length,
-      },
-      output: {
-        pac_path: outFile,
-        source_path: sourcePath,
-        pac_bytes: Buffer.byteLength(output, "utf8"),
-        source_bytes: Buffer.byteLength(source, "utf8"),
-        generated_at: generatedAt.toISOString(),
-      },
-    },
-  };
-}
-
-export async function generatePac(database: AppDatabase, dataDir: string): Promise<GenerateResult> {
-  const settings = getSettings(database);
-  const pacPath = path.join(dataDir, "proxy.pac");
-  fs.mkdirSync(dataDir, { recursive: true });
+export async function generatePac(
+  storage: Pick<ApplicationStorage, "settings" | "artifacts">
+): Promise<GenerateResult> {
+  const settings = await storage.settings.get();
+  // No PAC files are written any more; the rendered body lives in memory and
+  // the remote rule snapshot in the artifact store.
 
   try {
     const proxyError = validatePacProxyString(settings.pacProxy);
@@ -297,53 +236,108 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
     let resultCode: string;
     let resultData: Record<string, string | number | boolean> = {};
     let detail: Record<string, unknown>;
+
     if (settings.mode === "remote") {
-      const remote = await runRemoteMode(settings, pacPath);
-      message = remote.message;
-      resultCode = remote.resultCode;
-      resultData = remote.resultData;
-      detail = remote.detail;
+      if (!settings.listUrl) {
+        throw new Error("Remote list mode requires listUrl to be configured.");
+      }
+      const parsed = await fetchAndParseRemoteList(settings.listUrl);
+      const fetchedAt = new Date().toISOString();
+      await writeRuleSource(storage, {
+        fetchedAt,
+        url: settings.listUrl,
+        format: parsed.format,
+        proxyHosts: parsed.proxyHosts,
+        directHosts: parsed.directHosts,
+        fetchMeta: parsed.fetch
+          ? {
+              status: parsed.fetch.status,
+              duration_ms: parsed.fetch.duration_ms,
+              response_bytes: parsed.fetch.response_bytes,
+              attempts: parsed.fetch.attempts,
+            }
+          : undefined,
+      });
+      invalidateRenderedPac();
+      const rendered = await getRenderedPacBody(storage, { force: true });
+
+      const formatSuffix =
+        parsed.format === "gfwlist-base64" ? "gfwlist" : parsed.format === "abp" ? "abp" : "plain";
+      resultCode = `remote.${formatSuffix}`;
+      resultData = { proxy: parsed.proxyHosts.length, direct: parsed.directHosts.length };
+      const formatKey =
+        parsed.format === "gfwlist-base64"
+          ? "format.gfwlist"
+          : parsed.format === "abp"
+            ? "format.abp"
+            : "format.plain";
+      message = t("zh_CN", `gen.success.${resultCode}`, {
+        proxy: parsed.proxyHosts.length,
+        direct: parsed.directHosts.length,
+      });
+      detail = {
+        mode: "remote",
+        pac_proxy: settings.pacProxy,
+        list_url: settings.listUrl,
+        compressed: Boolean(settings.pacCompress || settings.pacObfuscate),
+        obfuscated: Boolean(settings.pacObfuscate),
+        fetch: parsed.fetch || null,
+        parse: {
+          format: parsed.format,
+          format_label: t("zh_CN", formatKey),
+          proxy_hosts: parsed.proxyHosts.length,
+          direct_hosts: parsed.directHosts.length,
+          raw_line_count: parsed.rawLineCount,
+          custom_block_list: settings.blockList.length,
+          custom_direct_list: settings.directList.length,
+        },
+        output: {
+          pac_path: "/pac",
+          pac_bytes: Buffer.byteLength(rendered.body, "utf8"),
+          source_bytes: Buffer.byteLength(rendered.source, "utf8"),
+          generated_at: rendered.builtAt,
+          etag: rendered.etag,
+          rule_fetched_at: fetchedAt,
+        },
+      };
     } else {
-      const customPac = buildCustomPac(settings);
-      const generatedAt = new Date();
-      const source = withPacVersionHeader(customPac, generatedAt, settings.timezone);
-      const output = settings.pacCompress
-        ? withPacVersionHeader(await compressPac(customPac), generatedAt, settings.timezone)
-        : source;
-      const sourcePath = path.join(dataDir, "proxy.source.pac");
-      fs.writeFileSync(sourcePath, source, "utf8");
-      fs.writeFileSync(pacPath, output, "utf8");
-      resultCode = settings.pacCompress ? "custom.compressed" : "custom.uncompressed";
-      resultData = { compressed: Boolean(settings.pacCompress) };
+      invalidateRenderedPac();
+      const rendered = await getRenderedPacBody(storage, { force: true });
+      resultCode = settings.pacObfuscate
+        ? "custom.obfuscated"
+        : settings.pacCompress
+          ? "custom.compressed"
+          : "custom.uncompressed";
+      resultData = {
+        compressed: Boolean(settings.pacCompress || settings.pacObfuscate),
+        obfuscated: Boolean(settings.pacObfuscate),
+      };
       message = t("zh_CN", `gen.success.${resultCode}`);
       detail = {
         mode: "custom",
         pac_proxy: settings.pacProxy,
-        compressed: Boolean(settings.pacCompress),
+        compressed: Boolean(settings.pacCompress || settings.pacObfuscate),
+        obfuscated: Boolean(settings.pacObfuscate),
         parse: {
           custom_block_list: settings.blockList.length,
           custom_direct_list: settings.directList.length,
         },
         output: {
-          pac_path: pacPath,
-          source_path: sourcePath,
-          pac_bytes: Buffer.byteLength(output, "utf8"),
-          source_bytes: Buffer.byteLength(source, "utf8"),
-          generated_at: generatedAt.toISOString(),
+          pac_path: "/pac",
+          pac_bytes: Buffer.byteLength(rendered.body, "utf8"),
+          source_bytes: Buffer.byteLength(rendered.source, "utf8"),
+          generated_at: rendered.builtAt,
+          etag: rendered.etag,
         },
       };
     }
 
-    appendGenerationLog(database, true, settings.mode, resultCode, resultData);
-    const webhook = await notifySuccess(settings);
-    if (webhook) detail = { ...detail, webhook };
     return {
       success: true,
       mode: settings.mode,
       message,
       resultCode,
       resultData,
-      pacPath,
       detail,
     };
   } catch (err: unknown) {
@@ -352,84 +346,137 @@ export async function generatePac(database: AppDatabase, dataDir: string): Promi
       err && typeof err === "object" && "fetchMeta" in err
         ? (err as { fetchMeta?: unknown }).fetchMeta
         : undefined;
-    appendGenerationLog(database, false, settings.mode, "failed", {}, message);
-    const webhook = await notifyFailure(settings, message);
     runtimeLog("error", `PAC generation failed: ${message}`);
     return {
       success: false,
       mode: settings.mode,
       message,
       resultCode: "failed",
-      pacPath,
       detail: {
         mode: settings.mode,
         list_url: settings.listUrl || null,
         pac_proxy: settings.pacProxy,
         error: message,
         fetch: fetchMeta || null,
-        webhook: webhook || null,
       },
     };
   }
 }
 
-export function readPacFile(dataDir: string): string {
-  const pacPath = path.join(dataDir, "proxy.pac");
-  try {
-    const original = fs.readFileSync(pacPath, "utf8");
-    const versioned = withPacVersionHeader(original);
-    // 为升级前已生成的 PAC 补上当前版本头；规则正文不变。
-    if (versioned !== original) {
-      try {
-        fs.writeFileSync(pacPath, versioned, "utf8");
-      } catch {
-        // 即使数据目录只读，也返回带版本头的内容供浏览器查看。
-      }
+/**
+ * Render (or reuse) the PAC served at `/pac`.
+ *
+ * The rendered body lives in process memory; the remote rule list is persisted
+ * so a restart can rebuild without touching the network. Nothing is written to
+ * the artifact store for the PAC body itself any more.
+ */
+export async function getRenderedPacBody(
+  storage: Pick<ApplicationStorage, "settings" | "artifacts">,
+  options: { force?: boolean } = {}
+): Promise<RenderedPac> {
+  const settings = await storage.settings.get();
+  const source = settings.mode === "remote" ? await readRuleSource(storage) : null;
+
+  const cached = getRenderedPac();
+  if (!options.force && cached && isRenderFresh(settings, source)) return cached;
+
+  return withPacBuildLock(async () => {
+    // Re-check inside the lock: a concurrent request may have finished first.
+    const freshSettings = await storage.settings.get();
+    const freshSource = freshSettings.mode === "remote" ? await readRuleSource(storage) : null;
+    const existing = getRenderedPac();
+    if (!options.force && existing && isRenderFresh(freshSettings, freshSource)) return existing;
+
+    const raw = renderPacSource(freshSettings, freshSource, buildCustomPac);
+    const generatedAt = new Date();
+    const sourceBody = withPacVersionHeader(raw, generatedAt, freshSettings.timezone);
+    const obfuscate = Boolean(freshSettings.pacObfuscate);
+    const compress = Boolean(freshSettings.pacCompress);
+    let body = sourceBody;
+    if (compress || obfuscate) {
+      // 先压缩再混淆：反过来的话 terser 会把混淆器生成的字符串数组求值内联，
+      // 混淆强度会被削弱（实测字符串数组条目从 9 处降到 0 处）。
+      const minified = await compressPac(raw);
+      const finalCode = obfuscate ? obfuscatePac(minified) : minified;
+      body = withPacInlineHeader(finalCode, generatedAt, freshSettings.timezone);
     }
-    return versioned;
-  } catch {
-    return "";
+
+    const value: RenderedPac = {
+      body,
+      source: sourceBody,
+      etag: computeEtag(body),
+      builtAt: generatedAt.toISOString(),
+      sourceVersion: computeSourceVersion(freshSettings, freshSource),
+      stale: false,
+      compressed: compress || obfuscate,
+      obfuscated: obfuscate,
+    };
+    setRenderedPac(value);
+    return value;
+  });
+}
+
+/** Remote-mode rule refresh: fetch, persist and re-render in one step. */
+export async function refreshRemoteRules(
+  storage: Pick<ApplicationStorage, "settings" | "artifacts">
+): Promise<{ ok: boolean; message: string; fetchedAt?: string }> {
+  const settings = await storage.settings.get();
+  if (settings.mode !== "remote") {
+    return { ok: false, message: "当前不是远程规则模式，无需刷新。" };
+  }
+  if (!settings.listUrl) {
+    return { ok: false, message: "远程规则模式需要先配置列表 URL。" };
+  }
+  try {
+    const parsed = await fetchAndParseRemoteList(settings.listUrl);
+    const fetchedAt = new Date().toISOString();
+    await writeRuleSource(storage, {
+      fetchedAt,
+      url: settings.listUrl,
+      format: parsed.format,
+      proxyHosts: parsed.proxyHosts,
+      directHosts: parsed.directHosts,
+      fetchMeta: parsed.fetch
+        ? {
+            status: parsed.fetch.status,
+            duration_ms: parsed.fetch.duration_ms,
+            response_bytes: parsed.fetch.response_bytes,
+            attempts: parsed.fetch.attempts,
+          }
+        : undefined,
+    });
+    invalidateRenderedPac();
+    await getRenderedPacBody(storage, { force: true });
+    return { ok: true, message: "远程规则已刷新。", fetchedAt };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    runtimeLog("error", "Remote rule refresh failed: " + message);
+    return { ok: false, message };
   }
 }
 
 /**
- * 读取始终未压缩的内部 PAC 源文件供状态页解析。
- * 兼容升级前的数据目录：源文件尚不存在时回退到现有 proxy.pac。
+ * Best-effort cache warm-up at startup. Never fetches remotely: a deployment
+ * that has not saved remote settings yet simply renders the custom rules.
  */
-export function readPacSourceFile(dataDir: string): string {
-  const pacPath = path.join(dataDir, "proxy.pac");
-  // proxy.source.pac 仅作解析辅助输入；面向客户端的文件不存在或为空时，不得报告为已有 PAC。
-  let clientPac: string;
+export async function warmPacCache(
+  storage: Pick<ApplicationStorage, "settings" | "artifacts">
+): Promise<void> {
   try {
-    clientPac = fs.readFileSync(pacPath, "utf8");
-  } catch {
-    return "";
-  }
-  if (!clientPac.trim()) return "";
-
-  const sourcePath = path.join(dataDir, "proxy.source.pac");
-  try {
-    const sourcePac = fs.readFileSync(sourcePath, "utf8");
-    return sourcePac.trim() ? sourcePac : clientPac;
-  } catch {
-    return clientPac;
-  }
-}
-
-export function pacFileMtime(dataDir: string): Date | null {
-  const sourcePath = path.join(dataDir, "proxy.source.pac");
-  const pacPath = path.join(dataDir, "proxy.pac");
-  try {
-    const pacStat = fs.statSync(pacPath);
-    if (!pacStat.isFile() || pacStat.size === 0) return null;
-    const sourceStat = fs.statSync(sourcePath);
-    return sourceStat.isFile() && sourceStat.size > 0 ? sourceStat.mtime : pacStat.mtime;
-  } catch {
-    try {
-      const pacStat = fs.statSync(pacPath);
-      return pacStat.isFile() && pacStat.size > 0 ? pacStat.mtime : null;
-    } catch {
-      return null;
+    const settings = await storage.settings.get();
+    if (settings.mode === "remote") {
+      const source = await readRuleSource(storage);
+      if (!source) {
+        runtimeLog(
+          "warn",
+          "Remote mode is active but no rule snapshot exists yet; PAC will fall back to DIRECT until the rules are fetched."
+        );
+        return;
+      }
     }
+    await getRenderedPacBody(storage, { force: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    runtimeLog("error", "Unable to warm the PAC cache: " + message);
   }
 }

@@ -1,31 +1,20 @@
 import { onMounted, reactive, ref, computed, nextTick, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter, useRoute } from "vue-router";
-import {
-  api,
-  ApiError,
-  type AppSettings,
-  type GenerationLog,
-  type PacPilotProbe,
-  type WebhookConfig,
-} from "../api/client";
-import { analyzeDomainRules } from "../utils/domain-rules";
-import { createAdminSettingsValidators } from "../utils/admin-settings-validation";
-import { commonTimeZones, isValidTimeZone } from "../utils/time-zones";
-import { useToast } from "../composables/useToast";
+import { api, type AppSettings, type PacPilotProbe } from "@/api/client";
+import { analyzeDomainRules } from "@/utils/domain-rules";
+import { DEFAULT_LIST_URL } from "@shared/contracts";
+import { createAdminSettingsValidators } from "@/utils/admin-settings-validation";
+import { useToast } from "@/composables/useToast";
+import { fetchAdminSession } from "@/composables/useAdminSession";
 
 export function useAdminSettings() {
-  const { t, tm, locale } = useI18n();
+  const { t, locale } = useI18n();
 
   const { notify } = useToast();
 
-  const {
-    looksLikeUrl,
-    validateWebhookDraft,
-    webhookErrorMessages,
-    validatePacProxyString,
-    validateDomainRules,
-  } = createAdminSettingsValidators(t);
+  const { looksLikeUrl, validatePacProxyString, validateDomainRules } =
+    createAdminSettingsValidators(t);
 
   const router = useRouter();
 
@@ -35,207 +24,28 @@ export function useAdminSettings() {
 
   const saving = ref(false);
 
-  const savedSettingsSnapshot = ref("");
+  /** 即时保存的串行队列，保证同一时间只有一个请求在途。 */
+  let saveQueue: Promise<void> = Promise.resolve();
 
-  const flash = ref("");
-
-  const flashOk = ref(true);
-
-  function showFlash(message: string, success = true) {
-    flash.value = message;
-    flashOk.value = success;
-  }
+  /** 最近一次已知已持久化到服务端的完整配置，是即时保存的比对基准。 */
+  const saved = ref<AppSettings | null>(null);
 
   const error = ref("");
 
-  const logs = ref<GenerationLog[]>([]);
-
-  const logPageSize = 50;
-
-  const logHasMore = ref(false);
-
-  const logLoadingMore = ref(false);
-
-  const logLoadError = ref("");
-
-  const logTotal = ref(0);
-
-  async function loadMoreLogs(): Promise<void> {
-    if (logLoadingMore.value || !logHasMore.value || !logs.value.length) return;
-    logLoadingMore.value = true;
-    logLoadError.value = "";
-    try {
-      const cursor = logs.value[logs.value.length - 1]?.id ?? 0;
-      const page = await api.logsPage(logPageSize, cursor);
-      const seen = new Set(logs.value.map((item) => item.id));
-      logs.value.push(...page.items.filter((item) => !seen.has(item.id)));
-      logHasMore.value = page.hasMore;
-      logTotal.value = page.total;
-    } catch (caught) {
-      logLoadError.value = caught instanceof Error ? caught.message : String(caught);
-    } finally {
-      logLoadingMore.value = false;
-    }
-  }
-
-  async function refreshLogs(): Promise<void> {
-    const page = await api.logsPage(logPageSize, 0);
-    logs.value = page.items;
-    logHasMore.value = page.hasMore;
-    logTotal.value = page.total;
-    logLoadError.value = "";
-  }
-
   const pacpilotProbe = ref<PacPilotProbe | null>(null);
-
-  const timezoneMenuOpen = ref(false);
-
-  const timezoneQuery = ref("");
-
-  const mobileTimezoneOpen = ref(false);
-
-  const passwordSaving = ref(false);
-
-  const passwordErrorKey = ref<
-    | "settings.enterCurrentPassword"
-    | "settings.passwordMismatch"
-    | "settings.passwordSameAsCurrent"
-    | "settings.currentPasswordIncorrect"
-    | "settings.newPasswordEmpty"
-    | ""
-  >("");
-  const passwordErrorDetail = ref("");
-  const passwordError = computed({
-    get: () => (passwordErrorKey.value ? t(passwordErrorKey.value) : passwordErrorDetail.value),
-    set: (message: string) => {
-      passwordErrorKey.value = "";
-      passwordErrorDetail.value = message;
-    },
-  });
-  function passwordErrorKeyFromCode(code: string): typeof passwordErrorKey.value {
-    switch (code) {
-      case "current_password_incorrect":
-        return "settings.currentPasswordIncorrect";
-      case "new_password_empty":
-        return "settings.newPasswordEmpty";
-      case "new_password_same_as_current":
-        return "settings.passwordSameAsCurrent";
-      default:
-        return "";
-    }
-  }
-  function passwordErrorKeyFromMessage(message: string): typeof passwordErrorKey.value {
-    switch (message) {
-      case "当前管理密码不正确。":
-        return "settings.currentPasswordIncorrect";
-      case "新密码不能为空。":
-        return "settings.newPasswordEmpty";
-      case "新密码不能与当前密码相同。":
-        return "settings.passwordSameAsCurrent";
-      default:
-        return "";
-    }
-  }
-
-  const passwordForm = reactive({ currentPassword: "", newPassword: "", confirmPassword: "" });
-
-  const webhookTestState = reactive({
-    success: { pending: false, ok: null as boolean | null, message: "" },
-    failure: { pending: false, ok: null as boolean | null, message: "" },
-  });
 
   const form = reactive({
     mode: "custom" as "custom" | "remote",
     pacProxy: "",
     pacCompress: true,
-    listUrl: "",
+    pacObfuscate: false,
+    listUrl: DEFAULT_LIST_URL,
     directListText: "",
     blockListText: "",
     cronSchedule: "",
     timezone: "Asia/Shanghai",
     logRetentionDays: 30,
-    webhookSuccessConfig: defaultWebhookConfig(),
-    webhookFailureConfig: defaultWebhookConfig(),
   });
-
-  function generationLogText(entry: GenerationLog): string {
-    return entry.success
-      ? t(`gen.success.${entry.result_code}`, entry.detail)
-      : entry.error || t("common.failed");
-  }
-
-  function generationLogDate(value: string): string {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN", {
-      timeZone: form.timezone,
-    });
-  }
-
-  function generationModeLabel(mode: string): string {
-    return mode === "remote" ? t("workflow.remoteMode") : t("workflow.customMode");
-  }
-
-  function defaultWebhookConfig(): WebhookConfig {
-    return {
-      provider: "custom",
-      url: "",
-      method: "POST",
-      headers: "{}",
-      body: "",
-      dingTalkSecret: "",
-      dingTalkMessageType: "text",
-      testBody: JSON.stringify(
-        { ok: "{{ok}}", event: "{{event}}", message: "{{message}}", timestamp: "{{timestamp}}" },
-        null,
-        2
-      ),
-      messageTemplate: String(tm("settings.defaultMessageTemplate")),
-      testMessageTemplate: String(tm("settings.testMessageTemplate")),
-    };
-  }
-
-  function normalizedWebhookConfig(value: WebhookConfig | undefined): WebhookConfig {
-    return {
-      ...defaultWebhookConfig(),
-      ...value,
-      testBody: value?.testBody ?? defaultWebhookConfig().testBody,
-      messageTemplate: value?.messageTemplate?.trim()
-        ? value.messageTemplate
-        : defaultWebhookConfig().messageTemplate,
-      testMessageTemplate: value?.testMessageTemplate?.trim()
-        ? value.testMessageTemplate
-        : defaultWebhookConfig().testMessageTemplate,
-    };
-  }
-
-  const filteredTimeZones = computed(() => {
-    const query = timezoneQuery.value.trim().toLowerCase();
-    if (!query) return commonTimeZones;
-    return commonTimeZones.filter(
-      (zone) =>
-        zone.value.toLowerCase().includes(query) ||
-        String(t(zone.labelKey)).toLowerCase().includes(query)
-    );
-  });
-
-  function selectTimeZone(value: string) {
-    form.timezone = value;
-    timezoneQuery.value = value;
-    timezoneMenuOpen.value = false;
-    mobileTimezoneOpen.value = false;
-  }
-
-  function closeTimezoneMenu() {
-    window.setTimeout(() => {
-      timezoneMenuOpen.value = false;
-    }, 140);
-  }
-
-  function openMobileTimezonePicker() {
-    timezoneQuery.value = "";
-    mobileTimezoneOpen.value = true;
-  }
 
   async function scrollToCurrentSection(): Promise<void> {
     await nextTick();
@@ -334,15 +144,11 @@ export function useAdminSettings() {
     });
   });
 
-  function applyCronPreset(value: string) {
-    form.cronSchedule = value;
-  }
-
   const pacProxyError = computed(() => validatePacProxyString(form.pacProxy));
 
   const listUrlError = computed(() => {
     if (form.mode !== "remote") return "";
-    if (!form.listUrl.trim()) return t("settings.listUrlRequired");
+    if (!form.listUrl.trim()) return "";
     if (!looksLikeUrl(form.listUrl.trim())) return t("settings.listUrlInvalid");
     return "";
   });
@@ -353,157 +159,218 @@ export function useAdminSettings() {
 
   const blockRuleDiagnostics = computed(() => ruleAnalysis.value.block.diagnostics);
 
-  const directListError = computed(() =>
-    validateDomainRules(form.directListText, t("settings.directList"))
-  );
+  const directListError = computed(() => validateDomainRules(form.directListText, "direct"));
 
-  const blockListError = computed(() =>
-    validateDomainRules(form.blockListText, t("settings.blockList"))
-  );
-
-  const timezoneError = computed(() =>
-    isValidTimeZone(form.timezone) ? "" : t("settings.timezoneInvalid")
-  );
+  const blockListError = computed(() => validateDomainRules(form.blockListText, "block"));
 
   const cronError = computed(() => (form.cronSchedule.trim() ? cronParse.value.error : ""));
 
-  const webhookValidation = computed(() => ({
-    success: validateWebhookDraft(form.webhookSuccessConfig, t("settings.successChannel")),
-    failure: validateWebhookDraft(form.webhookFailureConfig, t("settings.failureChannel")),
-  }));
+  function splitLines(text: string): string[] {
+    return text
+      .split(/[\n,]+/)
+      .map((x) => x.trim())
+      .filter(Boolean);
+  }
 
-  /** 保存前统一校验；错误列表为空才允许保存和生成 PAC。 */
-  const formErrors = computed(() => {
-    const errs: string[] = [];
-    if (timezoneError.value) errs.push(timezoneError.value);
-    if (pacProxyError.value) errs.push(pacProxyError.value);
-    if (listUrlError.value) errs.push(listUrlError.value);
-    if (directListError.value) errs.push(directListError.value);
-    if (blockListError.value) errs.push(blockListError.value);
-    if (cronError.value) errs.push(t("settings.cronInvalid") + cronError.value);
-    errs.push(...webhookErrorMessages(webhookValidation.value.success));
-    errs.push(...webhookErrorMessages(webhookValidation.value.failure));
-    return errs;
-  });
-
-  type ValidationTarget = { key: string; message: string };
-
-  const validationTargets = computed<ValidationTarget[]>(() => {
-    const targets: ValidationTarget[] = [];
-    if (timezoneError.value) targets.push({ key: "timezone", message: timezoneError.value });
-    if (pacProxyError.value) targets.push({ key: "pac-proxy", message: pacProxyError.value });
-    if (listUrlError.value) targets.push({ key: "list-url", message: listUrlError.value });
-    if (directListError.value) targets.push({ key: "direct-list", message: directListError.value });
-    if (blockListError.value) targets.push({ key: "block-list", message: blockListError.value });
-    if (cronError.value) targets.push({ key: "cron", message: cronError.value });
-    const channels = [
-      { key: "success", errors: webhookValidation.value.success },
-      { key: "failure", errors: webhookValidation.value.failure },
-    ];
-    for (const channel of channels) {
-      for (const field of ["url", "headers", "body", "testBody", "secret"] as const) {
-        const message = channel.errors[field];
-        if (message)
-          targets.push({
-            key: channel.key + "-" + (field === "testBody" ? "test-body" : field),
-            message,
-          });
+  /**
+   * 逐项即时保存：只提交与已保存配置不同的字段；generate 表示该项影响
+   * PAC 内容，需要走「保存并生成」让服务端重建 PAC。任何结果都通过
+   * toast 反馈。
+   *
+   * 每次保存都排进串行队列。输入框失焦提交和紧随其后的按钮点击会在同一
+   * 帧内先后触发保存，并发提交会让两个请求各带一份旧快照，后落地的那个
+   * 把先写入的字段改回旧值；排队后 diff 始终基于上一次保存后的 saved 计算。
+   */
+  async function tryApply(
+    patch: Partial<AppSettings>,
+    options: { generate: boolean; message: string; invalid?: string }
+  ): Promise<void> {
+    const run = async (): Promise<void> => {
+      if (!saved.value) return;
+      const current = saved.value as unknown as Record<string, unknown>;
+      const diff = Object.fromEntries(
+        Object.entries(patch).filter(
+          ([key, value]) => JSON.stringify(value) !== JSON.stringify(current[key])
+        )
+      ) as Partial<AppSettings>;
+      if (!Object.keys(diff).length) return;
+      if (options.invalid) {
+        notify(options.invalid, "warning");
+        return;
       }
+      saving.value = true;
+      try {
+        // 合并服务端最新配置，避免覆盖其他页面（通知渠道、日志保留期）的修改。
+        const latest = await api.settings();
+        form.logRetentionDays = latest.logRetentionDays;
+        const payload: AppSettings = { ...latest, ...diff };
+        if (options.generate) {
+          await api.saveAndGenerate(payload);
+        } else {
+          await api.saveSettings(payload);
+        }
+        saved.value = payload;
+        notify(options.message, "success");
+        if (options.generate) {
+          // 探针刷新只是辅助操作，不影响已成功的保存结果。
+          const latestProbe = await api.pacpilotStatus().catch(() => null);
+          if (latestProbe) pacpilotProbe.value = latestProbe;
+        }
+      } catch (e) {
+        notify(e instanceof Error ? e.message : String(e), "error");
+      } finally {
+        saving.value = false;
+      }
+    };
+    const next = saveQueue.then(run, run).catch(() => undefined);
+    saveQueue = next;
+    return next;
+  }
+
+  function onModeChange(value: string) {
+    const mode = value as "custom" | "remote";
+    if (form.mode === mode) return;
+    form.mode = mode;
+  }
+
+  function saveMode() {
+    const patch: Partial<AppSettings> = { mode: form.mode };
+    // 远程模式的规则地址为空时提交默认地址：服务端在 remote 模式下要求
+    // listUrl 是合法的 HTTP(S) 地址，空串会被判为非法。
+    if (form.mode === "remote") {
+      patch.listUrl = form.listUrl.trim() || DEFAULT_LIST_URL;
     }
-    return targets;
+    void tryApply(patch, {
+      generate: true,
+      message: t("settings.savedMode"),
+      invalid: listUrlError.value,
+    });
+  }
+
+  function onPacProxyCommit() {
+    void tryApply(
+      { pacProxy: form.pacProxy.trim() },
+      {
+        generate: true,
+        message: t("settings.savedPacProxy"),
+        invalid: pacProxyError.value ?? undefined,
+      }
+    );
+  }
+
+  function onListUrlCommit() {
+    if (form.mode !== "remote") return;
+    const url = form.listUrl.trim() || DEFAULT_LIST_URL;
+    void tryApply(
+      { listUrl: url },
+      { generate: true, message: t("settings.savedListUrl"), invalid: listUrlError.value }
+    );
+  }
+
+  function onPacCompressToggle(checked: boolean) {
+    if (form.pacCompress === checked) return;
+    form.pacCompress = checked;
+    void tryApply(
+      { pacCompress: checked },
+      { generate: true, message: t("settings.savedPacCompress") }
+    );
+  }
+
+  function onPacObfuscateToggle(checked: boolean) {
+    if (form.pacObfuscate === checked) return;
+    form.pacObfuscate = checked;
+    void tryApply(
+      { pacObfuscate: checked },
+      { generate: true, message: t("settings.savedPacObfuscate") }
+    );
+  }
+
+  /** 等待进行中的 cron 解析结束再校验提交，避免误报格式错误。 */
+  async function waitCronParsing(): Promise<void> {
+    const deadline = Date.now() + 800;
+    while (cronParsing.value && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  }
+
+  async function onCronCommit() {
+    await waitCronParsing();
+    void tryApply(
+      { cronSchedule: form.cronSchedule.trim() },
+      { generate: false, message: t("settings.savedCron"), invalid: cronError.value }
+    );
+  }
+
+  function applyCronPreset(value: string) {
+    if (form.cronSchedule.trim() === value) return;
+    form.cronSchedule = value;
+    void onCronCommit();
+  }
+
+  const ruleErrors = computed(() => directListError.value || blockListError.value);
+
+  const hasUnsavedRules = computed(() => {
+    if (!saved.value) return false;
+    const current = JSON.stringify({
+      directList: splitLines(form.directListText),
+      blockList: splitLines(form.blockListText),
+    });
+    const persisted = JSON.stringify({
+      directList: saved.value.directList,
+      blockList: saved.value.blockList,
+    });
+    return current !== persisted;
   });
 
-  async function jumpToFirstError(): Promise<void> {
-    const first = validationTargets.value[0];
-    if (!first) return;
-    await nextTick();
-    const element = document.querySelector<HTMLElement>(
-      '[data-validation-target="' + first.key + '"]'
-    );
-    if (!element) return;
-    element.scrollIntoView({ behavior: "smooth", block: "center" });
-    const control = element.querySelector<HTMLElement>(
-      'input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [contenteditable="true"]'
-    );
-    control?.focus({ preventScroll: true });
-  }
+  const hasUnsavedMode = computed(() => {
+    if (!saved.value) return false;
+    return form.mode !== saved.value.mode;
+  });
 
-  function handleFloatingSaveClick(): void {
-    if (formErrors.value.length) void jumpToFirstError();
+  function saveRules() {
+    if (ruleErrors.value) {
+      notify(ruleErrors.value, "warning");
+      return;
+    }
+    void tryApply(
+      { directList: splitLines(form.directListText), blockList: splitLines(form.blockListText) },
+      { generate: true, message: t("settings.savedRules") }
+    );
   }
-
-  const canSubmit = computed(
-    () => formErrors.value.length === 0 && !saving.value && !cronParsing.value
-  );
 
   function applySettings(s: AppSettings) {
     form.mode = s.mode;
     form.pacProxy = s.pacProxy;
     form.pacCompress = s.pacCompress;
-    form.listUrl = s.listUrl;
+    form.pacObfuscate = Boolean(s.pacObfuscate);
+    form.listUrl = s.listUrl === DEFAULT_LIST_URL ? "" : s.listUrl;
     form.directListText = s.directList.join("\n");
     form.blockListText = s.blockList.join("\n");
     form.cronSchedule = s.cronSchedule;
     form.timezone = s.timezone || "Asia/Shanghai";
     form.logRetentionDays = Number.isFinite(s.logRetentionDays) ? s.logRetentionDays : 30;
-    form.webhookSuccessConfig = normalizedWebhookConfig(s.webhookSuccessConfig);
-    form.webhookFailureConfig = normalizedWebhookConfig(s.webhookFailureConfig);
   }
-
-  function toPayload(): AppSettings {
-    const split = (t: string) =>
-      t
-        .split(/[\n,]+/)
-        .map((x) => x.trim())
-        .filter(Boolean);
-    return {
-      mode: form.mode,
-      pacProxy: form.pacProxy,
-      pacCompress: form.pacCompress,
-      listUrl: form.listUrl,
-      directList: split(form.directListText),
-      blockList: split(form.blockListText),
-      cronSchedule: form.cronSchedule,
-      timezone: form.timezone.trim(),
-      logRetentionDays: form.logRetentionDays,
-      webhookSuccessConfig: { ...form.webhookSuccessConfig },
-      webhookFailureConfig: { ...form.webhookFailureConfig },
-    };
-  }
-
-  function settingsSnapshot(): string {
-    return JSON.stringify(toPayload());
-  }
-
-  const hasUnsavedSettings = computed(
-    () => savedSettingsSnapshot.value !== "" && settingsSnapshot() !== savedSettingsSnapshot.value
-  );
 
   async function load() {
     loading.value = true;
     error.value = "";
     try {
-      const session = await api.session();
+      // 复用路由守卫刚做过的会话探测（带短 TTL 缓存），避免首屏再串一次网络往返。
+      const session = await fetchAdminSession();
       if (!session.loggedIn) {
         await router.replace("/admin/login");
         return;
       }
-      const [settings, logList, probe] = await Promise.all([
+      const [settings, probe] = await Promise.all([
         api.settings(),
-        api.logsPage(logPageSize, 0),
-        api.pacpilotStatus().catch(
-          (): PacPilotProbe => ({
-            available: false,
-            command: null,
-            detail: t("settings.engineUnknown"),
-          })
-        ),
+        api.pacpilotStatus().catch((): PacPilotProbe => ({
+          available: false,
+          command: null,
+          detail: t("settings.engineUnknown"),
+        })),
       ]);
       applySettings(settings);
-      savedSettingsSnapshot.value = settingsSnapshot();
-      logs.value = logList.items;
-      logHasMore.value = logList.hasMore;
-      logTotal.value = logList.total;
+      saved.value = settings;
       pacpilotProbe.value = probe;
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
@@ -519,155 +386,24 @@ export function useAdminSettings() {
 
   onMounted(load);
 
-  async function saveAndGenerate() {
-    if (saving.value || cronParsing.value) return;
-    flash.value = "";
-    error.value = "";
-    if (formErrors.value.length) {
-      await jumpToFirstError();
-      return;
-    }
-    const payload = toPayload();
-    const submittedSnapshot = JSON.stringify(payload);
-    saving.value = true;
-    try {
-      // 服务端先持久化配置，再启动独立工作流并立即返回任务 ID。
-      const workflow = await api.saveAndGenerate(payload);
-      savedSettingsSnapshot.value = submittedSnapshot;
-      showFlash(t("settings.saveSuccess"));
-      notify(
-        workflow.status === "pending"
-          ? t("settings.workflowQueued", { id: workflow.workflowId })
-          : t("settings.workflowStartedId", { id: workflow.workflowId }),
-        "success"
-      );
-      // 日志/状态刷新只是辅助操作，不能反过来影响已经成功启动的任务。
-      await refreshLogs().catch(() => null);
-      const latestProbe = await api.pacpilotStatus().catch(() => null);
-      if (latestProbe) pacpilotProbe.value = latestProbe;
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : String(e);
-      notify(error.value, "error");
-    } finally {
-      saving.value = false;
-    }
-  }
-
-  async function testWebhook(kind: "success" | "failure") {
-    const state = webhookTestState[kind];
-    const config = kind === "success" ? form.webhookSuccessConfig : form.webhookFailureConfig;
-    state.message = "";
-    state.ok = null;
-
-    const configured = Boolean(config.url.trim());
-    if (!configured) {
-      state.ok = false;
-      state.message = t("settings.webhookNeedTarget");
-      return;
-    }
-    const validationErrors = webhookErrorMessages(
-      validateWebhookDraft(
-        config,
-        kind === "success" ? t("settings.successChannel") : t("settings.failureChannel")
-      )
-    );
-    if (validationErrors.length) {
-      state.ok = false;
-      state.message = validationErrors.join("\n");
-      return;
-    }
-
-    state.pending = true;
-    try {
-      const result = await api.testWebhook({ config: { ...config } });
-      state.ok = result.success;
-      state.message = result.success
-        ? t("settings.webhookTestAccepted", { status: result.status ?? t("common.unknown") })
-        : result.status
-          ? t("settings.webhookTestFailed", { detail: `${result.message} (HTTP ${result.status})` })
-          : t("settings.webhookTestFailed", { detail: result.message });
-      notify(state.message, result.success ? "success" : "error");
-    } catch (e) {
-      state.ok = false;
-      state.message = e instanceof Error ? e.message : String(e);
-      notify(state.message, "error");
-    } finally {
-      state.pending = false;
-    }
-  }
-
-  async function changeAdminPassword() {
-    flash.value = "";
-    passwordError.value = "";
-    if (!passwordForm.currentPassword) {
-      passwordErrorKey.value = "settings.enterCurrentPassword";
-      return;
-    }
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      passwordErrorKey.value = "settings.passwordMismatch";
-      return;
-    }
-    if (passwordForm.newPassword === passwordForm.currentPassword) {
-      passwordErrorKey.value = "settings.passwordSameAsCurrent";
-      return;
-    }
-    passwordSaving.value = true;
-    try {
-      await api.changePassword({
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword,
-      });
-      const { invalidateAdminSessionCache } = await import("../composables/useAdminSession");
-      invalidateAdminSessionCache();
-      notify(t("settings.passwordChangedOk"), "success");
-      await router.replace({ path: "/admin/login", query: { passwordChanged: "1" } });
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "";
-      const key =
-        (e instanceof ApiError && passwordErrorKeyFromCode(e.code)) ||
-        passwordErrorKeyFromMessage(message);
-      if (key) passwordErrorKey.value = key;
-      else passwordError.value = message || t("settings.passwordChangeFailed");
-    } finally {
-      passwordSaving.value = false;
-    }
-  }
-
   return {
     t,
     loading,
     saving,
-    flash,
-    flashOk,
     error,
-    logs,
-    logHasMore,
-    logLoadingMore,
-    logLoadError,
-    logTotal,
-    loadMoreLogs,
     pacpilotProbe,
-    timezoneMenuOpen,
-    timezoneQuery,
-    mobileTimezoneOpen,
-    passwordSaving,
-    passwordError,
-    passwordForm,
-    webhookTestState,
     form,
-    generationLogText,
-    generationLogDate,
-    generationModeLabel,
-    commonTimeZones,
-    isValidTimeZone,
-    filteredTimeZones,
-    selectTimeZone,
-    closeTimezoneMenu,
-    openMobileTimezonePicker,
     modeHint,
     cronPresets,
     cronHint,
+    onCronCommit,
     applyCronPreset,
+    onModeChange,
+    saveMode,
+    onPacProxyCommit,
+    onListUrlCommit,
+    onPacCompressToggle,
+    onPacObfuscateToggle,
     pacProxyError,
     listUrlError,
     ruleAnalysis,
@@ -675,15 +411,10 @@ export function useAdminSettings() {
     blockRuleDiagnostics,
     directListError,
     blockListError,
-    timezoneError,
+    ruleErrors,
+    hasUnsavedRules,
+    hasUnsavedMode,
+    saveRules,
     cronError,
-    webhookValidation,
-    formErrors,
-    handleFloatingSaveClick,
-    canSubmit,
-    hasUnsavedSettings,
-    saveAndGenerate,
-    testWebhook,
-    changeAdminPassword,
   };
 }

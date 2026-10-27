@@ -1,8 +1,8 @@
 import { createHmac } from "node:crypto";
-import type { AppSettings, WebhookConfig } from "../db/settings";
-import { createDefaultWebhookConfig, normalizeWebhookConfig } from "../db/settings";
+import type { WebhookConfig } from "../domain/settings";
+import type { DomainEvent } from "../../shared/contracts";
+import { createDefaultWebhookConfig, normalizeWebhookConfig } from "../domain/settings";
 import { assertSafeHttpUrl } from "../utils/url-safety";
-import { runtimeLog } from "../utils/runtime-log";
 
 const WEBHOOK_TIMEOUT_MS = 10_000;
 export interface WebhookDeliveryResult {
@@ -16,9 +16,10 @@ export interface WebhookDeliveryResult {
 type EventKind = "success" | "failure" | "test";
 interface MessageContext {
   event: string;
-  ok: boolean;
+  ok: boolean | null;
   message: string;
   timestamp: string;
+  status?: string;
 }
 
 function urlValidationError(raw: string, label: string): string | null {
@@ -76,15 +77,11 @@ export function validateWebhookConfig(input: WebhookConfig): string[] {
         }
       }
     }
-  } else {
-    if (!config.dingTalkSecret.trim()) {
-      errors.push("钉钉机器人必须配置 Secret 加签密钥。");
-    }
-    if (!urlError) {
-      const target = new URL(config.url);
-      if (!target.searchParams.has("access_token")) {
-        errors.push("钉钉机器人 URL 缺少 access_token，请粘贴完整的机器人 Webhook 地址。");
-      }
+  } else if (!urlError) {
+    // 钉钉未启用加签时不需要 Secret，access_token 仍必填。
+    const target = new URL(config.url);
+    if (!target.searchParams.has("access_token")) {
+      errors.push("钉钉机器人 URL 缺少 access_token，请粘贴完整的机器人 Webhook 地址。");
     }
   }
   return errors;
@@ -110,10 +107,12 @@ function buildContext(
 function templateValues(context: MessageContext): Record<string, string> {
   return {
     event: context.event,
-    status: context.event === "webhook.test" ? "test" : context.ok ? "success" : "failure",
+    status:
+      context.status ??
+      (context.event === "webhook.test" ? "test" : context.ok ? "success" : "failure"),
     message: context.message,
     timestamp: context.timestamp,
-    ok: String(context.ok),
+    ok: context.ok === null ? "" : String(context.ok),
   };
 }
 
@@ -132,15 +131,6 @@ function renderCustomBody(template: string, context: MessageContext): string {
   return template.replace(
     /\{\{\s*(event|status|message|timestamp|ok)\s*\}\}/g,
     (_match, key: string) => JSON.stringify(values[key] ?? "").slice(1, -1)
-  );
-}
-
-export function getNotificationConfig(
-  settings: AppSettings,
-  kind: "success" | "failure"
-): WebhookConfig {
-  return normalizeWebhookConfig(
-    kind === "success" ? settings.webhookSuccessConfig : settings.webhookFailureConfig
   );
 }
 
@@ -178,10 +168,32 @@ function requestFailure(error: unknown, provider: string): WebhookDeliveryResult
   return {
     success: false,
     message:
-      message.toLowerCase().includes("timeout") || message.toLowerCase().includes("aborted")
+      isRequestTimeout(error, message)
         ? provider + "请求超时（" + WEBHOOK_TIMEOUT_MS / 1000 + " 秒）。"
         : provider + "请求失败：" + message,
   };
+}
+
+/**
+ * 区分真正的超时与其它传输错误。Bun 的 AbortSignal.timeout 抛出的错误类型名
+ * 不是 AbortError，且 message 只含域名，按字符串匹配会把它误报成普通失败。
+ */
+function isRequestTimeout(error: unknown, message: string): boolean {
+  const lowered = message.toLowerCase();
+  if (
+    lowered.includes("timeout") ||
+    lowered.includes("aborted") ||
+    lowered.includes("timed out") ||
+    lowered.includes("timedout")
+  ) {
+    return true;
+  }
+  const name = error instanceof Error ? error.name : String(error);
+  return (
+    name === "TimeoutError" ||
+    name === "AbortError" ||
+    name === "AbortError [DOMException]"
+  );
 }
 
 async function sendCustom(
@@ -221,11 +233,15 @@ async function sendDingTalk(
 
   const target = new URL(config.url);
   const secret = config.dingTalkSecret.trim();
-  const timestamp = String(Date.now());
-  const stringToSign = timestamp + "\n" + secret;
-  const signature = createHmac("sha256", secret).update(stringToSign, "utf8").digest("base64");
-  target.searchParams.set("timestamp", timestamp);
-  target.searchParams.set("sign", signature);
+  // 钉钉允许不启用加签；未配置密钥时不追加 timestamp/sign，否则会带上空密钥的无效签名。
+  if (secret) {
+    const timestamp = String(Date.now());
+    const signature = createHmac("sha256", secret)
+      .update(timestamp + "\n" + secret, "utf8")
+      .digest("base64");
+    target.searchParams.set("timestamp", timestamp);
+    target.searchParams.set("sign", signature);
+  }
 
   const defaults = createDefaultWebhookConfig();
   const template =
@@ -279,43 +295,20 @@ export async function sendWebhookTest(
   return sendWebhook(config, "test", undefined, timeZone);
 }
 
-async function notify(
-  config: WebhookConfig,
-  kind: "success" | "failure",
-  message?: string,
+export async function sendWebhookForEvent(
+  input: WebhookConfig,
+  event: DomainEvent,
   timeZone = "Asia/Shanghai"
-): Promise<WebhookDeliveryResult | null> {
-  if (!config.url.trim()) return null;
-  const started = Date.now();
-  const result = await sendWebhook(config, kind, message, timeZone);
-  const enriched: WebhookDeliveryResult = {
-    ...result,
-    provider: config.provider,
-    url: config.url.trim(),
-    duration_ms: Math.max(0, Date.now() - started),
+): Promise<WebhookDeliveryResult> {
+  const config = normalizeWebhookConfig(input);
+  const context: MessageContext = {
+    event: event.type + "." + event.phase,
+    ok: event.outcome == null ? null : event.outcome === "success",
+    status: event.outcome || (event.phase === "started" ? "started" : "unknown"),
+    message: event.summary || event.type + " " + event.phase,
+    timestamp: new Date(event.occurredAt).toLocaleString("zh-CN", { timeZone }),
   };
-  if (!enriched.success) {
-    runtimeLog("error", `Webhook (${config.provider}) delivery failed: ${enriched.message}`);
-  } else {
-    runtimeLog(
-      "info",
-      `Webhook (${config.provider}) delivered successfully (HTTP ${enriched.status})`
-    );
-  }
-  return enriched;
-}
-
-export async function notifySuccess(settings: AppSettings): Promise<WebhookDeliveryResult | null> {
-  return notify(
-    getNotificationConfig(settings, "success"),
-    "success",
-    undefined,
-    settings.timezone
-  );
-}
-export async function notifyFailure(
-  settings: AppSettings,
-  message?: string
-): Promise<WebhookDeliveryResult | null> {
-  return notify(getNotificationConfig(settings, "failure"), "failure", message, settings.timezone);
+  return config.provider === "dingtalk"
+    ? sendDingTalk(config, context)
+    : sendCustom(config, context);
 }

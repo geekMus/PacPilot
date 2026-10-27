@@ -1,11 +1,15 @@
 import { useI18n } from "vue-i18n";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { api, type WorkflowRun } from "../api/client";
-import { useToast } from "./useToast";
+import { api, type WorkflowRun } from "@/api/client";
+import { useToast } from "@/composables/useToast";
+import { useWorkflowLabels } from "@/composables/useWorkflowLabels";
+import { fetchAdminSession } from "@/composables/useAdminSession";
 
 export function useWorkflowDashboard() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
+  const { statusLabel, stageLabel, sourceLabel, modeLabel, durationLabel, dateLabel } =
+    useWorkflowLabels();
 
   const router = useRouter();
   const { notify } = useToast();
@@ -22,13 +26,9 @@ export function useWorkflowDashboard() {
   const historyTotal = ref(0);
   const selectedStatus = ref("all");
   const selectedSource = ref("all");
-  const deletingId = ref<number | null>(null);
-  const confirmingHistoryDeleteId = ref<number | null>(null);
   const confirmingCurrentCancel = ref(false);
   const confirmingQueueCancelId = ref<number | null>(null);
   const confirmingHistoryCancelId = ref<number | null>(null);
-  const confirmingHistoryClear = ref(false);
-  const clearingHistory = ref(false);
   const cancellingId = ref<number | null>(null);
   let previousStatuses = new Map<number, string>();
   let statusSnapshotReady = false;
@@ -40,6 +40,8 @@ export function useWorkflowDashboard() {
     if (isActiveRun(run)) {
       if (!pollHandle)
         pollHandle = setInterval(() => {
+          // 标签页在后台时不轮询，避免无意义的持续请求；回到前台立刻补一次。
+          if (document.hidden) return;
           if (isActiveRun(current.value)) void load(true);
           else stopPolling();
         }, 3000);
@@ -48,6 +50,10 @@ export function useWorkflowDashboard() {
   function stopPolling() {
     if (pollHandle) clearInterval(pollHandle);
     pollHandle = undefined;
+  }
+  // 从后台切回前台时立刻补一次刷新，避免用户看到过期状态。
+  function onVisibilityChange() {
+    if (!document.hidden && isActiveRun(current.value)) void load(true);
   }
 
   const active = computed(() => Boolean(current.value));
@@ -61,41 +67,6 @@ export function useWorkflowDashboard() {
         (selectedSource.value === "all" || run.source === selectedSource.value)
     )
   );
-  const statusNames: Record<string, string> = {
-    pending: "workflowPage.k0",
-    running: "workflowPage.k1",
-    succeeded: "workflowPage.k2",
-    failed: "workflowPage.k3",
-    cancelled: "workflowPage.k4",
-  };
-  const sourceNames: Record<string, string> = {
-    startup: "workflowPage.k5",
-    scheduled: "workflowPage.k6",
-    manual: "workflowPage.k7",
-    "save-and-generate": "workflowPage.k8",
-  };
-  const statusLabel = (status: string) => (statusNames[status] ? t(statusNames[status]) : status);
-  const stageLabel = (stage: string) => t(`workflow.stageNames.${stage}`);
-  const sourceLabel = (source: string) => (sourceNames[source] ? t(sourceNames[source]) : source);
-  const modeLabel = (mode: string) =>
-    mode === "remote"
-      ? t("workflowPage.k9")
-      : mode === "custom"
-        ? t("workflowPage.k10")
-        : mode || "—";
-  const durationLabel = (run: WorkflowRun) => {
-    const ms =
-      run.duration_ms ?? (run.started_at ? Date.now() - new Date(run.started_at).getTime() : null);
-    if (ms === null) return "—";
-    if (ms < 1000) return ms + " ms";
-    if (ms < 60000) return t("workflowPage.sec", { n: (ms / 1000).toFixed(1) });
-    return t("workflowPage.minSec", {
-      m: Math.floor(ms / 60000),
-      s: Math.floor((ms % 60000) / 1000),
-    });
-  };
-  const dateLabel = (value: string | null) =>
-    value ? new Date(value).toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN") : "—";
 
   async function load(silent = false, resetHistory = false) {
     if (requestInFlight) return;
@@ -103,9 +74,15 @@ export function useWorkflowDashboard() {
     if (!silent) refreshing.value = true;
     error.value = "";
     try {
-      const session = await api.session();
+      // 优先复用路由守卫刚做过的会话探测；缓存过期时仍会重新校验。
+      const session = await fetchAdminSession();
+      // 路由守卫只在导航时校验；会话在停留期间失效时这里必须自己回登录页，
+      // 并带上当前地址，登录后才能回到这一页。
       if (!session.loggedIn) {
-        await router.replace("/admin/login");
+        await router.replace({
+          name: "login",
+          query: { redirect: router.currentRoute.value.fullPath },
+        });
         return;
       }
       const result = await api.workflows(historyPageSize, 0);
@@ -143,17 +120,17 @@ export function useWorkflowDashboard() {
       ]);
       statusSnapshotReady = true;
       current.value = result.current;
-      activeRuns.value = result.active ?? (result.current ? [result.current] : []);
+      activeRuns.value = result.active ?? [];
       if (resetHistory || runs.value.length === 0) {
         runs.value = result.runs;
-        historyHasMore.value = result.hasMore ?? false;
+        historyHasMore.value = result.hasMore;
       } else {
         const merged = new Map<number, WorkflowRun>();
         for (const run of [...result.runs, ...runs.value]) merged.set(run.id, run);
         runs.value = [...merged.values()].sort((a, b) => b.id - a.id);
-        historyHasMore.value = runs.value.length < (result.total ?? runs.value.length);
+        historyHasMore.value = runs.value.length < result.total;
       }
-      historyTotal.value = result.total ?? runs.value.length;
+      historyTotal.value = result.total;
       historyLoadError.value = "";
     } catch (caught) {
       error.value = caught instanceof Error ? caught.message : String(caught);
@@ -176,7 +153,7 @@ export function useWorkflowDashboard() {
       const seen = new Set(runs.value.map((run) => run.id));
       runs.value.push(...result.runs.filter((run) => !seen.has(run.id)));
       runs.value.sort((a, b) => b.id - a.id);
-      historyTotal.value = result.total ?? historyTotal.value;
+      historyTotal.value = result.total;
       historyHasMore.value = runs.value.length < historyTotal.value;
     } catch (caught) {
       historyLoadError.value = caught instanceof Error ? caught.message : String(caught);
@@ -189,8 +166,6 @@ export function useWorkflowDashboard() {
     confirmingCurrentCancel.value = false;
     confirmingQueueCancelId.value = null;
     confirmingHistoryCancelId.value = null;
-    confirmingHistoryDeleteId.value = null;
-    confirmingHistoryClear.value = false;
   }
   function toggleCurrentCancel(toggle: () => void, isOpen: boolean) {
     if (!isOpen) resetConfirmations();
@@ -203,78 +178,6 @@ export function useWorkflowDashboard() {
   function toggleHistoryCancel(toggle: () => void, isOpen: boolean) {
     if (!isOpen) resetConfirmations();
     toggle();
-  }
-  function toggleHistoryDelete(toggle: () => void, isOpen: boolean) {
-    if (!isOpen) resetConfirmations();
-    toggle();
-  }
-  function toggleHistoryClear(toggle: () => void, isOpen: boolean) {
-    // Closing keeps the component's normal behavior; opening first closes any
-    // per-row confirmation that might otherwise remain visible beside this one.
-    if (!isOpen) resetConfirmations();
-    toggle();
-  }
-  const historyClearDisabledReason = computed(() => {
-    if (loading.value) return t("workflowPage.k12");
-    if (clearingHistory.value) return t("workflowPage.k13");
-    if (activeRuns.value.length > 0) return t("workflowPage.k14");
-    if (runs.value.length === 0) return t("workflowPage.k15");
-    if (deletingId.value !== null) return t("workflowPage.k16");
-    if (cancellingId.value !== null) return t("workflowPage.k17");
-    return "";
-  });
-
-  async function clearWorkflowHistory() {
-    if (
-      clearingHistory.value ||
-      activeRuns.value.length > 0 ||
-      runs.value.length === 0 ||
-      deletingId.value !== null ||
-      cancellingId.value !== null
-    )
-      return;
-    clearingHistory.value = true;
-    try {
-      const result = await api.clearWorkflowHistory();
-      resetConfirmations();
-      runs.value = [];
-      current.value = null;
-      activeRuns.value = [];
-      previousStatuses = new Map<number, string>();
-      statusSnapshotReady = true;
-      historyHasMore.value = false;
-      historyLoadError.value = "";
-      historyTotal.value = 0;
-      selectedStatus.value = "all";
-      selectedSource.value = "all";
-      notify(t("workflowPage.clearedRuns", { n: result.deletedRuns }), "success");
-    } catch (caught) {
-      notify(caught instanceof Error ? caught.message : String(caught), "error");
-    } finally {
-      clearingHistory.value = false;
-    }
-  }
-  async function deleteRun(run: WorkflowRun) {
-    if (deletingId.value !== null || confirmingHistoryDeleteId.value !== run.id) return;
-    if (run.status === "running" || run.status === "pending") {
-      notify(t("workflowPage.k19"), "warning");
-      return;
-    }
-    deletingId.value = run.id;
-    try {
-      await api.deleteWorkflow(run.id);
-      runs.value = runs.value.filter((item) => item.id !== run.id);
-      previousStatuses.delete(run.id);
-      confirmingHistoryDeleteId.value = null;
-      notify(t("workflowPage.deletedRun", { id: run.id }), "success");
-      historyTotal.value = Math.max(0, historyTotal.value - 1);
-      historyHasMore.value = runs.value.length < historyTotal.value;
-      if (current.value?.id === run.id) current.value = null;
-    } catch (caught) {
-      notify(caught instanceof Error ? caught.message : String(caught), "error");
-    } finally {
-      deletingId.value = null;
-    }
   }
   async function cancelRun(run: WorkflowRun, source: "current" | "queue" | "history") {
     const confirmationOpen =
@@ -296,13 +199,16 @@ export function useWorkflowDashboard() {
     }
   }
   onMounted(() => {
+    document.addEventListener("visibilitychange", onVisibilityChange);
     void load();
   });
-  onUnmounted(stopPolling);
+  onUnmounted(() => {
+    stopPolling();
+    document.removeEventListener("visibilitychange", onVisibilityChange);
+  });
 
   return {
     t,
-    locale,
     router,
     loading,
     refreshing,
@@ -316,13 +222,9 @@ export function useWorkflowDashboard() {
     historyTotal,
     selectedStatus,
     selectedSource,
-    deletingId,
-    confirmingHistoryDeleteId,
     confirmingCurrentCancel,
     confirmingQueueCancelId,
     confirmingHistoryCancelId,
-    confirmingHistoryClear,
-    clearingHistory,
     cancellingId,
     active,
     otherActiveRuns,
@@ -339,11 +241,6 @@ export function useWorkflowDashboard() {
     toggleCurrentCancel,
     toggleQueueCancel,
     toggleHistoryCancel,
-    toggleHistoryDelete,
-    toggleHistoryClear,
-    historyClearDisabledReason,
-    clearWorkflowHistory,
-    deleteRun,
     cancelRun,
   };
 }

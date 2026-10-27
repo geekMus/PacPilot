@@ -1,17 +1,75 @@
 import { Router } from "express";
-import type { EnvConfig } from "../config/env";
-import { pacFileMtime, readPacFile, readPacSourceFile } from "../services/pac-generator";
+import { getRenderedPacBody } from "../services/pac-generator";
 import { parsePacStatus } from "../services/pac-parser";
-import { getSettings, type AppDatabase } from "../db/sqlite";
-import { APP_VERSION, PROJECT_URL } from "../version";
+import type { ApplicationStorage } from "../storage/repositories";
+import { APP_VERSION } from "../version";
+import { runtimeLog } from "../utils/runtime-log";
 
-function sendPac(req: import("express").Request, res: import("express").Response, dataDir: string) {
-  const fallback =
-    "// 尚未生成 PAC；临时回退策略为所有请求直连\nfunction FindProxyForURL(url, host){return 'DIRECT';}\n";
-  const pac = readPacFile(dataDir) || fallback;
+const FALLBACK_PAC =
+  "// PacPilot 尚未能构建 PAC（可能是远程规则未拉取）；临时回退策略为所有请求直连\n" +
+  "function FindProxyForURL(url, host){return 'DIRECT';}\n";
 
-  // 公共状态页是 PAC 文件的主要 UI 入口；默认在浏览器中查看，?download=1 时才触发下载。
+/**
+ * ETag comparison supporting the weak validator prefix and comma-separated
+ * lists, as browsers may send either form.
+ */
+function etagMatches(header: string | undefined, etag: string): boolean {
+  if (!header) return false;
+  if (header.trim() === "*") return true;
+  return header
+    .split(",")
+    .map((part) => part.trim().replace(/^W\//, ""))
+    .some((part) => part === etag);
+}
+
+async function sendPac(
+  req: import("express").Request,
+  res: import("express").Response,
+  storage: ApplicationStorage
+): Promise<void> {
+  let body: string;
+  let etag: string;
+  let cacheState: string;
+  let compressed: boolean;
+  let obfuscated: boolean;
+
+  try {
+    const rendered = await getRenderedPacBody(storage);
+    body = rendered.body;
+    etag = rendered.etag;
+    cacheState = rendered.stale ? "stale" : "hit";
+    compressed = rendered.compressed;
+    obfuscated = rendered.obfuscated;
+  } catch (error) {
+    // Rendering can only fail before the first remote fetch; serve a DIRECT
+    // fallback instead of an empty response so clients stay online.
+    runtimeLog("error", "PAC rendering failed: ", error);
+    body = FALLBACK_PAC;
+    etag = '"fallback"';
+    cacheState = "fallback";
+    compressed = false;
+    obfuscated = false;
+  }
+
+  // The public status page is the main UI entry for the PAC body: show it
+  // inline by default, and only trigger a download with ?download=1.
   const asDownload = req.query.download === "1" || req.query.download === "true";
+
+  res.setHeader("ETag", etag);
+  // `no-cache` lets clients keep a copy but always revalidate, which is how the
+  // ETag turns into a 304 instead of a full body transfer.
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("X-Pac-Cache", cacheState);
+  // Whether the body is terser-minified: transport-level gzip applies to both
+  // states, so the byte size alone no longer reveals the toggle state.
+  res.setHeader("X-Pac-Compressed", compressed ? "1" : "0");
+  // Whether the body additionally went through the obfuscator.
+  res.setHeader("X-Pac-Obfuscated", obfuscated ? "1" : "0");
+
+  if (etagMatches(req.get("if-none-match"), etag)) {
+    res.status(304).end();
+    return;
+  }
 
   if (asDownload) {
     res.setHeader("Content-Type", "application/x-ns-proxy-autoconfig; charset=utf-8");
@@ -21,26 +79,33 @@ function sendPac(req: import("express").Request, res: import("express").Response
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.setHeader("Content-Disposition", "inline");
   }
-  res.setHeader("Cache-Control", "no-store");
-  res.send(pac);
+  res.send(body);
 }
 
-export function publicRoutes(env: EnvConfig, database: AppDatabase): Router {
+export function publicRoutes(storage: ApplicationStorage): Router {
   const router = Router();
 
-  router.get("/proxy.pac", (req, res) => sendPac(req, res, env.dataDir));
+  router.get("/pac", (req, res) => void sendPac(req, res, storage));
 
   router.get("/api/meta", (_req, res) => {
     res.json({
-      adminEnabled: true,
       version: APP_VERSION,
-      repositoryUrl: PROJECT_URL,
+      storageDriver: (process.env.STORAGE_DRIVER || "sqlite").toLowerCase(),
+      runtimeProfile: process.env.PACPILOT_RUNTIME_PROFILE || "production",
     });
   });
 
-  router.get("/api/status", (_req, res) => {
-    const pacSource = readPacSourceFile(env.dataDir);
-    res.json(parsePacStatus(pacSource, getSettings(database).timezone, pacFileMtime(env.dataDir)));
+  router.get("/api/status", async (_req, res) => {
+    let source = "";
+    let builtAt: Date | null = null;
+    try {
+      const rendered = await getRenderedPacBody(storage);
+      source = rendered.source;
+      builtAt = new Date(rendered.builtAt);
+    } catch {
+      source = "";
+    }
+    res.json(parsePacStatus(source, (await storage.settings.get()).timezone, builtAt));
   });
 
   return router;

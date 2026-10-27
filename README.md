@@ -2,14 +2,14 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-**PacPilot** is a PAC generation and management service with a web-based admin interface. It generates `proxy.pac` from custom rules or a remote domain list, and provides workflow history, scheduled updates, webhook notifications, request monitoring, and data maintenance.
+**PacPilot** is a PAC generation and management service with a web-based admin interface. It generates `/pac` from custom rules or a remote domain list, and provides workflow history, scheduled updates, webhook notifications, request monitoring, and data maintenance.
 
 The project uses Bun, TypeScript, Vue 3, and SQLite. For deployment, use the prebuilt Docker image; you do not need to clone the source code or install build tools on the server.
 
 ## Features
 
 - Two generation modes: custom rules and remote domain lists.
-- Manual generation, generation after saving settings, scheduled generation, and compressed output.
+- Manual generation, instant-apply settings with automatic PAC regeneration, scheduled generation, and compressed output.
 - Workflow queues, stages, error details, and execution history.
 - Success/failure webhook notifications, with support for custom HTTP webhooks and DingTalk bots.
 - Request monitoring, log and storage usage inspection, log cleanup, and factory reset.
@@ -34,17 +34,18 @@ Open `http://<server-address>:17321/`. On first startup, a randomly generated ad
 docker logs pacpilot
 ```
 
-A fresh database does not generate a PAC file automatically. Sign in to the admin interface, configure a generation mode, and start generation manually. Once generation succeeds, configure the PAC URL in your client.
+A fresh database starts in custom mode with a default proxy string, so `/pac` serves a usable script immediately. Sign in to the admin interface to adjust the mode, proxy string, and rules; saving any PAC-affecting setting regenerates the response right away. Remote mode needs a rule list URL and fetches the rules the first time you save it.
 
-> **Data note:** `/data` stores the database, settings, workflow history, and PAC files. Do not delete the data volume if you need to keep your data; backing it up before upgrades is recommended.
+> **Data note:** `/data` stores the database, settings, workflow history, and the remote rule snapshot. PAC responses are rendered in memory and are not written to disk. Do not delete the data volume if you need to keep your data; backing it up before upgrades is recommended.
 
 ## Documentation
 
 The documentation index is available in English and Chinese. The detailed deployment, configuration, development, operations, and troubleshooting guides are currently maintained in Chinese.
 
 - [Documentation index](docs/README.md) · [中文文档目录](docs/README.zh-CN.md)
-- [Deployment guide (Docker, Compose, first run)](docs/deployment.md)
-- [Configuration (rules, environment variables, data, security, admin password)](docs/configuration.md)
+- [Deployment guide (methods & environment-parameter reference)](docs/deployment.md)
+- [Configuration (in-app rules, scheduled generation, data files, admin password)](docs/configuration.md)
+- [Webhook notifications (events, rules, delivery semantics)](docs/webhook-notifications.md)
 - [Development guide (environment, commands, checks)](docs/development.md)
 - [Operations and releases (workflows, logs, versions, upgrades)](docs/operations.md)
 - [Troubleshooting](docs/troubleshooting.md)

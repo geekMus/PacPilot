@@ -1,9 +1,9 @@
 import type { Request, Response, NextFunction } from "express";
 import type { Socket } from "node:net";
 import { performance } from "node:perf_hooks";
-import type { AppDatabase } from "../db/sqlite";
-import { recordAccessEvent } from "../db/monitoring";
+import type { MonitoringRepository } from "../storage/repositories";
 import { runtimeLog } from "../utils/runtime-log";
+import { resolveClientIp } from "../utils/client-ip";
 
 const tcpSockets = new Set<Socket>();
 let activeRequests = 0;
@@ -21,7 +21,7 @@ export function getTcpConnectionCount(): number {
   return tcpSockets.size;
 }
 
-export function requestMonitoringMiddleware(database: AppDatabase) {
+export function requestMonitoringMiddleware(repository: MonitoringRepository) {
   return (req: Request, res: Response, next: NextFunction): void => {
     const path = req.path || "/";
     if (!shouldRecord(path)) {
@@ -40,7 +40,7 @@ export function requestMonitoringMiddleware(database: AppDatabase) {
 
       const elapsed = Math.max(0, performance.now() - startedAt);
       const contentLength = Number(res.getHeader("content-length") ?? 0);
-      const remoteAddress = normalizeAddress(req.socket.remoteAddress || "");
+      const remoteAddress = resolveClientIp(req).slice(0, 64);
       const agent = headerValue(req, "user-agent").slice(0, 512);
       const statusCode = aborted && !res.writableFinished ? 499 : res.statusCode;
       const responseType = String(res.getHeader("content-type") || "")
@@ -48,7 +48,7 @@ export function requestMonitoringMiddleware(database: AppDatabase) {
         .slice(0, 200);
 
       try {
-        recordAccessEvent(database, {
+        repository.record({
           created_at: new Date().toISOString(),
           method: req.method.slice(0, 12),
           path: safePath(path),
@@ -98,7 +98,7 @@ function shouldRecord(path: string): boolean {
 }
 
 function categorize(path: string): string {
-  if (path === "/proxy.pac") return "pac";
+  if (path === "/pac") return "pac";
   if (path.startsWith("/api/admin/")) return "admin-api";
   if (path.startsWith("/api/")) return "public-api";
   return "page";
@@ -107,14 +107,6 @@ function categorize(path: string): string {
 function safePath(path: string): string {
   // req.path 不包含 query string；保留较长路径，同时限制长度避免异常请求放大数据库。
   return path.slice(0, 1024) || "/";
-}
-
-function normalizeAddress(address: string): string {
-  const value = address.trim();
-  if (!value) return "unknown";
-  if (value.startsWith("::ffff:")) return value.slice(7);
-  if (value === "::1") return "127.0.0.1";
-  return value.slice(0, 64);
 }
 
 function headerValue(req: Request, name: string): string {

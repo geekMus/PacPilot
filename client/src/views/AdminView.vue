@@ -1,56 +1,35 @@
 <script setup lang="ts">
-import { defineAsyncComponent, ref } from "vue";
-import AdminLayout from "../components/AdminLayout.vue";
-import AppIcon from "../components/AppIcon.vue";
-import AppFooter from "../components/AppFooter.vue";
-import TextDetail from "../components/TextDetail.vue";
-import VirtualTable from "../components/VirtualTable.vue";
-import { useAdminSettings } from "../composables/useAdminSettings";
-import { useViewportPanel } from "../composables/useViewportPanel";
-import { PROJECT_LINKS } from "../../../shared/project-links";
-
-const WebhookChannelEditor = defineAsyncComponent(
-  () => import("../components/WebhookChannelEditor.vue")
-);
+import { defineAsyncComponent } from "vue";
+import { CheckboxIndicator, CheckboxRoot, RadioGroupItem, RadioGroupRoot } from "reka-ui";
+import AdminLayout from "@/components/layout/AdminLayout.vue";
+import AppIcon from "@/components/AppIcon.vue";
+import AppInput from "@/components/AppInput.vue";
+import AppFooter from "@/components/AppFooter.vue";
+import { useAdminSettings } from "@/composables/useAdminSettings";
+import LazyMount from "@/components/LazyMount.vue";
+import { DEFAULT_LIST_URL } from "@shared/contracts";
 
 const DomainListEditor = defineAsyncComponent(
-  () => import("../components/DomainListEditor.vue")
+  () => import("@/features/domain-rules/components/DomainListEditor.vue")
 );
 const {
   t,
   loading,
   saving,
-  flash,
-  flashOk,
   error,
-  logs,
-  logHasMore,
-  logLoadingMore,
-  logLoadError,
-  logTotal,
-  loadMoreLogs,
   pacpilotProbe,
-  timezoneMenuOpen,
-  timezoneQuery,
-  mobileTimezoneOpen,
-  passwordSaving,
-  passwordError,
-  passwordForm,
-  webhookTestState,
   form,
-  generationLogText,
-  generationLogDate,
-  generationModeLabel,
-  commonTimeZones,
-  isValidTimeZone,
-  filteredTimeZones,
-  selectTimeZone,
-  closeTimezoneMenu,
-  openMobileTimezonePicker,
   modeHint,
   cronPresets,
   cronHint,
+  onCronCommit,
   applyCronPreset,
+  onModeChange,
+  saveMode,
+  onPacProxyCommit,
+  onListUrlCommit,
+  onPacCompressToggle,
+  onPacObfuscateToggle,
   pacProxyError,
   listUrlError,
   ruleAnalysis,
@@ -58,26 +37,12 @@ const {
   blockRuleDiagnostics,
   directListError,
   blockListError,
-  timezoneError,
+  ruleErrors,
+  hasUnsavedRules,
+  hasUnsavedMode,
+  saveRules,
   cronError,
-  webhookValidation,
-  formErrors,
-  handleFloatingSaveClick,
-  canSubmit,
-  hasUnsavedSettings,
-  saveAndGenerate,
-  testWebhook,
-  changeAdminPassword,
 } = useAdminSettings();
-
-const timezoneAnchor = ref<HTMLElement | null>(null);
-const timezonePanel = ref<HTMLElement | null>(null);
-const { style: timezonePanelStyle } = useViewportPanel(
-  timezoneAnchor,
-  timezonePanel,
-  timezoneMenuOpen,
-  { matchAnchorWidth: true, maxHeight: 270, gap: 5 }
-);
 </script>
 
 <template>
@@ -90,12 +55,6 @@ const { style: timezonePanelStyle } = useViewportPanel(
           <p>{{ t("settings.loadingDesc") }}</p>
         </div>
       </section>
-      <div v-if="flash" class="banner" :class="flashOk ? 'ok' : 'bad'">
-        <span class="banner-icon" aria-hidden="true"
-          ><AppIcon :name="flashOk ? 'circle-check' : 'circle-alert'" :size="15"
-        /></span>
-        <pre class="banner-text">{{ flash }}</pre>
-      </div>
       <div v-if="error" class="banner bad">
         <span class="banner-icon" aria-hidden="true"
           ><AppIcon name="circle-alert" :size="15"
@@ -104,250 +63,15 @@ const { style: timezonePanelStyle } = useViewportPanel(
       </div>
 
       <template v-if="!loading && !error">
-        <section id="security" class="card security-card">
-          <div class="card-head">
-            <div>
-              <h2>{{ t("settings.changePasswordTitle") }}</h2>
-              <p class="card-sub">{{ t("settings.passwordStoredLocal") }}</p>
-            </div>
-          </div>
-          <form class="password-change-form" @submit.prevent="changeAdminPassword">
-            <div class="field">
-              <label for="current-admin-password">{{ t("settings.currentPassword") }}</label>
-              <input
-                id="current-admin-password"
-                v-model="passwordForm.currentPassword"
-                type="password"
-                autocomplete="current-password"
-                required
-                @input="passwordError = ''"
-              />
-            </div>
-            <div class="field">
-              <label for="new-admin-password">{{ t("settings.newPassword") }}</label>
-              <input
-                id="new-admin-password"
-                v-model="passwordForm.newPassword"
-                type="password"
-                autocomplete="new-password"
-                required
-                :placeholder="t('settings.newPasswordPlaceholder')"
-                @input="passwordError = ''"
-              />
-            </div>
-            <div class="field">
-              <label for="confirm-admin-password">{{ t("settings.confirmPassword") }}</label>
-              <input
-                id="confirm-admin-password"
-                v-model="passwordForm.confirmPassword"
-                type="password"
-                autocomplete="new-password"
-                required
-                @input="passwordError = ''"
-              />
-            </div>
-            <p v-if="passwordError" class="field-error" role="alert">{{ passwordError }}</p>
-            <div class="actions">
-              <button
-                type="submit"
-                class="btn primary"
-                :class="{ 'is-loading': passwordSaving }"
-                :disabled="passwordSaving"
-                :title="
-                  passwordSaving
-                    ? t('settings.changingPasswordTitle')
-                    : t('settings.changePasswordTitle')
-                "
-              >
-                {{ passwordSaving ? t("settings.changingPassword") : t("settings.changePassword") }}
-              </button>
-            </div>
-          </form>
-          <p class="field-hint">
-            {{ t("settings.resetHelpFull")
-            }}<a
-              :href="PROJECT_LINKS.adminPasswordReset"
-              target="_blank"
-              rel="noopener noreferrer"
-              >{{ t("settings.resetHelpLink") }}</a
-            >
-          </p>
-        </section>
-
-        <form
-          id="settings-form"
-          class="stack"
-          :inert="saving"
-          :aria-busy="saving"
-          @submit.prevent="saveAndGenerate"
-        >
-          <!-- 常规设置 -->
-          <section id="general" class="card">
-            <div class="card-head">
-              <div class="card-title">
-                <span class="icon-badge" aria-hidden="true"
-                  ><AppIcon name="calendar-clock" :size="18"
-                /></span>
-                <div>
-                  <h2>{{ t("settings.general") }}</h2>
-                  <p class="card-sub">{{ t("settings.generalDesc") }}</p>
-                </div>
-              </div>
-            </div>
-            <div class="field" data-validation-target="timezone">
-              <label for="timezone">{{ t("settings.timezone") }}</label>
-              <div ref="timezoneAnchor" class="timezone-picker desktop-timezone-picker">
-                <input
-                  id="timezone"
-                  v-model="form.timezone"
-                  autocomplete="off"
-                  spellcheck="false"
-                  :placeholder="t('settings.timezoneSearch')"
-                  :aria-invalid="Boolean(timezoneError)"
-                  @focus="
-                    timezoneMenuOpen = true;
-                    timezoneQuery = '';
-                  "
-                  @input="timezoneQuery = form.timezone"
-                  @blur="closeTimezoneMenu"
-                  @keydown.esc="timezoneMenuOpen = false"
-                />
-                <Teleport to="body">
-                  <div
-                    v-if="timezoneMenuOpen"
-                    ref="timezonePanel"
-                    class="timezone-options-menu"
-                    :style="timezonePanelStyle"
-                    role="listbox"
-                    :aria-label="t('settings.timezoneSuggest')"
-                  >
-                    <button
-                      v-for="zone in filteredTimeZones"
-                      :key="zone.value"
-                      type="button"
-                      role="option"
-                      :aria-selected="form.timezone === zone.value"
-                      class="timezone-option"
-                      @pointerdown.prevent="selectTimeZone(zone.value)"
-                    >
-                      <span>{{ t(zone.labelKey) }}</span
-                      ><code>{{ zone.value }}</code>
-                    </button>
-                    <p v-if="filteredTimeZones.length === 0" class="timezone-no-results">
-                      {{ t("settings.timezoneNoMatch") }}
-                    </p>
-                  </div>
-                </Teleport>
-              </div>
-              <button
-                type="button"
-                class="mobile-timezone-trigger"
-                @click="openMobileTimezonePicker"
-              >
-                <span>{{ form.timezone || t("settings.selectTimezone") }}</span>
-                <span class="mobile-timezone-trigger-icon" aria-hidden="true"
-                  ><AppIcon name="chevron-down" :size="17"
-                /></span>
-              </button>
-              <p class="field-hint">
-                {{ t("settings.timezoneHintFull") }}
-              </p>
-              <p v-if="timezoneError" class="field-error" role="alert">{{ timezoneError }}</p>
-            </div>
-
-            <div
-              v-if="mobileTimezoneOpen"
-              class="timezone-sheet-backdrop"
-              @click.self="mobileTimezoneOpen = false"
-            >
-              <section
-                class="timezone-sheet"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="mobile-timezone-title"
-                @keydown.esc="mobileTimezoneOpen = false"
-              >
-                <header class="timezone-sheet-head">
-                  <h3 id="mobile-timezone-title">{{ t("settings.selectTimezone") }}</h3>
-                  <button
-                    type="button"
-                    class="timezone-sheet-close"
-                    :aria-label="t('settings.closeTimezone')"
-                    @click="mobileTimezoneOpen = false"
-                  >
-                    <AppIcon name="x" :size="18" />
-                  </button>
-                </header>
-                <input
-                  v-model="timezoneQuery"
-                  class="timezone-sheet-search"
-                  type="search"
-                  autocomplete="off"
-                  :placeholder="t('settings.timezoneSearchShort')"
-                  @keydown.enter.prevent
-                />
-                <div
-                  class="timezone-sheet-options"
-                  role="listbox"
-                  :aria-label="t('settings.timezoneSuggest')"
-                >
-                  <button
-                    v-for="zone in filteredTimeZones"
-                    :key="zone.value"
-                    type="button"
-                    role="option"
-                    :aria-selected="form.timezone === zone.value"
-                    class="timezone-option"
-                    @click="selectTimeZone(zone.value)"
-                  >
-                    <span>{{ t(zone.labelKey) }}</span
-                    ><code>{{ zone.value }}</code>
-                  </button>
-                  <button
-                    v-if="
-                      timezoneQuery.trim() &&
-                      isValidTimeZone(timezoneQuery) &&
-                      !commonTimeZones.some(
-                        (zone) => zone.value.toLowerCase() === timezoneQuery.trim().toLowerCase()
-                      )
-                    "
-                    type="button"
-                    role="option"
-                    class="timezone-option timezone-custom-option"
-                    @click="selectTimeZone(timezoneQuery.trim())"
-                  >
-                    <span>{{ t("settings.useCustomTimezone") }}</span
-                    ><code>{{ timezoneQuery.trim() }}</code>
-                  </button>
-                  <p
-                    v-if="filteredTimeZones.length === 0 && !isValidTimeZone(timezoneQuery)"
-                    class="timezone-no-results"
-                  >
-                    {{ t("settings.timezoneNoMatchStrict") }}
-                  </p>
-                </div>
-                <p class="timezone-sheet-hint">
-                  {{ t("settings.timezoneSelectHint") }}
-                </p>
-              </section>
-            </div>
-            <div class="chip-row timezone-presets">
-              <button
-                v-for="zone in commonTimeZones.slice(0, 6)"
-                :key="zone.value"
-                type="button"
-                class="chip"
-                :class="{ active: form.timezone === zone.value }"
-                @click="form.timezone = zone.value"
-              >
-                {{ t(zone.labelKey) }}
-              </button>
-            </div>
-          </section>
-
+        <!--
+          不要在这里加 :inert="saving"：输入框失焦保存会在 mousedown 之后、
+          click 之前把表单置为 inert，导致用户紧接着点击的保存按钮收不到 click。
+          串行保存队列已保证同一时间只有一个请求在途，无需冻结表单。
+        -->
+        <form id="settings-form" class="stack" :aria-busy="saving" @submit.prevent>
           <!-- 模式 -->
           <section id="mode" class="card">
-            <div class="card-head">
+            <div class="card-head card-head-with-action">
               <div class="card-title">
                 <span class="icon-badge" aria-hidden="true">
                   <AppIcon name="workflow" :size="18" />
@@ -357,32 +81,55 @@ const { style: timezonePanelStyle } = useViewportPanel(
                   <p class="card-sub">{{ t("settings.startModeDesc") }}</p>
                 </div>
               </div>
+              <button
+                type="button"
+                class="app-button app-button--primary rules-save-button"
+                :class="{ 'is-loading': saving }"
+                :disabled="!hasUnsavedMode"
+                :aria-busy="saving"
+                :title="t('settings.saveModeHint')"
+                @click="saveMode"
+              >
+                <AppIcon
+                  :name="saving ? 'loader-circle' : 'save'"
+                  :size="15"
+                  :class="{ 'save-spinner': saving }"
+                />
+                {{ t("settings.saveModeBtn") }}
+              </button>
             </div>
 
-            <div class="mode-grid">
-              <label class="mode-card" :class="{ active: form.mode === 'custom' }">
-                <input v-model="form.mode" type="radio" value="custom" />
-                <div class="mode-card-body">
-                  <div class="mode-top">
-                    <span class="mode-name">{{ t("settings.customRules") }}</span>
-                    <span class="tag">{{ t("settings.recommended") }}</span>
+            <RadioGroupRoot
+              :model-value="form.mode"
+              class="mode-grid"
+              :aria-label="t('settings.title')"
+              @update:model-value="onModeChange(String($event))"
+            >
+              <RadioGroupItem as-child value="custom" :aria-label="t('settings.customRules')">
+                <label class="mode-card" :class="{ active: form.mode === 'custom' }">
+                  <div class="mode-card-body">
+                    <div class="mode-top">
+                      <span class="mode-name">{{ t("settings.customRules") }}</span>
+                      <span class="tag">{{ t("settings.recommended") }}</span>
+                    </div>
+                    <p class="mode-desc">{{ t("settings.customModeDesc") }}</p>
                   </div>
-                  <p class="mode-desc">{{ t("settings.customModeDesc") }}</p>
-                </div>
-              </label>
-              <label class="mode-card" :class="{ active: form.mode === 'remote' }">
-                <input v-model="form.mode" type="radio" value="remote" />
-                <div class="mode-card-body">
-                  <div class="mode-top">
-                    <span class="mode-name">{{ t("settings.remoteRules") }}</span>
-                    <span class="tag">{{ t("settings.bunBuiltin") }}</span>
+                </label>
+              </RadioGroupItem>
+              <RadioGroupItem as-child value="remote" :aria-label="t('settings.remoteRules')">
+                <label class="mode-card" :class="{ active: form.mode === 'remote' }">
+                  <div class="mode-card-body">
+                    <div class="mode-top">
+                      <span class="mode-name">{{ t("settings.remoteRules") }}</span>
+                      <span class="tag">{{ t("settings.bunBuiltin") }}</span>
+                    </div>
+                    <p class="mode-desc">
+                      {{ t("settings.remoteModeDesc") }}
+                    </p>
                   </div>
-                  <p class="mode-desc">
-                    {{ t("settings.remoteModeDesc") }}
-                  </p>
-                </div>
-              </label>
-            </div>
+                </label>
+              </RadioGroupItem>
+            </RadioGroupRoot>
 
             <p class="hint-line">{{ modeHint }}</p>
 
@@ -415,35 +162,33 @@ const { style: timezonePanelStyle } = useViewportPanel(
               </div>
             </div>
 
-            <div class="field" data-validation-target="pac-proxy">
+            <div class="field">
               <label for="pacProxy">{{ t("settings.pacProxy") }}</label>
-              <input
+              <AppInput
                 id="pacProxy"
                 v-model="form.pacProxy"
-                :aria-invalid="Boolean(pacProxyError)"
+                :invalid="Boolean(pacProxyError)"
                 placeholder="SOCKS5 127.0.0.1:1080; DIRECT"
+                @change="onPacProxyCommit"
               />
               <p class="field-hint">
                 {{ t("settings.pacProxyHintFull") }}
               </p>
               <p v-if="pacProxyError" class="field-error" role="alert">{{ pacProxyError }}</p>
             </div>
-            <div
-              class="field"
-              :class="{ 'is-disabled': form.mode !== 'remote' }"
-              data-validation-target="list-url"
-            >
+            <div class="field" :class="{ 'is-disabled': form.mode !== 'remote' }">
               <label for="listUrl"
                 >{{ t("settings.listUrlLabel") }}
                 <span class="lab-hint">{{ t("settings.listUrlLabHint") }}</span></label
               >
-              <input
+              <AppInput
                 id="listUrl"
                 v-model="form.listUrl"
                 :disabled="form.mode !== 'remote'"
                 :aria-disabled="form.mode !== 'remote'"
-                :aria-invalid="Boolean(listUrlError)"
-                placeholder="https://example.com/list.txt"
+                :invalid="Boolean(listUrlError)"
+                :placeholder="DEFAULT_LIST_URL"
+                @change="onListUrlCommit"
               />
               <p class="field-hint">
                 {{ t("settings.listUrlDescFull")
@@ -455,18 +200,41 @@ const { style: timezonePanelStyle } = useViewportPanel(
             </div>
             <div class="checks">
               <label class="check">
-                <input v-model="form.pacCompress" type="checkbox" />
+                <CheckboxRoot
+                  :model-value="form.pacCompress"
+                  class="admin-checkbox"
+                  @update:model-value="onPacCompressToggle($event === true)"
+                >
+                  <CheckboxIndicator>
+                    <AppIcon name="check" :size="14" aria-hidden="true" />
+                  </CheckboxIndicator>
+                </CheckboxRoot>
                 <span>{{ t("settings.compressPac") }}</span>
+              </label>
+              <label class="check">
+                <CheckboxRoot
+                  :model-value="form.pacObfuscate"
+                  class="admin-checkbox"
+                  @update:model-value="onPacObfuscateToggle($event === true)"
+                >
+                  <CheckboxIndicator>
+                    <AppIcon name="check" :size="14" aria-hidden="true" />
+                  </CheckboxIndicator>
+                </CheckboxRoot>
+                <span>{{ t("settings.obfuscatePac") }}</span>
               </label>
             </div>
             <p class="field-hint">
               {{ t("settings.compressPacHintFull") }}
             </p>
+            <p class="field-hint">
+              {{ t("settings.obfuscatePacHintFull") }}
+            </p>
           </section>
 
           <!-- 规则列表 -->
           <section id="rules" class="card">
-            <div class="card-head">
+            <div class="card-head card-head-with-action">
               <div class="card-title">
                 <span class="icon-badge" aria-hidden="true">
                   <AppIcon name="list-checks" :size="18" />
@@ -476,6 +244,22 @@ const { style: timezonePanelStyle } = useViewportPanel(
                   <p class="card-sub">{{ t("settings.customRulesDesc") }}</p>
                 </div>
               </div>
+              <button
+                type="button"
+                class="app-button app-button--primary rules-save-button"
+                :class="{ 'is-loading': saving }"
+                :disabled="!hasUnsavedRules || Boolean(ruleErrors)"
+                :aria-busy="saving"
+                :title="t('settings.saveRulesHint')"
+                @click="saveRules"
+              >
+                <AppIcon
+                  :name="saving ? 'loader-circle' : 'save'"
+                  :size="15"
+                  :class="{ 'save-spinner': saving }"
+                />
+                {{ t("settings.saveRulesBtn") }}
+              </button>
             </div>
 
             <details class="help">
@@ -504,26 +288,30 @@ const { style: timezonePanelStyle } = useViewportPanel(
             </details>
 
             <div class="split editors">
-              <div class="field" data-validation-target="direct-list">
+              <div class="field">
                 <label>{{ t("settings.directList") }}</label>
-                <DomainListEditor
-                  v-model="form.directListText"
-                  :height="320"
-                  :invalid="Boolean(directListError)"
-                  :diagnostics="directRuleDiagnostics"
-                  placeholder="example.com&#10;*.example.org&#10;**.example.net"
-                />
+                <LazyMount :min-height="320">
+                  <DomainListEditor
+                    v-model="form.directListText"
+                    :height="320"
+                    :invalid="Boolean(directListError)"
+                    :diagnostics="directRuleDiagnostics"
+                    placeholder="example.com&#10;*.example.org&#10;**.example.net"
+                  />
+                </LazyMount>
                 <p v-if="directListError" class="field-error" role="alert">{{ directListError }}</p>
               </div>
-              <div class="field" data-validation-target="block-list">
+              <div class="field">
                 <label>{{ t("settings.blockList") }}</label>
-                <DomainListEditor
-                  v-model="form.blockListText"
-                  :height="320"
-                  :invalid="Boolean(blockListError)"
-                  :diagnostics="blockRuleDiagnostics"
-                  placeholder="ads.example.com"
-                />
+                <LazyMount :min-height="320">
+                  <DomainListEditor
+                    v-model="form.blockListText"
+                    :height="320"
+                    :invalid="Boolean(blockListError)"
+                    :diagnostics="blockRuleDiagnostics"
+                    placeholder="ads.example.com"
+                  />
+                </LazyMount>
                 <p v-if="blockListError" class="field-error" role="alert">{{ blockListError }}</p>
               </div>
             </div>
@@ -557,9 +345,9 @@ const { style: timezonePanelStyle } = useViewportPanel(
                   <AppIcon name="calendar-clock" :size="18" />
                 </span>
                 <div>
-                  <h2>{{ t("settings.scheduleWebhook") }}</h2>
+                  <h2>{{ t("settings.scheduleOnly") }}</h2>
                   <p class="card-sub">
-                    {{ t("settings.scheduleWebhookDesc") }}
+                    {{ t("settings.scheduleOnlyDesc") }}
                   </p>
                 </div>
               </div>
@@ -579,19 +367,20 @@ const { style: timezonePanelStyle } = useViewportPanel(
                   {{ t(p.labelKey) }}
                 </button>
               </div>
-              <div class="field" data-validation-target="cron">
+              <div class="field">
                 <label for="cron"
                   >{{ t("settings.cronExpr") }}
                   <span class="lab-hint">{{ t("settings.cronFields") }}</span></label
                 >
-                <input
+                <AppInput
                   id="cron"
                   v-model="form.cronSchedule"
                   class="mono"
-                  :aria-invalid="Boolean(cronError)"
+                  :invalid="Boolean(cronError)"
                   spellcheck="false"
                   autocomplete="off"
                   :placeholder="t('settings.cronExample')"
+                  @change="onCronCommit"
                 />
                 <p
                   class="field-hint"
@@ -602,139 +391,13 @@ const { style: timezonePanelStyle } = useViewportPanel(
                 </p>
               </div>
             </div>
-
-            <div class="webhook-grid">
-              <WebhookChannelEditor
-                :title="t('settings.successNotify')"
-                kind="success"
-                :model-value="form.webhookSuccessConfig"
-                :pending="webhookTestState.success.pending"
-                :result-message="webhookTestState.success.message"
-                :result-ok="webhookTestState.success.ok"
-                :validation-errors="webhookValidation.success"
-                @update:model-value="form.webhookSuccessConfig = $event"
-                @test="testWebhook('success')"
-              />
-              <WebhookChannelEditor
-                :title="t('settings.failureNotify')"
-                kind="failure"
-                :model-value="form.webhookFailureConfig"
-                :pending="webhookTestState.failure.pending"
-                :result-message="webhookTestState.failure.message"
-                :result-ok="webhookTestState.failure.ok"
-                :validation-errors="webhookValidation.failure"
-                @update:model-value="form.webhookFailureConfig = $event"
-                @test="testWebhook('failure')"
-              />
-            </div>
           </section>
-
-          <div class="actions-block">
-            <div v-if="formErrors.length" class="validation-box">
-              <div class="validation-title">{{ t("settings.fixBeforeSave") }}</div>
-              <ul>
-                <li v-for="(e, i) in formErrors" :key="i">{{ e }}</li>
-              </ul>
-            </div>
-            <p class="actions-hint">
-              {{ t("settings.floatingSaveHint") }}
-            </p>
-          </div>
         </form>
-
-        <section id="logs" class="card">
-          <div class="card-head">
-            <div class="card-title">
-              <span class="icon-badge" aria-hidden="true">
-                <AppIcon name="chart" :size="18" />
-              </span>
-              <div>
-                <h2>{{ t("settings.recentLogs") }}</h2>
-                <p class="card-sub">
-                  {{ t("settings.loadedLogs", { loaded: logs.length, total: logTotal }) }}
-                </p>
-              </div>
-            </div>
-          </div>
-          <VirtualTable
-            :items="logs"
-            item-key="id"
-            :col-span="4"
-            :row-height="58"
-            height="420px"
-            min-width="700px"
-            :has-more="logHasMore"
-            :loading="logLoadingMore"
-            :error="logLoadError"
-            :empty-text="t('settings.noLogs')"
-            :load-more="loadMoreLogs"
-          >
-            <template #columns
-              ><col style="width: 145px" />
-              <col style="width: 78px" />
-              <col style="width: 120px" />
-              <col style="width: 357px"
-            /></template>
-            <template #header
-              ><tr>
-                <th>{{ t("settings.colTime") }}</th>
-                <th>{{ t("settings.colResult") }}</th>
-                <th>{{ t("settings.colMode") }}</th>
-                <th>{{ t("settings.colMessage") }}</th>
-              </tr></template
-            >
-            <template #row="{ item: l }">
-              <tr>
-                <td class="nowrap">{{ generationLogDate(l.created_at) }}</td>
-                <td>
-                  <span class="pill" :class="l.success ? 'ok' : 'bad'">{{
-                    l.success ? t("common.success") : t("common.failed")
-                  }}</span>
-                </td>
-                <td>{{ generationModeLabel(l.mode) }}</td>
-                <td class="msg">
-                  <TextDetail :text="generationLogText(l)" :label="t('settings.genLogInfo')" />
-                </td>
-              </tr>
-            </template>
-          </VirtualTable>
-        </section>
-
-        <button
-          v-if="hasUnsavedSettings"
-          form="settings-form"
-          :type="canSubmit ? 'submit' : 'button'"
-          class="floating-save-button"
-          :class="{ 'is-loading': saving, 'has-errors': formErrors.length > 0 && !saving }"
-          :disabled="saving"
-          :aria-busy="saving"
-          :aria-invalid="formErrors.length > 0 ? 'true' : undefined"
-          :aria-label="
-            saving
-              ? t('settings.savingAndGenerating')
-              : formErrors.length
-                ? t('settings.validationIssues')
-                : t('settings.saveAndGenerate')
-          "
-          :title="
-            saving
-              ? t('settings.savingAndGenerating')
-              : formErrors.length
-                ? t('settings.validationIssues')
-                : t('settings.saveAndGenerate')
-          "
-          @click="handleFloatingSaveClick"
-        >
-          <AppIcon
-            :name="saving ? 'loader-circle' : formErrors.length ? 'circle-alert' : 'save'"
-            :size="21"
-            :class="{ 'save-spinner': saving }"
-          />
-        </button>
       </template>
-      <AppFooter />
+      <!-- 加载完成前不渲染页脚，避免它先从首屏内被推到折叠线以下而计入 CLS。 -->
+      <AppFooter v-if="!loading && !error" />
     </div>
   </AdminLayout>
 </template>
 
-<style scoped src="./AdminView.css"></style>
+<style scoped src="@/views/AdminView.css"></style>

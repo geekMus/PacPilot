@@ -11,7 +11,7 @@ let echartsLoading: Promise<EChartsCoreModule> | undefined;
 /** Load only the registered chart modules when a chart is actually rendered. */
 function loadEcharts(): Promise<EChartsCoreModule> {
   if (!echartsLoading) {
-    echartsLoading = import("../lib/echarts")
+    echartsLoading = import("@/lib/echarts")
       .then(({ echarts }) => echarts)
       .catch((error: unknown) => {
         echartsLoading = undefined;
@@ -50,6 +50,8 @@ const host = ref<HTMLElement | null>(null);
 const chart = shallowRef<EChartsType | null>(null);
 let resizeObserver: ResizeObserver | undefined;
 let themeObserver: MutationObserver | undefined;
+let mobileMediaQuery: MediaQueryList | undefined;
+let resizeFrame = 0;
 
 function cssVar(name: string, fallback: string): string {
   if (typeof window === "undefined") return fallback;
@@ -134,21 +136,8 @@ function buildOption(): Record<string, unknown> {
     right: isMobile ? 8 : 14,
     top: 16,
     bottom: isMobile ? 28 : 32,
-    containLabel: true,
-  };
-
-  const axisCommon = {
-    axisLine: { lineStyle: { color: line } },
-    axisTick: { show: false },
-    axisLabel: {
-      color: muted,
-      fontSize: isMobile ? 10 : 11,
-      fontFamily: "var(--font)",
-    },
-    splitLine: {
-      show: true,
-      lineStyle: { color: line, type: "dashed" as const, opacity: 0.9 },
-    },
+    outerBoundsMode: "same",
+    outerBoundsContain: "axisLabel",
   };
 
   const tooltip = {
@@ -159,7 +148,7 @@ function buildOption(): Record<string, unknown> {
     borderWidth: 1,
     padding: [10, 12],
     textStyle: { color: text, fontSize: 12, fontFamily: "var(--font)" },
-    extraCssText: "box-shadow:0 10px 28px rgba(0,0,0,.12);border-radius:10px;",
+    extraCssText: "box-shadow:var(--shadow);border-radius:10px;",
   };
 
   if (props.mode === "latency") {
@@ -207,8 +196,7 @@ function buildOption(): Record<string, unknown> {
         axisLabel: {
           color: muted,
           fontSize: isMobile ? 10 : 11,
-          formatter: (value: number) =>
-            value >= 1000 ? (value / 1000).toFixed(1) + "s" : String(Math.round(value)),
+          formatter: (value: number) => formatDuration(value),
         },
         splitLine: { lineStyle: { color: line, type: "dashed" } },
         axisLine: { show: false },
@@ -348,23 +336,34 @@ function renderChart() {
     });
 }
 
-function handleResize() {
-  chart.value?.resize();
+function scheduleChartResize() {
+  if (resizeFrame) return;
+  resizeFrame = window.requestAnimationFrame(() => {
+    resizeFrame = 0;
+    chart.value?.resize();
+  });
+}
+
+function onBreakpointChange() {
+  // Chart options differ at the mobile breakpoint; ordinary resizes only need canvas resizing.
   renderChart();
 }
 
 onMounted(() => {
   renderChart();
   if (host.value && typeof ResizeObserver !== "undefined") {
-    resizeObserver = new ResizeObserver(() => handleResize());
+    resizeObserver = new ResizeObserver(scheduleChartResize);
     resizeObserver.observe(host.value);
   }
-  window.addEventListener("resize", handleResize);
+  if (typeof window !== "undefined") {
+    mobileMediaQuery = window.matchMedia("(max-width: 560px)");
+    mobileMediaQuery.addEventListener("change", onBreakpointChange);
+  }
   if (typeof MutationObserver !== "undefined") {
     themeObserver = new MutationObserver(() => renderChart());
     themeObserver.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ["class", "data-theme", "style"],
+      attributeFilter: ["class", "data-theme"],
     });
   }
 });
@@ -372,7 +371,9 @@ onMounted(() => {
 onUnmounted(() => {
   resizeObserver?.disconnect();
   themeObserver?.disconnect();
-  window.removeEventListener("resize", handleResize);
+  mobileMediaQuery?.removeEventListener("change", onBreakpointChange);
+  if (resizeFrame) window.cancelAnimationFrame(resizeFrame);
+  resizeFrame = 0;
   chart.value?.dispose();
   chart.value = null;
 });
@@ -396,24 +397,23 @@ watch(
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .responsive-trend-chart {
-  min-width: 0;
-  width: 100%;
+  @apply w-full min-w-0;
 }
 .chart-host {
-  width: 100%;
-  height: 240px;
-  min-height: 160px;
+  @apply h-[240px] min-h-[160px] w-full;
 }
 .compact .chart-host {
-  height: 180px;
+  @apply h-[180px];
 }
 @media (max-width: 560px) {
   .chart-host {
-    height: 200px;
+    @apply h-[200px];
   }
   .compact .chart-host {
-    height: 160px;
+    @apply h-[160px];
   }
 }
 </style>

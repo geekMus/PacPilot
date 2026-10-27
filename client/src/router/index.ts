@@ -1,9 +1,22 @@
-import { createRouter, createWebHistory } from "vue-router";
-import { i18n } from "../i18n";
-import { fetchAdminSession, isAdminAppRoute } from "../composables/useAdminSession";
+import { nextTick, watch } from "vue";
+import { createRouter, createWebHistory, type RouteLocationNormalized } from "vue-router";
+import { i18n } from "@/i18n";
+import { fetchAdminSession, isAdminAppRoute } from "@/composables/useAdminSession";
 
 /** Site brand matches package.json / GitHub repo (kebab-case), like many OSS tools. */
-export const APP_BRAND = "PacPilot";
+const APP_BRAND = "PacPilot";
+
+/**
+ * 路由组件的动态 import 默认在守卫放行之后才发起，于是首屏要连续等两次往返
+ * （先会话探测、再下载组件块）。这里提前触发模块下载，让两者并行。
+ * 只预热下载：组件仍由 vue-router 自己解析，失败也不会影响导航。
+ */
+function prewarmRouteComponent(to: RouteLocationNormalized): void {
+  const record = to.matched[to.matched.length - 1];
+  const component: unknown = record?.components?.default;
+  if (typeof component !== "function") return;
+  void Promise.resolve((component as () => unknown)()).catch(() => undefined);
+}
 
 const router = createRouter({
   history: createWebHistory(),
@@ -12,66 +25,108 @@ const router = createRouter({
       path: "/",
       name: "home",
       meta: { titleKey: "status.sub" },
-      component: () => import("../views/StatusView.vue"),
+      component: () => import("@/views/StatusView.vue"),
+    },
+    {
+      path: "/admin",
+      // 服务端把裸 `/admin` 交给 SPA，这里统一重定向到控制台。
+      redirect: "/admin/dashboard",
     },
     {
       path: "/admin/dashboard",
       name: "admin-dashboard",
-      meta: { titleKey: "nav.dashboard" },
-      component: () => import("../views/AdminDashboardView.vue"),
+      meta: { titleKey: "nav.dashboard", layout: "admin" },
+      component: () => import("@/views/AdminDashboardView.vue"),
     },
     {
       path: "/admin/login",
       name: "login",
       meta: { titleKey: "nav.login" },
-      component: () => import("../views/LoginView.vue"),
+      component: () => import("@/views/LoginView.vue"),
     },
     {
       path: "/admin/settings",
       name: "admin-settings",
-      meta: { titleKey: "nav.settings" },
-      component: () => import("../views/AdminView.vue"),
+      meta: { titleKey: "nav.settings", layout: "admin" },
+      component: () => import("@/views/AdminView.vue"),
     },
     {
       path: "/admin/system-settings",
       name: "admin-system-settings",
-      meta: { titleKey: "nav.systemSettings" },
-      component: () => import("../views/SystemSettingsView.vue"),
-    },
-    {
-      // 兼容旧地址，并将后台默认入口统一指向总览。
-      path: "/admin",
-      redirect: { name: "admin-dashboard" },
+      meta: { titleKey: "nav.systemSettings", layout: "admin" },
+      component: () => import("@/views/SystemSettingsView.vue"),
     },
     {
       path: "/admin/workflows",
       name: "admin-workflows",
-      meta: { titleKey: "nav.workflow" },
-      component: () => import("../views/WorkflowView.vue"),
+      meta: { titleKey: "nav.workflow", layout: "admin" },
+      component: () => import("@/views/WorkflowView.vue"),
     },
     {
       path: "/admin/workflows/:id",
       name: "admin-workflow-detail",
-      meta: { titleKey: "workflow.detailTitle" },
-      component: () => import("../views/WorkflowDetailView.vue"),
+      meta: { titleKey: "workflow.detailTitle", layout: "admin" },
+      component: () => import("@/views/WorkflowDetailView.vue"),
       props: true,
     },
     {
       path: "/admin/monitor",
       name: "admin-monitor",
-      meta: { titleKey: "nav.monitor" },
-      component: () => import("../views/MonitoringView.vue"),
+      meta: { titleKey: "nav.monitor", layout: "admin" },
+      component: () => import("@/views/MonitoringView.vue"),
+    },
+    {
+      path: "/admin/logs",
+      name: "admin-logs",
+      meta: { titleKey: "nav.logs", layout: "admin" },
+      component: () => import("@/views/LogsView.vue"),
+    },
+    {
+      path: "/admin/notifications",
+      name: "admin-notifications",
+      meta: { titleKey: "nav.notifications", layout: "admin" },
+      component: () => import("@/views/NotificationsView.vue"),
     },
     {
       path: "/:pathMatch(.*)*",
       name: "not-found",
       meta: { titleKey: "notFound.title" },
-      component: () => import("../views/NotFoundView.vue"),
+      component: () => import("@/views/NotFoundView.vue"),
     },
   ],
-  scrollBehavior(to) {
-    if (to.hash) return { el: to.hash, top: 14, behavior: "smooth" };
-    return { top: 0 };
+  scrollBehavior(to, _from, savedPosition) {
+    return nextTick().then(() => {
+      const selector =
+        to.meta.layout === "admin"
+          ? ".admin-content .app-scroll-area-viewport"
+          : ".app-public-scroll .app-scroll-area-viewport";
+      const viewport = document.querySelector<HTMLElement>(selector);
+      if (!viewport) return { top: 0 };
+
+      // 浏览器前进/后退时恢复离开时的位置，而不是一律回到顶部。
+      if (savedPosition) {
+        viewport.scrollTo({ top: savedPosition.top, behavior: "auto" });
+        return false;
+      }
+
+      if (to.hash) {
+        // Resolve anchors inside the active scroll viewport first. A document-wide
+        // query can select a duplicate/off-screen element and calculate the wrong offset.
+        const target = viewport.querySelector<HTMLElement>(to.hash);
+        if (target) {
+          const top =
+            target.getBoundingClientRect().top -
+            viewport.getBoundingClientRect().top +
+            viewport.scrollTop -
+            14;
+          viewport.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+          return false;
+        }
+      }
+
+      viewport.scrollTo({ top: 0, behavior: "auto" });
+      return false;
+    });
   },
 });
 
@@ -84,6 +139,10 @@ function applyDocumentTitle(pageTitle?: unknown): void {
 router.beforeEach(async (to) => {
   const isAdminPath = isAdminAppRoute(to.path);
   if (!isAdminPath && to.path !== "/") return true;
+
+  // 会话探测要占用一次网络往返，路由组件的动态 import 默认排在它之后才发起。
+  // 这里先触发组件模块下载，让两次往返并行，而不是串行叠加在首屏之前。
+  prewarmRouteComponent(to);
 
   try {
     const session = await fetchAdminSession();
@@ -105,6 +164,12 @@ router.beforeEach(async (to) => {
 router.afterEach((to) => {
   const titleKey = typeof to.meta.titleKey === "string" ? to.meta.titleKey : "";
   applyDocumentTitle(titleKey ? i18n.global.t(titleKey) : "");
+});
+
+// 切换语言时当前页面不会重新导航，标题需要主动跟着刷新。
+watch(i18n.global.locale, () => {
+  const titleKey = router.currentRoute.value.meta.titleKey;
+  applyDocumentTitle(typeof titleKey === "string" ? i18n.global.t(titleKey) : "");
 });
 
 export default router;

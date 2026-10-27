@@ -1,0 +1,204 @@
+/* ============================================================
+   Tailwind CSS entry.
+
+   Design tokens stay in theme.css (runtime, theme-switchable); this
+   file maps them into Tailwind's theme so utilities such as
+   `bg-surface`, `text-muted`, `border-line`, `rounded-panel` resolve
+   to the same values the rest of the app already uses.
+
+   Preflight is intentionally NOT imported. All hand-written CSS has been
+   migrated to @apply, so the original "wait until migration finishes"
+   reason no longer applies; the decision is now based on measured
+   regressions:
+
+   - 37 `<p>` elements across AdminView / LogsView / MonitoringView rely on
+     the browser's default paragraph margins. Preflight zeroes them, which
+     collapses vertical rhythm in those views. (A scoped `p:not([class])`
+     fallback cannot fix this: the scoped attribute is appended to the
+     selector, so `:not([class])` no longer matches what it appears to.)
+   - 12 headings rely on user-agent sizing where a layout wrapper
+     (AdminLayout) styles them indirectly; Preflight resets heading
+     font-size/weight to inherit.
+   - Form controls draw their own tokens; Preflight's control reset would
+     need re-auditing on every AppInput / AppSelect.
+
+   Tailwind v4 puts Preflight in `layer(base)`, so unlayered scoped styles
+   still win. The risk is therefore limited to elements with no explicit
+   rule — which is exactly the set listed above. Revisit only together with
+   a real browser pass (light + dark, desktop + mobile).
+   ============================================================ */
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-active: var(--accent-active);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-accent-soft: var(--accent-soft);
+  --color-green: var(--green);
+  --color-green-soft: var(--green-soft);
+  --color-red: var(--red);
+  --color-red-soft: var(--red-soft);
+  --color-violet: var(--violet);
+  --color-violet-soft: var(--violet-soft);
+  --color-teal: var(--teal);
+  --color-teal-soft: var(--teal-soft);
+  --color-control-disabled-bg: var(--control-disabled-bg);
+  --color-control-disabled-text: var(--control-disabled-text);
+  --color-control-disabled-border: var(--control-disabled-border);
+
+  --radius-panel: 14px;
+  --radius-control: 10px;
+  --radius-card: 16px;
+  --radius-item: 11px;
+
+  --shadow-app: var(--shadow);
+  --font-sans: var(--font);
+  --font-mono: var(--font-mono);
+}
+
+/* ---------- Component layer: shared primitives ----------
+   These replace the previous hand-written rules in controls.css.
+   Page markup keeps the semantic class names; new markup should
+   prefer utilities directly. */
+
+@layer components {
+  .app-button {
+    @apply inline-flex items-center justify-center gap-[7px] min-h-[38px] px-[13px] rounded-[9px] border font-semibold text-[12px] leading-tight no-underline whitespace-nowrap cursor-pointer transition-colors;
+    border-color: var(--line);
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  .app-button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .app-button:disabled,
+  .app-button[aria-disabled="true"] {
+    @apply opacity-55 cursor-not-allowed;
+  }
+
+  .app-button--primary {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--accent-contrast);
+  }
+
+  .app-button--primary:hover:not(:disabled):not([aria-disabled="true"]) {
+    border-color: var(--accent-hover);
+    background: var(--accent-hover);
+  }
+
+  .app-button--primary:active:not(:disabled):not([aria-disabled="true"]) {
+    border-color: var(--accent-active);
+    background: var(--accent-active);
+  }
+
+  .app-button--secondary:hover:not(:disabled):not([aria-disabled="true"]) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .app-button--secondary:active:not(:disabled):not([aria-disabled="true"]) {
+    background: var(--accent-soft);
+  }
+
+  .app-button--danger {
+    border-color: color-mix(in srgb, var(--red) 35%, var(--line));
+    background: var(--red-soft);
+    color: var(--red);
+  }
+
+  .app-button--danger:hover:not(:disabled):not([aria-disabled="true"]) {
+    border-color: var(--red);
+  }
+
+  .app-button--danger-ghost {
+    @apply bg-transparent;
+    border-color: color-mix(in srgb, var(--red) 22%, var(--line));
+    color: var(--red);
+  }
+
+  .app-button--danger-ghost:hover:not(:disabled):not([aria-disabled="true"]) {
+    background: var(--red-soft);
+  }
+
+  .app-button--sm {
+    @apply min-h-[32px] px-[10px] text-[11px];
+  }
+
+  .app-button--block {
+    @apply w-full;
+  }
+
+  .app-icon-button {
+    @apply grid shrink-0 place-items-center w-[34px] h-[34px] p-0 rounded-[9px] border text-[18px] leading-none cursor-pointer transition-colors;
+    border-color: var(--line);
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  .app-icon-button:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .app-icon-button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .app-icon-button:disabled {
+    @apply opacity-55 cursor-not-allowed;
+  }
+
+  .app-icon-button--sm {
+    @apply w-[28px] h-[28px] rounded-[8px] text-[15px];
+  }
+
+  .app-icon-button--danger:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--red) 40%, var(--line));
+    background: var(--red-soft);
+    color: var(--red);
+  }
+}
+
+/* Link-shaped buttons (`<RouterLink class="app-button">`) must win over the
+   global unlayered `a { color: var(--accent) }` rule in theme.css. Unlayered
+   styles beat anything inside @layer, so the component-layer declaration never
+   applies — a primary button rendered as <a> painted accent text on an accent
+   background, i.e. invisible. Redeclaring the colours outside the layer keeps
+   the cascade honest without touching the global link styling. */
+a.app-button {
+  color: var(--text);
+}
+
+a.app-button--primary {
+  color: var(--accent-contrast);
+}
+
+a.app-button--danger {
+  color: var(--red-contrast);
+}
+
+a.app-button--danger-ghost {
+  color: var(--red);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-button,
+  .app-icon-button {
+    transition: none;
+  }
+}

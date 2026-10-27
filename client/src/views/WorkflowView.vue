@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import AdminLayout from "../components/AdminLayout.vue";
-import AppIcon from "../components/AppIcon.vue";
-import AppFooter from "../components/AppFooter.vue";
-import ConfirmPopover from "../components/ConfirmPopover.vue";
-import VirtualTable from "../components/VirtualTable.vue";
-import SelectField from "../components/SelectField.vue";
-import { useWorkflowDashboard } from "../composables/useWorkflowDashboard";
+import AdminLayout from "@/components/layout/AdminLayout.vue";
+import AppIcon from "@/components/AppIcon.vue";
+import AppFooter from "@/components/AppFooter.vue";
+import ConfirmPopover from "@/components/ConfirmPopover.vue";
+import VirtualTable from "@/components/VirtualTable.vue";
+import AppSelect from "@/components/AppSelect.vue";
+import { useWorkflowDashboard } from "@/composables/useWorkflowDashboard";
 
 const {
   t,
@@ -22,13 +22,9 @@ const {
   historyTotal,
   selectedStatus,
   selectedSource,
-  deletingId,
-  confirmingHistoryDeleteId,
   confirmingCurrentCancel,
   confirmingQueueCancelId,
   confirmingHistoryCancelId,
-  confirmingHistoryClear,
-  clearingHistory,
   cancellingId,
   active,
   otherActiveRuns,
@@ -41,15 +37,9 @@ const {
   dateLabel,
   load,
   loadMoreHistory,
-  resetConfirmations,
   toggleCurrentCancel,
   toggleQueueCancel,
   toggleHistoryCancel,
-  toggleHistoryDelete,
-  toggleHistoryClear,
-  historyClearDisabledReason,
-  clearWorkflowHistory,
-  deleteRun,
   cancelRun,
 } = useWorkflowDashboard();
 </script>
@@ -60,13 +50,15 @@ const {
       <div v-if="error" class="workflow-alert error" role="alert">
         <strong>{{ t("workflow.loadFailed") }}</strong>
         <span>{{ error }}</span>
-        <button type="button" @click="load()">{{ t("common.retry") }}</button>
+        <button type="button" class="app-button app-button--secondary" @click="load()">
+          {{ t("common.retry") }}
+        </button>
       </div>
 
       <section class="workflow-current panel">
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">WORKFLOW CATALOG</p>
+            <p class="eyebrow">{{ t("workflowPage.kickerCatalog") }}</p>
             <h2>{{ t("workflow.definition") }}</h2>
             <p class="panel-subtitle">{{ t("workflow.definitionDesc") }}</p>
           </div>
@@ -86,7 +78,7 @@ const {
       <section class="workflow-current panel">
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">CURRENT TASK</p>
+            <p class="eyebrow">{{ t("workflowPage.kickerCurrent") }}</p>
             <h2>{{ t("workflow.current") }}</h2>
           </div>
           <span class="status-pill" :class="active ? current!.status : 'idle'"
@@ -144,7 +136,9 @@ const {
             </div>
           </div>
           <div class="current-actions">
-            <RouterLink class="workflow-button secondary" :to="`/admin/workflows/${current.id}`"
+            <RouterLink
+              class="app-button app-button--secondary"
+              :to="`/admin/workflows/${current.id}`"
               ><AppIcon name="external-link" :size="14" /> {{ t("workflowPage.k53") }}</RouterLink
             >
             <ConfirmPopover
@@ -162,7 +156,7 @@ const {
             >
               <template #trigger="{ toggle, open }">
                 <button
-                  class="workflow-button cancel-button"
+                  class="app-button app-button--danger-ghost"
                   type="button"
                   :disabled="cancellingId === current.id"
                   :title="
@@ -195,7 +189,7 @@ const {
       <section v-if="otherActiveRuns.length" class="workflow-queue panel">
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">ACTIVE QUEUE</p>
+            <p class="eyebrow">{{ t("workflowPage.kickerQueue") }}</p>
             <h2>{{ t("workflowPage.k60") }}</h2>
             <p class="panel-subtitle">{{ t("workflowPage.k61") }}</p>
           </div>
@@ -220,9 +214,11 @@ const {
                 {{ stageLabel(run.stage) || t("workflowPage.k0") }}
               </p>
             </div>
-            <RouterLink class="workflow-button secondary" :to="`/admin/workflows/${run.id}`">{{
-              t("workflowPage.k53")
-            }}</RouterLink>
+            <RouterLink
+              class="app-button app-button--secondary"
+              :to="`/admin/workflows/${run.id}`"
+              >{{ t("workflowPage.k53") }}</RouterLink
+            >
             <ConfirmPopover
               v-if="run.status === 'pending'"
               :open="confirmingQueueCancelId === run.id"
@@ -238,7 +234,7 @@ const {
             >
               <template #trigger="{ toggle, open }">
                 <button
-                  class="workflow-button cancel-button"
+                  class="app-button app-button--danger-ghost"
                   type="button"
                   :disabled="cancellingId === run.id"
                   :title="
@@ -259,7 +255,7 @@ const {
       <section class="workflow-history panel">
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">HISTORY</p>
+            <p class="eyebrow">{{ t("workflowPage.kickerHistory") }}</p>
             <h2>{{ t("workflowPage.k62") }}</h2>
             <p v-if="activeRuns.length" class="panel-subtitle">
               {{ t("workflowPage.k63") }}
@@ -267,7 +263,7 @@ const {
           </div>
           <div class="history-heading-actions">
             <button
-              class="workflow-button secondary"
+              class="app-button app-button--secondary"
               type="button"
               :disabled="refreshing"
               :title="refreshing ? t('workflow.refreshingTitle') : t('workflow.refreshTitle')"
@@ -283,81 +279,35 @@ const {
             <span class="count-pill">{{
               t("workflowPage.matchLoaded", { filtered: filteredRuns.length, loaded: runs.length })
             }}</span>
-            <ConfirmPopover
-              :open="confirmingHistoryClear"
-              :title="t('workflowPage.k30')"
-              :description="t('workflowPage.k31')"
-              :confirm-text="t('workflowPage.k32')"
-              :busy-text="t('workflowPage.k33')"
-              align="end"
-              :disabled="
-                loading ||
-                clearingHistory ||
-                activeRuns.length > 0 ||
-                runs.length === 0 ||
-                deletingId !== null ||
-                cancellingId !== null
-              "
-              :disabled-reason="historyClearDisabledReason"
-              :busy="clearingHistory"
-              @update:open="confirmingHistoryClear = $event"
-              @confirm="clearWorkflowHistory"
-            >
-              <template #trigger="{ toggle, open }"
-                ><button
-                  class="workflow-button history-clear-button"
-                  type="button"
-                  :aria-expanded="open"
-                  :disabled="
-                    loading ||
-                    clearingHistory ||
-                    activeRuns.length > 0 ||
-                    runs.length === 0 ||
-                    deletingId !== null ||
-                    cancellingId !== null
-                  "
-                  :title="historyClearDisabledReason"
-                  @click="toggleHistoryClear(toggle, open)"
-                >
-                  <AppIcon
-                    :name="clearingHistory ? 'loader-circle' : 'trash-2'"
-                    :size="15"
-                    :class="{ spinning: clearingHistory }"
-                  />
-                  {{ clearingHistory ? t("workflowPage.k33") : t("workflowPage.k34") }}
-                </button></template
-              >
-            </ConfirmPopover>
           </div>
         </div>
-        <p v-if="historyClearDisabledReason" class="history-disabled-hint" aria-live="polite">
-          {{ historyClearDisabledReason }}
-        </p>
         <div class="history-filters" :aria-label="t('workflowPage.k36')">
           <label
             >{{ t("workflowPage.k64") }}
-            <SelectField
-              ><select v-model="selectedStatus">
-                <option value="all">{{ t("workflowPage.k65") }}</option>
-                <option value="pending">{{ t("workflowPage.k0") }}</option>
-                <option value="running">{{ t("workflowPage.k1") }}</option>
-                <option value="succeeded">{{ t("workflowPage.k2") }}</option>
-                <option value="failed">{{ t("workflowPage.k3") }}</option>
-                <option value="cancelled">{{ t("workflowPage.k4") }}</option>
-              </select></SelectField
-            >
+            <AppSelect
+              v-model="selectedStatus"
+              :options="[
+                { value: 'all', label: t('workflowPage.k65') },
+                { value: 'pending', label: t('workflowPage.k0') },
+                { value: 'running', label: t('workflowPage.k1') },
+                { value: 'succeeded', label: t('workflowPage.k2') },
+                { value: 'failed', label: t('workflowPage.k3') },
+                { value: 'cancelled', label: t('workflowPage.k4') },
+              ]"
+            />
           </label>
           <label
             >{{ t("workflowPage.k66") }}
-            <SelectField
-              ><select v-model="selectedSource">
-                <option value="all">{{ t("workflowPage.k67") }}</option>
-                <option value="startup">{{ t("workflowPage.k5") }}</option>
-                <option value="scheduled">{{ t("workflowPage.k6") }}</option>
-                <option value="manual">{{ t("workflowPage.k7") }}</option>
-                <option value="save-and-generate">{{ t("workflowPage.k8") }}</option>
-              </select></SelectField
-            >
+            <AppSelect
+              v-model="selectedSource"
+              :options="[
+                { value: 'all', label: t('workflowPage.k67') },
+                { value: 'startup', label: t('workflowPage.k5') },
+                { value: 'scheduled', label: t('workflowPage.k6') },
+                { value: 'manual', label: t('workflowPage.k7') },
+                { value: 'save-and-generate', label: t('workflowPage.k8') },
+              ]"
+            />
           </label>
         </div>
         <VirtualTable
@@ -365,7 +315,7 @@ const {
           item-key="id"
           :col-span="6"
           :row-height="58"
-          height="520px"
+          :height="520"
           min-width="780px"
           :has-more="historyHasMore"
           :loading="historyLoadingMore"
@@ -443,7 +393,7 @@ const {
                 >
                   <template #trigger="{ toggle, open }">
                     <button
-                      class="row-action-button cancel-button"
+                      class="app-button app-button--sm app-button--danger-ghost"
                       type="button"
                       :disabled="cancellingId !== null"
                       :aria-label="t('workflowPage.k39')"
@@ -457,37 +407,6 @@ const {
                       @click.stop="toggleHistoryCancel(toggle, open)"
                     >
                       <AppIcon name="x" :size="15" />
-                    </button>
-                  </template>
-                </ConfirmPopover>
-                <ConfirmPopover
-                  v-else-if="run.status !== 'running'"
-                  :open="confirmingHistoryDeleteId === run.id"
-                  :title="t('workflowPage.k74')"
-                  :description="t('workflowPage.k75')"
-                  :confirm-text="t('workflowPage.k48')"
-                  :cancel-text="t('workflowPage.k76')"
-                  :busy-text="t('workflowPage.k47')"
-                  :busy="deletingId === run.id"
-                  @update:open="confirmingHistoryDeleteId = $event ? run.id : null"
-                  @confirm="deleteRun(run)"
-                >
-                  <template #trigger="{ toggle, open }">
-                    <button
-                      type="button"
-                      class="row-action-button delete-run-button"
-                      :disabled="deletingId !== null"
-                      :aria-label="t('workflowPage.k42')"
-                      :title="
-                        deletingId === run.id
-                          ? t('workflowPage.k43')
-                          : deletingId !== null
-                            ? t('workflowPage.k44')
-                            : t('workflowPage.k45')
-                      "
-                      @click.stop="toggleHistoryDelete(toggle, open)"
-                    >
-                      <AppIcon name="trash-2" :size="15" />
                     </button>
                   </template>
                 </ConfirmPopover>
@@ -505,46 +424,41 @@ const {
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .workflow-page {
-  display: grid;
-  gap: 18px;
+  @apply grid gap-[18px];
 }
 .catalog-item {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  @apply flex items-center gap-[13px] rounded-[10px] border p-3.5;
+  border-color: var(--line);
   background: var(--surface-2);
 }
 .catalog-copy {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-  flex: 1;
+  @apply grid min-w-0 flex-1 gap-[5px];
 }
 .catalog-copy strong {
+  @apply text-sm;
   color: var(--text);
-  font-size: 14px;
 }
 .catalog-copy span,
 .catalog-copy small {
+  @apply text-xs leading-normal;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.5;
   overflow-wrap: anywhere;
 }
 .read-only-pill {
-  padding: 4px 8px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  @apply whitespace-nowrap rounded-full border px-2 py-1 text-[11px];
+  border-color: var(--line);
   color: var(--muted);
-  font-size: 11px;
-  white-space: nowrap;
+}
+.panel-footnote {
+  @apply mb-0 mt-3 text-xs leading-normal;
+  color: var(--muted);
+  overflow-wrap: anywhere;
 }
 .workflow-run-row {
-  cursor: pointer;
+  @apply cursor-pointer;
   outline-offset: -2px;
 }
 .workflow-run-row:focus-visible {
@@ -554,159 +468,73 @@ const {
   background: var(--surface-2);
 }
 .actions-cell {
-  width: 104px;
-  min-width: 104px;
-  text-align: center;
-  white-space: nowrap;
+  @apply w-[104px] min-w-[104px] whitespace-nowrap text-center;
 }
 .ellipsis {
-  display: block;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  @apply block overflow-hidden text-ellipsis whitespace-nowrap;
 }
 .name-trigger {
-  max-width: 150px;
+  @apply max-w-[150px];
 }
 .date-trigger {
-  max-width: 170px;
+  @apply max-w-[170px];
 }
 .duration-trigger {
-  max-width: 95px;
+  @apply max-w-[95px];
 }
 .result-trigger {
-  max-width: 130px;
+  @apply max-w-[130px];
 }
 .id-trigger {
-  max-width: 65px;
-}
-.row-action-button {
-  display: inline-grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
-  cursor: pointer;
-}
-.delete-run-button {
-  color: var(--red);
-  background: var(--red-soft, var(--surface));
-  border-color: color-mix(in srgb, var(--red) 30%, var(--line));
-}
-.cancel-button {
-  color: var(--amber, #b45309);
-  background: var(--amber-soft, #fff3dc);
-  border-color: color-mix(in srgb, var(--amber, #d97706) 35%, var(--line));
-}
-.row-action-button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.workflow-button.cancel-button {
-  background: var(--amber-soft, #fff3dc);
-  border-color: color-mix(in srgb, var(--amber, #d97706) 35%, var(--line));
-  color: var(--amber, #b45309);
+  @apply max-w-[65px];
 }
 .current-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 16px;
+  @apply mt-4 flex flex-wrap gap-2;
 }
 .workflow-queue .panel-heading {
-  margin-bottom: 12px;
+  @apply mb-3;
 }
 .history-heading-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 8px;
-  min-width: 0;
-}
-.history-disabled-hint {
-  margin: 8px 0 0;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
-}
-
-.workflow-button.history-clear-button {
-  color: var(--red);
-  background: var(--red-soft, var(--surface));
-  border-color: color-mix(in srgb, var(--red) 30%, var(--line));
-}
-.workflow-button.history-clear-button:hover:not(:disabled) {
-  background: var(--red-soft, var(--surface-2));
-}
-.workflow-button.history-clear-button:disabled {
-  opacity: 0.45;
+  @apply flex min-w-0 flex-wrap items-center justify-end gap-2;
 }
 .queue-list {
-  display: grid;
-  gap: 8px;
+  @apply grid gap-2;
 }
 .queue-item {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  min-width: 0;
-  padding: 11px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
+  @apply flex min-w-0 items-center gap-[11px] rounded-[9px] border p-[11px];
+  border-color: var(--line);
   background: var(--surface-2);
 }
 .queue-icon {
-  display: grid;
-  place-items: center;
-  flex: 0 0 34px;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  @apply grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[9px];
   color: var(--accent);
   background: var(--accent-soft);
 }
 .queue-copy {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-  flex: 1;
+  @apply grid min-w-0 flex-1 gap-[5px];
 }
 .queue-copy > div {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  @apply flex flex-wrap items-center gap-2;
 }
 .queue-copy strong {
+  @apply text-xs;
   color: var(--text);
-  font-size: 12px;
 }
 .queue-copy p {
-  margin: 0;
+  @apply m-0 text-[11px];
   color: var(--muted);
-  font-size: 11px;
   overflow-wrap: anywhere;
 }
 @media (max-width: 700px) {
   .queue-item {
-    align-items: flex-start;
-    flex-wrap: wrap;
+    @apply flex-wrap items-start;
   }
   .queue-copy {
     flex-basis: calc(100% - 50px);
   }
 }
-.delete-run-button:focus-visible,
-.workflow-button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
 .status-pill {
-  gap: 5px;
+  @apply gap-[5px];
 }
 @media (prefers-reduced-motion: reduce) {
   .spinning {
@@ -715,130 +543,48 @@ const {
   }
 }
 .history-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: -3px 0 16px;
+  @apply my-0 mb-4 flex flex-wrap gap-3;
+  margin-top: -3px;
 }
 .history-filters label {
-  display: grid;
-  gap: 6px;
+  @apply grid gap-1.5 text-[11px];
   color: var(--muted);
-  font-size: 11px;
 }
-.history-filters .select-field {
-  min-width: 150px;
+.history-filters .app-select {
+  @apply min-w-[150px] max-w-full;
 }
-.history-filters .select-field :deep(select) {
-  min-width: 150px;
-  min-height: 36px;
-  padding: 0 34px 0 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+.history-filters .app-select :deep(.app-select-trigger) {
+  @apply min-w-0 px-3 py-[9px];
+  min-height: 40px;
   background: var(--surface-2);
-  color: var(--text);
-  font: inherit;
-}
-.history-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 16px;
-  color: var(--muted);
-  font-size: 12px;
-}
-.history-pagination div {
-  display: flex;
-  gap: 8px;
-}
-.history-pagination button {
-  min-height: 34px;
-  padding: 0 11px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: var(--surface-2);
-  color: var(--text);
-  font: inherit;
-  cursor: pointer;
-}
-.history-pagination button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
 }
 .panel {
-  min-width: 0;
-  padding: 22px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  @apply min-w-0 rounded-[14px] border p-[22px];
+  border-color: var(--line);
   background: var(--surface);
-  box-shadow: var(--shadow-sm, 0 4px 18px rgba(0, 0, 0, 0.03));
+  box-shadow: var(--shadow);
 }
 .panel-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
+  @apply mb-[18px] flex items-start justify-between gap-4;
 }
 .panel-heading h2 {
-  margin: 0;
+  @apply m-0 text-[19px];
   color: var(--text);
-  font-size: 19px;
 }
 .eyebrow {
-  margin: 0 0 6px;
+  @apply mb-1.5 mt-0 text-[10px] font-extrabold tracking-[0.13em];
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.13em;
 }
 .panel-subtitle {
-  margin: 7px 0 0;
+  @apply mb-0 mt-[7px] text-xs;
   color: var(--muted);
-  font-size: 12px;
-}
-.workflow-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--text);
-  text-decoration: none;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.workflow-button.secondary {
-  background: var(--surface);
-}
-.workflow-button.primary {
-  background: var(--accent);
-  color: var(--accent-contrast, white);
-  border-color: var(--accent);
-}
-.workflow-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 .status-pill,
 .count-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 5px 9px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  @apply inline-flex items-center justify-center whitespace-nowrap rounded-full border px-[9px] py-[5px] text-[11px] font-extrabold;
+  border-color: var(--line);
   background: var(--surface-2);
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
-  white-space: nowrap;
 }
 .status-pill.running,
 .status-pill.pending {
@@ -857,187 +603,127 @@ const {
   color: var(--muted);
 }
 .current-main {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  @apply flex items-center gap-3;
 }
 .current-icon {
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
+  @apply grid h-[46px] w-[46px] place-items-center rounded-xl;
   background: var(--accent-soft);
   color: var(--accent);
 }
 .current-copy {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
+  @apply grid min-w-0 gap-[5px];
 }
 .current-copy strong {
+  @apply text-[15px];
   color: var(--text);
-  font-size: 15px;
 }
 .current-copy span,
 .current-message {
+  @apply text-xs;
   color: var(--muted);
-  font-size: 12px;
   overflow-wrap: anywhere;
 }
 .current-message {
-  margin: 16px 0;
+  @apply my-4;
 }
 .current-meta {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
+  @apply grid grid-cols-4 gap-3 border-t pt-4;
+  border-color: var(--line);
 }
 .current-meta div {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
+  @apply grid min-w-0 gap-1.5;
 }
 .current-meta span {
+  @apply text-[11px];
   color: var(--muted);
-  font-size: 11px;
 }
 .current-meta strong {
+  @apply text-xs;
   color: var(--text);
-  font-size: 12px;
   overflow-wrap: anywhere;
 }
 .empty-current {
-  display: grid;
-  justify-items: center;
-  gap: 10px;
-  padding: 28px 10px;
+  @apply grid justify-items-center gap-2.5 px-2.5 py-7 text-center;
   color: var(--muted);
-  text-align: center;
 }
 .empty-current strong {
+  @apply text-sm;
   color: var(--text);
-  font-size: 14px;
 }
 .empty-current span {
-  max-width: 500px;
-  font-size: 12px;
-  line-height: 1.6;
+  @apply max-w-[500px] text-xs leading-normal;
 }
 .empty-current a {
-  margin-top: 3px;
+  @apply mt-[3px] text-xs font-bold;
   color: var(--accent);
-  font-size: 12px;
-  font-weight: 700;
-}
-.table-scroll {
-  width: 100%;
-  overflow-x: auto;
 }
 table {
-  width: 100%;
+  @apply w-full border-collapse text-left text-xs;
   min-width: 720px;
-  border-collapse: collapse;
-  text-align: left;
-  font-size: 12px;
   table-layout: fixed;
 }
 thead th:nth-child(1) {
-  width: 70px;
+  @apply w-[70px];
 }
 thead th:nth-child(2) {
-  width: 160px;
+  @apply w-[160px];
 }
 thead th:nth-child(3) {
-  width: 190px;
+  @apply w-[190px];
 }
 thead th:nth-child(4) {
-  width: 130px;
+  @apply w-[130px];
 }
 thead th:nth-child(5) {
-  width: 100px;
+  @apply w-[100px];
 }
 thead th:nth-child(6) {
-  width: 125px;
-}
-thead th:nth-child(6) {
-  text-align: center;
+  @apply w-[125px] text-center;
 }
 th {
-  padding: 10px 12px;
+  @apply whitespace-nowrap px-3 py-2.5 text-[10px];
   color: var(--muted);
   background: var(--surface-2);
-  font-size: 10px;
-  white-space: nowrap;
 }
 td {
-  padding: 13px 12px;
-  border-bottom: 1px solid var(--line);
+  @apply border-b px-3 py-[13px] align-top;
+  border-color: var(--line);
   color: var(--text);
-  vertical-align: top;
 }
 .task-id,
 .date-cell,
 .duration-cell {
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-.result-cell {
-  min-width: 0;
-  max-width: 160px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.empty-row {
-  padding: 30px 12px;
-  color: var(--muted);
-  text-align: center;
+  @apply whitespace-nowrap tabular-nums;
 }
 .workflow-error-detail {
-  margin-top: 16px;
-  padding: 13px;
-  border: 1px solid color-mix(in srgb, var(--red) 30%, var(--line));
-  border-radius: 8px;
+  @apply mt-4 rounded-lg border p-[13px];
+  border-color: color-mix(in srgb, var(--red) 30%, var(--line));
   background: var(--red-soft);
   color: var(--red);
 }
 .workflow-error-detail pre {
-  margin: 8px 0 0;
-  font: inherit;
-  font-size: 12px;
-  white-space: pre-wrap;
+  @apply mb-0 mt-2 text-xs whitespace-pre-wrap;
   overflow-wrap: anywhere;
 }
 .workflow-alert {
-  display: grid;
-  gap: 6px;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  font-size: 12px;
+  @apply grid gap-1.5 rounded-[10px] border p-3.5 text-xs;
+  border-color: var(--line);
 }
 .workflow-alert.error {
   border-color: var(--red);
   color: var(--red);
 }
 .workflow-alert button {
-  justify-self: start;
+  @apply justify-self-start;
   color: inherit;
 }
 .spinning {
   animation: spin 0.9s linear infinite;
 }
 .spinner {
-  width: 22px;
-  height: 22px;
-  border: 2px solid var(--line);
+  @apply h-[22px] w-[22px] shrink-0 animate-[spin_0.8s_linear_infinite] rounded-full border-2;
+  border-color: var(--line);
   border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  flex: 0 0 auto;
 }
 @keyframes spin {
   to {
@@ -1052,45 +738,40 @@ td {
 }
 @media (max-width: 700px) {
   .workflow-history .panel-heading {
-    flex-wrap: wrap;
+    @apply flex-wrap;
   }
   .workflow-history .panel-heading > div:first-child {
-    min-width: 0;
+    @apply min-w-0;
   }
   .history-heading-actions {
-    width: 100%;
-    justify-content: space-between;
+    @apply w-full justify-between;
   }
   .panel {
-    padding: 15px;
+    @apply p-[15px];
   }
   .current-meta {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    @apply grid-cols-2;
   }
   .panel-heading h2 {
-    font-size: 17px;
-  }
-  .table-scroll {
-    margin-inline: -4px;
+    @apply text-[17px];
   }
   table {
     min-width: 680px;
   }
   .name-trigger {
-    max-width: 105px;
+    @apply max-w-[105px];
   }
   .date-trigger {
-    max-width: 135px;
+    @apply max-w-[135px];
   }
   .duration-trigger {
-    max-width: 72px;
+    @apply max-w-[72px];
   }
   .result-trigger {
-    max-width: 105px;
+    @apply max-w-[105px];
   }
   .actions-cell {
-    width: 100px;
-    min-width: 100px;
+    @apply w-[100px] min-w-[100px];
   }
 }
 </style>

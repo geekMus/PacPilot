@@ -6,35 +6,38 @@ import {
   api,
   type AdminSession,
   type AppSettings,
-  type GenerationLog,
   type PacPilotProbe,
   type MonitorSummary,
   type PacStatus,
   type WorkflowRun,
-} from "../api/client";
+} from "@/api/client";
 
-import AdminLayout from "../components/AdminLayout.vue";
-import AppIcon from "../components/AppIcon.vue";
-import AppFooter from "../components/AppFooter.vue";
-import ResponsiveTrendChart from "../components/ResponsiveTrendChart.vue";
-import TextDetail from "../components/TextDetail.vue";
+import AdminLayout from "@/components/layout/AdminLayout.vue";
+import AppIcon from "@/components/AppIcon.vue";
+import AppFooter from "@/components/AppFooter.vue";
+import LazyMount from "@/components/LazyMount.vue";
+import ResponsiveTrendChart from "@/components/ResponsiveTrendChart.vue";
+import TableFrame from "@/components/TableFrame.vue";
+import { useWorkflowLabels } from "@/composables/useWorkflowLabels";
+import { fetchAdminSession } from "@/composables/useAdminSession";
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
 const router = useRouter();
+const { statusLabel, sourceLabel, durationLabel, dateLabel } = useWorkflowLabels();
 const loading = ref(true);
 const refreshing = ref(false);
 const generating = ref(false);
 const error = ref("");
+const errorTitle = ref("dashboard.loadFailed");
 const noticeWorkflowId = ref<number | null>(null);
 const notice = computed(() =>
   noticeWorkflowId.value === null
     ? ""
     : t("dashboard.workflowStarted", { id: noticeWorkflowId.value })
 );
-const noticeOkay = ref(true);
 const settings = ref<AppSettings | null>(null);
 const status = ref<PacStatus | null>(null);
-const logs = ref<GenerationLog[]>([]);
+const workflows = ref<WorkflowRun[]>([]);
 const monitor = ref<MonitorSummary | null>(null);
 const engine = ref<PacPilotProbe | null>(null);
 const currentWorkflow = ref<WorkflowRun | null>(null);
@@ -47,52 +50,30 @@ const modeLabel = computed(() =>
 const customRuleCount = computed(
   () => (settings.value?.directList.length ?? 0) + (settings.value?.blockList.length ?? 0)
 );
-const latestLog = computed(() => logs.value[0] ?? null);
-
-function modeForLog(value: string): string {
-  return value === "remote"
-    ? t("dashboard.remoteRuleList")
-    : value === "custom"
-      ? t("dashboard.customRulesLabel")
-      : value;
-}
-function generationLogText(entry: GenerationLog): string {
-  return entry.success
-    ? t(`gen.success.${entry.result_code}`, entry.detail)
-    : entry.error || t("common.failed");
-}
-function formatStatusDate(value: string | undefined): string {
-  if (!value) return t("common.noRecords");
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN", {
-    timeZone: settings.value?.timezone,
-  });
-}
 
 async function loadOverview(): Promise<void> {
   loading.value = !settings.value;
   refreshing.value = true;
   error.value = "";
+  errorTitle.value = "dashboard.loadFailed";
   try {
-    const nextSession: AdminSession = await api.session();
+    // 复用路由守卫刚做过的会话探测（带短 TTL 缓存），避免首屏再串一次网络往返。
+    const nextSession: AdminSession = await fetchAdminSession();
     if (!nextSession.loggedIn) {
       await router.replace("/admin/login");
       return;
     }
 
-    const [nextSettings, nextStatus, nextLogs, nextMonitor, nextEngine, nextWorkflows] =
-      await Promise.all([
-        api.settings(),
-        api.status(),
-        api.logsPage(6, 0),
-        api.monitorSummary().catch(() => null),
-        api.pacpilotStatus().catch(() => null),
-        api.workflows(6).catch(() => null),
-      ]);
+    const [nextSettings, nextStatus, nextWorkflows, nextMonitor, nextEngine] = await Promise.all([
+      api.settings(),
+      api.status(),
+      api.workflows(6).catch(() => null),
+      api.monitorSummary().catch(() => null),
+      api.pacpilotStatus().catch(() => null),
+    ]);
     settings.value = nextSettings;
     status.value = nextStatus;
-    logs.value = nextLogs.items;
+    workflows.value = nextWorkflows?.runs.slice(0, 6) ?? [];
     monitor.value = nextMonitor;
     engine.value = nextEngine;
     currentWorkflow.value = nextWorkflows?.current ?? null;
@@ -110,15 +91,18 @@ async function generateNow(): Promise<void> {
   error.value = "";
   try {
     const result = await api.generate();
-    noticeOkay.value = true;
     noticeWorkflowId.value = result.workflowId;
     await loadOverview();
   } catch (caught) {
-    noticeOkay.value = false;
+    errorTitle.value = "dashboard.generateFailed";
     error.value = caught instanceof Error ? caught.message : String(caught);
   } finally {
     generating.value = false;
   }
+}
+
+function openWorkflow(id: number): void {
+  void router.push(`/admin/workflows/${id}`);
 }
 
 onMounted(() => {
@@ -129,22 +113,21 @@ onMounted(() => {
 <template>
   <AdminLayout active="dashboard" :title="t('dashboard.title')" :subtitle="t('dashboard.subtitle')">
     <div class="dashboard-view">
-      <section v-if="loading && !settings" class="dash-loading" aria-live="polite">
-        <span class="spinner" aria-hidden="true"></span>
-        <div>
-          <strong>{{ t("dashboard.loadingTitle") }}</strong>
-          <p>{{ t("dashboard.loadingDesc") }}</p>
-        </div>
-      </section>
-
-      <div class="welcome-row">
-        <div>
+      <div class="dashboard-toolbar">
+        <!--
+          加载提示必须留在工具栏里：独立横幅在数据到达时被移除，会把下方
+          全部内容上推一屏（Lighthouse 记为 CLS 0.12），因此始终占用同一块空间。
+        -->
+        <div class="toolbar-copy">
           <h2>{{ t("dashboard.quickActions") }}</h2>
+          <p aria-live="polite">
+            {{ loading && !settings ? t("dashboard.loadingDesc") : t("dashboard.toolbarHint") }}
+          </p>
         </div>
-        <div class="quick-actions">
+        <div class="toolbar-actions">
           <button
             type="button"
-            class="dash-button secondary"
+            class="app-button app-button--secondary"
             :class="{ 'is-loading': refreshing }"
             :disabled="refreshing"
             :title="refreshing ? t('dashboard.refreshingTitle') : t('dashboard.refreshTitle')"
@@ -157,18 +140,9 @@ onMounted(() => {
             />
             {{ refreshing ? t("common.refreshing") : t("common.refresh") }}
           </button>
-          <RouterLink to="/admin/settings" class="dash-button secondary"
-            ><AppIcon name="settings" :size="16" />{{ t("dashboard.openSettings") }}</RouterLink
-          >
-          <RouterLink to="/admin/monitor" class="dash-button secondary"
-            ><AppIcon name="activity" :size="16" />{{ t("dashboard.viewMonitor") }}</RouterLink
-          >
-          <RouterLink to="/admin/workflows" class="dash-button secondary"
-            ><AppIcon name="workflow" :size="16" />{{ t("dashboard.viewWorkflow") }}</RouterLink
-          >
           <button
             type="button"
-            class="dash-button primary"
+            class="app-button app-button--primary"
             :class="{ 'is-loading': generating || loading }"
             :disabled="generating || loading"
             :title="
@@ -197,16 +171,13 @@ onMounted(() => {
       </div>
 
       <div v-if="error" class="dashboard-alert is-error" role="alert">
-        <strong>{{ t("dashboard.loadFailed") }}</strong
+        <strong>{{ t(errorTitle) }}</strong
         ><span>{{ error }}</span>
-        <button type="button" @click="loadOverview">{{ t("dashboard.reload") }}</button>
+        <button type="button" class="dashboard-alert-action" @click="loadOverview">
+          {{ t("dashboard.reload") }}
+        </button>
       </div>
-      <div
-        v-if="notice"
-        class="dashboard-alert"
-        :class="noticeOkay ? 'is-success' : 'is-error'"
-        role="status"
-      >
+      <div v-if="notice" class="dashboard-alert is-success" role="status">
         {{ notice }}
       </div>
       <RouterLink
@@ -225,9 +196,9 @@ onMounted(() => {
         >
       </RouterLink>
       <section class="overview-metrics" :aria-label="t('dashboard.keyStatus')">
-        <article class="overview-metric">
+        <RouterLink class="overview-metric" to="/">
           <div class="metric-top">
-            <span class="metric-label">{{ t("dashboard.pacFileStatus") }}</span
+            <span class="metric-label">{{ t("dashboard.pacStatus") }}</span
             ><span class="metric-icon is-file"
               ><AppIcon name="file-check" :size="18" :stroke-width="1.8"
             /></span>
@@ -236,14 +207,14 @@ onMounted(() => {
             loading
               ? t("common.reading")
               : status?.hasPac
-                ? t("common.generated")
+                ? t("common.available")
                 : t("common.notYetGenerated")
           }}</strong>
           <span class="metric-note">{{
-            status?.hasPac ? t("dashboard.hasPacNote") : t("dashboard.noPacNote")
+            status?.hasPac ? t("dashboard.pacReadyNote") : t("dashboard.pacMissingNote")
           }}</span>
-        </article>
-        <article class="overview-metric">
+        </RouterLink>
+        <RouterLink class="overview-metric" to="/admin/settings#mode">
           <div class="metric-top">
             <span class="metric-label">{{ t("dashboard.currentMode") }}</span
             ><span class="metric-icon is-route"
@@ -256,8 +227,8 @@ onMounted(() => {
               ? t("dashboard.modeRemoteHint")
               : t("dashboard.modeCustomHint")
           }}</span>
-        </article>
-        <article class="overview-metric">
+        </RouterLink>
+        <RouterLink class="overview-metric" to="/admin/settings#rules">
           <div class="metric-top">
             <span class="metric-label">{{ t("dashboard.customRules") }}</span
             ><span class="metric-icon is-rules"
@@ -271,8 +242,8 @@ onMounted(() => {
               block: settings?.blockList.length ?? 0,
             })
           }}</span>
-        </article>
-        <article class="overview-metric">
+        </RouterLink>
+        <RouterLink class="overview-metric" to="/admin/monitor#overall-stats">
           <div class="metric-top">
             <span class="metric-label">{{ t("dashboard.requests1h") }}</span
             ><span class="metric-icon is-activity"
@@ -281,75 +252,65 @@ onMounted(() => {
           </div>
           <strong class="metric-value">{{ monitor ? monitor.requestsLastHour : "—" }}</strong>
           <span class="metric-note">{{ t("dashboard.requests1hNote") }}</span>
-        </article>
+        </RouterLink>
       </section>
 
       <section class="overview-grid">
         <article class="dashboard-panel">
           <header class="panel-header">
             <div>
-              <h3>{{ t("dashboard.currentConfig") }}</h3>
-              <p>{{ t("dashboard.currentConfigDesc") }}</p>
+              <h3>{{ t("dashboard.runtimeState") }}</h3>
+              <p>{{ t("dashboard.runtimeStateDesc") }}</p>
             </div>
-            <RouterLink to="/admin/settings"
-              >{{ t("dashboard.editConfig") }} <AppIcon name="arrow-up-right" :size="13"
+            <RouterLink to="/admin/system-settings"
+              >{{ t("dashboard.systemSettings") }} <AppIcon name="arrow-up-right" :size="13"
             /></RouterLink>
           </header>
-          <div class="config-details">
-            <div class="config-detail">
-              <span>{{ t("dashboard.generateMode") }}</span
-              ><strong>{{ modeLabel }}</strong>
+          <dl class="runtime-list">
+            <div class="runtime-row">
+              <dt>{{ t("dashboard.pacEndpoint") }}</dt>
+              <dd><code>/pac</code></dd>
             </div>
-            <div class="config-detail">
-              <span>{{ t("dashboard.timezone") }}</span
-              ><strong>{{ settings?.timezone || "—" }}</strong>
+            <div class="runtime-row">
+              <dt>{{ t("dashboard.ruleSource") }}</dt>
+              <dd>
+                <strong :class="settings?.mode === 'remote' ? '' : 'value-muted'">{{
+                  settings?.mode === "remote"
+                    ? t("dashboard.ruleSourceRemote")
+                    : t("dashboard.ruleSourceCustom")
+                }}</strong>
+              </dd>
             </div>
-            <div class="config-detail">
-              <span>{{ t("dashboard.defaultProxy") }}</span
-              ><code>{{ settings?.pacProxy || "—" }}</code>
+            <div class="runtime-row">
+              <dt>{{ t("dashboard.autoRefresh") }}</dt>
+              <dd>
+                <strong :class="settings?.cronSchedule ? 'value-good' : 'value-warning'">{{
+                  settings?.cronSchedule ? settings.cronSchedule : t("dashboard.closed")
+                }}</strong>
+              </dd>
             </div>
-            <div class="config-detail">
-              <span>{{ t("dashboard.scheduledGen") }}</span
-              ><strong>{{
-                settings?.cronSchedule ? settings.cronSchedule : t("dashboard.closed")
-              }}</strong>
+            <div class="runtime-row">
+              <dt>{{ t("dashboard.trend24hShort") }}</dt>
+              <dd>
+                <strong>{{ monitor ? monitor.requestsLast24h : "—" }}</strong>
+              </dd>
             </div>
-            <div class="config-detail">
-              <span>{{ t("dashboard.remoteRuleUrl") }}</span
-              ><code>{{
-                settings?.mode === "remote" ? settings.listUrl : t("dashboard.notEnabled")
-              }}</code>
+            <div class="runtime-row">
+              <dt>{{ t("dashboard.activeRequests") }}</dt>
+              <dd>
+                <strong>{{ monitor?.activeRequests ?? "—" }}</strong>
+              </dd>
             </div>
-            <div class="config-detail">
-              <span>{{ t("dashboard.engine") }}</span
-              ><strong :class="engine?.available ? 'value-good' : 'value-warning'">{{
-                engine
-                  ? engine.available
-                    ? t("common.available")
-                    : t("common.needCheck")
-                  : t("common.notDetected")
-              }}</strong>
+            <div class="runtime-row">
+              <dt>{{ t("dashboard.errorRate") }}</dt>
+              <dd>
+                <strong
+                  :class="monitor && monitor.errorRate > 5 ? 'value-warning' : 'value-good'"
+                  >{{ monitor ? monitor.errorRate.toFixed(1) + "%" : "—" }}</strong
+                >
+              </dd>
             </div>
-            <div class="config-detail">
-              <span>{{ t("dashboard.lastGenerated") }}</span
-              ><strong>{{
-                latestLog ? latestLog.created_at : formatStatusDate(status?.updatedAt)
-              }}</strong>
-            </div>
-            <div class="config-detail">
-              <span>{{ t("dashboard.genResult") }}</span
-              ><strong
-                :class="latestLog?.success ? 'value-good' : latestLog ? 'value-warning' : ''"
-                >{{
-                  latestLog
-                    ? latestLog.success
-                      ? t("common.success")
-                      : t("common.failed")
-                    : t("common.noRecords")
-                }}</strong
-              >
-            </div>
-          </div>
+          </dl>
           <div class="panel-footer-links">
             <RouterLink to="/"
               >{{ t("dashboard.openPublicStatus") }} <AppIcon name="arrow-up-right" :size="13"
@@ -360,46 +321,61 @@ onMounted(() => {
         <article class="dashboard-panel">
           <header class="panel-header">
             <div>
-              <h3>{{ t("dashboard.recentGenLogs") }}</h3>
-              <p>{{ t("dashboard.recentGenLogsDesc") }}</p>
+              <h3>{{ t("dashboard.recentWorkflows") }}</h3>
+              <p>{{ t("dashboard.recentWorkflowsDesc") }}</p>
             </div>
-            <RouterLink to="/admin/settings#logs"
-              >{{ t("dashboard.viewLogs") }} <AppIcon name="arrow-up-right" :size="13"
+            <RouterLink to="/admin/workflows"
+              >{{ t("dashboard.viewWorkflows") }} <AppIcon name="arrow-up-right" :size="13"
             /></RouterLink>
           </header>
-          <div v-if="logs.length" class="table-scroll">
-            <table class="recent-table">
-              <thead>
-                <tr>
-                  <th>{{ t("dashboard.colTime") }}</th>
-                  <th>{{ t("dashboard.colResult") }}</th>
-                  <th>{{ t("dashboard.colMode") }}</th>
-                  <th>{{ t("dashboard.colMessage") }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="entry in logs" :key="entry.id">
-                  <td class="nowrap">{{ formatStatusDate(entry.created_at) }}</td>
-                  <td>
-                    <span class="result-pill" :class="entry.success ? 'good' : 'bad'"
-                      ><AppIcon :name="entry.success ? 'circle-check' : 'circle-x'" :size="13" />{{
-                        entry.success ? t("common.success") : t("common.failed")
-                      }}</span
-                    >
-                  </td>
-                  <td>{{ modeForLog(entry.mode) }}</td>
-                  <td class="log-message">
-                    <TextDetail
-                      :text="generationLogText(entry)"
-                      :label="t('dashboard.genLogLabel')"
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <TableFrame
+            v-if="workflows.length"
+            :height="260"
+            min-width="600px"
+            table-class="recent-table"
+            :row-height="40"
+          >
+            <template #columns>
+              <col style="width: 150px" />
+              <col style="width: 110px" />
+              <col style="width: 130px" />
+              <col style="width: 110px" />
+            </template>
+            <template #header>
+              <tr>
+                <th>{{ t("workflowPage.k70") }}</th>
+                <th>{{ t("workflowPage.k71") }}</th>
+                <th>{{ t("workflowPage.k66") }}</th>
+                <th>{{ t("workflowPage.k72") }}</th>
+              </tr>
+            </template>
+            <template #body>
+              <tr
+                v-for="run in workflows"
+                :key="run.id"
+                class="recent-log-row"
+                tabindex="0"
+                role="link"
+                :aria-label="t('workflowPage.viewRunDetails', { id: run.id })"
+                @click="openWorkflow(run.id)"
+                @keydown.enter.prevent="openWorkflow(run.id)"
+              >
+                <td class="nowrap">{{ dateLabel(run.created_at) }}</td>
+                <td>
+                  <span class="result-pill" :class="run.status === 'succeeded' ? 'good' : 'bad'"
+                    ><AppIcon
+                      :name="run.status === 'succeeded' ? 'circle-check' : 'circle-x'"
+                      :size="13"
+                    />{{ statusLabel(run.status) }}</span
+                  >
+                </td>
+                <td>{{ sourceLabel(run.source) }}</td>
+                <td class="log-message">{{ durationLabel(run) }}</td>
+              </tr>
+            </template>
+          </TableFrame>
           <div v-else class="panel-empty">
-            {{ loading ? t("dashboard.readingGenLogs") : t("dashboard.noGenLogs") }}
+            {{ loading ? t("dashboard.readingWorkflows") : t("dashboard.noWorkflows") }}
           </div>
         </article>
       </section>
@@ -410,18 +386,20 @@ onMounted(() => {
             <h3>{{ t("dashboard.trend24h") }}</h3>
             <p>{{ t("dashboard.trend24hDesc") }}</p>
           </div>
-          <RouterLink to="/admin/monitor"
+          <RouterLink to="/admin/monitor#overall-stats"
             >{{ t("dashboard.detailMonitor") }} <AppIcon name="arrow-up-right" :size="13"
           /></RouterLink>
         </header>
-        <ResponsiveTrendChart
-          v-if="monitor?.requestTrend?.length"
-          :points="monitor.requestTrend"
-          :time-zone="settings?.timezone || 'Asia/Shanghai'"
-          :aria-label="t('dashboard.trendAria')"
-          compact
-        />
-        <div v-else class="panel-empty">{{ t("dashboard.noTrendData") }}</div>
+        <LazyMount :min-height="220" :root-margin="120">
+          <ResponsiveTrendChart
+            v-if="monitor?.requestTrend?.length"
+            :points="monitor.requestTrend"
+            :time-zone="settings?.timezone || 'Asia/Shanghai'"
+            :aria-label="t('dashboard.trendAria')"
+            compact
+          />
+          <div v-else class="panel-empty">{{ t("dashboard.noTrendData") }}</div>
+        </LazyMount>
         <div class="trend-legend">
           <span><i class="trend-swatch"></i>{{ t("dashboard.requestVolume") }}</span
           ><span><i class="trend-swatch errors"></i>{{ t("dashboard.errorRequests") }}</span>
@@ -438,165 +416,49 @@ onMounted(() => {
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .dashboard-view {
-  min-width: 0;
+  @apply min-w-0;
 }
-.dash-loading {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 18px;
-  margin-bottom: 18px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
+.dashboard-toolbar {
+  @apply mb-[18px] flex flex-wrap items-end justify-between gap-[18px];
+}
+.toolbar-copy h2 {
+  /* Sits at the same level as the other panel headings on this page (15px),
+     not as a page title — the page title already lives in the admin header. */
+  @apply m-0 text-[15px] font-extrabold leading-snug tracking-[-0.02em];
+  color: var(--text);
+}
+.toolbar-copy p {
+  @apply mb-0 mt-1 text-[11px] leading-snug;
   color: var(--muted);
 }
-.dash-loading strong {
-  display: block;
-  color: var(--text);
-  font-size: 14px;
+.toolbar-actions {
+  @apply flex flex-wrap gap-2;
 }
-.dash-loading p {
-  margin: 5px 0 0;
-  font-size: 13px;
-}
-.spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--line);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: dash-spin 0.8s linear infinite;
-  flex: 0 0 auto;
-}
-@keyframes dash-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation-duration: 0.01ms;
-    animation-iteration-count: 1;
-  }
-}
-.welcome-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 18px;
-}
-.welcome-row h2 {
-  margin: 0;
-  font-size: clamp(22px, 2.5vw, 28px);
-  line-height: 1.2;
-  letter-spacing: -0.04em;
-}
-.quick-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.dash-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  font: inherit;
-  font-size: 11px;
-  font-weight: 700;
-  text-decoration: none;
-  cursor: pointer;
-  white-space: nowrap;
-  transition:
-    filter 0.15s,
-    background 0.15s;
-}
-.dash-button.secondary,
-.dash-button.logout-button {
-  color: var(--text);
-  background: var(--surface);
-}
-.dash-button.primary {
-  color: var(--accent-contrast);
-  background: var(--accent);
-  border-color: var(--accent);
-}
-.dash-button:disabled {
-  opacity: 1;
-  color: var(--control-disabled-text);
-  background: var(--control-disabled-bg);
-  border-color: var(--control-disabled-border);
-  cursor: not-allowed;
-  filter: none;
-}
-.dash-button.secondary.is-loading:disabled,
-.dash-button.logout-button.is-loading:disabled {
-  color: var(--text);
-  -webkit-text-fill-color: var(--text);
-  background: var(--surface);
-  border-color: var(--line);
-  cursor: progress;
-}
-.dash-button.secondary:hover:not(:disabled),
-.dash-button.logout-button:hover:not(:disabled) {
-  color: var(--text);
-  background: var(--surface-2);
-  border-color: color-mix(in srgb, var(--accent) 36%, var(--line));
-  filter: none;
-}
-.dash-button.primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  color: var(--accent-contrast);
-  filter: none;
-}
-.dash-button.primary:active:not(:disabled) {
-  background: var(--accent-active);
-  border-color: var(--accent-active);
-  color: var(--accent-contrast);
-}
-.dash-button.secondary:active:not(:disabled),
-.dash-button.logout-button:active:not(:disabled) {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
+.value-muted {
+  color: var(--muted);
 }
 .dashboard-alert {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 9px;
-  padding: 11px 13px;
-  margin-bottom: 14px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
+  @apply mb-3.5 flex flex-wrap items-center gap-[9px] rounded-[9px] border px-[13px] py-[11px] text-xs leading-normal;
+  border-color: var(--line);
   background: var(--surface);
-  font-size: 12px;
-  line-height: 1.5;
 }
 .dashboard-alert strong {
-  font-weight: 800;
+  @apply font-extrabold;
 }
 .dashboard-alert a {
+  @apply font-bold no-underline;
   color: var(--accent);
-  font-weight: 700;
-  text-decoration: none;
 }
-.dashboard-alert button {
-  margin-left: auto;
-  border: 0;
+.dashboard-alert-action {
+  @apply ml-auto cursor-pointer border-0 bg-transparent font-bold transition-colors;
   color: var(--accent);
-  background: none;
   font: inherit;
-  font-weight: 700;
-  cursor: pointer;
+}
+.dashboard-alert-action:hover {
+  text-decoration: underline;
 }
 .dashboard-alert.is-error {
   border-color: color-mix(in srgb, var(--red) 30%, var(--line));
@@ -612,43 +474,46 @@ onMounted(() => {
   background: var(--green-soft);
 }
 .overview-metrics {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 13px;
-  margin-bottom: 18px;
+  @apply mb-[18px] grid grid-cols-4 gap-[13px];
 }
 .overview-metric {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding: 17px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  @apply flex min-w-0 cursor-pointer flex-col gap-[7px] rounded-xl border p-[17px] no-underline transition-[border-color,box-shadow,transform];
+  border-color: var(--line);
   background: var(--surface);
   box-shadow: var(--shadow);
+  color: inherit;
+}
+.overview-metric:hover {
+  @apply -translate-y-px;
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+  box-shadow: var(--shadow);
+}
+.overview-metric:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .overview-metric {
+    transition: none;
+  }
+  /* 悬停位移用的是 Tailwind 的 translate 属性，复位也必须写 translate。 */
+  .overview-metric:hover {
+    translate: none;
+  }
 }
 .metric-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  @apply flex items-center justify-between gap-2.5;
 }
 .metric-label {
+  @apply text-[11px] font-bold;
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
 }
 .metric-icon {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--line));
-  border-radius: 11px;
+  @apply grid h-[34px] w-[34px] place-items-center rounded-[11px] border;
+  border-color: color-mix(in srgb, var(--accent) 18%, var(--line));
   background: var(--accent-soft);
   color: var(--accent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  box-shadow: inset 0 1px 0 var(--inset-highlight);
 }
 .metric-icon.is-file {
   color: var(--green);
@@ -659,20 +524,17 @@ onMounted(() => {
   color: var(--accent);
 }
 .metric-icon.is-rules {
-  color: #8b5cf6;
-  background: color-mix(in srgb, #8b5cf6 11%, var(--surface));
-  border-color: color-mix(in srgb, #8b5cf6 20%, var(--line));
+  color: var(--violet);
+  background: var(--violet-soft);
+  border-color: color-mix(in srgb, var(--violet) 20%, var(--line));
 }
 .metric-icon.is-activity {
-  color: #0e9f9a;
-  background: color-mix(in srgb, #0e9f9a 11%, var(--surface));
-  border-color: color-mix(in srgb, #0e9f9a 20%, var(--line));
+  color: var(--teal);
+  background: var(--teal-soft);
+  border-color: color-mix(in srgb, var(--teal) 20%, var(--line));
 }
 .metric-value {
-  display: block;
-  font-size: clamp(20px, 2.5vw, 27px);
-  line-height: 1.2;
-  letter-spacing: -0.04em;
+  @apply block text-[clamp(20px,2.5vw,27px)] leading-tight tracking-[-0.04em];
   overflow-wrap: anywhere;
 }
 .value-good {
@@ -682,144 +544,87 @@ onMounted(() => {
   color: var(--warn);
 }
 .metric-note {
-  min-height: 29px;
+  @apply min-h-[29px] text-[10px] leading-normal;
   color: var(--muted);
-  font-size: 10px;
-  line-height: 1.5;
 }
 .overview-grid {
-  display: grid;
+  @apply mb-4 grid gap-4;
   grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
   align-items: stretch;
-  gap: 16px;
-  margin-bottom: 16px;
 }
 .dashboard-panel {
-  min-width: 0;
-  padding: 19px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  @apply min-w-0 rounded-xl border p-[19px];
+  border-color: var(--line);
   background: var(--surface);
   box-shadow: var(--shadow);
 }
 .panel-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 15px;
+  @apply mb-[15px] flex items-start justify-between gap-3;
 }
 .panel-header h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  @apply m-0 text-sm font-extrabold tracking-tight;
 }
 .panel-header p {
-  margin: 5px 0 0;
+  @apply mb-0 mt-[5px] text-[10px] leading-normal;
   color: var(--muted);
-  font-size: 10px;
-  line-height: 1.5;
 }
 .panel-header > a {
-  flex: 0 0 auto;
+  @apply inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-[5px] text-[10px] font-bold no-underline transition-colors;
+  border-color: var(--line);
+  color: var(--text);
+}
+.panel-header > a:hover,
+.panel-footer-links a:hover {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
   color: var(--accent);
-  font-size: 10px;
-  font-weight: 750;
-  text-decoration: none;
-  white-space: nowrap;
 }
-.config-details {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 15px;
+.runtime-list {
+  @apply grid;
 }
-.config-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  min-width: 0;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--line);
+.runtime-row {
+  @apply flex min-w-0 items-baseline justify-between gap-4 border-b py-[9px];
+  border-color: color-mix(in srgb, var(--line) 72%, transparent);
 }
-.config-detail > span {
+.runtime-row:last-child {
+  @apply border-b-0;
+}
+.runtime-row > dt {
+  @apply m-0 shrink-0 text-[11px] leading-normal;
   color: var(--muted);
-  font-size: 10px;
+  font-weight: 550;
+}
+.runtime-row > dd {
+  @apply m-0 min-w-0 text-right text-xs leading-normal;
+  overflow-wrap: anywhere;
+}
+.runtime-row > dd strong,
+.runtime-row > dd code {
+  @apply block border-0 bg-transparent p-0 text-xs leading-normal shadow-none;
+  color: var(--text);
   font-weight: 650;
 }
-.config-detail strong,
-.config-detail code {
-  color: var(--text);
-  font-size: 11px;
-  font-weight: 750;
-  overflow-wrap: anywhere;
-  line-height: 1.5;
-}
-.config-detail code {
-  font-family: var(--font-mono);
-  font-weight: 600;
+.runtime-row > dd code {
+  @apply font-mono text-[11px];
+  font-weight: 500;
 }
 .panel-footer-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 9px 16px;
-  margin-top: 15px;
+  @apply mt-4 flex flex-wrap gap-2;
 }
 .panel-footer-links a {
-  color: var(--accent);
-  font-size: 10px;
-  font-weight: 700;
-  text-decoration: none;
-}
-.table-scroll {
-  width: 100%;
-  overflow: auto;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-}
-.recent-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 10px;
-}
-.recent-table th {
-  padding: 10px;
-  background: var(--surface-2);
-  color: var(--muted);
-  text-align: left;
-  font-weight: 800;
-  white-space: nowrap;
-  border-bottom: 1px solid var(--line);
-}
-.recent-table td {
-  padding: 10px;
-  border-bottom: 1px solid var(--line);
-  vertical-align: middle;
-}
-.recent-table tr:last-child td {
-  border-bottom: 0;
-}
-.recent-table tbody tr:hover {
-  background: color-mix(in srgb, var(--accent) 4%, transparent);
+  @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[5px] text-[10px] font-bold no-underline transition-colors;
+  border-color: var(--line);
+  color: var(--text);
 }
 .nowrap {
-  white-space: nowrap;
+  @apply whitespace-nowrap;
 }
 .log-message {
-  min-width: 135px;
-  max-width: 220px;
+  @apply min-w-[135px] max-w-[220px];
   color: var(--muted);
 }
 .result-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 4px 8px;
-  font-size: 10px;
-  font-weight: 800;
-  white-space: nowrap;
+  @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-1 text-[10px] font-extrabold;
+  border-color: var(--line);
 }
 .result-pill.good {
   color: var(--green);
@@ -832,35 +637,29 @@ onMounted(() => {
   border-color: color-mix(in srgb, var(--red) 24%, var(--line));
 }
 .panel-empty {
-  padding: 24px 12px;
-  border: 1px dashed var(--line);
-  border-radius: 8px;
+  @apply rounded-lg border border-dashed px-3 py-6 text-center text-[11px];
+  border-color: var(--line);
   color: var(--muted);
-  text-align: center;
-  font-size: 11px;
 }
 .activity-panel {
-  margin-bottom: 16px;
+  @apply mb-4;
 }
 .trend-legend {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 13px;
-  margin-top: 15px;
+  @apply mt-[15px] flex flex-wrap items-center gap-[13px] text-[10px];
   color: var(--muted);
-  font-size: 10px;
 }
 .trend-legend > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  @apply inline-flex items-center gap-1.5;
 }
 .trend-swatch {
-  width: 8px;
-  height: 8px;
-  border-radius: 3px;
+  @apply h-2 w-2 rounded-[3px];
   background: var(--accent);
+}
+.trend-swatch.errors {
+  background: var(--red);
+}
+.trend-note {
+  @apply ml-auto;
 }
 .icon-spinning {
   animation: icon-spin 0.9s linear infinite;
@@ -870,97 +669,75 @@ onMounted(() => {
     transform: rotate(360deg);
   }
 }
-.trend-swatch.errors {
-  background: var(--red);
-}
-.trend-note {
-  margin-left: auto;
-}
 @media (max-width: 1050px) {
   .overview-grid {
-    grid-template-columns: 1fr;
+    @apply grid-cols-1;
   }
   .overview-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    @apply grid-cols-2;
   }
 }
 @media (max-width: 760px) {
-  .welcome-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+  .dashboard-toolbar {
+    @apply flex-col items-start gap-3;
   }
-  .quick-actions {
-    width: 100%;
+  .toolbar-actions {
+    @apply w-full;
   }
-  .quick-actions .dash-button {
-    flex: 1;
-  }
-  .config-details {
-    gap: 0 11px;
+  .toolbar-actions .app-button {
+    @apply flex-1;
   }
 }
 @media (max-width: 500px) {
   .overview-metrics {
-    gap: 8px;
+    @apply gap-2;
   }
   .overview-metric {
-    padding: 12px;
+    @apply p-3;
   }
   .metric-value {
-    font-size: 18px;
+    @apply text-lg;
   }
   .metric-note {
-    font-size: 9px;
+    @apply text-[9px];
   }
   .dashboard-panel {
-    padding: 13px;
+    @apply p-[13px];
   }
-  .recent-table {
-    min-width: 560px;
+  .toolbar-actions {
+    @apply grid grid-cols-2 gap-[7px];
   }
-  .quick-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 7px;
-  }
-  .quick-actions .dash-button {
-    min-width: 0;
-    width: 100%;
-    padding: 0 7px;
-    white-space: normal;
-    line-height: 1.25;
-  }
-  .quick-actions .dash-button:last-child {
-    grid-column: 1 / -1;
+  .toolbar-actions .app-button {
+    @apply w-full min-w-0 px-[7px];
   }
   .trend-note {
-    margin-left: 0;
-    flex-basis: 100%;
+    @apply ml-0 basis-full;
   }
   .panel-header {
-    align-items: flex-start;
+    @apply items-start;
   }
 }
 .workflow-running {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  @apply flex items-center gap-3 no-underline;
   color: var(--accent);
-  text-decoration: none;
   border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
 }
 .workflow-running span {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
+  @apply grid min-w-0 gap-1;
 }
 .workflow-running strong {
-  font-size: 12px;
+  @apply text-xs;
 }
 .workflow-running small {
+  @apply text-[11px];
   color: var(--muted);
-  font-size: 11px;
   overflow-wrap: anywhere;
+}
+.recent-log-row {
+  @apply cursor-pointer;
+}
+.recent-log-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 </style>

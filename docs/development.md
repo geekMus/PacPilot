@@ -49,12 +49,35 @@ bun run format
 bun run build
 
 # 生产模式启动（需先构建）
-bun start
+bun run start
+
+# 本地预览生产构建（先构建，再以生产模式启动到 4173 端口、数据目录 ./data/preview）
+bun run preview
 ```
+
+### 本地预览生产构建
+
+`bun run preview` 与 `bun run start` 都是生产模式启动，区别是默认值：
+
+| 命令              | 端口    | 数据目录             | 是否先构建                   |
+| ----------------- | ------- | -------------------- | ---------------------------- |
+| `bun run start`   | `17321` | 操作系统标准数据目录 | 否（需自行 `bun run build`） |
+| `bun run preview` | `4173`  | `./data/preview`     | 是                           |
+
+预览用独立端口，因此可以和 `bun run dev` 的开发后端（`17321`）同时运行；独立数据目录保证预览不会写入开发或生产数据库。`PORT`、`DATA_DIR` 等环境变量显式设置后优先生效。
+
+预览必须使用打包产物：Vite 开发服务器（`5173`）逐个加载未打包的 ES 模块，浏览器性能分析的结果与生产构建没有可比性。想核对首屏性能时请用 `bun run preview` 或 `bun run start` 的地址。
 
 ## 检查范围
 
-`bun run check` 只执行代码正确性检查：类型检查、客户端构建和翻译检查，不运行单元测试。`bun run test` 独立运行 Bun 核心测试及前端/后端 Vitest 测试，并分别强制检查覆盖率。前端与后端的语句、分支、函数、行覆盖率门槛均为 90%。这不是完整的 API/SQLite 集成测试或端到端测试。
+`bun run check` 只执行代码正确性检查：类型检查、客户端构建和翻译检查，不运行单元测试。`bun run test` 先运行依赖 Bun 运行时的后端核心测试，再运行前端与后端 Vitest 测试，并分别强制检查覆盖率。前端与后端的语句、分支、函数、行覆盖率门槛均为 90%。这不是完整的 API/SQLite 集成测试或端到端测试。
+
+覆盖率统计范围由 `server/vitest.config.ts` 和 `client/vitest.config.ts` 的 `coverage.include` 明确列出，只纳入能在 Node + jsdom 下完整执行的模块，避免把 0% 的路由层和 Bun-only 驱动混进阈值里稀释结果：
+
+- 后端：`server/domain/`、`server/services/`、`server/storage/`、`server/utils/`。排除 `server/storage/repositories.ts`（纯类型契约）和 `server/storage/sqlite/`（依赖 `bun:sqlite`，只由 `bun test server/tests/storage-sqlite.bun.ts` 覆盖）。
+- 前端：`client/src/api/`、`client/src/utils/`，以及 `client/src/composables/` 中可独立驱动的 `useTheme`、`useToast`、`useAdminSession`、`useWorkflowLabels`、`useCopyFeedback`、`useAdminPassword`。视图组件和依赖真实 DOM 布局的 dashboard composable 不纳入该门槛。
+
+新增可测试模块时应把它加入对应的 `coverage.include` 并同步补齐测试，而不是只依赖编译通过。
 
 镜像发布工作流会先运行 `bun run check`，通过后才构建并发布镜像。`代码质量检查` 工作流会按阶段执行 `bun run check`、前后端单元测试和覆盖率报告，最终由 `前后端单测与覆盖率门槛` Job 汇总并决定检查是否通过。当前仓库没有独立的轻量 YAML 配置校验工作流。
 
@@ -67,10 +90,14 @@ bun run format:check
 
 ## 项目结构
 
-- `client/src/`：Vue 3 前端、路由、组件、界面与中英文翻译。
+- `client/src/`：Vue 3 前端、路由、组件、界面与中英文翻译；跨页面通用组件在 `components/`，业务专属组件在 `features/<feature>/components/`。
+- `client/tests/`：仅属于前端的 Vitest 单元测试。
+- `server/tests/`：仅属于后端的 Vitest 单元测试。
 - `server/routes/`：HTTP 路由与管理 API。
 - `server/services/`：PAC 生成、远程列表、工作流、定时任务、Webhook 与请求监控。
-- `server/db/`：SQLite 连接、schema、设置、工作流和监控数据。
+- `server/storage/`：存储契约与适配器（`memory/` 内存实现、`sqlite/` SQLite 连接/schema/查询、`filesystem/` 文件产物）。
 - `shared/`：客户端与服务端共享的契约和翻译类型。
 - `scripts/`：开发启动、翻译检查、生产启动和管理员密码重置脚本。
 - `docs/`：部署、配置、开发、运维和故障排查文档。
+
+界面开发约定（组件分层、滚动区域、弹窗、表格与命名规则）统一维护在[前端架构文档](frontend-architecture.md)，此处不再重复。

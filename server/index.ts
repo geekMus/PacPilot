@@ -1,8 +1,8 @@
 import { loadEnv } from "./config/env";
-import { getDb, closeDb } from "./db/sqlite";
 import { createApp } from "./app";
 import { runPacWorkflow } from "./services/workflow";
-import { cleanupOperationalLogs, markInterruptedWorkflows } from "./db/sqlite";
+import { warmPacCache } from "./services/pac-generator";
+
 import { reschedule, stopScheduler } from "./services/scheduler";
 import {
   createInitialAdminCredentials,
@@ -10,31 +10,48 @@ import {
 } from "./services/admin-credentials";
 import { trackTcpConnection } from "./services/request-monitor";
 import { runtimeLog } from "./utils/runtime-log";
+import { createApplicationStorage } from "./storage";
 
 async function main(): Promise<void> {
   const env = loadEnv();
   process.env.PACPILOT_RUNTIME_PROFILE = env.runtimeProfile;
-  const database = getDb(env.dataDir);
-  const firstStart = isAdminCredentialsMissing(database);
-  const initialAdminPassword = createInitialAdminCredentials(database);
-  const adminCredentialsMissing = isAdminCredentialsMissing(database);
-  markInterruptedWorkflows(database);
-  const cleanupLogs = (): void => {
-    const deleted = cleanupOperationalLogs(database);
-    if (deleted.generationLogs + deleted.accessEvents > 0) {
-      database.run("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;");
+  const storage = await createApplicationStorage(env);
+  const firstStart = await isAdminCredentialsMissing(storage.credentials);
+  // DEFAULT_ADMIN_PASSWORD only applies on the very first start; once a record
+  // exists it is ignored so a redeploy never silently resets the password.
+  const initialAdmin = await createInitialAdminCredentials(
+    storage.credentials,
+    env.defaultAdminPassword,
+    process.env.ADMIN_SESSION_SECRET
+  );
+  const adminCredentialsMissing = await isAdminCredentialsMissing(storage.credentials);
+  await storage.workflows.markInterrupted();
+  const cleanupLogs = async (): Promise<void> => {
+    const retentionDays = (await storage.settings.get()).logRetentionDays;
+    const deletedAccessEvents = await storage.monitoring.cleanup(retentionDays);
+    const deletedWorkflowRuns = await storage.workflows.cleanup(retentionDays);
+    if ((deletedAccessEvents > 0 || deletedWorkflowRuns > 0) && env.storageDriver === "sqlite") {
+      await storage.maintenance.compact();
     }
   };
   cleanupLogs();
   const logCleanupTimer = setInterval(cleanupLogs, 24 * 60 * 60 * 1000);
   logCleanupTimer.unref();
 
-  if (initialAdminPassword) {
+  if (initialAdmin.password) {
     // 终端运行日志统一使用英文，避免 Windows 终端代码页不一致导致乱码。
-    runtimeLog(
-      "warn",
-      `Initial administrator password (change it in the admin panel): ${initialAdminPassword}`
-    );
+    if (initialAdmin.source === "configured") {
+      // Never print a user-supplied password; it is known to the operator.
+      runtimeLog(
+        "info",
+        "Administrator credentials initialized from DEFAULT_ADMIN_PASSWORD. Change it in the admin panel after signing in."
+      );
+    } else {
+      runtimeLog(
+        "warn",
+        `Initial administrator password (change it in the admin panel): ${initialAdmin.password}`
+      );
+    }
   } else if (adminCredentialsMissing) {
     runtimeLog(
       "error",
@@ -42,14 +59,21 @@ async function main(): Promise<void> {
     );
   }
 
-  const app = createApp(env, database);
+  const app = createApp(env, storage);
+
+  // Warm the in-memory PAC so the very first `/pac` request after a restart is
+  // served instantly. Remote mode rebuilds from the persisted rule snapshot;
+  // if none exists yet it is fetched on demand when settings are saved.
+  void warmPacCache(storage).catch((error) =>
+    runtimeLog("error", "PAC cache warm-up failed: ", error)
+  );
 
   const server = app.listen(env.port, env.host, () => {
     if (!firstStart && !adminCredentialsMissing) {
       // 先开始监听端口，让管理界面能够实时查看启动工作流的状态。
-      void runPacWorkflow(database, env.dataDir, "startup")
+      void runPacWorkflow(storage, env.dataDir, "startup")
         .catch((error) => runtimeLog("error", "PAC startup workflow failed: ", error))
-        .finally(() => reschedule(database, env.dataDir));
+        .finally(() => reschedule(storage, env.dataDir));
     }
   });
 
@@ -66,7 +90,7 @@ async function main(): Promise<void> {
     }
     stopScheduler();
     clearInterval(logCleanupTimer);
-    closeDb();
+    storage.close();
     process.exit(1);
   });
 
@@ -74,7 +98,7 @@ async function main(): Promise<void> {
     stopScheduler();
     clearInterval(logCleanupTimer);
     server.close(() => {
-      closeDb();
+      storage.close();
       process.exit(0);
     });
   };

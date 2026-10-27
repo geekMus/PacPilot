@@ -1,0 +1,367 @@
+@reference "@/styles/tailwind.css";
+
+.webhook-page .eyebrow,
+.webhook-page .editor-kicker {
+  @apply flex items-center gap-[7px] text-[9px] font-extrabold tracking-[0.13em];
+  color: var(--accent);
+}
+
+.webhook-page .state-dot {
+  @apply inline-block h-[7px] w-[7px] shrink-0 rounded-full;
+  background: var(--muted);
+}
+
+.webhook-page .state-dot.online {
+  background: var(--green);
+  box-shadow: 0 0 0 3px var(--green-soft);
+}
+
+.webhook-page .editor-panel {
+  @apply flex w-0 flex-col;
+  flex: 1 1 0%;
+  height: 100%;
+  max-height: 100%;
+}
+
+.webhook-page .editor-heading {
+  @apply flex shrink-0 items-center gap-[13px] border-b px-[23px] py-5;
+  border-color: var(--line);
+  background: var(--wh-heading-bg);
+}
+
+.webhook-page .editor-title-mark {
+  @apply grid h-[42px] w-[42px] shrink-0 place-items-center rounded-xl border;
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--line));
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.webhook-page .editor-heading-copy {
+  @apply min-w-0 flex-auto;
+}
+
+.webhook-page .editor-heading-tools {
+  @apply ml-auto flex items-center gap-3;
+}
+
+.webhook-page .editor-heading h3 {
+  @apply my-1 text-[15px] font-extrabold tracking-tight;
+}
+
+.webhook-page .editor-heading p {
+  @apply m-0 text-[10px] leading-normal;
+  color: var(--muted);
+}
+
+.webhook-page .editor-scroll {
+  @apply block w-full min-w-0 min-h-0 overflow-hidden;
+  flex: 1 1 0%;
+  max-height: 100%;
+}
+
+.webhook-page .editor-scroll .app-scroll-area-viewport {
+  @apply h-full w-full min-h-0 overflow-x-hidden overflow-y-auto;
+  scrollbar-gutter: stable;
+}
+
+.webhook-page .pill-enabled {
+  border-color: color-mix(in srgb, var(--green) 24%, var(--line));
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.webhook-page .pill-disabled {
+  color: var(--muted);
+}
+
+.webhook-page .editor-body {
+  @apply grid content-start gap-0 px-[23px];
+}
+
+.webhook-page .form-section {
+  @apply grid gap-[17px] border-b pb-6 pt-[22px];
+  border-color: var(--line);
+}
+
+.webhook-page .form-section:last-child {
+  @apply border-b-0;
+}
+
+.webhook-page .section-title {
+  @apply flex items-start gap-3;
+}
+
+.webhook-page .section-title > span {
+  @apply grid h-[27px] w-[27px] shrink-0 place-items-center rounded-lg border text-[10px] font-extrabold tabular-nums;
+  border-color: var(--line);
+  background: var(--wh-heading-bg);
+  color: var(--muted);
+}
+
+.webhook-page .section-title h4 {
+  @apply mb-1 mt-px text-xs font-bold;
+}
+
+.webhook-page .section-title p {
+  @apply m-0 text-[10px] leading-normal;
+  color: var(--muted);
+}
+
+.webhook-page .field-grid {
+  @apply grid grid-cols-2 gap-3.5;
+}
+
+.webhook-page .field {
+  @apply grid min-w-0 gap-[7px] text-[11px] font-semibold;
+  /*
+    隐式列默认是 auto 轨道，其最小尺寸取内容的 min-content。CodeMirror 的
+    .cm-content（white-space: break-spaces）遇到一行较长的 placeholder 后，
+    min-content 会超过字段宽度，编辑器于是顶出卡片右边缘、把正文挤成窄条。
+    显式声明 minmax(0, 1fr) 让轨道可以被压缩，超出部分交给编辑器内部滚动。
+  */
+  grid-template-columns: minmax(0, 1fr);
+  color: var(--text);
+}
+
+.webhook-page .field > span:first-child {
+  @apply flex flex-wrap items-center gap-[5px];
+}
+
+.webhook-page .field i {
+  @apply not-italic;
+  color: var(--red);
+}
+
+.webhook-page .field em {
+  @apply text-[10px] font-medium not-italic;
+  color: var(--muted);
+}
+
+.webhook-page .field .CodeMirror,
+.webhook-page .field .app-select {
+  @apply w-full min-w-0;
+}
+
+.webhook-page .field .CodeMirror {
+  @apply rounded-[var(--wh-radius-control)];
+}
+
+.webhook-page .field-hint {
+  @apply m-0 flex flex-wrap items-start gap-1.5 text-[10px] font-normal leading-normal;
+  color: var(--muted);
+}
+
+/*
+  提示里混排着中文与多个 <code> 变量占位。默认的 nowrap flex 会把每个
+  <code> 挤到最小宽度，在手机上排成一列竖条；这里允许换行并让 <code>
+  保持自身宽度不被压缩。
+*/
+.webhook-page .field-hint code {
+  @apply shrink-0 whitespace-nowrap rounded-[4px] px-1 py-px font-mono text-[9px];
+  background: var(--wh-heading-bg);
+}
+
+.webhook-page .secret-input {
+  @apply flex min-w-0 gap-[7px];
+}
+
+.webhook-page .secret-input input {
+  @apply min-w-0 flex-1;
+}
+
+.webhook-page .field-static {
+  @apply flex items-center gap-2 rounded-[var(--wh-radius-control)] border px-[11px] font-mono text-[10px] font-medium;
+  min-height: 41px;
+  border-color: var(--line);
+  background: var(--wh-heading-bg);
+  color: var(--muted);
+}
+
+.webhook-page .editor-footer {
+  @apply flex shrink-0 flex-wrap items-center gap-2 border-t px-[23px] py-3.5;
+  border-color: var(--line);
+  background: var(--wh-heading-bg);
+}
+
+.webhook-page .footer-spacer {
+  @apply flex-auto;
+}
+
+.webhook-page .editor-note {
+  @apply flex shrink-0 items-start gap-2 border-t pb-[15px] pl-[23px] pr-[23px] pt-[11px] text-[10px] leading-normal;
+  border-color: color-mix(in srgb, var(--red) 16%, var(--line));
+  background: color-mix(in srgb, var(--red-soft) 55%, var(--wh-panel-bg));
+  color: var(--muted);
+}
+
+.webhook-page .editor-note svg {
+  color: var(--red);
+}
+
+.webhook-page .condition-hint {
+  @apply flex items-start gap-2.5 rounded-[var(--wh-radius-item)] border p-3;
+  border-color: color-mix(in srgb, var(--accent) 20%, var(--line));
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.webhook-page .condition-hint strong {
+  @apply text-[11px];
+}
+
+.webhook-page .condition-hint p {
+  @apply mb-0 mt-1 text-[10px] leading-normal;
+  color: var(--text);
+}
+
+.webhook-page .channel-options {
+  @apply grid gap-2;
+}
+
+.webhook-page .channel-option {
+  @apply relative flex min-w-0 cursor-pointer items-center gap-2.5 rounded-[var(--wh-radius-item)] border p-3 transition-[background,border-color,box-shadow];
+  border-color: var(--line);
+  background: var(--wh-panel-bg);
+}
+
+.webhook-page .channel-option:hover {
+  background: var(--wh-item-hover);
+}
+
+.webhook-page .channel-option.checked {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.webhook-page .channel-option.unavailable {
+  @apply cursor-not-allowed opacity-55;
+}
+
+.webhook-page .option-icon {
+  @apply grid h-[33px] w-[33px] shrink-0 place-items-center rounded-[9px] border;
+  border-color: var(--line);
+  background: var(--wh-panel-bg);
+  color: var(--accent);
+}
+
+.webhook-page .option-copy {
+  @apply grid min-w-0 flex-auto gap-1;
+}
+
+.webhook-page .option-copy strong {
+  @apply text-[11px];
+  overflow-wrap: anywhere;
+}
+
+.webhook-page .option-copy small {
+  @apply text-[10px];
+  color: var(--muted);
+}
+
+.webhook-page .option-check {
+  color: var(--accent);
+}
+
+.webhook-page .inline-empty {
+  @apply flex items-center gap-2.5 rounded-[var(--wh-radius-item)] border border-dashed p-[13px];
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+.webhook-page .inline-empty div {
+  @apply min-w-0 flex-auto;
+}
+
+.webhook-page .inline-empty strong {
+  @apply text-[11px];
+  color: var(--text);
+}
+
+.webhook-page .inline-empty p {
+  @apply mb-0 mt-1 text-[10px] leading-normal;
+}
+
+.webhook-page .editor-placeholder {
+  @apply items-center justify-center gap-3.5 p-7 text-center;
+  color: var(--muted);
+}
+
+.webhook-page .editor-placeholder p {
+  @apply m-0 text-[13px] leading-[1.7];
+}
+
+.webhook-page .spin {
+  animation: webhook-spin 0.9s linear infinite;
+}
+
+@keyframes webhook-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 1150px) {
+  .webhook-page .editor-heading,
+  .webhook-page .editor-body,
+  .webhook-page .editor-footer {
+    @apply px-[17px];
+  }
+}
+@media (max-width: 900px) {
+  /* 面板基础规则里的 w-0 与 flex:1 1 0% 是为桌面左右分栏准备的。本文件在
+     notifications-shell.css 之后加载，同权重下会覆盖那里 @media 里的 w-full，
+     于是堆叠布局中面板宽度塌成 0，占位文案被压成逐字换行的竖条。这里还原宽度。 */
+  .webhook-page .editor-panel {
+    @apply h-[var(--wh-editor-height)] w-full;
+    flex: 0 0 auto;
+  }
+  /* 未选中条目时的占位面板不必撑满一整屏，留一个紧凑提示块即可。 */
+  .webhook-page .editor-panel.editor-placeholder {
+    @apply h-auto min-h-[132px];
+    flex: 0 0 auto;
+  }
+  .webhook-page .editor-heading,
+  .webhook-page .editor-body,
+  .webhook-page .editor-footer {
+    @apply px-[17px];
+  }
+}
+@media (max-width: 640px) {
+  .webhook-page .editor-heading {
+    @apply flex-wrap items-start p-4;
+  }
+  .webhook-page .editor-title-mark {
+    @apply h-9 w-9;
+    flex-basis: 36px;
+  }
+  .webhook-page .editor-heading-tools {
+    @apply ml-0 w-full justify-between;
+  }
+  .webhook-page .editor-body {
+    @apply px-4;
+  }
+  .webhook-page .form-section {
+    @apply gap-3.5 py-[18px];
+  }
+  .webhook-page .field-grid {
+    @apply grid-cols-1 gap-3.5;
+  }
+  .webhook-page .editor-footer {
+    @apply gap-[7px] px-4 py-3;
+  }
+  .webhook-page .editor-footer .footer-spacer {
+    @apply hidden;
+  }
+  .webhook-page .editor-footer .app-button {
+    @apply flex-auto;
+  }
+  .webhook-page .editor-footer .app-button--primary {
+    flex: 1 0 100%;
+  }
+  .webhook-page .editor-note {
+    @apply px-4;
+  }
+  .webhook-page .inline-empty {
+    @apply flex-wrap;
+  }
+}

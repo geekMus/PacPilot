@@ -1,14 +1,12 @@
-import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { api, type AccessEvent, type AdminSession, type MonitorSummary } from "../api/client";
-import { useToast } from "../composables/useToast";
-import { useCopyFeedback } from "./useCopyFeedback";
+import { api, type AccessEvent, type AdminSession, type MonitorSummary } from "@/api/client";
+import { useCopyFeedback } from "@/composables/useCopyFeedback";
+import { fetchAdminSession } from "@/composables/useAdminSession";
 
 export function useMonitoringDashboard() {
   const { t, locale } = useI18n();
-
-  const { notify } = useToast();
 
   const router = useRouter();
 
@@ -40,21 +38,6 @@ export function useMonitoringDashboard() {
 
   const timeZone = computed(() => summary.value?.timezone || "Asia/Shanghai");
 
-  function formatTrendHour(value: string): string {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "--:--";
-    try {
-      return new Intl.DateTimeFormat(locale.value === "en_US" ? "en-US" : "zh-CN", {
-        timeZone: timeZone.value,
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      }).format(date);
-    } catch {
-      return date.toISOString().slice(11, 16);
-    }
-  }
-
   const latestPacRequest = computed(() => summary.value?.latestPacRequest ?? null);
 
   // 访问表格筛选仅作用于当前加载的最近 N 条记录，不改变服务端日志。
@@ -68,29 +51,26 @@ export function useMonitoringDashboard() {
 
   const selectedAccess = ref<AccessEvent | null>(null);
 
-  const accessDetailDialog = ref<HTMLDialogElement | null>(null);
+  const accessDetailOpen = ref(false);
 
   const { copyState: accessCopyState, copyWithFeedback, resetCopyState } = useCopyFeedback();
 
-  async function openAccessDetail(event: AccessEvent): Promise<void> {
+  function openAccessDetail(event: AccessEvent): void {
     selectedAccess.value = event;
     resetCopyState();
-    await nextTick();
-    if (accessDetailDialog.value && !accessDetailDialog.value.open)
-      accessDetailDialog.value.showModal();
+    accessDetailOpen.value = true;
   }
 
   function closeAccessDetail(): void {
-    if (accessDetailDialog.value?.open) accessDetailDialog.value.close();
+    accessDetailOpen.value = false;
   }
 
-  function onAccessDetailClose(): void {
-    selectedAccess.value = null;
-    resetCopyState();
-  }
-
-  function handleAccessDetailBackdrop(event: MouseEvent): void {
-    if (event.target === accessDetailDialog.value) closeAccessDetail();
+  function onAccessDetailOpenChange(open: boolean): void {
+    accessDetailOpen.value = open;
+    if (!open) {
+      selectedAccess.value = null;
+      resetCopyState();
+    }
   }
 
   function formatAccessHeaders(raw: string | undefined): string {
@@ -119,11 +99,11 @@ export function useMonitoringDashboard() {
       `${t("monitor.k133")}：${formatBytes(event.response_bytes)}`,
       `${t("monitor.k141")}：${event.response_content_type || t("monitor.k2")}`,
       `${t("monitor.k128")}：${event.source_ip || "unknown"}`,
-      `Host：${event.host || t("monitor.k2")}`,
+      `${t("monitor.k143")}：${event.host || t("monitor.k2")}`,
       `${t("monitor.k138")}：${event.user_agent || t("monitor.k2")}`,
-      `Referer：${event.referer || t("monitor.k2")}`,
-      `Accept：${event.accept || t("monitor.k2")}`,
-      `Accept-Language：${event.accept_language || t("monitor.k2")}`,
+      `${t("monitor.k144")}：${event.referer || t("monitor.k2")}`,
+      `${t("monitor.k145")}：${event.accept || t("monitor.k2")}`,
+      `${t("monitor.k146")}：${event.accept_language || t("monitor.k2")}`,
       `${t("monitor.k140")}：${event.content_type || t("monitor.k2")}`,
       "",
       t("monitor.k3"),
@@ -292,14 +272,22 @@ export function useMonitoringDashboard() {
 
   async function initialise(): Promise<void> {
     try {
-      const session: AdminSession = await api.session();
+      // 复用路由守卫刚做过的会话探测（带短 TTL 缓存），避免首屏再串一次网络往返。
+      const session: AdminSession = await fetchAdminSession();
+      // 路由守卫只在导航时校验；会话在停留期间失效时这里必须自己回登录页，
+      // 并带上当前地址，登录后才能回到这一页。
       if (!session.loggedIn) {
-        await router.replace("/admin/login");
+        await router.replace({
+          name: "login",
+          query: { redirect: router.currentRoute.value.fullPath },
+        });
         return;
       }
       authChecking.value = false;
       await refreshDashboard();
       refreshTimer = setInterval(() => {
+        // 标签页在后台时不轮询。
+        if (document.hidden) return;
         void refreshDashboard(true);
       }, 10_000);
     } catch (caught) {
@@ -309,12 +297,19 @@ export function useMonitoringDashboard() {
     }
   }
 
+  // 从后台切回前台时立刻补一次刷新。
+  function onVisibilityChange() {
+    if (!document.hidden) void refreshDashboard(true);
+  }
+
   onMounted(() => {
+    document.addEventListener("visibilitychange", onVisibilityChange);
     void initialise();
   });
 
   onUnmounted(() => {
     if (refreshTimer) clearInterval(refreshTimer);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
   });
 
   return {
@@ -337,12 +332,11 @@ export function useMonitoringDashboard() {
     accessCategory,
     accessStatus,
     selectedAccess,
-    accessDetailDialog,
+    accessDetailOpen,
     accessCopyState,
     openAccessDetail,
     closeAccessDetail,
-    onAccessDetailClose,
-    handleAccessDetailBackdrop,
+    onAccessDetailOpenChange,
     formatAccessHeaders,
     copyAccessDetail,
     filteredAccesses,

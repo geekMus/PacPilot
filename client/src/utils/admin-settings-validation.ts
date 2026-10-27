@@ -1,5 +1,5 @@
-import type { WebhookConfig } from "../../../shared/contracts";
-import { analyzeDomainRules } from "./domain-rules";
+import type { WebhookConfig } from "@shared/contracts";
+import { analyzeDomainRules } from "@/utils/domain-rules";
 
 export type WebhookFieldErrors = {
   url: string;
@@ -63,13 +63,14 @@ export function createAdminSettingsValidators<T extends (...args: any[]) => stri
         }
       }
     } else if (config.provider === "dingtalk") {
-      if (config.url.trim()) {
-        if (!looksLikeUrl(config.url.trim())) errors.url = t("settings.dingTalkUrl", { label });
-        else if (!new URL(config.url.trim()).searchParams.has("access_token"))
-          errors.url = t("settings.dingTalkToken", { label });
-        if (!config.dingTalkSecret.trim()) errors.secret = t("settings.dingTalkSecret", { label });
-      } else if (config.dingTalkSecret.trim())
-        errors.url = t("settings.dingTalkSecretNeedsUrl", { label });
+      const url = config.url.trim();
+      const secret = config.dingTalkSecret.trim();
+      // 未启用加签的钉钉机器人是合法配置，Secret 为空不再报错；
+      // 编辑已有渠道时密钥不回显，服务端 mergeSecrets 负责沿用已保存的值。
+      if (!url && secret) errors.url = t("settings.dingTalkSecretNeedsUrl", { label });
+      else if (url && !looksLikeUrl(url)) errors.url = t("settings.dingTalkUrl", { label });
+      else if (url && !new URL(url).searchParams.has("access_token"))
+        errors.url = t("settings.dingTalkToken", { label });
     }
     return errors;
   }
@@ -132,10 +133,11 @@ export function createAdminSettingsValidators<T extends (...args: any[]) => stri
     return null;
   }
 
-  function validateDomainRules(rawValue: string, label: string): string | null {
+  function validateDomainRules(rawValue: string, list: "direct" | "block"): string | null {
+    const label = list === "direct" ? t("settings.directList") : t("settings.blockList");
     const analysis = analyzeDomainRules(
-      label === t("settings.directList") ? rawValue : "",
-      label === t("settings.blockList") ? rawValue : ""
+      list === "direct" ? rawValue : "",
+      list === "block" ? rawValue : ""
     );
     const firstError = [...analysis.direct.diagnostics, ...analysis.block.diagnostics].find(
       (item) => item.severity === "error"

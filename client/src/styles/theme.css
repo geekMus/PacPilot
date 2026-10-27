@@ -1,30 +1,41 @@
 :root {
   color-scheme: light dark;
-  --bg: #f4f6f9;
+  --bg: #f1f5fb;
+  --dialog-overlay-bg: rgba(15, 23, 42, 0.56);
+  --dialog-panel-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
   --surface: #ffffff;
-  --surface-2: #f0f3f7;
-  --text: #1a2332;
-  --muted: #5f6d82;
-  --line: #e4e9f0;
+  --surface-2: #eaf0f8;
+  --text: #1b2940;
+  --muted: #5d6d86;
+  --line: #dfe7f2;
   --accent: #3556d8;
   --accent-hover: #2b46c4;
   --accent-active: #2139aa;
   --accent-contrast: #ffffff;
   --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
-  --control-disabled-bg: #e9edf3;
-  --control-disabled-text: #596579;
-  --control-disabled-border: #c7cfdb;
+  --control-disabled-bg: #e7edf6;
+  --control-disabled-text: #5b6a82;
+  --control-disabled-border: #c5d0e0;
   --green: #056b43;
   --green-soft: color-mix(in srgb, var(--green) 12%, transparent);
   --red: #b4233a;
+  --red-contrast: #ffffff;
   --red-soft: color-mix(in srgb, var(--red) 12%, transparent);
   --warn: #805300;
   --warn-soft: color-mix(in srgb, var(--warn) 14%, transparent);
-  --shadow: 0 1px 2px rgba(26, 35, 50, 0.04), 0 8px 24px rgba(26, 35, 50, 0.05);
+  /* 指标卡片的辅助强调色，与 accent/green/red 同为可切换主题令牌。 */
+  --violet: #8b5cf6;
+  --violet-soft: color-mix(in srgb, var(--violet) 11%, transparent);
+  --teal: #0e9f9a;
+  --teal-soft: color-mix(in srgb, var(--teal) 11%, transparent);
+  --shadow: 0 1px 2px rgba(35, 55, 85, 0.04), 0 8px 24px rgba(47, 73, 112, 0.055);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 10%);
+  /* 图标底板顶部的内高光，模拟受光面。 */
+  --inset-highlight: rgba(255, 255, 255, 0.28);
+  /* 移动端侧边栏抽屉展开时投向页面内容的阴影。 */
+  --sidebar-shadow: 18px 0 48px rgba(10, 20, 35, 0.18);
   --radius: 14px;
   --radius-sm: 10px;
-  --space-1: 8px;
-  --space-2: 12px;
   --space-3: 16px;
   --space-4: 20px;
   --space-5: 28px;
@@ -44,6 +55,8 @@ html.theme-light {
 
 html.theme-dark {
   color-scheme: dark;
+  --dialog-overlay-bg: rgba(0, 0, 0, 0.64);
+  --dialog-panel-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
   --bg: #0e1218;
   --surface: #161c26;
   --surface-2: #1c2430;
@@ -59,8 +72,15 @@ html.theme-dark {
   --control-disabled-border: #404b5b;
   --green: #4ecf9a;
   --red: #f08a98;
+  --red-contrast: #2a0b10;
   --warn: #e0b35a;
+  /* 深色模式下提亮辅助强调色，保证在深色底上有足够对比度。 */
+  --violet: #b598ff;
+  --teal: #4fd1c5;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 10px 28px rgba(0, 0, 0, 0.28);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 45%);
+  --inset-highlight: rgba(255, 255, 255, 0.1);
+  --sidebar-shadow: 18px 0 48px rgba(0, 0, 0, 0.55);
 }
 
 *,
@@ -71,6 +91,8 @@ html.theme-dark {
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Prevent portaled menus from expanding the document's horizontal scroll area. */
+  overflow-x: clip;
   /* 移除移动浏览器点击元素时默认出现的蓝色/半透明点击闪烁。 */
   -webkit-tap-highlight-color: transparent;
 }
@@ -99,15 +121,32 @@ body {
   letter-spacing: 0.01em;
 }
 
-html:has(dialog[open], [aria-modal="true"], .sidebar-backdrop),
-body:has(dialog[open], [aria-modal="true"], .sidebar-backdrop) {
+/*
+ * Reka UI Dialog manages modal scroll locking itself. Do not also lock the
+ * document root here: hiding the root scrollbar changes the layout viewport
+ * and makes fixed page headers jump when a layer opens. The custom sidebar
+ * backdrop only needs to stop body scrolling.
+ */
+body:has(.admin-layout) {
   overflow: hidden;
 }
 
-dialog[open],
+body:has(.sidebar-backdrop) {
+  overflow: hidden;
+}
+
+/* Both admin and public pages use internal shared scroll areas. */
+html:has(.admin-layout) {
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+
+html:not(:has(.admin-layout)) {
+  scrollbar-gutter: auto;
+}
+
 [aria-modal="true"],
-.dialog-backdrop,
-.timezone-sheet-backdrop {
+.sidebar-backdrop {
   overscroll-behavior: contain;
 }
 
@@ -152,41 +191,45 @@ select {
   opacity: 1;
   cursor: not-allowed;
   box-shadow: none;
-  transform: none;
+  translate: none;
   filter: none;
 }
 
 /*
  * A loading button is temporarily non-interactive, not unavailable. Preserve
  * legible text and the normal button variant while it waits for a response.
+ *
+ * The selectors intentionally do NOT require :disabled. Some buttons keep
+ * themselves enabled while a request is in flight (the settings page must,
+ * otherwise a click arriving after a blur-triggered save is swallowed), and
+ * they still need the loading affordances.
  */
-:root button.is-loading:disabled {
+:root button.is-loading {
   opacity: 1;
   cursor: progress;
   box-shadow: none;
-  transform: none;
+  translate: none;
   filter: none;
 }
 
-:root
-  button.is-loading:disabled:not(.primary):not(.btn-save):not(.login-submit):not(.dash-button):not(
-    .monitor-button
-  ):not(.action-button) {
+:root button.is-loading:not(.login-submit) {
   color: var(--text);
   -webkit-text-fill-color: var(--text);
   background-color: var(--surface);
   border-color: var(--line);
+  opacity: 1;
+  cursor: progress;
 }
 
-:root button.is-loading:disabled:is(.primary, .login-submit) {
+:root button.is-loading:is(.app-button--primary, .login-submit) {
   color: var(--accent-contrast);
   -webkit-text-fill-color: var(--accent-contrast);
   background-color: var(--accent);
   border-color: var(--accent);
 }
 
-:root button.is-loading:disabled .app-icon,
-:root button.is-loading:disabled svg {
+:root button.is-loading .app-icon,
+:root button.is-loading svg {
   opacity: 1;
 }
 
@@ -195,9 +238,13 @@ select {
   opacity: 1;
 }
 
-/* 桌面点击与触屏按下都提供轻微反馈；颜色仍由组件的主题状态决定。 */
+/*
+ * 桌面点击与触屏按下都提供轻微反馈；颜色仍由组件的主题状态决定。
+ * 这里用独立的 `translate` 属性而不是 `transform`：Tailwind v4 的
+ * translate-* 工具类写的也是 `translate`，两者混用会同时生效且无法互相复位。
+ */
 :where(button, a, [role="button"], [role="tab"], summary):active {
-  transform: translateY(1px);
+  translate: 0 1px;
 }
 
 code {
@@ -244,65 +291,6 @@ code {
   line-height: 1.6;
 }
 
-/* Shared nav pill button (used via :deep in header) */
-.nav-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 36px;
-  padding: 0 14px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  text-decoration: none;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s;
-  white-space: nowrap;
-}
-
-.nav-btn:hover {
-  background: var(--surface-2);
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
-  color: var(--accent);
-  text-decoration: none;
-}
-
-.nav-btn.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast);
-}
-
-.nav-btn.primary:hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  color: var(--accent-contrast);
-  filter: none;
-}
-
-.nav-btn.primary:active {
-  background: var(--accent-active);
-  border-color: var(--accent-active);
-  color: var(--accent-contrast);
-}
-
-.nav-btn:not(.primary):active {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.nav-btn.ghost {
-  background: transparent;
-}
-
 @media (max-width: 640px) {
   :root {
     --page-pad: 16px;
@@ -311,42 +299,26 @@ code {
   }
 }
 
-/* === scrollbars (VS Code–inspired: thin, quiet, theme-aware) === */
-:root {
-  --scrollbar-size: 10px;
-  --scrollbar-thumb: color-mix(in srgb, var(--muted) 45%, transparent);
-  --scrollbar-thumb-hover: color-mix(in srgb, var(--muted) 70%, transparent);
-  --scrollbar-track: transparent;
+/* Native text fields keep their semantic behavior while inheriting project theme tokens.
+   The zero-specificity baseline deliberately lets page-specific layouts retain their own styling. */
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea) {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 40px;
+  padding: 9px 12px;
+  color: var(--text);
+  border-color: var(--line);
+  background-color: var(--surface);
 }
 
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+:where(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea
+)::placeholder {
+  color: var(--muted);
+  opacity: 0.82;
 }
 
-*::-webkit-scrollbar {
-  width: var(--scrollbar-size);
-  height: var(--scrollbar-size);
-}
-
-*::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
-  border-radius: 999px;
-}
-
-*::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-
-*::-webkit-scrollbar-corner {
-  background: transparent;
+:where(input[type="checkbox"], input[type="radio"]) {
+  accent-color: var(--accent);
 }

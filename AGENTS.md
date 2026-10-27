@@ -9,6 +9,68 @@
 - 当前长期保留的分支只有 `main` 和 `dev`。除非维护者明确要求，不要创建、恢复或建议新增长期分支。
 - 修改前检查现有实现，尽量做最小、完整的变更；完成后检查实际文件内容，并报告提交结果、验证情况和未验证事项。
 
+## 提交规范
+
+> 适用范围：本节约定只针对本仓库（PacPilot）。其他项目的提交与工作流要求以各自的约定为准，不要套用本文件。
+
+- **每次任务完成后必须直接提交，不需要再询问维护者。** 只提交本次任务实际改动的文件，不要顺手提交无关改动、构建产物或临时文件。
+- **提交信息使用中文描述**，并遵循常见开源项目的 Conventional Commits 格式：
+
+  ```
+  <type>(<scope>): <中文简要描述>
+
+  <可选的正文：说明改动动机、关键取舍或影响范围>
+  ```
+
+- `<type>` 使用常见取值：`feat`（新功能）、`fix`（缺陷修复）、`refactor`（重构）、`style`（样式/格式）、`perf`（性能）、`docs`（文档）、`test`（测试）、`build`（构建依赖）、`ci`（工作流）、`chore`（杂项）。`<scope>` 可选，用简短的模块名，例如 `feat(webhook): 实现工作区粘性布局`、`fix(public): 修复 PAC 响应序列化错误`。
+- 描述使用祈使/陈述语气，简洁说明「做了什么」，不要写「更新文件」这类无信息量的内容；一次提交聚焦一个完整变更，避免把多个不相关的修改混在一起。
+- 若提交涉及破坏性变更，在正文中补充 `BREAKING CHANGE:` 说明。
+- 提交前必须完成本文件要求的验证（`bun run check`、`bun run test`）；因环境限制确实无法运行的项目，必须在回复中如实说明，不能声称已通过。
+
+## 单元测试目录规范
+
+- 前端单元测试统一放在 `client/tests/`，后端单元测试统一放在 `server/tests/`，让测试随所属代码边界一起迁移。
+- 前端和后端分别维护自己的 Vitest 配置、测试发现范围和覆盖率报告；不要把前后端单测放回仓库根目录的统一 `tests/` 目录。
+- 新增或迁移测试后，必须同步检查对应 Vitest 配置、`package.json` 测试脚本、TypeScript 检查范围和开发文档；验证 `bun run test` 能运行两套测试与覆盖率门槛。
+
+## 前端组件分层与编辑器规范
+
+- `client/src/components/` 只放跨页面通用组件；业务专属组件放在 `client/src/features/<feature>/components/`，页面组件负责组合而不是复制通用组件实现。
+- `client/src/components/CodeMirrorField.vue` 是唯一允许创建和管理 CodeMirror `EditorView` 的组件。当前编辑器语言仅支持 `text` 和 `json`；未经维护者明确要求，不要加入其他语言模式或对应依赖。业务组件可以通过参数和 extensions 配置主题、行号及诊断扩展，但不得再创建 `EditorView`、维护重复生命周期或自行实现编辑器滚动条。
+- 新增通用能力时优先扩展现有公共组件；只有交互语义不同且确实需要跨页面复用时，才新增一个公共组件。不要为同一种通用能力创建多个并列实现。
+- 文件和目录名统一使用 `kebab-case`；TypeScript 类型/类使用 `PascalCase`，变量/函数使用 `camelCase`，真正的全局常量使用 `UPPER_SNAKE_CASE`。
+- 组件移动或重命名后必须同步更新所有导入路径并删除旧实现；完成后运行 `bun run check` 和 `bun run test`，并明确区分 CI 验证与真实浏览器视觉验证。
+
+## 后端分层与数据库适配器规范
+
+- 后端目录、依赖方向和 TypeScript 命名约定见 `docs/backend-architecture.md`；新增或替换持久化驱动前必须阅读 `docs/storage-adapter-contract.md`。
+- `server/storage/repositories.ts` 是唯一公共存储契约来源。任何数据库适配器都必须实现其中定义的 repository 接口和 `ApplicationStorage` 聚合结构，保持相同的返回值、缺失值、分页、ID、时间格式和事务语义；不要让数据库驱动类型泄漏到业务层。
+- 内存实现只放在 `server/storage/memory/`；SQLite 的连接、schema/migrations 和 SQL 查询只放在 `server/storage/sqlite/`；文件/对象存储等非数据库持久化实现应与具体数据库目录分离。
+- 新增适配器时必须同步更新驱动配置与组合入口、实现契约测试，并验证现有数据迁移；不能只通过 TypeScript 编译就认为实现完成。
+- **持久化数据形状变更必须附带迁移**：修改表结构、`settings` 表中的 JSON 文档（应用设置、通知配置、管理员凭据）或 artifact JSON 文件的字段形状时，必须在 `server/storage/sqlite/migrations.ts` 末尾追加迁移（版本号 = 上一条 + 1，旧数据改写在迁移内完成，损坏数据中止而非静默丢弃）。已发布的迁移永不修改或删除，只能追加；每个新迁移必须配套 Bun 迁移测试。全新数据库与旧数据库重放同一条迁移链，禁止为新库另写建表路径。normalize 类函数只负责补默认值，不得吸收字段重命名/搬移等结构变更。旧代码遇到更新的数据库拒绝启动是预期保护行为，不要放宽。
+
+## 前端样式开发规范
+
+- **样式统一用 Tailwind CSS 编写。** 组件与页面的 `<style>` 块必须以 `@reference "@/styles/tailwind.css";` 开头，规则体使用 `@apply` 组合工具类；不要新增手写的 `display`/`padding`/`border-radius` 等原始声明。
+- 颜色、圆角、阴影、字体等设计令牌保留为 CSS 变量（见 `client/src/styles/theme.css`），在 `@apply` 之外以 `color: var(--muted)` 形式引用，确保明暗主题正确切换；不要在业务代码里硬编码 `#fff`/`white`。
+- 实底按钮的文字色必须使用对应令牌：`--accent-contrast`、`--red-contrast`、`--green-contrast`。深色模式下 accent/red 为浅色，白字会看不清。
+- 响应式优先用 Tailwind 的 `sm:`/`md:` 等变体；确需媒体查询时写在样式块末尾，并保持既有断点语义（1050/900/720/650/620/560/480/360px）。
+- 共享组件（`AppButton`、`AppInput`、`AppSelect`、`AppDialog`、`AppScrollArea`、`TableFrame` 等）的样式由组件自身负责，业务页面只组合使用，不覆盖其内部样式。
+- **用 headless 浏览器验证动画类交互时，注意它会冻结 CSS 过渡。** headless Chrome/Edge 在页面不绘制时不会推进动画时间线：`element.getAnimations()` 显示 `state: "running"` 但 `currentTime` 恒为 0，`getComputedStyle` 一直返回起始值，注入 `!important` 覆盖也无效。实测现象：移动端点抽屉按钮，前几次正常、之后永久停在关闭态。这不是产品缺陷——判定方法是在读取状态前执行 `el.getAnimations().forEach((a) => a.finish())`，若这样之后值正确即可确认是环境问题。
+- **不要混用 `transform:` 与 Tailwind 的 `translate-*` / `rotate-*` / `scale-*` 工具类。** Tailwind v4 的这些工具类写入的是独立的 `translate` / `rotate` / `scale` 属性，而不是 `transform`。两者同时存在于同一元素时**不会互相覆盖**，只有 `transform` 生效。典型后果：移动端侧边栏关闭态写 `transform: translateX(-102%)`、展开态写 `@apply translate-x-0`，抽屉永远打不开。同一属性组必须统一用同一种机制表达。
+
+## 前端滚动区域开发规范
+
+- 普通页面、弹窗、表格、下拉菜单、列表等需要独立滚动的区域，优先使用共享组件 `client/src/components/AppScrollArea.vue`，或使用已经在内部集成该组件的布局/业务组件；不要在业务页面中重复实现滚动条结构。
+- 新增滚动区域前，先判断滚动应该由哪一层负责。页面级滚动交给页面布局，弹窗内容滚动交给 `AppDialog`，表格和独立列表由对应组件管理；避免父子容器同时滚动导致滚动条嵌套、滚动穿透或滚动区域边界不清晰。
+- **嵌套滚动区必须允许滚动链（scroll chaining）。** 内层滚动到上/下边界后，滚轮应继续传递给外层，最终由页面接管，不允许出现"内层滚到底、外层纹丝不动"的死区。`AppScrollArea.vue` 的 `overscroll` 属性默认值即 `"auto"`（允许链式滚动）；只有会阻断页面交互的浮层（弹窗、抽屉、下拉菜单等）才显式传 `overscroll="contain"`。
+- 不要在业务页面里自行书写 `overscroll-behavior` 覆盖共享组件的默认行为；确需阻断时必须通过 `AppScrollArea` 的 `overscroll` 属性表达意图，保持全局行为一致。
+- **滚动条只在内容真正溢出时出现。** 使用 `AppScrollArea` 的 `type="auto"`（内部按 `scrollHeight > offsetHeight` 判断），不要使用 `type="always"`：该模式会无条件渲染滚动条，导致空状态或内容不足时出现一根滚不动的滚动条。
+- 所有页面和组件的滚动条视觉必须统一，包括普通页面、表格、弹窗、下拉框、CodeMirror 等编辑器、文本输入控件及第三方组件内部滚动区。优先复用 `AppScrollArea.vue` 的交互/结构；确实必须保留原生或第三方内部滚动机制时，也必须通过 `scrollbars.css` 使用相同的尺寸、轨道、滑块和悬停配色。
+- 只有在组件的交互行为确实需要、且共享组件无法满足时，才新增原生 `overflow: auto` / `overflow: scroll` 滚动容器；应在代码结构或注释中清晰表达其用途，并确保不会与外层滚动区域产生不必要的嵌套。
+- 共享滚动容器的底层实现统一维护在 `AppScrollArea.vue`。业务组件不要直接拼装 Reka UI 的 ScrollArea primitives，也不要为单个页面另写一套滚动条外观；如共享组件缺少必要能力，应先扩展共享组件再由业务层使用。对于 Reka UI `SelectViewport`、`ComboboxViewport` 等需要 `as-child` 的特殊列表，使用 `AppScrollArea` 的 `viewport` 插槽组合对应视口；只有共享组件内部（例如 `AppSelect.vue`）才允许直接维护 ScrollArea primitives，并且必须复用 `scrollbars.css` 的统一样式。
+- 以上是开发规范，依靠开发者在设计和代码评审时遵守；不额外添加自动扫描或阻断构建的检查代码。
+
 ## GitHub Actions 工作流硬性规则
 
 ### 1. 触发分支范围

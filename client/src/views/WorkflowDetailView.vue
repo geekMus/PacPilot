@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { api, type WorkflowDetail, type WorkflowStage } from "../api/client";
-import AdminLayout from "../components/AdminLayout.vue";
-import AppIcon from "../components/AppIcon.vue";
-import { useCopyFeedback } from "../composables/useCopyFeedback";
-import AppFooter from "../components/AppFooter.vue";
-import ConfirmPopover from "../components/ConfirmPopover.vue";
-import { useToast } from "../composables/useToast";
+import { api, type WorkflowDetail, type WorkflowStage } from "@/api/client";
+import AdminLayout from "@/components/layout/AdminLayout.vue";
+import AppIcon from "@/components/AppIcon.vue";
+import AppDialog from "@/components/AppDialog.vue";
+import { DialogDescription, DialogTitle } from "reka-ui";
+import { useCopyFeedback } from "@/composables/useCopyFeedback";
+import { fetchAdminSession } from "@/composables/useAdminSession";
+import AppFooter from "@/components/AppFooter.vue";
+import ConfirmPopover from "@/components/ConfirmPopover.vue";
+import { useToast } from "@/composables/useToast";
 const { t, locale } = useI18n();
 
 const route = useRoute();
@@ -18,8 +21,6 @@ const { notify } = useToast();
 const detail = ref<WorkflowDetail | null>(null);
 const loading = ref(true);
 const error = ref("");
-const deleting = ref(false);
-const confirmingDelete = ref(false);
 const cancelling = ref(false);
 const confirmingCancel = ref(false);
 
@@ -28,7 +29,7 @@ let pollHandle: ReturnType<typeof setInterval> | undefined;
 let requestInFlight = false;
 
 const selectedStage = ref<WorkflowStage | null>(null);
-const stageDetailDialog = ref<HTMLDialogElement | null>(null);
+const stageDetailOpen = ref(false);
 const { copyState: stageCopyState, copyWithFeedback, resetCopyState } = useCopyFeedback();
 
 const statuses: Record<string, string> = {
@@ -81,26 +82,18 @@ function formatStageDetail(raw: string | undefined | null): string {
   }
 }
 
-async function openStageDetail(stage: WorkflowStage): Promise<void> {
+function openStageDetail(stage: WorkflowStage): void {
   selectedStage.value = stage;
   resetCopyState();
-  await nextTick();
-  if (stageDetailDialog.value && !stageDetailDialog.value.open) {
-    stageDetailDialog.value.showModal();
+  stageDetailOpen.value = true;
+}
+
+function onStageDetailOpenChange(open: boolean): void {
+  stageDetailOpen.value = open;
+  if (!open) {
+    selectedStage.value = null;
+    resetCopyState();
   }
-}
-
-function closeStageDetail(): void {
-  if (stageDetailDialog.value?.open) stageDetailDialog.value.close();
-}
-
-function onStageDetailClose(): void {
-  selectedStage.value = null;
-  resetCopyState();
-}
-
-function handleStageDetailBackdrop(event: MouseEvent): void {
-  if (event.target === stageDetailDialog.value) closeStageDetail();
 }
 
 async function copyStageDetail(): Promise<void> {
@@ -112,9 +105,6 @@ async function copyStageDetail(): Promise<void> {
     }),
     t("workflowDetailPage.stageKey", { key: stage.stage_key }),
     `${t("workflowDetailPage.k33")}：${label(stage.status)}`,
-    t("workflowDetailPage.stageMsg", {
-      msg: label(stage.status),
-    }),
     t("workflowDetailPage.stageErr", {
       err: stage.error || "—",
     }),
@@ -139,7 +129,7 @@ function durationLabel(s: WorkflowStage) {
   });
 }
 
-function stageIconName(status: string): string {
+function stageIconName(status: string) {
   if (status === "succeeded") return "circle-check";
   if (status === "failed") return "circle-x";
   if (status === "running") return "loader-circle";
@@ -153,10 +143,11 @@ async function load() {
   requestInFlight = true;
   const requestedId = Number(route.params.id);
   try {
-    const session = await api.session();
+    // 复用路由守卫刚做过的会话探测（带短 TTL 缓存），避免首屏再串一次网络往返。
+    const session = await fetchAdminSession();
     if (!session.loggedIn) {
       stopPolling();
-      await router.replace("/admin/login");
+      await router.replace({ name: "login", query: { redirect: route.fullPath } });
       return;
     }
     const next = await api.workflowDetail(requestedId);
@@ -209,26 +200,6 @@ async function load() {
   }
 }
 
-async function deleteRun() {
-  if (!detail.value || deleting.value || !confirmingDelete.value) return;
-  const run = detail.value.run;
-  if (run.status === "running" || run.status === "pending") {
-    notify(t("workflowDetailPage.k15"), "warning");
-    return;
-  }
-  deleting.value = true;
-  try {
-    await api.deleteWorkflow(run.id);
-    notify(t("workflowDetailPage.deletedRun", { id: run.id }), "success");
-    await router.replace("/admin/workflows");
-  } catch (e) {
-    notify(e instanceof Error ? e.message : String(e), "error");
-  } finally {
-    deleting.value = false;
-    confirmingDelete.value = false;
-  }
-}
-
 async function cancelRun() {
   if (
     !detail.value ||
@@ -256,10 +227,10 @@ watch(
     previousStatus = null;
     detail.value = null;
     selectedStage.value = null;
+    stageDetailOpen.value = false;
     resetCopyState();
     loading.value = true;
     error.value = "";
-    confirmingDelete.value = false;
     confirmingCancel.value = false;
     void load();
   }
@@ -271,6 +242,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopPolling();
+  stageDetailOpen.value = false;
   selectedStage.value = null;
 });
 </script>
@@ -285,13 +257,17 @@ onUnmounted(() => {
       <div v-if="error" class="error-panel" role="alert">
         <strong>{{ t("workflow.loadDetailFailed") }}</strong>
         <span>{{ error }}</span>
-        <button type="button" @click="load()">{{ t("common.retry") }}</button>
+        <button type="button" class="app-button app-button--secondary" @click="load()">
+          {{ t("common.retry") }}
+        </button>
       </div>
 
       <section v-if="detail" class="detail-panel">
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">EXECUTION #{{ detail.run.id }}</p>
+            <p class="eyebrow">
+              {{ t("workflowDetailPage.kickerExecution", { id: detail.run.id }) }}
+            </p>
             <h2>{{ t("workflow.pacGeneration") }}</h2>
             <p class="muted">{{ t("workflow.fixedId") }}</p>
           </div>
@@ -341,12 +317,6 @@ onUnmounted(() => {
             </strong>
           </div>
         </div>
-        <div class="result-message">
-          <strong>{{ t("workflow.result") }}</strong>
-          <p>
-            {{ label(detail.run.status) }}
-          </p>
-        </div>
         <div v-if="detail.run.error" class="failure-message">
           <strong
             ><AppIcon name="circle-alert" :size="16" /> {{ t("workflowDetailPage.k26") }}</strong
@@ -358,7 +328,7 @@ onUnmounted(() => {
       <section v-if="detail" class="detail-panel">
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">STAGE TIMELINE</p>
+            <p class="eyebrow">{{ t("workflowDetailPage.kickerTimeline") }}</p>
             <h2>{{ t("workflowDetailPage.k27") }}</h2>
             <p class="muted">
               {{ t("workflowDetailPage.k28") }}
@@ -394,9 +364,6 @@ onUnmounted(() => {
                 </div>
                 <span class="status" :class="stage.status">{{ label(stage.status) }}</span>
               </div>
-              <p>
-                {{ label(stage.status) }}
-              </p>
               <div class="stage-meta">
                 <span>{{
                   t("workflowDetailPage.stageStart", { time: dateLabel(stage.started_at) })
@@ -421,49 +388,58 @@ onUnmounted(() => {
         {{ t("workflowDetailPage.k30") }}
       </div>
 
-      <dialog
-        v-if="selectedStage"
-        ref="stageDetailDialog"
-        class="stage-detail-dialog"
-        :aria-label="t('workflowDetailPage.k19')"
-        @click="handleStageDetailBackdrop"
-        @close="onStageDetailClose"
+      <AppDialog
+        :open="stageDetailOpen && !!selectedStage"
+        :label="t('workflowDetailPage.k19')"
+        width="min(640px, calc(100vw - 16px))"
+        body-class="stage-detail-dialog-body"
+        :close-label="t('workflowDetailPage.k20')"
+        @update:open="onStageDetailOpenChange"
       >
-        <div class="stage-detail-shell">
-          <header class="stage-detail-header">
-            <div>
-              <p class="stage-detail-kicker">STAGE · {{ selectedStage.stage_key }}</p>
-              <h2>
-                {{ stageLabel(selectedStage.stage_key) }}
-              </h2>
-            </div>
-            <div class="stage-detail-actions">
-              <button
-                class="stage-detail-btn"
-                :class="{ 'is-copy-success': stageCopyState === 'success', 'is-copy-error': stageCopyState === 'error' }"
-                type="button"
-                aria-live="polite"
-                @click="copyStageDetail"
-              >
-                <AppIcon
-                  :name="stageCopyState === 'success' ? 'circle-check' : stageCopyState === 'error' ? 'circle-x' : 'copy'"
-                  :size="14"
-                />{{ stageCopyState === 'success' ? t("common.copiedShort") : stageCopyState === 'error' ? t("common.copyFailed") : t("workflowDetailPage.k31") }}
-              </button>
-              <button
-                class="stage-detail-btn"
-                type="button"
-                :aria-label="t('workflowDetailPage.k20')"
-                @click="closeStageDetail"
-              >
-                <AppIcon name="x" :size="14" />
-              </button>
-            </div>
-          </header>
-          <div class="stage-detail-body">
-            <p class="stage-detail-message">
-              {{ label(selectedStage.status) }}
+        <template #header>
+          <div class="stage-detail-heading">
+            <p class="stage-detail-kicker">
+              {{ t("workflowDetailPage.kickerStage", { name: selectedStage?.stage_key ?? "" }) }}
             </p>
+            <DialogTitle class="stage-detail-title">
+              {{ stageLabel(selectedStage?.stage_key ?? "") }}
+            </DialogTitle>
+            <DialogDescription class="app-dialog-visually-hidden">
+              {{ t("workflowDetailPage.k36") }}. {{ t("workflowDetailPage.k37") }}
+            </DialogDescription>
+          </div>
+        </template>
+        <template #header-actions>
+          <button
+            class="app-button app-button--sm app-button--secondary"
+            :class="{
+              'is-copy-success': stageCopyState === 'success',
+              'is-copy-error': stageCopyState === 'error',
+            }"
+            type="button"
+            aria-live="polite"
+            @click="copyStageDetail"
+          >
+            <AppIcon
+              :name="
+                stageCopyState === 'success'
+                  ? 'circle-check'
+                  : stageCopyState === 'error'
+                    ? 'circle-x'
+                    : 'copy'
+              "
+              :size="14"
+            />{{
+              stageCopyState === "success"
+                ? t("common.copiedShort")
+                : stageCopyState === "error"
+                  ? t("common.copyFailed")
+                  : t("workflowDetailPage.k31")
+            }}
+          </button>
+        </template>
+        <template #body>
+          <div v-if="selectedStage" class="stage-detail-body">
             <section class="stage-detail-section">
               <h3 class="stage-detail-section-title">{{ t("workflowDetailPage.k32") }}</h3>
               <div class="stage-detail-meta">
@@ -505,8 +481,8 @@ onUnmounted(() => {
               <pre class="stage-detail-pre">{{ formatStageDetail(selectedStage.detail) }}</pre>
             </section>
           </div>
-        </div>
-      </dialog>
+        </template>
+      </AppDialog>
 
       <div v-if="detail" class="detail-page-actions">
         <RouterLink class="back-link" to="/admin/workflows">
@@ -528,7 +504,7 @@ onUnmounted(() => {
           >
             <template #trigger="{ toggle }">
               <button
-                class="cancel-button"
+                class="app-button app-button--danger-ghost"
                 type="button"
                 :disabled="cancelling"
                 :title="
@@ -536,46 +512,9 @@ onUnmounted(() => {
                     ? t('workflowDetailPage.cancellingTitle')
                     : t('workflowDetailPage.cancelQueuedTitle')
                 "
-                @click="
-                  confirmingDelete = false;
-                  toggle();
-                "
+                @click="toggle()"
               >
                 <AppIcon name="x" :size="15" /> {{ t("workflowDetailPage.k39") }}
-              </button>
-            </template>
-          </ConfirmPopover>
-          <ConfirmPopover
-            :open="confirmingDelete"
-            :title="t('workflowDetailPage.k45')"
-            :description="t('workflowDetailPage.k46')"
-            :confirm-text="t('workflowDetailPage.k47')"
-            :cancel-text="t('workflowDetailPage.k42')"
-            :busy-text="t('workflowDetailPage.k24')"
-            :busy="deleting"
-            @update:open="confirmingDelete = $event"
-            @confirm="deleteRun"
-          >
-            <template #trigger="{ toggle }">
-              <button
-                class="delete-button"
-                type="button"
-                :disabled="
-                  deleting || detail.run.status === 'running' || detail.run.status === 'pending'
-                "
-                :title="
-                  detail.run.status === 'running' || detail.run.status === 'pending'
-                    ? t('workflowDetailPage.k23')
-                    : deleting
-                      ? t('workflowDetailPage.k24')
-                      : t('workflowDetailPage.k25')
-                "
-                @click="
-                  confirmingCancel = false;
-                  toggle();
-                "
-              >
-                <AppIcon name="trash-2" :size="15" /> {{ t("workflowDetailPage.k44") }}
               </button>
             </template>
           </ConfirmPopover>
@@ -587,104 +526,65 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .detail-page {
-  display: grid;
-  gap: 18px;
+  @apply grid gap-[18px];
 }
 .detail-panel {
-  min-width: 0;
-  padding: 22px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  @apply min-w-0 rounded-[14px] border p-[22px];
+  border-color: var(--line);
   background: var(--surface);
 }
 .panel-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
+  @apply mb-4 flex items-start justify-between gap-3;
 }
 .eyebrow {
-  margin: 0 0 4px;
+  @apply mb-1 mt-0 text-[10px] font-extrabold tracking-[0.12em];
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
 }
 .panel-heading h2 {
-  margin: 0;
-  font-size: 1.15rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  @apply m-0 text-[1.15rem] font-extrabold tracking-tight;
 }
 .muted {
-  margin: 6px 0 0;
+  @apply mb-0 mt-1.5 text-xs leading-normal;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.5;
 }
 .meta-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 14px;
+  @apply mb-3.5 grid grid-cols-3 gap-3;
 }
 .meta-grid div {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
+  @apply grid min-w-0 gap-1;
 }
 .meta-grid span {
+  @apply text-[11px];
   color: var(--muted);
-  font-size: 11px;
 }
 .meta-grid strong {
-  font-size: 13px;
+  @apply text-[13px];
   overflow-wrap: anywhere;
 }
-.result-message,
 .failure-message {
-  display: grid;
-  gap: 6px;
-  margin-top: 12px;
+  @apply mt-3 grid gap-1.5;
 }
-.result-message strong,
 .failure-message strong {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-}
-.result-message p,
-.failure-message pre {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.55;
+  @apply inline-flex items-center gap-1.5 text-xs;
 }
 .failure-message pre {
-  padding: 11px 12px;
-  border: 1px solid color-mix(in srgb, var(--red) 28%, var(--line));
-  border-radius: 10px;
+  @apply m-0 text-[13px] leading-normal;
+}
+.failure-message pre {
+  @apply whitespace-pre-wrap rounded-[10px] border px-3 py-[11px];
+  border-color: color-mix(in srgb, var(--red) 28%, var(--line));
   background: var(--red-soft);
   color: var(--red);
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font: inherit;
 }
 .status {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 28px;
-  padding: 0 10px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  @apply inline-flex min-h-7 items-center gap-[5px] whitespace-nowrap rounded-full border px-2.5 text-[11px] font-bold;
+  border-color: var(--line);
   background: var(--surface-2);
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
 }
 .status.succeeded {
   color: var(--green);
@@ -702,41 +602,26 @@ onUnmounted(() => {
   background: var(--accent-soft);
 }
 .status.pending {
-  color: var(--warn, #b45309);
-  border-color: color-mix(in srgb, var(--warn, #d97706) 30%, var(--line));
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 30%, var(--line));
 }
 .stage-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+  @apply m-0 list-none p-0;
 }
 .stage-item {
-  display: flex;
-  gap: 12px;
-  position: relative;
-  padding-bottom: 22px;
+  @apply relative flex gap-3 pb-[22px];
 }
 .stage-item:last-child {
-  padding-bottom: 0;
+  @apply pb-0;
 }
 .stage-item:not(:last-child):before {
-  content: "";
-  position: absolute;
-  left: 15px;
-  top: 32px;
-  bottom: 0;
-  width: 1px;
+  @apply absolute bottom-0 left-[15px] top-8 w-px;
   background: var(--line);
+  content: "";
 }
 .stage-marker {
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  flex: 0 0 32px;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--line);
-  border-radius: 50%;
+  @apply z-[1] grid h-8 w-8 shrink-0 place-items-center rounded-full border;
+  border-color: var(--line);
   background: var(--surface-2);
   color: var(--muted);
 }
@@ -750,147 +635,66 @@ onUnmounted(() => {
   color: var(--accent);
 }
 .stage-body {
-  flex: 1;
-  min-width: 0;
-  padding: 2px 0 0;
+  @apply min-w-0 flex-1 pt-0.5;
 }
 .stage-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px 16px;
+  @apply flex items-start justify-between gap-x-4 gap-y-3;
 }
 .stage-heading-main {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-  flex: 1;
+  @apply grid min-w-0 flex-1 gap-1;
 }
 .stage-number {
+  @apply text-[10px] font-bold leading-tight tracking-[0.08em];
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  line-height: 1.2;
 }
 .stage-name-trigger {
-  display: inline;
-  width: fit-content;
-  max-width: 100%;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
+  /* 无 Preflight 时 button 保留浏览器默认的 buttonface 底色，必须显式清除背景色。 */
+  @apply inline w-fit max-w-full cursor-pointer border-0 bg-transparent p-0 text-left text-sm font-bold tracking-tight no-underline transition-colors;
   color: var(--text);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 750;
-  letter-spacing: -0.02em;
   line-height: 1.35;
-  text-align: left;
-  cursor: pointer;
-  text-decoration: none;
   overflow-wrap: anywhere;
-  transition: color 0.15s;
 }
 .stage-name-trigger:hover,
 .stage-name-trigger:focus-visible {
+  @apply underline outline-none;
   color: var(--accent);
-  text-decoration: underline;
   text-underline-offset: 3px;
-  outline: none;
 }
 .stage-heading .status {
-  flex: 0 0 auto;
-  margin-top: 2px;
-}
-.stage-body > p {
-  margin: 8px 0 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.6;
+  @apply mt-0.5 shrink-0;
 }
 .stage-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  margin-top: 10px;
+  @apply mt-2.5 flex flex-wrap gap-x-3.5 gap-y-1.5 text-[11px] leading-snug;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.4;
 }
 .stage-error {
-  margin: 10px 0 0;
-  padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--red) 28%, var(--line));
-  border-radius: 10px;
+  @apply mb-0 mt-2.5 whitespace-pre-wrap rounded-[10px] border px-3 py-2.5 text-xs leading-normal;
+  border-color: color-mix(in srgb, var(--red) 28%, var(--line));
   background: var(--red-soft);
   color: var(--red);
-  font: inherit;
-  font-size: 12px;
-  line-height: 1.55;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 .no-stages,
 .loading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 20px;
+  @apply flex items-center gap-2.5 p-5 text-[13px];
   color: var(--muted);
-  font-size: 13px;
 }
 .error-panel {
-  display: grid;
-  gap: 8px;
-  padding: 14px;
-  border: 1px solid var(--red);
-  border-radius: 10px;
+  @apply grid gap-2 rounded-[10px] border p-3.5 text-xs;
+  border-color: var(--red);
   color: var(--red);
-  font-size: 12px;
 }
 .detail-page-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 4px 2px;
+  @apply flex flex-wrap items-center justify-between gap-3 px-0.5 py-1;
 }
 .detail-action-group {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  flex-wrap: wrap;
+  @apply flex flex-wrap items-center gap-[9px];
 }
-.back-link,
-.delete-button,
-.cancel-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+.back-link {
+  @apply inline-flex min-h-9 cursor-pointer items-center gap-[7px] rounded-lg border px-3 text-xs font-bold no-underline;
+  border-color: var(--line);
   color: var(--text);
-  text-decoration: none;
-  font-size: 12px;
-  font-weight: 700;
   background: var(--surface);
-  cursor: pointer;
-}
-.delete-button {
-  color: var(--red);
-}
-.cancel-button {
-  color: var(--muted);
-}
-.delete-button:disabled,
-.cancel-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 .spinning {
   animation: spin 0.9s linear infinite;
@@ -906,235 +710,117 @@ onUnmounted(() => {
     animation-iteration-count: 1;
   }
 }
-
-.stage-detail-dialog {
-  width: min(640px, calc(100vw - 24px));
-  max-height: min(86dvh, 820px);
-  margin: auto;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
+.stage-detail-heading {
+  @apply grid min-w-0 gap-1;
+}
+.stage-detail-title {
+  @apply m-0 text-lg font-extrabold leading-snug tracking-tight;
   color: var(--text);
-  box-shadow: 0 18px 48px color-mix(in srgb, var(--text) 18%, transparent);
-  overflow: auto;
-}
-.stage-detail-dialog::backdrop {
-  background: rgba(12, 16, 24, 0.45);
-}
-.stage-detail-shell {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-.stage-detail-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 18px 18px 12px;
-  border-bottom: 1px solid var(--line);
-  position: sticky;
-  top: 0;
-  background: var(--surface);
-  z-index: 1;
-}
-.stage-detail-kicker {
-  margin: 0 0 4px;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-}
-.stage-detail-header h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.3;
   overflow-wrap: anywhere;
 }
-.stage-detail-actions {
-  display: flex;
-  gap: 8px;
-  flex: 0 0 auto;
-  flex-wrap: nowrap;
+.stage-detail-kicker {
+  @apply mb-1 mt-0 text-[10px] font-extrabold tracking-[0.12em];
+  color: var(--muted);
 }
-.stage-detail-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 38px;
-  min-width: 38px;
-  padding: 0 14px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    filter 0.15s,
-    opacity 0.15s,
-    border-color 0.15s,
-    color 0.15s,
-    background 0.15s;
-}
-.stage-detail-btn:hover {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.stage-detail-btn.is-copy-success {
+.app-button.is-copy-success {
   border-color: color-mix(in srgb, var(--green) 55%, var(--line));
   color: var(--green);
 }
-.stage-detail-btn.is-copy-error {
-  border-color: color-mix(in srgb, var(--red, #dc2626) 55%, var(--line));
-  color: var(--red, #dc2626);
+.app-button.is-copy-error {
+  border-color: color-mix(in srgb, var(--red) 55%, var(--line));
+  color: var(--red);
 }
 .stage-detail-body {
-  display: grid;
-  gap: 16px;
-  padding: 14px 18px 18px;
-}
-.stage-detail-message {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.55;
-  overflow-wrap: anywhere;
+  @apply grid gap-4 p-0;
 }
 .stage-detail-section {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
+  @apply grid min-w-0 gap-2;
 }
 .stage-detail-section-title {
-  margin: 0;
+  @apply m-0 text-[11px] font-bold;
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
 }
 .stage-detail-hint {
-  margin: 0;
+  @apply m-0 text-[11px] leading-normal;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.5;
 }
 .stage-detail-meta {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  @apply grid grid-cols-2 gap-3;
 }
 .stage-detail-meta-card {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
+  @apply grid min-w-0 gap-1;
 }
 .stage-detail-meta-card span {
+  @apply text-[11px];
   color: var(--muted);
-  font-size: 11px;
 }
 .stage-detail-meta-card strong {
-  font-size: 12px;
+  @apply text-xs leading-snug;
   overflow-wrap: anywhere;
-  line-height: 1.45;
 }
 .stage-detail-pre {
-  margin: 0;
-  padding: 11px 12px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  @apply m-0 whitespace-pre-wrap rounded-[10px] border px-3 py-[11px] font-mono text-xs leading-normal;
+  border-color: var(--line);
   background: var(--surface-2);
   color: var(--text);
-  font: inherit;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1.55;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
-  max-height: 220px;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
 }
 .stage-detail-pre.is-error {
   border-color: color-mix(in srgb, var(--red) 28%, var(--line));
   background: var(--red-soft);
   color: var(--red);
-  max-height: 160px;
 }
-
 @media (max-width: 650px) {
   .detail-panel {
-    padding: 15px;
+    @apply p-[15px];
   }
   .meta-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    @apply grid-cols-2;
   }
   .stage-heading {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+    @apply flex-col items-start gap-2;
   }
   .stage-heading .status {
-    margin-top: 0;
+    @apply mt-0;
   }
   .stage-name-trigger {
-    font-size: 13px;
+    @apply text-[13px];
   }
   .stage-meta {
-    gap: 4px 12px;
-    margin-top: 8px;
+    @apply mt-2 gap-x-3 gap-y-1;
   }
   .detail-page-actions {
-    position: sticky;
-    bottom: 8px;
-    z-index: 10;
-    padding: 10px;
-    border: 1px solid var(--line);
-    border-radius: 12px;
+    @apply sticky bottom-2 z-10 rounded-xl border p-2.5;
+    border-color: var(--line);
     background: var(--surface);
     box-shadow: 0 6px 24px #00000012;
   }
   .detail-page-actions > .back-link {
-    flex: 1;
+    @apply flex-1;
   }
   .detail-action-group {
-    flex: 0 0 auto;
-  }
-  .stage-detail-dialog {
-    width: calc(100vw - 16px);
-    max-height: min(90dvh, 100%);
-    border-radius: 12px;
-  }
-  .stage-detail-header {
-    padding: 14px 14px 10px;
-    gap: 10px;
-  }
-  .stage-detail-header h2 {
-    font-size: 16px;
-  }
-  .stage-detail-btn {
-    min-height: 36px;
-    min-width: 36px;
-    padding: 0 12px;
+    @apply shrink-0;
   }
   .stage-detail-body {
-    padding: 12px 14px 16px;
-    gap: 14px;
+    @apply gap-3.5;
   }
   .stage-detail-meta {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    @apply grid-cols-1 gap-2.5;
   }
   .stage-detail-pre {
+    @apply text-[11px];
     max-height: min(36vh, 240px);
-    font-size: 11px;
+  }
+}
+.stage-detail-body {
+  @apply p-0;
+}
+:deep(.stage-detail-dialog-body .app-scroll-area-viewport) {
+  @apply px-[18px] py-4;
+}
+@media (max-width: 560px) {
+  :deep(.stage-detail-dialog-body .app-scroll-area-viewport) {
+    @apply p-3.5;
   }
 }
 </style>

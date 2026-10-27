@@ -1,40 +1,58 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
-import { api, type AppSettings, type StorageSummary } from "../api/client";
-import AdminLayout from "../components/AdminLayout.vue";
-import AppIcon from "../components/AppIcon.vue";
-import AppFooter from "../components/AppFooter.vue";
-import ConfirmPopover from "../components/ConfirmPopover.vue";
-import SelectField from "../components/SelectField.vue";
-import { useToast } from "../composables/useToast";
+import { api, type AppSettings, type StorageSummary } from "@/api/client";
+import { fetchAdminSession } from "@/composables/useAdminSession";
+import AdminLayout from "@/components/layout/AdminLayout.vue";
+import AppButton from "@/components/AppButton.vue";
+import AppIcon from "@/components/AppIcon.vue";
+import AppInput from "@/components/AppInput.vue";
+import AppFooter from "@/components/AppFooter.vue";
+import ConfirmPopover from "@/components/ConfirmPopover.vue";
+import AppSelect from "@/components/AppSelect.vue";
+import { useToast } from "@/composables/useToast";
 import { useI18n } from "vue-i18n";
+import { useAdminPassword } from "@/composables/useAdminPassword";
+import TimeZoneField from "@/features/system-settings/components/TimeZoneField.vue";
+import { PROJECT_LINKS } from "@shared/project-links";
 const router = useRouter(),
   { notify } = useToast();
 const { t, locale } = useI18n();
+const { passwordSaving, passwordError, passwordForm, changeAdminPassword } = useAdminPassword();
+// 回车在三个密码输入框之间跳转：原密码 → 新密码 → 确认 → 提交表单。
+const newPasswordInput = ref<InstanceType<typeof AppInput> | null>(null);
+const confirmPasswordInput = ref<InstanceType<typeof AppInput> | null>(null);
+const passwordFormEl = ref<HTMLFormElement | null>(null);
+function focusPasswordNext(target: "new" | "confirm" | "submit"): void {
+  if (target === "new") newPasswordInput.value?.focus();
+  else if (target === "confirm") confirmPasswordInput.value?.focus();
+  else passwordFormEl.value?.requestSubmit();
+}
 const loading = ref(true),
   savingRetention = ref(false),
   cleaning = ref(false),
   clearingLogs = ref(false),
-  deletingPacFiles = ref(false),
+  clearingPacCache = ref(false),
   resetting = ref(false);
 const settings = ref<AppSettings | null>(null),
   storage = ref<StorageSummary | null>(null),
   error = ref("");
 const retention = ref(30);
-const confirmationOpen = reactive({ clearLogs: false, deletePacFiles: false, factoryReset: false });
+const timezone = ref("Asia/Shanghai");
+const savingTimezone = ref(false);
+const confirmationOpen = reactive({ clearLogs: false, clearPacCache: false, factoryReset: false });
 function setConfirmation(key: keyof typeof confirmationOpen, open: boolean) {
   for (const name of Object.keys(confirmationOpen) as Array<keyof typeof confirmationOpen>)
     confirmationOpen[name] = false;
   if (open) confirmationOpen[key] = true;
 }
 const maintenanceBusy = () =>
-  cleaning.value || clearingLogs.value || deletingPacFiles.value || resetting.value;
+  cleaning.value || clearingLogs.value || clearingPacCache.value || resetting.value;
 const maintenanceDisabledReason = computed(() => {
   if (loading.value) return t("systemPage.k0");
   if (cleaning.value) return t("systemPage.k1");
   if (clearingLogs.value) return t("systemPage.k2");
-  if (deletingPacFiles.value) return t("systemPage.k3");
+  if (clearingPacCache.value) return t("systemPage.k3");
   if (resetting.value) return t("systemPage.k4");
   return "";
 });
@@ -45,15 +63,13 @@ const retentionDisabledReason = computed(() => {
   if (retention.value === settings.value.logRetentionDays) return t("systemPage.k8");
   return t("systemPage.k9");
 });
-const deletePacFilesDisabledReason = computed(() => {
+const clearPacCacheDisabledReason = computed(() => {
   if (loading.value) return t("systemPage.k10");
   if (maintenanceBusy()) return maintenanceDisabledReason.value || t("systemPage.k11");
   if (!storage.value) return t("systemPage.k12");
-  if (!storage.value.pacFiles.proxyPac.exists && !storage.value.pacFiles.proxySourcePac.exists)
-    return t("systemPage.k13");
-  return t("systemPage.k14");
+  return t("systemPage.clearPacCacheAction");
 });
-function fileDateLabel(value: string | null) {
+function timeLabel(value: string | null) {
   return value ? new Date(value).toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN") : "—";
 }
 function formatBytes(bytes: number) {
@@ -66,7 +82,8 @@ async function load() {
   loading.value = true;
   error.value = "";
   try {
-    const session = await api.session();
+    // 复用路由守卫刚做过的会话探测（带短 TTL 缓存），避免首屏再串一次网络往返。
+    const session = await fetchAdminSession();
     if (!session.loggedIn) {
       await router.replace("/admin/login");
       return;
@@ -74,6 +91,7 @@ async function load() {
     const [s, st] = await Promise.all([api.settings(), api.storage()]);
     settings.value = s;
     retention.value = s.logRetentionDays;
+    timezone.value = s.timezone || "Asia/Shanghai";
     storage.value = st;
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
@@ -86,7 +104,8 @@ async function saveRetention() {
   if (!settings.value || savingRetention.value) return;
   savingRetention.value = true;
   try {
-    const saved = await api.saveSettings({ ...settings.value, logRetentionDays: retention.value });
+    const latest = await api.settings();
+    const saved = await api.saveSettings({ ...latest, logRetentionDays: retention.value });
     settings.value = saved;
     retention.value = saved.logRetentionDays;
     notify(t("systemPage.k15"), "success");
@@ -95,6 +114,26 @@ async function saveRetention() {
     notify(e instanceof Error ? e.message : String(e), "error");
   } finally {
     savingRetention.value = false;
+  }
+}
+async function saveTimezone(next: string) {
+  if (savingTimezone.value || !settings.value) return;
+  const previous = settings.value.timezone || "Asia/Shanghai";
+  timezone.value = next;
+  if (next === previous) return;
+  savingTimezone.value = true;
+  try {
+    // 合并服务端最新配置，避免覆盖其他页面（PAC 生成设置、通知渠道）刚刚写入的字段。
+    const latest = await api.settings();
+    const saved = await api.saveSettings({ ...latest, timezone: next });
+    settings.value = saved;
+    timezone.value = saved.timezone || next;
+    notify(t("settings.savedTimeZone"), "success");
+  } catch (e) {
+    timezone.value = previous;
+    notify(e instanceof Error ? e.message : String(e), "error");
+  } finally {
+    savingTimezone.value = false;
   }
 }
 async function refreshStorage() {
@@ -110,10 +149,7 @@ async function cleanupLogs() {
   try {
     const r = await api.cleanupLogs();
     notify(
-      t("systemPage.cleanupDone", {
-        g: r.deleted.generationLogs,
-        a: r.deleted.accessEvents,
-      }),
+      t("systemPage.cleanupDone", { a: r.deleted.accessEvents, w: r.deleted.workflowRuns }),
       "success"
     );
     await refreshStorage();
@@ -130,10 +166,7 @@ async function clearAllLogs() {
     const r = await api.clearLogs();
     setConfirmation("clearLogs", false);
     notify(
-      t("systemPage.clearedLogsKeepWorkflow", {
-        g: r.deleted.generationLogs,
-        a: r.deleted.accessEvents,
-      }),
+      t("systemPage.clearedLogs", { a: r.deleted.accessEvents, w: r.deleted.workflowRuns }),
       "success"
     );
     await refreshStorage();
@@ -143,19 +176,19 @@ async function clearAllLogs() {
     clearingLogs.value = false;
   }
 }
-async function deletePacFiles() {
+async function clearPacCache() {
   if (maintenanceBusy() || !storage.value) return;
-  deletingPacFiles.value = true;
+  clearingPacCache.value = true;
   try {
-    const r = await api.deletePacFiles();
-    setConfirmation("deletePacFiles", false);
+    const r = await api.clearPacCache();
+    setConfirmation("clearPacCache", false);
     if (r.deleted.length) notify(t("systemPage.k17") + r.deleted.join("、") + "。", "success");
     else notify(t("systemPage.k18"), "info");
     await refreshStorage();
   } catch (e) {
     notify(e instanceof Error ? e.message : String(e), "error");
   } finally {
-    deletingPacFiles.value = false;
+    clearingPacCache.value = false;
   }
 }
 async function factoryReset() {
@@ -181,6 +214,84 @@ onMounted(() => void load());
     :subtitle="t('system.subtitleFull')"
   >
     <div class="system-settings">
+      <section class="settings-panel password-settings-panel">
+        <div class="heading">
+          <span class="icon-badge"><AppIcon name="shield-check" :size="19" /></span>
+          <div>
+            <h2>{{ t("settings.changePasswordTitle") }}</h2>
+            <p>{{ t("settings.passwordStoredLocal") }}</p>
+          </div>
+        </div>
+        <form
+          ref="passwordFormEl"
+          class="system-password-form"
+          @submit.prevent="changeAdminPassword"
+        >
+          <label
+            ><span>{{ t("settings.currentPassword") }}</span
+            ><AppInput
+              v-model="passwordForm.currentPassword"
+              type="password"
+              autocomplete="current-password"
+              required
+              :placeholder="t('settings.currentPassword')"
+              @input="passwordError = ''"
+              @keydown.enter.prevent="focusPasswordNext('new')"
+          /></label>
+          <label
+            ><span>{{ t("settings.newPassword") }}</span
+            ><AppInput
+              ref="newPasswordInput"
+              v-model="passwordForm.newPassword"
+              type="password"
+              autocomplete="new-password"
+              required
+              :placeholder="t('settings.newPasswordPlaceholder')"
+              @input="passwordError = ''"
+              @keydown.enter.prevent="focusPasswordNext('confirm')"
+          /></label>
+          <label
+            ><span>{{ t("settings.confirmPassword") }}</span
+            ><AppInput
+              ref="confirmPasswordInput"
+              v-model="passwordForm.confirmPassword"
+              type="password"
+              autocomplete="new-password"
+              required
+              :placeholder="t('settings.confirmPassword')"
+              @input="passwordError = ''"
+              @keydown.enter.prevent="focusPasswordNext('submit')"
+          /></label>
+          <p v-if="passwordError" class="system-password-error" role="alert">{{ passwordError }}</p>
+          <p class="system-password-help">
+            {{ t("settings.resetHelpFull") }}
+            <a :href="PROJECT_LINKS.adminPasswordReset" target="_blank" rel="noopener noreferrer">{{
+              t("settings.resetHelpLink")
+            }}</a>
+          </p>
+          <div class="password-settings-actions">
+            <AppButton variant="primary" type="submit" :disabled="passwordSaving"
+              ><AppIcon :name="passwordSaving ? 'loader-circle' : 'key-round'" :size="15" />{{
+                passwordSaving ? t("settings.changingPassword") : t("settings.changePassword")
+              }}</AppButton
+            >
+          </div>
+        </form>
+      </section>
+      <section class="settings-panel">
+        <div class="heading">
+          <span class="icon-badge"><AppIcon name="globe" :size="19" /></span>
+          <div>
+            <h2>{{ t("settings.general") }}</h2>
+            <p>{{ t("settings.generalDesc") }}</p>
+          </div>
+        </div>
+        <TimeZoneField
+          :model-value="timezone"
+          :disabled="loading || savingTimezone"
+          @update:model-value="saveTimezone"
+        />
+      </section>
       <p v-if="maintenanceBusy()" class="maintenance-status" role="status" aria-live="polite">
         {{ maintenanceDisabledReason }}
       </p>
@@ -192,7 +303,7 @@ onMounted(() => void load());
             <p>{{ t("system.storageDesc") }}</p>
           </div>
           <button
-            class="secondary"
+            class="app-button app-button--secondary"
             type="button"
             :disabled="loading"
             :title="loading ? t('system.readingStorage') : t('system.refreshStorage')"
@@ -201,15 +312,31 @@ onMounted(() => void load());
             <AppIcon name="refresh-cw" :size="14" /> {{ t("common.refresh") }}
           </button>
         </div>
-        <div v-if="loading" class="state state-loading" aria-live="polite">
-          <span class="spinner" aria-hidden="true"></span>
-          <div>
-            <strong>{{ t("system.readingSystem") }}</strong>
-            <p>{{ t("system.checkingStorage") }}</p>
+        <!--
+          加载态直接渲染与数据到达后同构的指标网格：若改用一块紧凑的加载横幅，数据回来时
+          面板会从 191px 撑到 494px，把后面几个面板整体下推（Lighthouse 记为 CLS 0.073）。
+          这里只把数值换成占位符，几何完全不变。
+        -->
+        <div v-if="loading" class="metrics" aria-busy="true">
+          <div class="metric">
+            <span>{{ t("system.dataDir") }}</span
+            ><strong>—</strong><small>{{ t("system.dataDirHint") }}</small>
           </div>
+          <div class="metric">
+            <span>{{ t("system.dbFile") }}</span
+            ><strong>—</strong><small>{{ t("system.dbFileHint") }}</small>
+          </div>
+          <div class="metric">
+            <span>{{ t("system.logEstimate") }}</span
+            ><strong>—</strong><small>{{ t("system.logEstimateHint") }}</small>
+          </div>
+          <span class="loading-announce" role="status"
+            >{{ t("system.readingSystem") }} {{ t("system.checkingStorage") }}</span
+          >
         </div>
         <div v-else-if="error" class="state error" role="alert">
-          {{ error }} <button class="secondary" @click="load">{{ t("common.retry") }}</button>
+          {{ error }}
+          <AppButton variant="secondary" @click="load">{{ t("common.retry") }}</AppButton>
         </div>
         <div v-else-if="storage" class="metrics">
           <div class="metric">
@@ -228,9 +355,12 @@ onMounted(() => void load());
             ><small>{{ t("system.logEstimateHint") }}</small>
           </div>
         </div>
-        <div v-if="storage" class="counts">
-          <span>{{ t("systemPage.countGen", { n: storage.counts.generationLogs }) }}</span
-          ><span>{{ t("systemPage.countAccess", { n: storage.counts.accessEvents }) }}</span
+        <div v-if="loading" class="counts">
+          <span>{{ t("systemPage.countAccess", { n: "—" }) }}</span
+          ><span>{{ t("systemPage.countWorkflow", { n: "—" }) }}</span>
+        </div>
+        <div v-else-if="storage" class="counts">
+          <span>{{ t("systemPage.countAccess", { n: storage.counts.accessEvents }) }}</span
           ><span>{{ t("systemPage.countWorkflow", { n: storage.counts.workflows }) }}</span>
         </div>
       </section>
@@ -244,21 +374,20 @@ onMounted(() => void load());
         </div>
         <div class="retention">
           <label for="retention">{{ t("systemPage.k45") }}</label
-          ><SelectField
-            ><select
-              id="retention"
-              v-model.number="retention"
-              :disabled="loading || savingRetention"
-            >
-              <option :value="0">{{ t("systemPage.k46") }}</option>
-              <option :value="7">{{ t("systemPage.k47") }}</option>
-              <option :value="30">{{ t("systemPage.k48") }}</option>
-              <option :value="90">{{ t("systemPage.k49") }}</option>
-              <option :value="180">{{ t("systemPage.k50") }}</option>
-              <option :value="365">{{ t("systemPage.k51") }}</option>
-            </select></SelectField
-          ><button
-            class="primary"
+          ><AppSelect
+            id="retention"
+            v-model="retention"
+            :disabled="loading || savingRetention"
+            :options="[
+              { value: 0, label: t('systemPage.k46') },
+              { value: 7, label: t('systemPage.k47') },
+              { value: 30, label: t('systemPage.k48') },
+              { value: 90, label: t('systemPage.k49') },
+              { value: 180, label: t('systemPage.k50') },
+              { value: 365, label: t('systemPage.k51') },
+            ]"
+          /><button
+            class="app-button app-button--primary"
             :disabled="
               loading || savingRetention || !settings || retention === settings.logRetentionDays
             "
@@ -288,7 +417,7 @@ onMounted(() => void load());
             </p>
           </div>
           <button
-            class="secondary"
+            class="app-button app-button--secondary"
             type="button"
             :disabled="loading"
             :title="loading ? t('system.readingStorage') : t('system.refreshStorage')"
@@ -297,96 +426,108 @@ onMounted(() => void load());
             <AppIcon name="refresh-cw" :size="14" /> {{ t("systemPage.refreshStatus") }}
           </button>
         </div>
-        <div v-if="storage" class="pac-files">
-          <div class="pac-file">
-            <div class="pac-file-head">
-              <strong>proxy.pac</strong
+        <div v-if="storage?.pac" class="pac-status">
+          <div class="pac-entry">
+            <div class="pac-entry-head">
+              <strong>/pac</strong
               ><span
-                class="file-state"
-                :class="storage.pacFiles.proxyPac.exists ? 'file-exists' : 'file-missing'"
+                class="pac-state"
+                :class="storage.pac.rendered.exists ? 'pac-available' : 'pac-missing'"
                 >{{
-                  storage.pacFiles.proxyPac.exists ? t("systemPage.k21") : t("systemPage.k22")
+                  storage.pac.rendered.exists
+                    ? t("systemPage.pacRenderedReady")
+                    : t("systemPage.pacRenderedMissing")
                 }}</span
               >
             </div>
-            <p>{{ t("systemPage.k56") }}</p>
-            <div class="pac-file-meta">
+            <p>{{ t("systemPage.pacRenderedDesc") }}</p>
+            <div class="pac-entry-meta">
               <span>{{
-                t("systemPage.fileSize", { size: formatBytes(storage.pacFiles.proxyPac.sizeBytes) })
+                t("systemPage.pacBytes", { size: formatBytes(storage.pac.rendered.sizeBytes) })
               }}</span
               ><span>{{
-                t("systemPage.fileMtime", {
-                  time: fileDateLabel(storage.pacFiles.proxyPac.modifiedAt),
-                })
+                storage.pac.rendered.builtAt
+                  ? t("systemPage.updatedAt", {
+                      time: timeLabel(storage.pac.rendered.builtAt),
+                    })
+                  : "—"
               }}</span>
+            </div>
+            <div class="pac-entry-meta">
+              <span>{{
+                storage.pac.rendered.obfuscated
+                  ? t("systemPage.pacObfuscated")
+                  : storage.pac.rendered.compressed
+                    ? t("systemPage.pacCompressed")
+                    : t("systemPage.pacPlain")
+              }}</span
+              ><span class="pac-etag">{{ storage.pac.rendered.etag || "—" }}</span>
             </div>
           </div>
-          <div class="pac-file">
-            <div class="pac-file-head">
-              <strong>proxy.source.pac</strong
+          <div class="pac-entry">
+            <div class="pac-entry-head">
+              <strong>{{ t("systemPage.ruleSnapshot") }}</strong
               ><span
-                class="file-state"
-                :class="storage.pacFiles.proxySourcePac.exists ? 'file-exists' : 'file-missing'"
+                class="pac-state"
+                :class="storage.pac.ruleSource.exists ? 'pac-available' : 'pac-missing'"
                 >{{
-                  storage.pacFiles.proxySourcePac.exists ? t("systemPage.k21") : t("systemPage.k22")
+                  storage.pac.ruleSource.exists
+                    ? t("systemPage.ruleSnapshotReady")
+                    : t("systemPage.ruleSnapshotNone")
                 }}</span
               >
             </div>
-            <p>{{ t("systemPage.k57") }}</p>
-            <div class="pac-file-meta">
+            <p>{{ t("systemPage.ruleSnapshotDesc") }}</p>
+            <div class="pac-entry-meta">
               <span>{{
-                t("systemPage.fileSize", {
-                  size: formatBytes(storage.pacFiles.proxySourcePac.sizeBytes),
-                })
+                storage.pac.ruleSource.exists
+                  ? t("systemPage.updatedAt", {
+                      time: timeLabel(storage.pac.ruleSource.fetchedAt),
+                    })
+                  : t("systemPage.ruleSnapshotNone")
               }}</span
-              ><span>{{
-                t("systemPage.fileMtime", {
-                  time: fileDateLabel(storage.pacFiles.proxySourcePac.modifiedAt),
+              ><span v-if="storage.pac.ruleSource.exists">{{
+                t("systemPage.ruleCounts", {
+                  proxy: storage.pac.ruleSource.proxyHosts,
+                  direct: storage.pac.ruleSource.directHosts,
                 })
               }}</span>
+            </div>
+            <div v-if="storage.pac.ruleSource.exists" class="pac-entry-meta">
+              <span class="pac-etag">{{ storage.pac.ruleSource.url }}</span>
             </div>
           </div>
         </div>
-        <p v-if="storage && !storage.pacFiles.proxyPac.exists" class="empty-note">
-          {{ storage.pacFiles.proxySourcePac.exists ? t("systemPage.k23") : t("systemPage.k24") }}
+        <p v-if="storage?.pac && !storage.pac.rendered.exists" class="empty-note">
+          {{ t("systemPage.pacNotRendered") }}
         </p>
         <ConfirmPopover
-          :open="confirmationOpen.deletePacFiles"
-          :title="t('systemPage.k25')"
-          :description="t('systemPage.k26')"
+          :open="confirmationOpen.clearPacCache"
+          :title="t('systemPage.clearPacCache')"
+          :description="t('systemPage.clearPacCacheDesc')"
           :confirm-text="t('systemPage.k27')"
           :busy-text="t('systemPage.k28')"
           align="start"
-          :disabled="
-            loading ||
-            maintenanceBusy() ||
-            !storage ||
-            (!storage.pacFiles.proxyPac.exists && !storage.pacFiles.proxySourcePac.exists)
-          "
-          :disabled-reason="deletePacFilesDisabledReason"
-          :busy="deletingPacFiles"
-          @update:open="setConfirmation('deletePacFiles', $event)"
-          @confirm="deletePacFiles"
+          :disabled="loading || maintenanceBusy() || !storage"
+          :disabled-reason="clearPacCacheDisabledReason"
+          :busy="clearingPacCache"
+          @update:open="setConfirmation('clearPacCache', $event)"
+          @confirm="clearPacCache"
           ><template #trigger="{ toggle, open }"
             ><button
-              class="danger"
+              class="app-button app-button--danger"
               type="button"
               :aria-expanded="open"
-              :disabled="
-                loading ||
-                maintenanceBusy() ||
-                !storage ||
-                (!storage.pacFiles.proxyPac.exists && !storage.pacFiles.proxySourcePac.exists)
-              "
-              :title="deletePacFilesDisabledReason"
+              :disabled="loading || maintenanceBusy() || !storage"
+              :title="clearPacCacheDisabledReason"
               @click="toggle"
             >
-              <AppIcon :name="deletingPacFiles ? 'loader-circle' : 'trash-2'" :size="15" />
-              {{ deletingPacFiles ? t("systemPage.k28") : t("systemPage.k14") }}
+              <AppIcon :name="clearingPacCache ? 'loader-circle' : 'trash-2'" :size="15" />
+              {{ clearingPacCache ? t("systemPage.k28") : t("systemPage.clearPacCache") }}
             </button></template
           ></ConfirmPopover
         >
-        <p class="hint">{{ t("systemPage.k58") }}</p>
+        <p class="hint">{{ t("systemPage.clearPacCacheHint") }}</p>
       </section>
       <section class="settings-panel">
         <div class="heading">
@@ -400,7 +541,7 @@ onMounted(() => void load());
         </div>
         <div class="maintenance-actions">
           <button
-            class="secondary"
+            class="app-button app-button--secondary"
             :disabled="loading || maintenanceBusy()"
             :title="
               loading
@@ -426,7 +567,7 @@ onMounted(() => void load());
             @confirm="clearAllLogs"
             ><template #trigger="{ toggle, open }"
               ><button
-                class="danger"
+                class="app-button app-button--danger"
                 type="button"
                 :aria-expanded="open"
                 :disabled="loading || maintenanceBusy()"
@@ -471,7 +612,7 @@ onMounted(() => void load());
           @confirm="factoryReset"
           ><template #trigger="{ toggle, open }"
             ><button
-              class="danger"
+              class="app-button app-button--danger"
               type="button"
               :aria-expanded="open"
               :disabled="loading || maintenanceBusy()"
@@ -496,243 +637,155 @@ onMounted(() => void load());
   </AdminLayout>
 </template>
 <style scoped>
+@reference "@/styles/tailwind.css";
+
 .maintenance-status {
-  margin: 0 0 12px;
-  padding: 9px 11px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  @apply mb-3 mt-0 rounded-lg border px-[11px] py-[9px] text-[11px] leading-snug;
+  border-color: var(--line);
   background: var(--surface-2);
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.45;
   overflow-wrap: anywhere;
 }
+.system-password-form {
+  @apply grid grid-cols-3 gap-3.5;
+}
+.system-password-form label {
+  @apply grid gap-[7px] text-xs font-semibold;
+  color: var(--muted);
+}
+.system-password-error {
+  @apply col-span-full m-0 text-xs;
+  color: var(--red);
+}
+.system-password-help {
+  @apply col-span-full m-0 text-[11px] leading-normal;
+  color: var(--muted);
+}
+.system-password-help a {
+  color: var(--accent);
+}
+.password-settings-actions {
+  @apply col-span-full flex justify-end;
+}
+@media (max-width: 800px) {
+  .system-password-form {
+    @apply grid-cols-1;
+  }
+}
 .system-settings {
-  display: grid;
-  gap: 18px;
+  @apply grid gap-[18px];
 }
 .settings-panel {
-  min-width: 0;
-  padding: 22px;
-  border: 1px solid var(--line);
-  border-radius: 13px;
+  @apply min-w-0 rounded-[13px] border p-[22px];
+  border-color: var(--line);
   background: var(--surface);
-  box-shadow: var(--shadow-sm, 0 4px 18px #00000008);
+  box-shadow: var(--shadow);
 }
 .heading {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 18px;
+  @apply mb-[18px] flex items-center gap-3;
 }
 .heading > div {
-  flex: 1;
-  min-width: 0;
+  @apply min-w-0 flex-1;
 }
 .heading h2 {
-  margin: 0;
+  @apply m-0 text-base;
   color: var(--text);
-  font-size: 16px;
 }
 .heading p {
-  margin: 5px 0 0;
+  @apply mb-0 mt-[5px] text-xs leading-normal;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.55;
 }
 .icon-badge {
-  display: grid;
-  place-items: center;
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
+  @apply grid h-10 w-10 shrink-0 place-items-center rounded-[11px] border;
+  border-color: var(--line);
   color: var(--accent);
   background: var(--surface-2);
 }
 .metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  @apply grid grid-cols-3 gap-3;
 }
 .metric {
-  display: grid;
-  gap: 7px;
-  padding: 15px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  @apply grid min-w-0 gap-[7px] rounded-[10px] border p-[15px];
+  border-color: var(--line);
   background: var(--surface-2);
-  min-width: 0;
 }
 .metric span,
 .metric small {
+  @apply text-[11px];
   color: var(--muted);
-  font-size: 11px;
 }
 .metric strong {
-  font-size: 22px;
+  @apply text-[22px];
   color: var(--text);
   overflow-wrap: anywhere;
 }
 .counts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 18px;
-  margin-top: 14px;
+  @apply mt-3.5 flex flex-wrap gap-x-[18px] gap-y-2 text-[11px];
   color: var(--muted);
-  font-size: 11px;
 }
-.pac-files {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 14px;
+.pac-status {
+  @apply mb-3.5 grid grid-cols-2 gap-3;
 }
-.pac-file {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+.pac-entry {
+  @apply grid min-w-0 gap-2 rounded-[10px] border p-3.5;
+  border-color: var(--line);
   background: var(--surface-2);
 }
-.pac-file-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+.pac-entry-head {
+  @apply flex items-center justify-between gap-2.5;
 }
-.pac-file-head strong {
-  font-size: 13px;
+.pac-entry-head strong {
+  @apply text-[13px];
   overflow-wrap: anywhere;
 }
-.pac-file p {
-  margin: 0;
+.pac-entry p {
+  @apply m-0 text-[11px] leading-normal;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.5;
 }
-.pac-file-meta {
-  display: grid;
-  gap: 5px;
+.pac-entry-meta {
+  @apply grid gap-[5px] text-[11px];
   color: var(--muted);
-  font-size: 11px;
   overflow-wrap: anywhere;
 }
-.file-state {
-  padding: 3px 7px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  white-space: nowrap;
+.pac-state {
+  @apply whitespace-nowrap rounded-full border px-[7px] py-[3px] text-[10px] font-bold;
+  border-color: var(--line);
 }
-.file-exists {
+.pac-available {
   color: var(--green);
   border-color: color-mix(in srgb, var(--green) 35%, var(--line));
 }
-.file-missing {
+.pac-missing {
   color: var(--muted);
 }
 .empty-note {
-  margin: 0 0 14px;
-  padding: 12px;
-  border: 1px dashed var(--line);
-  border-radius: 9px;
+  @apply mb-3.5 mt-0 rounded-[9px] border border-dashed p-3 text-xs leading-normal;
+  border-color: var(--line);
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.6;
-}
-.history-count {
-  flex: 0 0 auto;
-  padding: 4px 9px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: 11px;
 }
 .maintenance-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  @apply flex flex-wrap gap-2.5;
 }
 .retention {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
+  @apply flex flex-wrap items-center gap-3;
 }
 .retention label {
-  font-size: 12px;
-  font-weight: 700;
+  @apply text-xs font-bold;
   color: var(--text);
 }
-.retention .select-field {
-  width: 145px;
-  min-width: 145px;
+.retention .app-select {
+  @apply w-[145px] min-w-[145px];
   flex: 0 0 145px;
 }
-.retention .select-field :deep(select) {
-  min-height: 38px;
-  padding: 0 34px 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  font-size: 12px;
-}
-.primary,
-.secondary,
-.danger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 38px;
-  padding: 0 13px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: white;
-}
-.secondary {
-  background: var(--surface);
-  color: var(--text);
-}
-.danger {
-  background: var(--red-soft);
-  border-color: color-mix(in srgb, var(--red) 35%, var(--line));
-  color: var(--red);
-}
-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
 .retention-status {
-  margin: 12px 0 0;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  @apply mb-0 mt-3 rounded-lg border px-2.5 py-2 text-[11px] leading-normal;
+  border-color: var(--line);
   background: var(--surface-2);
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.5;
 }
 .hint {
-  margin: 8px 0 0;
+  @apply mb-0 mt-2 text-[11px] leading-normal;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.6;
 }
 .danger-panel {
   border-color: color-mix(in srgb, var(--red) 24%, var(--line));
@@ -741,79 +794,45 @@ button:disabled {
   color: var(--red);
 }
 .state {
-  padding: 14px 0;
+  @apply px-0 py-3.5 text-[13px];
   color: var(--muted);
-  font-size: 13px;
 }
 .state.error {
   color: var(--red);
 }
-.state-loading {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface-2);
-}
-.state-loading strong {
-  display: block;
-  color: var(--text);
-  font-size: 13px;
-}
-.state-loading p {
-  margin: 4px 0 0;
-  font-size: 12px;
-  line-height: 1.5;
-}
-.spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--line);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: sys-spin 0.8s linear infinite;
-  flex: 0 0 auto;
-}
-@keyframes sys-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation-duration: 0.01ms;
-    animation-iteration-count: 1;
-  }
+/*
+  加载提示只留给读屏：可见部分已由指标网格里的占位符表达。若这里再显示一块横幅，
+  面板高度会随加载态变化，正是要避免的 CLS 来源。
+*/
+.loading-announce {
+  @apply absolute h-px w-px overflow-hidden whitespace-nowrap;
+  margin: -1px;
+  clip-path: inset(50%);
 }
 @media (max-width: 650px) {
   .settings-panel {
-    padding: 15px;
+    @apply p-[15px];
   }
   .metrics {
-    grid-template-columns: 1fr;
+    @apply grid-cols-1;
   }
-  .pac-files {
-    grid-template-columns: 1fr;
+  .pac-status {
+    @apply grid-cols-1;
   }
   .metric strong {
-    font-size: 20px;
+    @apply text-xl;
   }
   .heading {
-    align-items: flex-start;
+    @apply items-start;
   }
   .retention {
-    align-items: stretch;
-    flex-direction: column;
+    @apply flex-col items-stretch;
   }
   .retention > * {
-    width: 100%;
+    @apply w-full;
   }
-  .retention .select-field {
-    display: flex;
-    width: 100%;
-    min-width: 0;
+  .retention .app-select {
+    @apply flex w-full min-w-0;
     flex: 1 1 auto;
   }
 }

@@ -1,14 +1,15 @@
 import { Router } from "express";
-import type { AppDatabase } from "../db/sqlite";
+import type { ApplicationStorage } from "../storage/repositories";
 import type { EnvConfig } from "../config/env";
-import { getSettings, updateSettings, getWorkflowRun } from "../db/sqlite";
-import type { AppSettings, GenerationMode } from "../db/settings";
-import { DEFAULT_SETTINGS, normalizeWebhookConfig } from "../db/settings";
+
+import type { AppSettings, GenerationMode } from "../../shared/contracts";
+import { DEFAULT_SETTINGS } from "../domain/settings";
 import { requireAdmin } from "../middleware/auth";
 import { validatePacProxyString } from "../services/pac-generator";
 import { startPacWorkflow } from "../services/workflow";
 import { reschedule } from "../services/scheduler";
-import { sendWebhookTest, validateWebhookConfig } from "../services/webhook";
+import { invalidateRenderedPac, readRuleSource } from "../services/pac-runtime";
+import { refreshRemoteRules } from "../services/pac-generator";
 import cron from "node-cron";
 import { resolveLocale, t as serverT } from "../../shared/i18n";
 import { assertSafeHttpUrl } from "../utils/url-safety";
@@ -41,6 +42,7 @@ function bodyToSettings(b: Record<string, unknown>): AppSettings {
     mode,
     pacProxy: String(b.pacProxy ?? ""),
     pacCompress: Boolean(b.pacCompress),
+    pacObfuscate: Boolean(b.pacObfuscate),
     listUrl: String(b.listUrl ?? ""),
     blockList: parseList(b.blockList),
     directList: parseList(b.directList),
@@ -53,19 +55,17 @@ function bodyToSettings(b: Record<string, unknown>): AppSettings {
         Math.floor(Number(b.logRetentionDays ?? DEFAULT_SETTINGS.logRetentionDays) || 0)
       )
     ),
-    webhookSuccessConfig: normalizeWebhookConfig(b.webhookSuccessConfig),
-    webhookFailureConfig: normalizeWebhookConfig(b.webhookFailureConfig),
   };
 }
 function requestLocale(req: import("express").Request): "zh_CN" | "en_US" {
   return resolveLocale(req.get("accept-language"));
 }
-function persistSettings(
+async function persistSettings(
   body: Record<string, unknown>,
   env: EnvConfig,
-  database: AppDatabase,
+  storage: ApplicationStorage,
   locale: "zh_CN" | "en_US"
-): { settings: AppSettings } | { error: string } {
+): Promise<{ settings: AppSettings } | { error: string }> {
   const payloadError = validateSettingsPayload(body);
   if (payloadError) return { error: `Invalid settings payload: ${payloadError}` };
 
@@ -83,27 +83,37 @@ function persistSettings(
   const expr = p.cronSchedule.trim();
   if (expr && (expr.split(/\s+/).length !== 5 || !cron.validate(expr)))
     return { error: serverT(locale, "serverErrors.invalidCron") };
-  for (const c of [p.webhookSuccessConfig, p.webhookFailureConfig]) {
-    if (c.url.trim()) {
-      const errors = validateWebhookConfig(c);
-      if (errors.length) return { error: errors.join("\n") };
+  const settings = await storage.settings.update(p);
+  reschedule(storage, env.dataDir);
+  // Any render input may have changed (mode, proxy string, compression, rule
+  // lists, remote URL); drop the cached body so the next request rebuilds it.
+  invalidateRenderedPac();
+  // Switching to remote mode must fetch the list before a PAC can be built.
+  if (settings.mode === "remote" && settings.listUrl) {
+    const previousSource = await readRuleSource(storage);
+    const needsFetch = !previousSource || previousSource.url !== settings.listUrl;
+    if (needsFetch) {
+      const refreshed = await refreshRemoteRules(storage);
+      if (!refreshed.ok) {
+        return { error: refreshed.message };
+      }
+    } else {
+      void refreshRemoteRules(storage).catch(() => undefined);
     }
   }
-  const settings = updateSettings(database, p);
-  reschedule(database, env.dataDir);
   return { settings };
 }
 
-export function adminSettingsRoutes(env: EnvConfig, database: AppDatabase): Router {
+export function adminSettingsRoutes(env: EnvConfig, storage: ApplicationStorage): Router {
   const router = Router();
-  router.get("/api/admin/settings", requireAdmin(database), (_req, res) =>
-    res.json(getSettings(database))
+  router.get("/api/admin/settings", requireAdmin(storage.credentials), async (_req, res) =>
+    res.json(await storage.settings.get())
   );
-  router.put("/api/admin/settings", requireAdmin(database), (req, res) => {
-    const result = persistSettings(
+  router.put("/api/admin/settings", requireAdmin(storage.credentials), async (req, res) => {
+    const result = await persistSettings(
       (req.body || {}) as Record<string, unknown>,
       env,
-      database,
+      storage,
       requestLocale(req)
     );
     if ("error" in result) {
@@ -112,36 +122,31 @@ export function adminSettingsRoutes(env: EnvConfig, database: AppDatabase): Rout
     }
     res.json(result.settings);
   });
-  router.post("/api/admin/settings/save-and-generate", requireAdmin(database), (req, res) => {
-    const saved = persistSettings(
-      (req.body || {}) as Record<string, unknown>,
-      env,
-      database,
-      requestLocale(req)
-    );
-    if ("error" in saved) {
-      res.status(400).json({ error: saved.error });
-      return;
+  router.post(
+    "/api/admin/settings/save-and-generate",
+    requireAdmin(storage.credentials),
+    async (req, res) => {
+      const saved = await persistSettings(
+        (req.body || {}) as Record<string, unknown>,
+        env,
+        storage,
+        requestLocale(req)
+      );
+      if ("error" in saved) {
+        res.status(400).json({ error: saved.error });
+        return;
+      }
+      try {
+        const workflowId = await startPacWorkflow(storage, env.dataDir, "save-and-generate");
+        res.status(202).json({
+          settings: saved.settings,
+          workflowId,
+          status: (await storage.workflows.get(workflowId))?.status ?? "pending",
+        });
+      } catch (e) {
+        res.status(409).json({ error: e instanceof Error ? e.message : String(e) });
+      }
     }
-    try {
-      const workflowId = startPacWorkflow(database, env.dataDir, "save-and-generate");
-      res.status(202).json({
-        settings: saved.settings,
-        workflowId,
-        status: getWorkflowRun(database, workflowId)?.status ?? "pending",
-      });
-    } catch (e) {
-      res.status(409).json({ error: e instanceof Error ? e.message : String(e) });
-    }
-  });
-  router.post("/api/admin/webhook-test", requireAdmin(database), async (req, res) => {
-    const c = normalizeWebhookConfig(req.body?.config ?? req.body),
-      errors = validateWebhookConfig(c);
-    if (errors.length) {
-      res.status(400).json({ error: errors.join("\n") });
-      return;
-    }
-    res.json(await sendWebhookTest(c, getSettings(database).timezone));
-  });
+  );
   return router;
 }

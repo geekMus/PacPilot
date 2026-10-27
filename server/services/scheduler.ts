@@ -1,16 +1,22 @@
 import cron, { type ScheduledTask } from "node-cron";
-import type { AppDatabase } from "../db/sqlite";
-import { getSettings } from "../db/sqlite";
+import type { ApplicationStorage } from "../storage/repositories";
 import { hasActivePacWorkflow, runPacWorkflow } from "./workflow";
+import { refreshRemoteRules } from "./pac-generator";
 import { runtimeLog } from "../utils/runtime-log";
 
 let currentTask: ScheduledTask | null = null;
 let currentKey = "";
 let scheduledRunInFlight = false;
 let overlapWarningLogged = false;
+let refreshInFlight = false;
 
-export function reschedule(database: AppDatabase, dataDir: string): void {
-  const settings = getSettings(database);
+/**
+ * Runs on the user's cron expression. Besides triggering the PAC workflow it
+ * refreshes the remote rule snapshot, because the scheduled job is the only
+ * moment remote rules are re-fetched — there is no autonomous polling.
+ */
+export async function reschedule(storage: ApplicationStorage, dataDir: string): Promise<void> {
+  const settings = await storage.settings.get();
   const expression = settings.cronSchedule.trim();
   const key = expression + "\n" + settings.timezone;
 
@@ -33,8 +39,25 @@ export function reschedule(database: AppDatabase, dataDir: string): void {
 
   currentTask = cron.schedule(
     expression,
-    () => {
-      if (scheduledRunInFlight || hasActivePacWorkflow(database)) {
+    async () => {
+      // Refresh remote rules first: even if a workflow is already running, the
+      // rule snapshot should still be brought up to date.
+      if (await shouldRefreshRules(storage)) {
+        if (refreshInFlight) {
+          runtimeLog("warn", "Previous remote rule refresh is still running; skipping this one.");
+        } else {
+          refreshInFlight = true;
+          try {
+            const result = await refreshRemoteRules(storage);
+            if (result.ok) runtimeLog("info", "Scheduled remote rule refresh completed.");
+            else runtimeLog("warn", `Scheduled remote rule refresh failed: ${result.message}`);
+          } finally {
+            refreshInFlight = false;
+          }
+        }
+      }
+
+      if (scheduledRunInFlight || (await hasActivePacWorkflow(storage))) {
         if (!overlapWarningLogged) {
           runtimeLog(
             "warn",
@@ -48,7 +71,7 @@ export function reschedule(database: AppDatabase, dataDir: string): void {
       overlapWarningLogged = false;
       scheduledRunInFlight = true;
 
-      void runPacWorkflow(database, dataDir, "scheduled")
+      void runPacWorkflow(storage, dataDir, "scheduled")
         .catch((error) => runtimeLog("error", "Scheduled workflow failed: ", error))
         .finally(() => {
           scheduledRunInFlight = false;
@@ -58,6 +81,11 @@ export function reschedule(database: AppDatabase, dataDir: string): void {
   );
 
   currentKey = key;
+}
+
+async function shouldRefreshRules(storage: ApplicationStorage): Promise<boolean> {
+  const settings = await storage.settings.get();
+  return settings.mode === "remote" && Boolean(settings.listUrl.trim());
 }
 
 export function stopScheduler(): void {

@@ -1,29 +1,25 @@
 import { useI18n } from "vue-i18n";
 import { onMounted, ref, computed, watch } from "vue";
-import { api, type Meta, type PacStatus } from "../api/client";
+import { api, type PacStatus } from "@/api/client";
+import { matchesCustomRule, matchesRemoteDomain } from "@/utils/domain-matching";
 
 export function useStatusDashboard() {
   const { t, locale } = useI18n();
 
   const status = ref<PacStatus | null>(null);
-  const meta = ref<Meta | null>(null);
   const error = ref("");
   const loading = ref(true);
-  const adminEntry = ref<"/admin/dashboard" | "/admin/settings" | "/admin/login">(
-    "/admin/dashboard"
-  );
+  const adminEntry = ref<"/admin/dashboard" | "/admin/login">("/admin/dashboard");
 
   async function loadStatus() {
     loading.value = true;
     error.value = "";
     try {
-      const [currentStatus, currentMeta, currentSession] = await Promise.all([
+      const [currentStatus, currentSession] = await Promise.all([
         api.status(),
-        api.meta(),
         api.session().catch(() => null),
       ]);
       status.value = currentStatus;
-      meta.value = currentMeta;
       // 只有成功确认会话状态后才决定入口；未登录时直接进入登录页。
       if (currentSession && !currentSession.loggedIn) adminEntry.value = "/admin/login";
       else if (currentSession?.loggedIn) adminEntry.value = "/admin/dashboard";
@@ -62,6 +58,9 @@ export function useStatusDashboard() {
         return t("status.notice.customParseError");
       case "other":
         return t("status.notice.other");
+      default:
+        // 后端新增了未知模式时仍然要给出可读提示，而不是渲染空白。
+        return t("status.notice.other");
     }
   });
   const formattedUpdatedAt = computed(() => {
@@ -76,7 +75,7 @@ export function useStatusDashboard() {
 
   const domainInput = ref("");
   const checkedDomain = ref("");
-  const activeRuleType = ref<"direct" | "block">("direct");
+  const activeRuleType = ref<"direct" | "proxy" | "block">("direct");
 
   interface RuleEntry {
     domain: string;
@@ -114,6 +113,17 @@ export function useStatusDashboard() {
     }))
   );
 
+  /**
+   * 规则只按类型分组（直连 / 代理 / 黑名单），不再按来源拆分类别：远程代理列表可能有几千条，
+   * 之前只统计在概览卡片里、明细列表看不到，容易被误认为数据缺失。
+   */
+  const proxyEntries = computed<RuleEntry[]>(() =>
+    (status.value?.remoteProxyList ?? []).map((domain) => ({
+      domain,
+      source: t("status.sourceRemoteProxy"),
+    }))
+  );
+
   watch(domainInput, () => {
     checkedDomain.value = "";
   });
@@ -129,30 +139,6 @@ export function useStatusDashboard() {
     if (octets.some((part) => part < 0 || part > 255)) return false;
     const [a, b] = octets;
     return a === 127 || a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
-  }
-
-  function matchesCustomRule(host: string, rule: string): boolean {
-    const normalizedHost = host.toLowerCase().replace(/\\.$/, "");
-    const pattern = rule.trim().toLowerCase().replace(/\\.$/, "");
-    if (!pattern) return false;
-
-    // 必须与 server/services/pac-generator.ts 中的 isMatch 保持一致：
-    // *.example.com 只匹配子域名；**.example.com 同时匹配根域名和子域名。
-    if (pattern.startsWith("**.")) {
-      const root = pattern.slice(3);
-      return normalizedHost === root || normalizedHost.endsWith("." + root);
-    }
-    if (pattern.startsWith("*.")) {
-      const suffix = pattern.slice(2);
-      return normalizedHost.length > suffix.length + 1 && normalizedHost.endsWith("." + suffix);
-    }
-    if (pattern.includes("*")) return false;
-    return normalizedHost === pattern;
-  }
-
-  function matchesRemoteDomain(host: string, rule: string): boolean {
-    const domain = rule.toLowerCase().trim();
-    return Boolean(domain) && (host === domain || host.endsWith("." + domain));
   }
 
   const domainRoute = computed<DomainRouteResult | null>(() => {
@@ -271,9 +257,7 @@ export function useStatusDashboard() {
 
   return {
     t,
-    locale,
     status,
-    meta,
     error,
     loading,
     adminEntry,
@@ -283,9 +267,9 @@ export function useStatusDashboard() {
     statusNotice,
     formattedUpdatedAt,
     domainInput,
-    checkedDomain,
     activeRuleType,
     directEntries,
+    proxyEntries,
     blockEntries,
     checkDomain,
     domainRoute,

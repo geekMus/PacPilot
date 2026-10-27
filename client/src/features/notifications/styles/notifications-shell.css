@@ -1,0 +1,472 @@
+@reference "@/styles/tailwind.css";
+
+.webhook-page {
+  --wh-radius-card: 16px;
+  --wh-radius-panel: 14px;
+  --wh-radius-item: 11px;
+  --wh-radius-control: 10px;
+
+  --wh-panel-bg: var(--surface);
+  --wh-heading-bg: var(--surface-2);
+  --wh-item-hover: color-mix(in srgb, var(--accent) 6%, var(--surface-2));
+
+  --wh-directory-height: clamp(300px, 46dvh, 540px);
+  --wh-editor-height: clamp(360px, 56dvh, 680px);
+  --wh-history-height: clamp(320px, 50dvh, 620px);
+
+  --wh-header-gap: 25px;
+  --wh-footer-reserve: 100px;
+
+  @apply flex w-full min-w-0 min-h-0 flex-col box-border gap-[clamp(12px,1.35vw,18px)];
+  flex: 0 0 auto;
+  color: var(--text);
+}
+
+.webhook-page > .app-footer {
+  @apply m-0 shrink-0;
+}
+
+.webhook-page .state-panel {
+  @apply flex min-h-[120px] shrink-0 items-center justify-center gap-[11px] rounded-[var(--wh-radius-panel)] border p-6 text-xs;
+  border-color: var(--line);
+  background: var(--wh-panel-bg);
+  color: var(--muted);
+}
+
+.webhook-page .state-error {
+  @apply justify-start;
+  color: var(--red);
+}
+
+.webhook-page .state-error div {
+  @apply min-w-0 flex-auto;
+}
+
+.webhook-page .state-error strong {
+  @apply text-xs;
+}
+
+.webhook-page .state-error p {
+  @apply mb-0 mt-[5px] text-[11px];
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.webhook-page .workspace-region {
+  @apply sticky z-[1] flex w-full min-w-0 min-h-0 flex-col gap-3;
+  flex: 0 0 auto;
+  top: calc(var(--admin-topbar-space, 104px) + var(--wh-header-gap, 25px));
+  height: calc(
+    100dvh - var(--admin-topbar-space, 104px) - var(--wh-header-gap, 25px) -
+      var(--wh-footer-reserve, 100px)
+  );
+  max-height: calc(
+    100dvh - var(--admin-topbar-space, 104px) - var(--wh-header-gap, 25px) -
+      var(--wh-footer-reserve, 100px)
+  );
+  background: var(--bg);
+}
+
+.webhook-page .workspace-tabs {
+  @apply flex shrink-0 items-center gap-1 rounded-[13px] border p-1;
+  border-color: var(--line);
+  background: var(--wh-heading-bg);
+}
+
+.webhook-page .workspace-tabs button {
+  @apply relative inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-[var(--wh-radius-control)] border border-transparent bg-transparent px-[15px] text-xs font-semibold transition-[color,background,border-color];
+  min-height: 42px;
+  color: var(--muted);
+}
+
+.webhook-page .workspace-tabs button:hover {
+  background: var(--wh-item-hover);
+  color: var(--text);
+}
+
+.webhook-page .workspace-tabs button.active {
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--line));
+  background: var(--wh-panel-bg);
+  color: var(--accent);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+.webhook-page .workspace-tabs button.active::after {
+  @apply absolute -bottom-px left-3 right-3 h-0.5 rounded-t-sm;
+  background: var(--accent);
+  content: "";
+}
+
+.webhook-page .tab-count,
+.webhook-page .tab-alert {
+  @apply inline-grid h-5 min-w-5 place-items-center rounded-md px-[5px] text-[10px] tabular-nums;
+}
+
+.webhook-page .tab-count {
+  background: var(--wh-heading-bg);
+  color: var(--muted);
+}
+
+.webhook-page .workspace-tabs button.active .tab-count {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.webhook-page .tab-alert {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.webhook-page .workspace-layout,
+.webhook-page .history-workspace {
+  @apply flex min-h-[320px] w-full min-w-0 items-stretch gap-3.5 overflow-hidden;
+  flex: 1 1 0%;
+  max-height: 100%;
+}
+
+.webhook-page .directory-panel,
+.webhook-page .editor-panel,
+.webhook-page .history-panel {
+  @apply flex min-w-0 min-h-0 flex-col overflow-hidden rounded-[var(--wh-radius-panel)] border;
+  flex: 1 1 0%;
+  max-height: 100%;
+  border-color: var(--line);
+  background: var(--wh-panel-bg);
+  box-shadow: var(--shadow);
+}
+
+.webhook-page .panel-heading {
+  @apply flex shrink-0 items-center gap-[11px] border-b px-[15px] py-[13px];
+  border-color: color-mix(in srgb, var(--accent) 16%, var(--line));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 8%, var(--surface-2)),
+    var(--wh-heading-bg)
+  );
+}
+
+.webhook-page .panel-heading-icon {
+  @apply grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[9px] border;
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--line));
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.webhook-page .panel-heading-copy {
+  @apply grid min-w-0 flex-auto gap-[3px];
+}
+
+.webhook-page .panel-heading-copy h3 {
+  @apply m-0 text-[12.5px] font-bold tracking-tight;
+}
+
+.webhook-page .panel-heading-copy p {
+  @apply m-0 overflow-hidden text-ellipsis whitespace-nowrap text-[10px] leading-snug;
+  color: var(--muted);
+}
+
+.webhook-page .panel-scroll {
+  @apply w-full min-w-0 min-h-0;
+  flex: 1 1 0%;
+}
+
+.webhook-page .panel-scroll .app-scroll-area-viewport {
+  @apply h-full;
+}
+
+.webhook-page .panel-footer {
+  @apply flex shrink-0 items-center gap-2 border-t px-[15px] py-2.5 text-[10px];
+  border-color: var(--line);
+  background: var(--wh-heading-bg);
+  color: var(--muted);
+}
+
+.webhook-page .directory-panel {
+  @apply w-[min(32%,340px)];
+  flex: 0 0 min(32%, 340px);
+  border-color: color-mix(in srgb, var(--accent) 12%, var(--line));
+}
+
+.webhook-page .directory-item {
+  @apply relative flex cursor-pointer items-center gap-2.5 rounded-[var(--wh-radius-item)] border border-transparent bg-transparent px-2.5 py-[9px] text-left transition-[background,border-color,box-shadow];
+  width: calc(100% - 16px);
+  margin: 4px 8px;
+  color: var(--text);
+}
+
+.webhook-page .directory-item:hover {
+  background: var(--wh-item-hover);
+}
+
+.webhook-page .directory-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.webhook-page .directory-item.selected {
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--line));
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.webhook-page .directory-item.selected .provider-icon {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+  background: var(--wh-panel-bg);
+  color: var(--accent);
+}
+
+.webhook-page .row-delete {
+  @apply pointer-events-none opacity-0 transition-opacity;
+}
+
+.webhook-page .directory-item:hover .row-delete,
+.webhook-page .directory-item:focus-within .row-delete,
+.webhook-page .row-delete:focus-visible {
+  @apply pointer-events-auto opacity-100;
+}
+
+.webhook-page .provider-icon {
+  @apply grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[var(--wh-radius-control)] border;
+  border-color: var(--line);
+  background: var(--wh-heading-bg);
+  color: var(--accent);
+}
+
+.webhook-page .directory-content {
+  @apply grid min-w-0 flex-auto gap-1;
+}
+
+.webhook-page .directory-content strong,
+.webhook-page .directory-content small {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
+}
+
+.webhook-page .directory-content strong {
+  @apply text-[11px] font-bold;
+  color: var(--text);
+}
+
+.webhook-page .directory-content small {
+  @apply text-[10px] leading-snug;
+  color: var(--muted);
+}
+
+.webhook-page .directory-content .url-preview {
+  @apply font-mono text-[9px] opacity-85;
+}
+
+.webhook-page .empty-directory {
+  @apply flex flex-col items-center gap-2 px-5 py-7 text-center;
+}
+
+.webhook-page .empty-icon,
+.webhook-page .placeholder-icon {
+  @apply mb-[3px] grid h-11 w-11 place-items-center rounded-[13px] border;
+  border-color: var(--line);
+  background: var(--wh-heading-bg);
+  color: var(--muted);
+}
+
+.webhook-page .empty-directory strong {
+  @apply text-xs;
+}
+
+.webhook-page .empty-directory p {
+  @apply mb-1.5 mt-0 max-w-[260px] text-[10px] leading-normal;
+  color: var(--muted);
+}
+
+.webhook-page .workspace-tabs button:focus-visible,
+.webhook-page .directory-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.webhook-page .history-workspace {
+  @apply grid grid-cols-1;
+}
+
+.webhook-page .records-body {
+  @apply grid min-h-0;
+  flex: 1 1 0%;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.webhook-page .record-row {
+  @apply cursor-pointer transition-colors;
+}
+
+.webhook-page .record-row:hover {
+  background: var(--wh-item-hover);
+}
+
+.webhook-page .record-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.webhook-page .cell-strong {
+  @apply font-semibold;
+}
+
+.webhook-page .cell-muted {
+  color: var(--muted);
+}
+
+.webhook-page .nowrap {
+  @apply whitespace-nowrap;
+}
+
+.webhook-page .row-open-hint {
+  @apply whitespace-nowrap text-[10px];
+  color: var(--muted);
+}
+
+.webhook-page .neutral-count {
+  @apply whitespace-nowrap rounded-[7px] border px-2 py-[5px] text-[10px];
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+.webhook-page .status-pill {
+  @apply inline-flex shrink-0 items-center gap-[7px] whitespace-nowrap rounded-[20px] border px-[9px] py-1.5 text-[10px] font-semibold;
+  border-color: var(--line);
+  background: var(--wh-panel-bg);
+  color: var(--muted);
+}
+
+.webhook-page .small-pill {
+  @apply px-[7px] py-1 text-[9px];
+}
+
+.webhook-page .delivery-pill-succeeded {
+  border-color: color-mix(in srgb, var(--green) 22%, var(--line));
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.webhook-page .delivery-pill-failed {
+  border-color: color-mix(in srgb, var(--red) 22%, var(--line));
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.webhook-page .records-filter {
+  @apply w-[148px] shrink-0;
+}
+
+@media (hover: none) {
+  .webhook-page .row-delete {
+    @apply pointer-events-auto opacity-100;
+  }
+}
+@media (max-width: 1150px) {
+  .webhook-page .directory-panel {
+    @apply min-w-[210px] w-[34%];
+    flex-basis: 34%;
+  }
+}
+@media (min-width: 901px) and (max-height: 620px) {
+  .webhook-page .workspace-region {
+    @apply static h-auto max-h-none;
+  }
+  .webhook-page .workspace-layout,
+  .webhook-page .history-workspace {
+    @apply min-h-0 max-h-none;
+    flex: 0 0 auto;
+    height: clamp(320px, 62dvh, 560px);
+  }
+}
+@media (max-width: 900px) {
+  .webhook-page {
+    @apply min-h-0;
+    flex: 0 0 auto;
+  }
+  .webhook-page > .app-footer {
+    @apply mt-0;
+  }
+  .webhook-page .workspace-region {
+    @apply static h-auto max-h-none;
+    flex: 0 0 auto;
+  }
+  .webhook-page .workspace-layout,
+  .webhook-page .history-workspace {
+    @apply min-h-0 max-h-none flex-col overflow-visible;
+    flex: 0 0 auto;
+  }
+  .webhook-page .directory-panel,
+  .webhook-page .editor-panel,
+  .webhook-page .history-panel {
+    @apply w-full min-w-0 max-h-none;
+  }
+  .webhook-page .directory-panel {
+    @apply h-[var(--wh-directory-height)];
+    flex: 0 0 auto;
+  }
+  .webhook-page .history-workspace {
+    @apply flex;
+  }
+  .webhook-page .history-panel {
+    @apply h-[var(--wh-history-height)];
+    flex: 0 0 auto;
+  }
+  /*
+    空态必须塞得进目录面板：面板高度是 clamp(260px, 42dvh, 440px)，扣掉标题栏
+    后最窄只剩约 192px；而默认间距（py-7 + 44px 图标 + 按钮）约 204px 高，
+    在 640px 高的手机上溢出 3px、600px 高溢出 12px，滚动容器于是渲染出滚动条。
+    桌面端面板更高，不需要压缩，只在移动端收紧间距与图标尺寸。
+  */
+  .webhook-page .empty-directory {
+    @apply justify-center gap-1.5 px-4 py-4;
+  }
+  .webhook-page .empty-directory .empty-icon {
+    @apply mb-0 h-9 w-9 rounded-[11px];
+  }
+  .webhook-page .empty-directory p {
+    @apply mb-1;
+  }
+}
+@media (max-width: 640px) {
+  .webhook-page {
+    @apply gap-3.5;
+    --wh-directory-height: clamp(260px, 42dvh, 440px);
+    /*
+      编辑器面板 = 标题栏（约 136px）+ 滚动书写区 + 底部操作栏（约 112px）。
+      原先 54dvh 在 844px 高的手机上只有 456px，扣掉标题与按钮后真正能写字的
+      区域只剩约 206px，正文一长就只能在一条窄缝里滚动。提高到 70dvh 后书写区
+      约 360px，同时保留 400px 下限，兼顾 568px 高的小屏。
+    */
+    --wh-editor-height: clamp(400px, 70dvh, 760px);
+    --wh-history-height: clamp(280px, 44dvh, 480px);
+  }
+  .webhook-page .workspace-tabs {
+    @apply gap-0.5 overflow-x-auto;
+  }
+  .webhook-page .workspace-tabs button {
+    @apply gap-1.5 px-[9px] text-[10px];
+    min-height: 39px;
+  }
+  .webhook-page .workspace-tabs button > svg {
+    @apply hidden;
+  }
+  .webhook-page .workspace-tabs button.active::after {
+    @apply left-2 right-2;
+  }
+  .webhook-page .panel-heading {
+    @apply flex-wrap items-start;
+  }
+  .webhook-page .panel-heading-copy p {
+    @apply whitespace-normal;
+  }
+  .webhook-page .records-filter {
+    @apply w-full;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .webhook-page *,
+  .webhook-page *::before,
+  .webhook-page *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

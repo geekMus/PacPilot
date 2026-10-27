@@ -1,6 +1,6 @@
 services:
   pacpilot:
-    # 使用 GHCR 已发布的多架构镜像；部署设备无需克隆源代码或本地构建。
+    # 使用 GHCR 已发布的 ARM64 镜像；部署设备无需克隆源代码或本地构建。
     image: ghcr.io/geekmus/pacpilot:latest
     container_name: pacpilot
     restart: unless-stopped

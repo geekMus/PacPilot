@@ -1,18 +1,8 @@
-import type { AppDatabase } from "../db/sqlite";
-import {
-  createWorkflowRun,
-  claimWorkflowRun,
-  getCurrentWorkflow,
-  getSettings,
-  getWorkflowRun,
-  updateWorkflowRun,
-  startWorkflowStage,
-  finishWorkflowStage,
-  encodeWorkflowStageDetail,
-} from "../db/sqlite";
+import type { ApplicationStorage } from "../storage/repositories";
 import { generatePac, type GenerateResult } from "./pac-generator";
 import { t } from "../../shared/i18n";
 import { runtimeLog } from "../utils/runtime-log";
+import { publishDomainEvent } from "./notifications";
 
 export type WorkflowSource = "startup" | "scheduled" | "manual" | "save-and-generate";
 export interface PacWorkflowResult {
@@ -21,7 +11,7 @@ export interface PacWorkflowResult {
 }
 interface QueueItem {
   workflowId: number;
-  database: AppDatabase;
+  storage: ApplicationStorage;
   dataDir: string;
   resolve: (result: GenerateResult) => void;
   reject: (error: unknown) => void;
@@ -31,65 +21,85 @@ interface QueueItem {
 const queues = new Map<string, QueueItem[]>();
 const runningTypes = new Set<string>();
 const PAC_WORKFLOW_TYPE = "pac-generation";
+function encodeWorkflowStageDetail(value: unknown): string {
+  const json = JSON.stringify(value ?? {});
+  if (json === undefined) throw new Error("Workflow stage detail is not JSON-serializable.");
+  return json.length > 32000
+    ? JSON.stringify({ truncated: true, originalLength: json.length })
+    : json;
+}
+
 const cancelledResult = (): GenerateResult => ({
   success: false,
   mode: "",
   message: t("zh_CN", "serverErrors.workflowCancelled"),
   resultCode: "cancelled",
-  pacPath: "",
 });
 
-export function hasActivePacWorkflow(database: AppDatabase): boolean {
-  return getCurrentWorkflow(database) !== null;
+export async function hasActivePacWorkflow(storage: ApplicationStorage): Promise<boolean> {
+  return (await storage.workflows.current()) !== null;
 }
 
 async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
-  const { database, workflowId: id } = item;
+  const { storage, workflowId: id } = item;
   const startedAt = new Date();
   let activeStageId: number | null = null;
   try {
-    if (!claimWorkflowRun(database, id, startedAt.toISOString())) {
+    if (!(await storage.workflows.claim(id, startedAt.toISOString()))) {
       return cancelledResult();
     }
-    const settings = getSettings(database);
+    const settings = await storage.settings.get();
+    await publishDomainEvent(storage, {
+      type: "task.execution",
+      phase: "started",
+      subject: { type: "task", id: String(id), name: "PAC 生成任务" },
+      correlationId: "workflow-" + id,
+      summary: "PAC 生成任务已开始。",
+    });
     const prepareDetail = encodeWorkflowStageDetail({
       mode: settings.mode,
       pac_proxy: settings.pacProxy,
       list_url: settings.listUrl || null,
-      compressed: Boolean(settings.pacCompress),
+      compressed: Boolean(settings.pacCompress || settings.pacObfuscate),
+      obfuscated: Boolean(settings.pacObfuscate),
       timezone: settings.timezone,
       cron_schedule: settings.cronSchedule || null,
       block_list_count: settings.blockList.length,
       direct_list_count: settings.directList.length,
-      webhook_success_configured: Boolean(settings.webhookSuccessConfig?.url?.trim()),
-      webhook_failure_configured: Boolean(settings.webhookFailureConfig?.url?.trim()),
       data_dir: item.dataDir,
     });
-    const prepareStage = startWorkflowStage(database, id, "prepare", prepareDetail);
+    const prepareStage = await storage.workflows.startStage(id, "prepare", prepareDetail);
     activeStageId = prepareStage;
-    finishWorkflowStage(database, prepareStage, "succeeded", "", prepareDetail);
+    await storage.workflows.finishStage(prepareStage, "succeeded", "", prepareDetail);
     activeStageId = null;
 
-    const generationStage = startWorkflowStage(database, id, "generate-pac");
-    updateWorkflowRun(database, id, { stage: "generate-pac" });
+    const generationStage = await storage.workflows.startStage(id, "generate-pac");
+    await storage.workflows.update(id, { stage: "generate-pac" });
     activeStageId = generationStage;
-    const generation = await generatePac(database, item.dataDir);
+    const generation = await generatePac(storage);
     const finishedAt = new Date();
     const generationDetail = encodeWorkflowStageDetail(generation.detail || {});
-    finishWorkflowStage(
-      database,
+    await storage.workflows.finishStage(
       generationStage,
       generation.success ? "succeeded" : "failed",
       generation.success ? "" : generation.message,
       generationDetail
     );
     activeStageId = null;
-    updateWorkflowRun(database, id, {
+    await storage.workflows.update(id, {
       status: generation.success ? "succeeded" : "failed",
       stage: generation.success ? "done" : "failed",
       error: generation.success ? "" : generation.message,
       finished_at: finishedAt.toISOString(),
       duration_ms: Math.max(0, finishedAt.getTime() - startedAt.getTime()),
+    });
+    await publishDomainEvent(storage, {
+      type: "task.execution",
+      phase: "finished",
+      outcome: generation.success ? "success" : "failure",
+      subject: { type: "task", id: String(id), name: "PAC 生成任务" },
+      correlationId: "workflow-" + id,
+      summary: generation.message,
     });
     return generation;
   } catch (error) {
@@ -97,15 +107,14 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
     const message = error instanceof Error ? error.message : String(error);
     try {
       if (activeStageId !== null) {
-        finishWorkflowStage(
-          database,
+        await storage.workflows.finishStage(
           activeStageId,
           "failed",
           message,
           encodeWorkflowStageDetail({ error: message })
         );
       }
-      updateWorkflowRun(database, id, {
+      await storage.workflows.update(id, {
         status: "failed",
         stage: "exception",
         error: message,
@@ -115,6 +124,14 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
     } catch (recordError) {
       runtimeLog("error", "Failed to save workflow failure status: ", recordError);
     }
+    await publishDomainEvent(storage, {
+      type: "task.execution",
+      phase: "finished",
+      outcome: "failure",
+      subject: { type: "task", id: String(id), name: "PAC 生成任务" },
+      correlationId: "workflow-" + id,
+      summary: message,
+    });
     throw error;
   }
 }
@@ -126,7 +143,7 @@ function pumpQueue(type: string): void {
     try {
       while (queue?.length) {
         const item = queue.shift()!;
-        const run = getWorkflowRun(item.database, item.workflowId);
+        const run = await item.storage.workflows.get(item.workflowId);
         if (!run || run.status !== "pending") {
           item.resolve(cancelledResult());
           continue;
@@ -146,53 +163,53 @@ function pumpQueue(type: string): void {
 }
 
 /** Each workflow type owns an independent serial queue; different types can run concurrently. */
-function enqueueWorkflow(
+async function enqueueWorkflow(
   type: string,
-  database: AppDatabase,
+  storage: ApplicationStorage,
   dataDir: string,
   source: WorkflowSource,
   execute: (item: QueueItem) => Promise<GenerateResult>
-): QueueItem {
-  const workflowId = createWorkflowRun(database, source, getSettings(database).mode);
+): Promise<QueueItem> {
+  const workflowId = await storage.workflows.create(source, (await storage.settings.get()).mode);
   let resolve!: (result: GenerateResult) => void;
   let reject!: (error: unknown) => void;
   const promise = new Promise<GenerateResult>((res, rej) => {
     resolve = res;
     reject = rej;
   });
-  const item: QueueItem = { workflowId, database, dataDir, resolve, reject, promise, execute };
+  const item: QueueItem = { workflowId, storage, dataDir, resolve, reject, promise, execute };
   const queue = queues.get(type) ?? [];
   queue.push(item);
   queues.set(type, queue);
   pumpQueue(type);
   return item;
 }
-function enqueuePacWorkflow(
-  database: AppDatabase,
+async function enqueuePacWorkflow(
+  storage: ApplicationStorage,
   dataDir: string,
   source: WorkflowSource
-): QueueItem {
-  return enqueueWorkflow(PAC_WORKFLOW_TYPE, database, dataDir, source, executePacWorkflow);
+): Promise<QueueItem> {
+  return await enqueueWorkflow(PAC_WORKFLOW_TYPE, storage, dataDir, source, executePacWorkflow);
 }
 
 /** Start a queued server-owned task and return its ID immediately. */
-export function startPacWorkflow(
-  database: AppDatabase,
+export async function startPacWorkflow(
+  storage: ApplicationStorage,
   dataDir: string,
   source: WorkflowSource
-): number {
-  const item = enqueuePacWorkflow(database, dataDir, source);
+): Promise<number> {
+  const item = await enqueuePacWorkflow(storage, dataDir, source);
   void item.promise.catch((error) => runtimeLog("error", "Workflow execution failed: ", error));
   return item.workflowId;
 }
 
 /** Awaited variant used during startup and scheduled runs. */
 export async function runPacWorkflow(
-  database: AppDatabase,
+  storage: ApplicationStorage,
   dataDir: string,
   source: WorkflowSource
 ): Promise<PacWorkflowResult> {
-  const item = enqueuePacWorkflow(database, dataDir, source);
+  const item = await enqueuePacWorkflow(storage, dataDir, source);
   const generation = await item.promise;
   return { workflowId: item.workflowId, generation };
 }
