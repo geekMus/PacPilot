@@ -257,8 +257,11 @@ onMounted(prefetchUserPreferencesMenu);
   .topbar-title h1 {
     @apply text-lg;
   }
+  /* 顶栏是绝对定位浮层，内容区必须留出它的高度；直接写 pt-* 会覆盖上面的
+     calc() 偏移，导致首屏内容被顶栏压住。 */
   .admin-content-inner {
-    @apply px-[18px] pt-5 pb-8;
+    @apply px-[18px] pb-8;
+    padding-top: calc(var(--admin-topbar-space) + 16px);
   }
 }
 @media (max-width: 620px) {
@@ -296,7 +299,8 @@ onMounted(prefetchUserPreferencesMenu);
     --admin-section-gap: 16px;
   }
   .admin-content-inner {
-    @apply px-4 pt-4 pb-7;
+    @apply px-4 pb-7;
+    padding-top: calc(var(--admin-topbar-space) + 12px);
   }
   .admin-content :deep(.overview-metrics),
   .admin-content :deep(.metric-grid) {

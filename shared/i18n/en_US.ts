@@ -709,7 +709,7 @@ export default {
     newPasswordPlaceholder: "Enter a new password (no length or complexity requirements)",
     scheduleOnly: "Scheduled tasks",
     scheduleOnlyDesc:
-      "Configure the PAC generation schedule and time zone. Manage notification channels separately in Notifications.",
+      "Configure the PAC generation schedule. Set the time zone in System Settings; manage notification channels separately in Notifications.",
     ruleCheckSummary: "Rule check: {errors} errors, {warnings} warnings",
     ruleCheckFixErrors: "Fix rule syntax errors before saving. Syntax errors prevent saving.",
     ruleCheckHints:

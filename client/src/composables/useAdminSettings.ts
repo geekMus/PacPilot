@@ -5,7 +5,6 @@ import { api, type AppSettings, type PacPilotProbe } from "@/api/client";
 import { analyzeDomainRules } from "@/utils/domain-rules";
 import { DEFAULT_LIST_URL } from "@shared/contracts";
 import { createAdminSettingsValidators } from "@/utils/admin-settings-validation";
-import { commonTimeZones, isValidTimeZone } from "@/utils/time-zones";
 import { useToast } from "@/composables/useToast";
 import { fetchAdminSession } from "@/composables/useAdminSession";
 
@@ -35,10 +34,6 @@ export function useAdminSettings() {
 
   const pacpilotProbe = ref<PacPilotProbe | null>(null);
 
-  const timezoneMenuOpen = ref(false);
-
-  const timezoneQuery = ref("");
-
   const form = reactive({
     mode: "custom" as "custom" | "remote",
     pacProxy: "",
@@ -51,22 +46,6 @@ export function useAdminSettings() {
     timezone: "Asia/Shanghai",
     logRetentionDays: 30,
   });
-
-  const filteredTimeZones = computed(() => {
-    const query = timezoneQuery.value.trim().toLowerCase();
-    if (!query) return commonTimeZones;
-    return commonTimeZones.filter(
-      (zone) =>
-        zone.value.toLowerCase().includes(query) ||
-        String(t(zone.labelKey)).toLowerCase().includes(query)
-    );
-  });
-
-  function selectTimeZone(value: string) {
-    form.timezone = value;
-    timezoneQuery.value = value;
-    timezoneMenuOpen.value = false;
-  }
 
   async function scrollToCurrentSection(): Promise<void> {
     await nextTick();
@@ -184,10 +163,6 @@ export function useAdminSettings() {
 
   const blockListError = computed(() => validateDomainRules(form.blockListText, "block"));
 
-  const timezoneError = computed(() =>
-    isValidTimeZone(form.timezone) ? "" : t("settings.timezoneInvalid")
-  );
-
   const cronError = computed(() => (form.cronSchedule.trim() ? cronParse.value.error : ""));
 
   function splitLines(text: string): string[] {
@@ -250,26 +225,6 @@ export function useAdminSettings() {
     const next = saveQueue.then(run, run).catch(() => undefined);
     saveQueue = next;
     return next;
-  }
-
-  function onTimeZoneSelected(value: string) {
-    const changed = value !== form.timezone;
-    selectTimeZone(value);
-    if (changed) {
-      void tryApply(
-        { timezone: value.trim() },
-        { generate: false, message: t("settings.savedTimeZone"), invalid: timezoneError.value }
-      );
-    }
-  }
-
-  function onTimeZoneChip(value: string) {
-    if (form.timezone === value) return;
-    form.timezone = value;
-    void tryApply(
-      { timezone: value },
-      { generate: false, message: t("settings.savedTimeZone"), invalid: timezoneError.value }
-    );
   }
 
   function onModeChange(value: string) {
@@ -437,13 +392,7 @@ export function useAdminSettings() {
     saving,
     error,
     pacpilotProbe,
-    timezoneMenuOpen,
-    timezoneQuery,
     form,
-    commonTimeZones,
-    filteredTimeZones,
-    onTimeZoneSelected,
-    onTimeZoneChip,
     modeHint,
     cronPresets,
     cronHint,
@@ -466,7 +415,6 @@ export function useAdminSettings() {
     hasUnsavedRules,
     hasUnsavedMode,
     saveRules,
-    timezoneError,
     cronError,
   };
 }

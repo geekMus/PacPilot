@@ -1,23 +1,9 @@
 <script setup lang="ts">
 import { defineAsyncComponent } from "vue";
-import {
-  CheckboxIndicator,
-  CheckboxRoot,
-  RadioGroupItem,
-  RadioGroupRoot,
-  ComboboxAnchor,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxPortal,
-  ComboboxRoot,
-  ComboboxViewport,
-} from "reka-ui";
+import { CheckboxIndicator, CheckboxRoot, RadioGroupItem, RadioGroupRoot } from "reka-ui";
 import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AppInput from "@/components/AppInput.vue";
-import AppScrollArea from "@/components/AppScrollArea.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import { useAdminSettings } from "@/composables/useAdminSettings";
 import LazyMount from "@/components/LazyMount.vue";
@@ -32,13 +18,7 @@ const {
   saving,
   error,
   pacpilotProbe,
-  timezoneMenuOpen,
-  timezoneQuery,
   form,
-  commonTimeZones,
-  filteredTimeZones,
-  onTimeZoneSelected,
-  onTimeZoneChip,
   modeHint,
   cronPresets,
   cronHint,
@@ -61,7 +41,6 @@ const {
   hasUnsavedRules,
   hasUnsavedMode,
   saveRules,
-  timezoneError,
   cronError,
 } = useAdminSettings();
 </script>
@@ -90,113 +69,6 @@ const {
           串行保存队列已保证同一时间只有一个请求在途，无需冻结表单。
         -->
         <form id="settings-form" class="stack" :aria-busy="saving" @submit.prevent>
-          <!-- 常规设置 -->
-          <section id="general" class="card">
-            <div class="card-head">
-              <div class="card-title">
-                <span class="icon-badge" aria-hidden="true"
-                  ><AppIcon name="calendar-clock" :size="18"
-                /></span>
-                <div>
-                  <h2>{{ t("settings.general") }}</h2>
-                  <p class="card-sub">{{ t("settings.generalDesc") }}</p>
-                </div>
-              </div>
-            </div>
-            <div class="field">
-              <label for="timezone">{{ t("settings.timezone") }}</label>
-              <ComboboxRoot
-                :model-value="form.timezone"
-                :open="timezoneMenuOpen"
-                :search-term="timezoneQuery"
-                class="timezone-combobox"
-                @update:open="timezoneMenuOpen = $event"
-                @update:model-value="onTimeZoneSelected(String($event))"
-                @update:search-term="timezoneQuery = $event"
-              >
-                <ComboboxAnchor as-child>
-                  <div class="timezone-picker">
-                    <ComboboxInput
-                      id="timezone"
-                      class="timezone-combobox-input"
-                      autocomplete="off"
-                      spellcheck="false"
-                      :display-value="(value) => String(value ?? '')"
-                      :placeholder="t('settings.timezoneSearch')"
-                      :aria-invalid="Boolean(timezoneError)"
-                      @focus="
-                        timezoneMenuOpen = true;
-                        timezoneQuery = '';
-                      "
-                    />
-                    <AppIcon
-                      class="timezone-picker-icon"
-                      name="chevron-down"
-                      :size="15"
-                      aria-hidden="true"
-                    />
-                  </div>
-                </ComboboxAnchor>
-                <ComboboxPortal>
-                  <ComboboxContent
-                    class="timezone-options-menu"
-                    position="popper"
-                    align="start"
-                    :side-offset="5"
-                    :collision-padding="10"
-                  >
-                    <AppScrollArea
-                      root-class="timezone-options-scroll-area"
-                      viewport-class="timezone-options-viewport"
-                      orientation="vertical"
-                      type="hover"
-                    >
-                      <template #viewport="{ viewportComponent, viewportClass, onScroll }">
-                        <ComboboxViewport as-child>
-                          <component
-                            :is="viewportComponent"
-                            :class="viewportClass"
-                            @scroll.passive="onScroll"
-                          >
-                            <ComboboxItem
-                              v-for="zone in filteredTimeZones"
-                              :key="zone.value"
-                              :value="zone.value"
-                              class="timezone-option"
-                            >
-                              <span>{{ t(zone.labelKey) }}</span>
-                              <code>{{ zone.value }}</code>
-                            </ComboboxItem>
-                            <ComboboxEmpty class="timezone-no-results">
-                              {{ t("settings.timezoneNoMatch") }}
-                            </ComboboxEmpty>
-                          </component>
-                        </ComboboxViewport>
-                      </template>
-                    </AppScrollArea>
-                  </ComboboxContent>
-                </ComboboxPortal>
-              </ComboboxRoot>
-              <p class="field-hint">
-                {{ t("settings.timezoneHintFull") }}
-              </p>
-              <p v-if="timezoneError" class="field-error" role="alert">{{ timezoneError }}</p>
-            </div>
-
-            <div class="chip-row timezone-presets">
-              <button
-                v-for="zone in commonTimeZones.slice(0, 6)"
-                :key="zone.value"
-                type="button"
-                class="chip"
-                :class="{ active: form.timezone === zone.value }"
-                @click="onTimeZoneChip(zone.value)"
-              >
-                {{ t(zone.labelKey) }}
-              </button>
-            </div>
-          </section>
-
           <!-- 模式 -->
           <section id="mode" class="card">
             <div class="card-head card-head-with-action">

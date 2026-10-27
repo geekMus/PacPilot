@@ -13,6 +13,7 @@ import AppSelect from "@/components/AppSelect.vue";
 import { useToast } from "@/composables/useToast";
 import { useI18n } from "vue-i18n";
 import { useAdminPassword } from "@/composables/useAdminPassword";
+import TimeZoneField from "@/features/system-settings/components/TimeZoneField.vue";
 import { PROJECT_LINKS } from "@shared/project-links";
 const router = useRouter(),
   { notify } = useToast();
@@ -37,6 +38,8 @@ const settings = ref<AppSettings | null>(null),
   storage = ref<StorageSummary | null>(null),
   error = ref("");
 const retention = ref(30);
+const timezone = ref("Asia/Shanghai");
+const savingTimezone = ref(false);
 const confirmationOpen = reactive({ clearLogs: false, clearPacCache: false, factoryReset: false });
 function setConfirmation(key: keyof typeof confirmationOpen, open: boolean) {
   for (const name of Object.keys(confirmationOpen) as Array<keyof typeof confirmationOpen>)
@@ -88,6 +91,7 @@ async function load() {
     const [s, st] = await Promise.all([api.settings(), api.storage()]);
     settings.value = s;
     retention.value = s.logRetentionDays;
+    timezone.value = s.timezone || "Asia/Shanghai";
     storage.value = st;
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
@@ -110,6 +114,26 @@ async function saveRetention() {
     notify(e instanceof Error ? e.message : String(e), "error");
   } finally {
     savingRetention.value = false;
+  }
+}
+async function saveTimezone(next: string) {
+  if (savingTimezone.value || !settings.value) return;
+  const previous = settings.value.timezone || "Asia/Shanghai";
+  timezone.value = next;
+  if (next === previous) return;
+  savingTimezone.value = true;
+  try {
+    // 合并服务端最新配置，避免覆盖其他页面（PAC 生成设置、通知渠道）刚刚写入的字段。
+    const latest = await api.settings();
+    const saved = await api.saveSettings({ ...latest, timezone: next });
+    settings.value = saved;
+    timezone.value = saved.timezone || next;
+    notify(t("settings.savedTimeZone"), "success");
+  } catch (e) {
+    timezone.value = previous;
+    notify(e instanceof Error ? e.message : String(e), "error");
+  } finally {
+    savingTimezone.value = false;
   }
 }
 async function refreshStorage() {
@@ -253,6 +277,20 @@ onMounted(() => void load());
             >
           </div>
         </form>
+      </section>
+      <section class="settings-panel">
+        <div class="heading">
+          <span class="icon-badge"><AppIcon name="globe" :size="19" /></span>
+          <div>
+            <h2>{{ t("settings.general") }}</h2>
+            <p>{{ t("settings.generalDesc") }}</p>
+          </div>
+        </div>
+        <TimeZoneField
+          :model-value="timezone"
+          :disabled="loading || savingTimezone"
+          @update:model-value="saveTimezone"
+        />
       </section>
       <p v-if="maintenanceBusy()" class="maintenance-status" role="status" aria-live="polite">
         {{ maintenanceDisabledReason }}

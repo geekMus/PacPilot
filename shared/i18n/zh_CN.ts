@@ -673,7 +673,8 @@ export default {
     resetHelpLink: "查看完整重置说明 ↗",
     newPasswordPlaceholder: "输入新密码（不限制长度或复杂度）",
     scheduleOnly: "定时任务",
-    scheduleOnlyDesc: "配置 PAC 定时生成计划与时区。通知渠道请前往通知服务单独管理。",
+    scheduleOnlyDesc:
+      "配置 PAC 定时生成计划。时区在系统设置中配置，通知渠道请前往通知服务单独管理。",
     ruleCheckSummary: "规则检查：{errors} 个错误，{warnings} 条提示",
     ruleCheckFixErrors: "请先修正规则格式错误；格式错误会阻止保存。",
     ruleCheckHints:
