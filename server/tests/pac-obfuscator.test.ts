@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { obfuscatePac } from "../services/pac-obfuscator";
 
 const SOURCE = [
-  "var BLOCK_LIST = [\"blocked.example\"];",
-  "var PAC_PROXY = \"SOCKS5 127.0.0.1:1080; DIRECT\";",
+  'var BLOCK_LIST = ["blocked.example"];',
+  'var PAC_PROXY = "SOCKS5 127.0.0.1:1080; DIRECT";',
   "function FindProxyForURL(url, host) {",
-  "  return host === \"blocked.example\" ? \"PROXY 0.0.0.0:0\" : PAC_PROXY;",
+  '  return host === "blocked.example" ? "PROXY 0.0.0.0:0" : PAC_PROXY;',
   "}",
 ].join("\n");
 

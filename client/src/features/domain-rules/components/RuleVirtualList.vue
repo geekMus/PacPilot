@@ -117,9 +117,12 @@ watch(
           <TextDetail :text="item.domain" :label="t('common.domainRules')" class="domain-detail"
             ><code>{{ item.domain }}</code></TextDetail
           >
-          <span v-if="showSources && item.source" class="row-source" :class="sourceClass(item.source)">{{
-            item.source
-          }}</span>
+          <span
+            v-if="showSources && item.source"
+            class="row-source"
+            :class="sourceClass(item.source)"
+            >{{ item.source }}</span
+          >
         </div>
       </div>
     </div>

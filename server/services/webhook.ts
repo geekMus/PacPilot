@@ -167,10 +167,9 @@ function requestFailure(error: unknown, provider: string): WebhookDeliveryResult
   const message = error instanceof Error ? error.message : String(error);
   return {
     success: false,
-    message:
-      isRequestTimeout(error, message)
-        ? provider + "请求超时（" + WEBHOOK_TIMEOUT_MS / 1000 + " 秒）。"
-        : provider + "请求失败：" + message,
+    message: isRequestTimeout(error, message)
+      ? provider + "请求超时（" + WEBHOOK_TIMEOUT_MS / 1000 + " 秒）。"
+      : provider + "请求失败：" + message,
   };
 }
 
@@ -189,11 +188,7 @@ function isRequestTimeout(error: unknown, message: string): boolean {
     return true;
   }
   const name = error instanceof Error ? error.name : String(error);
-  return (
-    name === "TimeoutError" ||
-    name === "AbortError" ||
-    name === "AbortError [DOMException]"
-  );
+  return name === "TimeoutError" || name === "AbortError" || name === "AbortError [DOMException]";
 }
 
 async function sendCustom(

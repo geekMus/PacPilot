@@ -20,7 +20,11 @@ interface RawResponse {
   body: Buffer;
 }
 
-function request(base: string, path: string, headers: http.OutgoingHttpHeaders = {}): Promise<RawResponse> {
+function request(
+  base: string,
+  path: string,
+  headers: http.OutgoingHttpHeaders = {}
+): Promise<RawResponse> {
   return new Promise((resolve, reject) => {
     const req = http.get(`${base}${path}`, { headers }, (res) => {
       const chunks: Buffer[] = [];

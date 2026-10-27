@@ -139,12 +139,14 @@ function toStyleTag(file: string): string {
  */
 function readStyleFile(clientDir: string, file: string): string | null {
   try {
-    return fs
-      .readFileSync(path.join(clientDir, file), "utf8")
-      // `@charset` 只允许出现在样式表最前面，拼接后属于非法 at-rule；文档本身是 UTF-8，可直接去掉。
-      .replace(/^\s*@charset\s+"[^"]*";/, "")
-      // 样式里出现 `</style` 会提前结束内联样式块；`<\/style` 在 CSS 里解析结果相同。
-      .replace(/<\/style/gi, "<\\/style");
+    return (
+      fs
+        .readFileSync(path.join(clientDir, file), "utf8")
+        // `@charset` 只允许出现在样式表最前面，拼接后属于非法 at-rule；文档本身是 UTF-8，可直接去掉。
+        .replace(/^\s*@charset\s+"[^"]*";/, "")
+        // 样式里出现 `</style` 会提前结束内联样式块；`<\/style` 在 CSS 里解析结果相同。
+        .replace(/<\/style/gi, "<\\/style")
+    );
   } catch {
     // 返回 null 而不是空串：空样式表是合法的，读不到文件必须让调用方退回 <link>。
     return null;

@@ -65,10 +65,10 @@ describe("validateWebhookConfig", () => {
 
   it("requires a DingTalk robot URL with an access token", () => {
     expect(
-      validateWebhookConfig(config({ provider: "dingtalk", url: "https://oapi.dingtalk.com/robot/send" }))
-    ).toEqual([
-      expect.stringContaining("缺少 access_token"),
-    ]);
+      validateWebhookConfig(
+        config({ provider: "dingtalk", url: "https://oapi.dingtalk.com/robot/send" })
+      )
+    ).toEqual([expect.stringContaining("缺少 access_token")]);
 
     // 未启用加签的钉钉机器人同样合法：access_token 必填，Secret 可留空。
     const unsigned = config({

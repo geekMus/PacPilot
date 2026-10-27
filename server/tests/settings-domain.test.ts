@@ -76,7 +76,6 @@ describe("normalizeWebhookConfig", () => {
     expect(config.dingTalkSecret).toBe("99");
     expect(config.testBody).toBe("1");
   });
-
 });
 
 describe("normalizeAppSettings", () => {
@@ -150,6 +149,4 @@ describe("normalizeAppSettings", () => {
     expect(normalizeAppSettings({ pacObfuscate: true }).pacObfuscate).toBe(true);
     expect(normalizeAppSettings({ pacObfuscate: "yes" }).pacObfuscate).toBe(true);
   });
-
 });
-
