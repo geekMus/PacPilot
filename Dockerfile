@@ -3,9 +3,9 @@
 FROM --platform=$BUILDPLATFORM oven/bun:1-alpine AS builder
 
 WORKDIR /app
-COPY package.json bunfig.toml ./
-RUN echo "正在安装构建阶段依赖并生成本次构建锁文件……" \
- && bun install
+COPY package.json bunfig.toml bun.lock ./
+RUN echo "正在按锁文件安装构建阶段依赖……" \
+ && bun install --frozen-lockfile
 
 # 完整复制项目源码；由 .dockerignore 排除本机依赖、数据和构建产物。
 COPY . .
@@ -21,7 +21,7 @@ RUN echo "正在安装时区数据库……" && apk add --no-cache tzdata
 WORKDIR /app
 # 运行阶段也使用 Bun 默认的官方 npm registry。
 COPY package.json bunfig.toml ./
-# 复用构建阶段生成的锁文件，确保生产依赖与前端/类型检查使用的解析版本一致。
+# 复用提交到构建阶段的锁文件，确保生产依赖与前端/类型检查使用的解析版本一致。
 COPY --from=builder /app/bun.lock ./bun.lock
 RUN echo "正在按构建锁文件安装运行阶段依赖（不执行开发生命周期脚本）……" \
  && bun install --production --frozen-lockfile --ignore-scripts
