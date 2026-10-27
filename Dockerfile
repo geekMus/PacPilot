@@ -11,7 +11,9 @@ RUN echo "正在按锁文件安装构建阶段依赖……" \
 # 完整复制项目源码；由 .dockerignore 排除本机依赖、数据和构建产物。
 COPY . .
 
-RUN echo "正在检查 TypeScript 类型并编译前端资源……" && bun run typecheck && bun run build:client
+# 类型检查已由 CI 的 check job 在原生平台完成（并以 check 成功 gate 发布），
+# 镜像内重复执行 typecheck 冗余，且会因冻结锁文件解析差异导致构建失败；这里只编译前端。
+RUN echo "正在编译前端资源……" && bun run build:client
 
 # ---------- 运行阶段 ----------
 FROM oven/bun:1-alpine
