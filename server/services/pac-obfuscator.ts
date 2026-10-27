@@ -15,6 +15,10 @@ import JavaScriptObfuscator, { type ObfuscatorOptions } from "javascript-obfusca
  * 6 次相同重建得到 6 个不同 ETag）。固定 seed 后同输入同输出，且不影响混淆强度。
  */
 const OBFUSCATOR_OPTIONS: ObfuscatorOptions = {
+  // 混淆器默认会在 TTY 下、非 CI 环境里往控制台打印「JavaScript Obfuscator Pro」
+  // 广告，并且最多打印 5 次、每 3 天重置，本地开发时每条生成日志都会夹带它。
+  // 这里显式关闭，保持服务端日志只输出我们自己的运行信息。
+  advertisement: false,
   compact: true,
   target: "browser",
   identifierNamesGenerator: "hexadecimal",
