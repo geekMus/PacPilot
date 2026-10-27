@@ -1,5 +1,6 @@
 import type { WorkflowRun, WorkflowStage } from "../../../shared/contracts";
 import type { SyncWorkflowRepository } from "../repositories";
+import { t } from "../../../shared/i18n";
 import { clone, safeLimit } from "./utils";
 
 export type MemorySyncWorkflowRepository = SyncWorkflowRepository & { reset(): void };
@@ -82,13 +83,14 @@ export function createMemoryWorkflowRepository(): MemorySyncWorkflowRepository {
     },
     markInterrupted() {
       const now = new Date().toISOString();
+      const interrupted = t("zh_CN", "workflowMessages.interrupted");
       for (const [id, run] of runs)
         if (run.status === "pending" || run.status === "running") {
           runs.set(id, {
             ...run,
             status: "failed",
             stage: "interrupted",
-            error: "服务在工作流完成前退出。",
+            error: interrupted,
             finished_at: now,
             duration_ms: run.started_at
               ? Math.max(0, Date.parse(now) - Date.parse(run.started_at))

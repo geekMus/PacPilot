@@ -4,6 +4,16 @@
  */
 
 import { assertSafeHttpUrl } from "../utils/url-safety";
+import { t } from "../../shared/i18n";
+import type { AppLocale } from "../../shared/i18n/locale";
+
+/** 远程列表解析 / 下载中的确定性错误（不重试）。 */
+class RemoteListError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RemoteListError";
+  }
+}
 
 export interface RemoteListFetchMeta {
   url: string;
@@ -96,9 +106,9 @@ function parsePlainDomains(text: string): RemoteListParseResult {
   };
 }
 
-export function parseRemoteListText(body: string): RemoteListParseResult {
+export function parseRemoteListText(body: string, locale: AppLocale = "zh_CN"): RemoteListParseResult {
   const trimmed = body.trim();
-  if (!trimmed) throw new Error("远程列表内容为空");
+  if (!trimmed) throw new RemoteListError(t(locale, "remoteList.empty"));
 
   const looksBase64 =
     !trimmed.includes("||") &&
@@ -111,12 +121,12 @@ export function parseRemoteListText(body: string): RemoteListParseResult {
       const decoded = Buffer.from(trimmed.replace(/\s+/g, ""), "base64").toString("utf8");
       const parsed = parseAbpOrAutoproxy(decoded);
       if (parsed.proxyHosts.length === 0) {
-        throw new Error("Base64 解码后没有有效域名");
+        throw new RemoteListError(t(locale, "remoteList.noDomainsAfterDecode"));
       }
       return { ...parsed, format: "gfwlist-base64" };
     } catch (e) {
-      if (e instanceof Error && e.message.includes("有效域名")) throw e;
-      throw new Error("列表 Base64 解码失败，请确认 URL 返回的是 GFWList 或明文规则");
+      if (e instanceof RemoteListError) throw e;
+      throw new RemoteListError(t(locale, "remoteList.decodeFailed"));
     }
   }
 
@@ -127,9 +137,7 @@ export function parseRemoteListText(body: string): RemoteListParseResult {
 
   const plain = parsePlainDomains(trimmed);
   if (plain.proxyHosts.length === 0) {
-    throw new Error(
-      "未能从远程列表解析出有效域名。请使用 GFWList、AutoProxy 规则或每行一个域名的明文列表。"
-    );
+    throw new RemoteListError(t(locale, "remoteList.parseFailed"));
   }
   return plain;
 }
@@ -142,8 +150,11 @@ function collectResponseHeaders(res: Response): Record<string, string> {
   return out;
 }
 
-export async function fetchAndParseRemoteList(url: string): Promise<RemoteListParseResult> {
-  const unsafe = assertSafeHttpUrl(url, "规则列表 URL");
+export async function fetchAndParseRemoteList(
+  url: string,
+  locale: AppLocale = "zh_CN"
+): Promise<RemoteListParseResult> {
+  const unsafe = assertSafeHttpUrl(url, t(locale, "remoteList.urlLabel"));
   if (unsafe) throw new Error(unsafe);
 
   const requestHeaders = {
@@ -175,23 +186,21 @@ export async function fetchAndParseRemoteList(url: string): Promise<RemoteListPa
         response_headers: collectResponseHeaders(res),
       };
       if (!res.ok) {
-        const err = new Error(`下载远程列表失败：HTTP ${res.status} ${res.statusText}`) as Error & {
-          fetchMeta?: RemoteListFetchMeta;
-        };
+        const err = new RemoteListError(
+          t(locale, "remoteList.httpError", {
+            status: String(res.status),
+            statusText: res.statusText || "",
+          })
+        ) as RemoteListError & { fetchMeta?: RemoteListFetchMeta };
         err.fetchMeta = fetchMeta;
         throw err;
       }
-      const parsed = parseRemoteListText(text);
+      const parsed = parseRemoteListText(text, locale);
       return { ...parsed, fetch: fetchMeta };
     } catch (error) {
       lastError = error;
       // HTTP 响应错误和列表格式错误是确定性错误，不应重试。
-      if (
-        error instanceof Error &&
-        /^(下载远程列表失败：HTTP|远程列表内容为空|未能从远程列表解析|列表 Base64 解码失败)/.test(
-          error.message
-        )
-      ) {
+      if (error instanceof RemoteListError) {
         throw error;
       }
       if (attempt < 2) {
@@ -200,9 +209,7 @@ export async function fetchAndParseRemoteList(url: string): Promise<RemoteListPa
     }
   }
   const detail = lastError instanceof Error ? lastError.message : String(lastError);
-  throw new Error(
-    `远程规则列表下载失败：连接意外中断（已重试 2 次）。请检查容器的 DNS、IPv4/IPv6 出口及列表源是否可访问。详情：${detail}`
-  );
+  throw new RemoteListError(t(locale, "remoteList.connectionFailed", { detail }));
 }
 
 function escapeJsString(s: string): string {

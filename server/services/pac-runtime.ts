@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import type { ApplicationStorage } from "../storage/repositories";
 import type { AppSettings } from "../../shared/contracts";
+import { t } from "../../shared/i18n";
+import type { AppLocale } from "../../shared/i18n/locale";
 import { buildRemoteListPac } from "./remote-list";
 
 /**
@@ -134,11 +136,12 @@ export function computeEtag(body: string): string {
 export function renderPacSource(
   settings: AppSettings,
   source: PacRuleSource | null,
-  customBuilder: (settings: AppSettings) => string
+  customBuilder: (settings: AppSettings) => string,
+  locale: AppLocale = "zh_CN"
 ): string {
   if (settings.mode === "remote") {
     if (!source) {
-      throw new Error("远程规则尚未拉取，请先在设置中保存远程规则模式。");
+      throw new Error(t(locale, "remoteList.noSnapshot"));
     }
     return buildRemoteListPac(
       settings.pacProxy,

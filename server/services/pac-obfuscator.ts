@@ -1,4 +1,6 @@
 import JavaScriptObfuscator, { type ObfuscatorOptions } from "javascript-obfuscator";
+import { t } from "../../shared/i18n";
+import type { AppLocale } from "../../shared/i18n/locale";
 
 /**
  * PAC 混淆选项。
@@ -40,11 +42,11 @@ const OBFUSCATOR_OPTIONS: ObfuscatorOptions = {
  * 顺序必须先是 terser 再是混淆：反过来的话 terser 会把混淆器生成的字符串数组
  * 直接求值内联，混淆强度会被削弱。
  */
-export function obfuscatePac(content: string): string {
+export function obfuscatePac(content: string, locale: AppLocale = "zh_CN"): string {
   const result = JavaScriptObfuscator.obfuscate(content, OBFUSCATOR_OPTIONS);
   const code = result.getObfuscatedCode();
   if (typeof code !== "string" || !code.trim()) {
-    throw new Error("PAC 混淆失败：混淆器未生成有效代码。");
+    throw new Error(t(locale, "pacProxy.obfuscateFailed"));
   }
   return code;
 }

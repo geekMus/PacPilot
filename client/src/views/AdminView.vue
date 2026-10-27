@@ -141,7 +141,7 @@ const {
               <strong>{{
                 pacpilotProbe.available ? t("settings.engineReady") : t("settings.engineAbnormal")
               }}</strong>
-              <span>{{ pacpilotProbe.detail }}</span>
+              <span>{{ t("settings.engineDetail") }}</span>
               <span v-if="!pacpilotProbe.available" class="probe-help">
                 {{ t("settings.engineHint") }}
               </span>

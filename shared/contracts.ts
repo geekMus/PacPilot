@@ -121,7 +121,6 @@ export interface NotificationDocument {
 }
 export interface NotificationEventDefinition {
   type: NotificationEventType;
-  label: string;
   phases: NotificationEventPhase[];
   outcomes: NotificationOutcome[];
   subjectTypes: string[];

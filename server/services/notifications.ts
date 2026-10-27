@@ -14,6 +14,8 @@ import type { ApplicationStorage } from "../storage/repositories";
 import { normalizeWebhookConfig } from "../domain/settings";
 import { sendWebhookForEvent, sendWebhookTest, validateWebhookConfig } from "./webhook";
 import { runtimeLog } from "../utils/runtime-log";
+import { t } from "../../shared/i18n";
+import type { AppLocale } from "../../shared/i18n/locale";
 
 const MAX_EVENTS = 200;
 const MAX_DELIVERIES = 500;
@@ -26,28 +28,24 @@ const activeDeliveries = new Set<string>();
 export const notificationEventCatalog: NotificationEventDefinition[] = [
   {
     type: "task.execution",
-    label: "任务执行",
     phases: ["started", "finished"],
     outcomes: ["success", "failure", "cancelled", "timeout", "unknown"],
     subjectTypes: ["task"],
   },
   {
     type: "config.publish",
-    label: "配置发布",
     phases: ["started", "finished", "state_changed"],
     outcomes: ["success", "failure", "unknown"],
     subjectTypes: ["configuration"],
   },
   {
     type: "request.process",
-    label: "请求处理",
     phases: ["started", "finished"],
     outcomes: ["success", "failure", "timeout", "unknown"],
     subjectTypes: ["request"],
   },
   {
     type: "system.error",
-    label: "系统异常",
     phases: ["state_changed"],
     outcomes: ["failure", "unknown"],
     subjectTypes: ["system"],
@@ -176,49 +174,53 @@ export async function getNotificationAdminView(storage: ApplicationStorage) {
     };
   });
 }
-export function validateRule(input: Partial<NotificationRule>): string | null {
-  if (!input.name?.trim()) return "规则名称不能为空。";
+export function validateRule(
+  input: Partial<NotificationRule>,
+  locale: AppLocale = "zh_CN"
+): string | null {
+  if (!input.name?.trim()) return t(locale, "notificationErrors.ruleNameRequired");
   const definition = notificationEventCatalog.find((item) => item.type === input.eventType);
-  if (!definition) return "不支持的事件类型。";
+  if (!definition) return t(locale, "notificationErrors.unsupportedEventType");
   if (!definition.phases.includes(input.phase as NotificationEventPhase))
-    return "该事件类型不支持所选阶段。";
+    return t(locale, "notificationErrors.unsupportedPhase");
   if (
     (input.phase === "started" || input.phase === "progress") &&
     input.outcome != null &&
     input.outcome !== "any"
   ) {
-    return "开始或执行中阶段没有最终结果，请选择不限制结果。";
+    return t(locale, "notificationErrors.phaseNoOutcome");
   }
   if (
     input.outcome != null &&
     input.outcome !== "any" &&
     !definition.outcomes.includes(input.outcome as NotificationOutcome)
   ) {
-    return "该事件类型不支持所选结果。";
+    return t(locale, "notificationErrors.unsupportedOutcome");
   }
   if (
     !Array.isArray(input.channelIds) ||
     input.channelIds.length === 0 ||
     input.channelIds.some((id) => typeof id !== "string" || !id.trim())
   ) {
-    return "至少选择一个通知渠道。";
+    return t(locale, "notificationErrors.noChannelSelected");
   }
   return null;
 }
 export async function saveNotificationChannel(
   storage: ApplicationStorage,
   input: Partial<NotificationChannel>,
-  id?: string
+  id?: string,
+  locale: AppLocale = "zh_CN"
 ) {
   return withLock(storage, async () => {
     const document = await loadUnlocked(storage);
     const previous = id ? document.channels.find((channel) => channel.id === id) : undefined;
-    if (id && !previous) throw new Error("通知渠道不存在。");
+    if (id && !previous) throw new Error(t(locale, "notificationErrors.channelNotFound"));
     const config = mergeSecrets((input.config || {}) as WebhookConfig, previous?.config);
-    const errors = validateWebhookConfig(config);
+    const errors = validateWebhookConfig(config, locale);
     // 允许 URL 为空的草稿渠道（前端保存按钮会禁用）；其它字段仍需完整校验。
     if (config.url.trim() && errors.length) throw new Error(errors.join("\n"));
-    if (!input.name?.trim()) throw new Error("通知渠道名称不能为空。");
+    if (!input.name?.trim()) throw new Error(t(locale, "notificationErrors.channelNameRequired"));
     const timestamp = now();
     const channel: NotificationChannel = {
       id: previous?.id || randomUUID(),
@@ -236,13 +238,17 @@ export async function saveNotificationChannel(
     return publicChannel(channel);
   });
 }
-export async function removeNotificationChannel(storage: ApplicationStorage, id: string) {
+export async function removeNotificationChannel(
+  storage: ApplicationStorage,
+  id: string,
+  locale: AppLocale = "zh_CN"
+) {
   return withLock(storage, async () => {
     const document = await loadUnlocked(storage);
     if (!document.channels.some((channel) => channel.id === id))
-      throw new Error("通知渠道不存在。");
+      throw new Error(t(locale, "notificationErrors.channelNotFound"));
     if (document.rules.some((rule) => rule.channelIds.includes(id)))
-      throw new Error("该渠道仍被通知规则引用，请先修改或删除相关规则。");
+      throw new Error(t(locale, "notificationErrors.channelInUse"));
     document.channels = document.channels.filter((channel) => channel.id !== id);
     await storage.notifications.set(document);
   });
@@ -250,17 +256,18 @@ export async function removeNotificationChannel(storage: ApplicationStorage, id:
 export async function saveNotificationRule(
   storage: ApplicationStorage,
   input: Partial<NotificationRule>,
-  id?: string
+  id?: string,
+  locale: AppLocale = "zh_CN"
 ) {
   return withLock(storage, async () => {
     const document = await loadUnlocked(storage);
     const previous = id ? document.rules.find((rule) => rule.id === id) : undefined;
-    if (id && !previous) throw new Error("通知规则不存在。");
-    const validationError = validateRule(input);
+    if (id && !previous) throw new Error(t(locale, "notificationErrors.ruleNotFound"));
+    const validationError = validateRule(input, locale);
     if (validationError) throw new Error(validationError);
     for (const channelId of input.channelIds!) {
       if (!document.channels.some((channel) => channel.id === channelId))
-        throw new Error("规则引用了不存在的通知渠道。");
+        throw new Error(t(locale, "notificationErrors.ruleChannelNotFound"));
     }
     const timestamp = now();
     const rule: NotificationRule = {
@@ -281,10 +288,15 @@ export async function saveNotificationRule(
     return rule;
   });
 }
-export async function removeNotificationRule(storage: ApplicationStorage, id: string) {
+export async function removeNotificationRule(
+  storage: ApplicationStorage,
+  id: string,
+  locale: AppLocale = "zh_CN"
+) {
   return withLock(storage, async () => {
     const document = await loadUnlocked(storage);
-    if (!document.rules.some((rule) => rule.id === id)) throw new Error("通知规则不存在。");
+    if (!document.rules.some((rule) => rule.id === id))
+      throw new Error(t(locale, "notificationErrors.ruleNotFound"));
     document.rules = document.rules.filter((rule) => rule.id !== id);
     await storage.notifications.set(document);
   });
@@ -324,7 +336,8 @@ async function deliver(
   storage: ApplicationStorage,
   event: DomainEvent,
   deliveryId: string,
-  timeZone: string
+  timeZone: string,
+  locale: AppLocale = "zh_CN"
 ) {
   const existing = await storage.notifications.get();
   const previousAttempts =
@@ -337,7 +350,7 @@ async function deliver(
       const rule = document.rules.find((item) => item.id === delivery.ruleId && item.enabled);
       if (!channel || !rule) {
         delivery.status = "failed";
-        delivery.lastError = "通知规则或渠道已停用。";
+        delivery.lastError = t(locale, "notificationErrors.deliveryDisabled");
         delivery.updatedAt = now();
         return;
       }
@@ -352,7 +365,7 @@ async function deliver(
     let result: Awaited<ReturnType<typeof sendWebhookForEvent>> | null = null;
     let caught: unknown = null;
     try {
-      result = await sendWebhookForEvent(channel.config, event, timeZone);
+      result = await sendWebhookForEvent(channel.config, event, timeZone, locale);
     } catch (error) {
       caught = error;
     }
@@ -371,7 +384,7 @@ async function deliver(
         delivery.deliveredAt = now();
         delivery.lastError = undefined;
       } else {
-        delivery.lastError = message || "通知发送失败。";
+        delivery.lastError = message || t(locale, "notificationErrors.deliveryFailed");
         if (permanent || attempt === MAX_ATTEMPTS) delivery.status = "failed";
         else delivery.status = "pending";
       }
@@ -391,7 +404,12 @@ async function deliver(
     await sleep(250 * 2 ** (attempt - 1) + Math.floor(Math.random() * 150));
   }
 }
-async function dispatchPending(storage: ApplicationStorage, ids: string[], timeZone: string) {
+async function dispatchPending(
+  storage: ApplicationStorage,
+  ids: string[],
+  timeZone: string,
+  locale: AppLocale = "zh_CN"
+) {
   for (const id of ids) {
     if (activeDeliveries.has(id)) continue;
     activeDeliveries.add(id);
@@ -400,7 +418,7 @@ async function dispatchPending(storage: ApplicationStorage, ids: string[], timeZ
       const delivery = document.deliveries.find((item) => item.id === id);
       const event = delivery && document.events.find((item) => item.id === delivery.eventId);
       if (delivery && event && (delivery.status === "pending" || delivery.status === "sending")) {
-        await deliver(storage, event, id, timeZone);
+        await deliver(storage, event, id, timeZone, locale);
       }
     } catch (error) {
       runtimeLog("error", "Notification dispatch failed: ", error);
@@ -414,7 +432,8 @@ export async function publishDomainEvent(
   input: Omit<DomainEvent, "id" | "occurredAt"> & {
     id?: string;
     occurredAt?: string;
-  }
+  },
+  locale: AppLocale = "zh_CN"
 ) {
   try {
     const result = await withLock(storage, async () => {
@@ -457,33 +476,44 @@ export async function publishDomainEvent(
       };
     });
     const timeZone = (await storage.settings.get()).timezone;
-    void dispatchPending(storage, result.ids, timeZone);
+    void dispatchPending(storage, result.ids, timeZone, locale);
   } catch (error) {
     runtimeLog("error", "Failed to persist notification event: ", error);
   }
 }
-export async function testNotificationChannel(storage: ApplicationStorage, id: string) {
+export async function testNotificationChannel(
+  storage: ApplicationStorage,
+  id: string,
+  locale: AppLocale = "zh_CN"
+) {
   const channel = await withLock(storage, async () => {
     const document = await loadUnlocked(storage);
     const item = document.channels.find((candidate) => candidate.id === id);
     return item ? structuredClone(item) : null;
   });
-  if (!channel) throw new Error("通知渠道不存在。");
-  if (!channel.enabled) throw new Error("请先启用通知渠道。");
-  const errors = validateWebhookConfig(channel.config);
+  if (!channel) throw new Error(t(locale, "notificationErrors.channelNotFound"));
+  if (!channel.enabled) throw new Error(t(locale, "notificationErrors.channelDisabled"));
+  const errors = validateWebhookConfig(channel.config, locale);
   if (errors.length) throw new Error(errors.join("\n"));
-  return sendWebhookTest(channel.config, (await storage.settings.get()).timezone);
+  return sendWebhookTest(channel.config, (await storage.settings.get()).timezone, locale);
 }
-export async function retryNotificationDelivery(storage: ApplicationStorage, id: string) {
+export async function retryNotificationDelivery(
+  storage: ApplicationStorage,
+  id: string,
+  locale: AppLocale = "zh_CN"
+) {
   const result = await withLock(storage, async () => {
     const document = await storage.notifications.get();
     const delivery = document.deliveries.find((item) => item.id === id);
-    if (!delivery) throw new Error("投递记录不存在。");
-    if (delivery.status === "sending") throw new Error("该通知正在发送，请稍后再试。");
-    if (delivery.status !== "failed") throw new Error("只有失败的通知可以手动重试。");
+    if (!delivery) throw new Error(t(locale, "notificationErrors.deliveryNotFound"));
+    if (delivery.status === "sending")
+      throw new Error(t(locale, "notificationErrors.deliveryInProgress"));
+    if (delivery.status !== "failed")
+      throw new Error(t(locale, "notificationErrors.deliveryNotFailed"));
     const event = document.events.find((item) => item.id === delivery.eventId);
     const channel = document.channels.find((item) => item.id === delivery.channelId);
-    if (!event || !channel || !channel.enabled) throw new Error("事件或已启用的渠道不存在。");
+    if (!event || !channel || !channel.enabled)
+      throw new Error(t(locale, "notificationErrors.eventOrChannelMissing"));
     delivery.status = "pending";
     delivery.lastError = undefined;
     delivery.updatedAt = now();
@@ -491,7 +521,7 @@ export async function retryNotificationDelivery(storage: ApplicationStorage, id:
     return { deliveryId: delivery.id };
   });
   const timeZone = (await storage.settings.get()).timezone;
-  await dispatchPending(storage, [result.deliveryId], timeZone);
+  await dispatchPending(storage, [result.deliveryId], timeZone, locale);
 }
 const recoveries = new WeakMap<object, Promise<void>>();
 /** Resume persisted pending deliveries after a process restart; delivery is at-least-once. */

@@ -19,6 +19,11 @@ import {
   isAdminCredentialsMissing,
   verifyAdminPassword,
 } from "../services/admin-credentials";
+import { resolveLocale } from "../../shared/i18n";
+
+function requestLocale(req: import("express").Request): "zh_CN" | "en_US" {
+  return resolveLocale(req.get("accept-language"));
+}
 
 export function adminAuthRoutes(env: EnvConfig, storage: ApplicationStorage): Router {
   const router = Router();
@@ -34,7 +39,7 @@ export function adminAuthRoutes(env: EnvConfig, storage: ApplicationStorage): Ro
       res.status(428).json({ error: "setup_required" });
       return;
     }
-    const rateError = checkLoginRateLimit(req);
+    const rateError = checkLoginRateLimit(req, requestLocale(req));
     if (rateError) {
       res.status(429).json({ error: rateError });
       return;
@@ -66,7 +71,8 @@ export function adminAuthRoutes(env: EnvConfig, storage: ApplicationStorage): Ro
       await changeAdminPassword(
         storage.credentials,
         String(req.body?.currentPassword ?? ""),
-        String(req.body?.newPassword ?? "")
+        String(req.body?.newPassword ?? ""),
+        requestLocale(req)
       );
       clearSessionCookie(res);
       res.json({ ok: true });

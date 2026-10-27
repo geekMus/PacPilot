@@ -3,6 +3,7 @@ import { isIP } from "node:net";
 import type { ApplicationStorage } from "../storage/repositories";
 import { APP_VERSION } from "../version";
 import { t } from "../../shared/i18n";
+import type { AppLocale } from "../../shared/i18n/locale";
 import type { AppSettings } from "../../shared/contracts";
 import { fetchAndParseRemoteList } from "./remote-list";
 import { obfuscatePac } from "./pac-obfuscator";
@@ -40,16 +41,16 @@ export interface EngineProbe {
  * 校验 PAC 返回值中的代理指令，避免把格式错误的字符串写入最终 PAC。
  * 每个代理项以分号分隔；代理地址必须包含有效端口。
  */
-export function validatePacProxyString(value: string): string | null {
+export function validatePacProxyString(value: string, locale: AppLocale = "zh_CN"): string | null {
   const raw = value.trim();
-  if (!raw) return "请填写 PAC 代理字符串。";
+  if (!raw) return t(locale, "pacProxy.empty");
 
   const entries = raw.split(";").map((entry) => entry.trim());
   // 允许最后一个代理项后面带分号，但不允许中间出现空项。
   // 只允许单个可选的结尾分号；连续分号仍然表示空代理项。
   if (entries[entries.length - 1] === "") entries.pop();
   if (entries.length === 0 || entries.some((entry) => !entry)) {
-    return "代理项之间请使用分号分隔，不能包含空代理项。";
+    return t(locale, "pacProxy.separator");
   }
 
   const hostnamePattern =
@@ -60,39 +61,31 @@ export function validatePacProxyString(value: string): string | null {
 
     const match = entry.match(/^(PROXY|HTTP|HTTPS|SOCKS|SOCKS4|SOCKS5)\s+(\S+)$/i);
     if (!match) {
-      return (
-        "第 " +
-        (index + 1) +
-        " 项“" +
-        entry +
-        "”格式无效。请使用 PROXY、HTTP、HTTPS、SOCKS、SOCKS4、SOCKS5 或 DIRECT 指令。"
-      );
+      return t(locale, "pacProxy.format", { index: index + 1, entry });
     }
 
     const endpoint = match[2];
     const endpointMatch = endpoint.match(/^(?:\[([^\]]+)\]|([^:\[\]\s]+)):(\d{1,5})$/);
     if (!endpointMatch) {
-      return (
-        "第 " + (index + 1) + " 项代理地址格式无效，请使用 host:port；IPv6 地址请写成 [IPv6]:port。"
-      );
+      return t(locale, "pacProxy.address", { index: index + 1 });
     }
 
     const host = endpointMatch[1] ?? endpointMatch[2] ?? "";
     const port = Number(endpointMatch[3]);
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
-      return "第 " + (index + 1) + " 项端口无效，端口范围必须是 1–65535。";
+      return t(locale, "pacProxy.port", { index: index + 1 });
     }
 
     if (endpointMatch[1]) {
       if (isIP(host) !== 6) {
-        return "第 " + (index + 1) + " 项的 IPv6 地址无效。";
+        return t(locale, "pacProxy.ipv6", { index: index + 1 });
       }
     } else {
       const looksLikeIpv4 = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host);
       const validHost =
         host.length <= 253 && (looksLikeIpv4 ? isIP(host) === 4 : hostnamePattern.test(host));
       if (!validHost) {
-        return "第 " + (index + 1) + " 项的代理主机名或 IP 地址无效。";
+        return t(locale, "pacProxy.hostname", { index: index + 1 });
       }
     }
   }
@@ -100,7 +93,7 @@ export function validatePacProxyString(value: string): string | null {
   return null;
 }
 
-async function compressPac(content: string): Promise<string> {
+async function compressPac(content: string, locale: AppLocale = "zh_CN"): Promise<string> {
   const result = await minify(content, {
     ecma: 5,
     compress: { defaults: true, passes: 2 },
@@ -110,7 +103,7 @@ async function compressPac(content: string): Promise<string> {
     format: { comments: false, beautify: false, ecma: 5, quote_style: 2 },
   });
   if (typeof result.code !== "string" || !result.code.trim()) {
-    throw new Error("PAC 压缩失败：压缩器未生成有效代码。");
+    throw new Error(t(locale, "pacProxy.compressFailed"));
   }
   return result.code;
 }
@@ -212,24 +205,24 @@ function FindProxyForURL(url, host) {
 }
 
 /** 远程列表引擎为内置实现，始终可用 */
-export async function probePacPilot(): Promise<EngineProbe> {
+export async function probePacPilot(locale: AppLocale = "zh_CN"): Promise<EngineProbe> {
   return {
     available: true,
     engine: "builtin-remote-list",
-    detail:
-      "使用 Bun 内置引擎：从你配置的远程 URL 拉取规则列表并生成 PAC（支持 GFWList / 明文域名 / ABP 规则），无需 Python 或 database。",
+    detail: t(locale, "settings.engineDetail"),
   };
 }
 
 export async function generatePac(
-  storage: Pick<ApplicationStorage, "settings" | "artifacts">
+  storage: Pick<ApplicationStorage, "settings" | "artifacts">,
+  locale: AppLocale = "zh_CN"
 ): Promise<GenerateResult> {
   const settings = await storage.settings.get();
   // No PAC files are written any more; the rendered body lives in memory and
   // the remote rule snapshot in the artifact store.
 
   try {
-    const proxyError = validatePacProxyString(settings.pacProxy);
+    const proxyError = validatePacProxyString(settings.pacProxy, locale);
     if (proxyError) throw new Error(proxyError);
 
     let message: string;
@@ -241,7 +234,7 @@ export async function generatePac(
       if (!settings.listUrl) {
         throw new Error("Remote list mode requires listUrl to be configured.");
       }
-      const parsed = await fetchAndParseRemoteList(settings.listUrl);
+      const parsed = await fetchAndParseRemoteList(settings.listUrl, locale);
       const fetchedAt = new Date().toISOString();
       await writeRuleSource(storage, {
         fetchedAt,
@@ -259,7 +252,7 @@ export async function generatePac(
           : undefined,
       });
       invalidateRenderedPac();
-      const rendered = await getRenderedPacBody(storage, { force: true });
+      const rendered = await getRenderedPacBody(storage, { force: true }, locale);
 
       const formatSuffix =
         parsed.format === "gfwlist-base64" ? "gfwlist" : parsed.format === "abp" ? "abp" : "plain";
@@ -271,7 +264,7 @@ export async function generatePac(
           : parsed.format === "abp"
             ? "format.abp"
             : "format.plain";
-      message = t("zh_CN", `gen.success.${resultCode}`, {
+      message = t(locale, `gen.success.${resultCode}`, {
         proxy: parsed.proxyHosts.length,
         direct: parsed.directHosts.length,
       });
@@ -284,7 +277,7 @@ export async function generatePac(
         fetch: parsed.fetch || null,
         parse: {
           format: parsed.format,
-          format_label: t("zh_CN", formatKey),
+          format_label: t(locale, formatKey),
           proxy_hosts: parsed.proxyHosts.length,
           direct_hosts: parsed.directHosts.length,
           raw_line_count: parsed.rawLineCount,
@@ -302,7 +295,7 @@ export async function generatePac(
       };
     } else {
       invalidateRenderedPac();
-      const rendered = await getRenderedPacBody(storage, { force: true });
+      const rendered = await getRenderedPacBody(storage, { force: true }, locale);
       resultCode = settings.pacObfuscate
         ? "custom.obfuscated"
         : settings.pacCompress
@@ -312,7 +305,7 @@ export async function generatePac(
         compressed: Boolean(settings.pacCompress || settings.pacObfuscate),
         obfuscated: Boolean(settings.pacObfuscate),
       };
-      message = t("zh_CN", `gen.success.${resultCode}`);
+      message = t(locale, `gen.success.${resultCode}`);
       detail = {
         mode: "custom",
         pac_proxy: settings.pacProxy,
@@ -372,7 +365,8 @@ export async function generatePac(
  */
 export async function getRenderedPacBody(
   storage: Pick<ApplicationStorage, "settings" | "artifacts">,
-  options: { force?: boolean } = {}
+  options: { force?: boolean } = {},
+  locale: AppLocale = "zh_CN"
 ): Promise<RenderedPac> {
   const settings = await storage.settings.get();
   const source = settings.mode === "remote" ? await readRuleSource(storage) : null;
@@ -387,7 +381,7 @@ export async function getRenderedPacBody(
     const existing = getRenderedPac();
     if (!options.force && existing && isRenderFresh(freshSettings, freshSource)) return existing;
 
-    const raw = renderPacSource(freshSettings, freshSource, buildCustomPac);
+    const raw = renderPacSource(freshSettings, freshSource, buildCustomPac, locale);
     const generatedAt = new Date();
     const sourceBody = withPacVersionHeader(raw, generatedAt, freshSettings.timezone);
     const obfuscate = Boolean(freshSettings.pacObfuscate);
@@ -396,8 +390,8 @@ export async function getRenderedPacBody(
     if (compress || obfuscate) {
       // 先压缩再混淆：反过来的话 terser 会把混淆器生成的字符串数组求值内联，
       // 混淆强度会被削弱（实测字符串数组条目从 9 处降到 0 处）。
-      const minified = await compressPac(raw);
-      const finalCode = obfuscate ? obfuscatePac(minified) : minified;
+      const minified = await compressPac(raw, locale);
+      const finalCode = obfuscate ? obfuscatePac(minified, locale) : minified;
       body = withPacInlineHeader(finalCode, generatedAt, freshSettings.timezone);
     }
 
@@ -418,17 +412,18 @@ export async function getRenderedPacBody(
 
 /** Remote-mode rule refresh: fetch, persist and re-render in one step. */
 export async function refreshRemoteRules(
-  storage: Pick<ApplicationStorage, "settings" | "artifacts">
+  storage: Pick<ApplicationStorage, "settings" | "artifacts">,
+  locale: AppLocale = "zh_CN"
 ): Promise<{ ok: boolean; message: string; fetchedAt?: string }> {
   const settings = await storage.settings.get();
   if (settings.mode !== "remote") {
-    return { ok: false, message: "当前不是远程规则模式，无需刷新。" };
+    return { ok: false, message: t(locale, "remoteList.notRemoteMode") };
   }
   if (!settings.listUrl) {
-    return { ok: false, message: "远程规则模式需要先配置列表 URL。" };
+    return { ok: false, message: t(locale, "remoteList.remoteNeedsUrl") };
   }
   try {
-    const parsed = await fetchAndParseRemoteList(settings.listUrl);
+    const parsed = await fetchAndParseRemoteList(settings.listUrl, locale);
     const fetchedAt = new Date().toISOString();
     await writeRuleSource(storage, {
       fetchedAt,
@@ -446,8 +441,8 @@ export async function refreshRemoteRules(
         : undefined,
     });
     invalidateRenderedPac();
-    await getRenderedPacBody(storage, { force: true });
-    return { ok: true, message: "远程规则已刷新。", fetchedAt };
+    await getRenderedPacBody(storage, { force: true }, locale);
+    return { ok: true, message: t(locale, "remoteList.refreshed"), fetchedAt };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     runtimeLog("error", "Remote rule refresh failed: " + message);

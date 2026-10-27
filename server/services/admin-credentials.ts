@@ -1,5 +1,7 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import type { AdminCredentialRecord, AdminCredentialRepository } from "../storage/repositories";
+import { t } from "../../shared/i18n";
+import type { AppLocale } from "../../shared/i18n/locale";
 
 const HASH_BYTES = 64;
 const SCRYPT_N = 16384;
@@ -114,16 +116,17 @@ export async function verifyAdminPassword(
 export async function changeAdminPassword(
   repository: AdminCredentialRepository,
   currentPassword: string,
-  newPassword: string
+  newPassword: string,
+  locale: AppLocale = "zh_CN"
 ): Promise<void> {
   if (!(await verifyAdminPassword(repository, currentPassword))) {
-    throw new AdminPasswordError("current_password_incorrect", "当前管理密码不正确。");
+    throw new AdminPasswordError("current_password_incorrect", t(locale, "passwordErrors.currentIncorrect"));
   }
   if (typeof newPassword !== "string" || newPassword.length === 0) {
-    throw new AdminPasswordError("new_password_empty", "新密码不能为空。");
+    throw new AdminPasswordError("new_password_empty", t(locale, "passwordErrors.newEmpty"));
   }
   if (newPassword === currentPassword) {
-    throw new AdminPasswordError("new_password_same_as_current", "新密码不能与当前密码相同。");
+    throw new AdminPasswordError("new_password_same_as_current", t(locale, "passwordErrors.sameAsCurrent"));
   }
   await writeRecord(repository, passwordRecord(newPassword));
 }

@@ -3,6 +3,8 @@ import crypto from "crypto";
 import { getAdminSessionSecret, isAdminCredentialsMissing } from "../services/admin-credentials";
 import type { AdminCredentialRepository } from "../storage/repositories";
 import { resolveClientIp } from "../utils/client-ip";
+import { t } from "../../shared/i18n";
+import type { AppLocale } from "../../shared/i18n/locale";
 
 export const COOKIE_NAME = "pacpilot_admin_session";
 export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -100,11 +102,11 @@ function pruneFailures(key: string, now: number): number[] {
 }
 
 /** Returns null when allowed, or a human-readable error when throttled. */
-export function checkLoginRateLimit(req: Request): string | null {
+export function checkLoginRateLimit(req: Request, locale: AppLocale = "zh_CN"): string | null {
   const key = clientKey(req);
   const recent = pruneFailures(key, Date.now());
   if (recent.length >= LOGIN_MAX_FAILURES) {
-    return "登录尝试过于频繁，请约 15 分钟后再试。";
+    return t(locale, "serverErrors.loginRateLimited");
   }
   return null;
 }

@@ -78,7 +78,7 @@ async function persistSettings(
     return {
       error: serverT(locale, "serverErrors.invalidTimezone"),
     };
-  const proxyError = validatePacProxyString(p.pacProxy);
+  const proxyError = validatePacProxyString(p.pacProxy, locale);
   if (proxyError) return { error: proxyError };
   const expr = p.cronSchedule.trim();
   if (expr && (expr.split(/\s+/).length !== 5 || !cron.validate(expr)))
@@ -93,12 +93,12 @@ async function persistSettings(
     const previousSource = await readRuleSource(storage);
     const needsFetch = !previousSource || previousSource.url !== settings.listUrl;
     if (needsFetch) {
-      const refreshed = await refreshRemoteRules(storage);
+      const refreshed = await refreshRemoteRules(storage, locale);
       if (!refreshed.ok) {
         return { error: refreshed.message };
       }
     } else {
-      void refreshRemoteRules(storage).catch(() => undefined);
+      void refreshRemoteRules(storage, locale).catch(() => undefined);
     }
   }
   return { settings };
@@ -137,7 +137,12 @@ export function adminSettingsRoutes(env: EnvConfig, storage: ApplicationStorage)
         return;
       }
       try {
-        const workflowId = await startPacWorkflow(storage, env.dataDir, "save-and-generate");
+        const workflowId = await startPacWorkflow(
+          storage,
+          env.dataDir,
+          "save-and-generate",
+          requestLocale(req)
+        );
         res.status(202).json({
           settings: saved.settings,
           workflowId,

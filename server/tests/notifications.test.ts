@@ -87,7 +87,6 @@ describe("notification event catalog", () => {
       "system.error",
     ]);
     for (const definition of notificationEventCatalog) {
-      expect(definition.label.length).toBeGreaterThan(0);
       expect(definition.phases.length).toBeGreaterThan(0);
       expect(definition.outcomes.length).toBeGreaterThan(0);
       expect(definition.subjectTypes.length).toBeGreaterThan(0);

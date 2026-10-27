@@ -1,6 +1,7 @@
 import type { SQLQueryBindings } from "bun:sqlite";
 import type { AppDatabase } from "./database";
 import type { WorkflowRun, WorkflowStage } from "../../../shared/contracts";
+import { t } from "../../../shared/i18n";
 export type { WorkflowRun, WorkflowStage, WorkflowStatus } from "../../../shared/contracts";
 
 export function countWorkflowRuns(database: AppDatabase): number {
@@ -112,25 +113,26 @@ export function getCurrentWorkflow(database: AppDatabase): WorkflowRun | null {
 
 export function markInterruptedWorkflows(database: AppDatabase): void {
   const now = new Date().toISOString();
+  const interrupted = t("zh_CN", "workflowMessages.interrupted");
   database
     .query(
-      "UPDATE workflow_runs SET status='failed', stage='interrupted', error='服务在工作流完成前退出。', finished_at=?, duration_ms=CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0, CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER)) END WHERE status IN ('pending','running')"
+      "UPDATE workflow_runs SET status='failed', stage='interrupted', error=?, finished_at=?, duration_ms=CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0, CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER)) END WHERE status IN ('pending','running')"
     )
-    .run(now, now);
+    .run(interrupted, now, now);
 
   database
     .query(
       `
     UPDATE workflow_stages
     SET status = CASE WHEN status = 'running' THEN 'failed' ELSE 'skipped' END,
-        error = CASE WHEN status = 'running' THEN '服务在工作流完成前退出。' ELSE '' END,
+        error = CASE WHEN status = 'running' THEN ? ELSE '' END,
         finished_at = COALESCE(finished_at, ?),
         duration_ms = CASE WHEN started_at IS NULL THEN NULL ELSE MAX(0, CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER)) END
     WHERE status IN ('running', 'pending')
       AND run_id IN (SELECT id FROM workflow_runs WHERE status IN ('succeeded', 'failed', 'cancelled'))
   `
     )
-    .run(now, now);
+    .run(interrupted, now, now);
 }
 
 export function startWorkflowStage(
