@@ -298,8 +298,13 @@ watch(
 .cm-field-frame.single-line .cm-field-host :deep(.cm-content) {
   @apply min-w-0 flex-shrink whitespace-nowrap;
 }
+/*
+  CodeMirror 的占位提示是行内块，且与光标占位符同处一行。把它改成 block
+  会让该行撑成三行高、占位下坠到输入框底边之外，视觉上就是文字被切掉一半。
+  这里保持默认的 inline-block，只用省略号截断超长占位。
+*/
 .cm-field-frame.single-line .cm-field-host :deep(.cm-placeholder) {
-  @apply block overflow-hidden text-ellipsis whitespace-nowrap;
+  @apply inline-block max-w-full overflow-hidden text-ellipsis whitespace-nowrap align-top;
 }
 .cm-field-host {
   @apply w-full min-w-0 max-w-full;
