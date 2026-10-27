@@ -430,7 +430,13 @@
   .webhook-page {
     @apply gap-3.5;
     --wh-directory-height: clamp(260px, 42dvh, 440px);
-    --wh-editor-height: clamp(320px, 54dvh, 560px);
+    /*
+      编辑器面板 = 标题栏（约 136px）+ 滚动书写区 + 底部操作栏（约 112px）。
+      原先 54dvh 在 844px 高的手机上只有 456px，扣掉标题与按钮后真正能写字的
+      区域只剩约 206px，正文一长就只能在一条窄缝里滚动。提高到 70dvh 后书写区
+      约 360px，同时保留 400px 下限，兼顾 568px 高的小屏。
+    */
+    --wh-editor-height: clamp(400px, 70dvh, 760px);
     --wh-history-height: clamp(280px, 44dvh, 480px);
   }
   .webhook-page .workspace-tabs {
