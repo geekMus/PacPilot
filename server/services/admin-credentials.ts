@@ -128,9 +128,7 @@ export async function changeAdminPassword(
   await writeRecord(repository, passwordRecord(newPassword));
 }
 
-export async function resetAdminPassword(
-  repository: AdminCredentialRepository
-): Promise<string> {
+export async function resetAdminPassword(repository: AdminCredentialRepository): Promise<string> {
   const temporary = randomBytes(18).toString("base64url");
   // 必须等待写入完成：脚本调用方会在拿到密码后立即关闭数据库，
   // 不等待会让写入落在已关闭的连接上而静默丢失。

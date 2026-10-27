@@ -216,7 +216,9 @@ describe("notification channels", () => {
 
     await saveNotificationChannel(
       storage,
-      channelDraft({ config: config({ url: "https://oapi.dingtalk.com/robot/send?access_token=***" }) }),
+      channelDraft({
+        config: config({ url: "https://oapi.dingtalk.com/robot/send?access_token=***" }),
+      }),
       created.id
     );
     const document = await rawDocument(storage);
@@ -227,7 +229,9 @@ describe("notification channels", () => {
     // 改写路径但仍保留占位符时，只能回填同名参数的真实值。
     await saveNotificationChannel(
       storage,
-      channelDraft({ config: config({ url: "https://oapi.dingtalk.com/robot/send?access_token=***&extra=1" }) }),
+      channelDraft({
+        config: config({ url: "https://oapi.dingtalk.com/robot/send?access_token=***&extra=1" }),
+      }),
       created.id
     );
     const updated = await rawDocument(storage);
@@ -237,7 +241,9 @@ describe("notification channels", () => {
     // 收到明文 token 时写入真实值，不覆盖为旧值。
     await saveNotificationChannel(
       storage,
-      channelDraft({ config: config({ url: "https://oapi.dingtalk.com/robot/send?access_token=newtoken" }) }),
+      channelDraft({
+        config: config({ url: "https://oapi.dingtalk.com/robot/send?access_token=newtoken" }),
+      }),
       created.id
     );
     const replaced = await rawDocument(storage);

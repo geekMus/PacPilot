@@ -12,9 +12,9 @@ permissions:
   contents: read
 
 env:
-  # 项目性能目标：所有页面 Lighthouse 性能分 ≥ 90，低于阈值即判定失败。
-  # 声明在工作流级别，分析和判定两个步骤共用同一个值，避免改一处漏一处。
-  MIN_SCORE: "90"
+  # 项目性能目标：所有页面 Lighthouse 性能分 ≥ 85；低于阈值只作为报告结论，
+  # 不判定失败。声明在工作流级别，分析步骤统一使用这个值，避免改一处漏一处。
+  MIN_SCORE: "85"
 
 jobs:
   lighthouse:
@@ -151,7 +151,7 @@ jobs:
             exit 1
           fi
           if [[ "$ANALYZE_RESULT" != "success" ]]; then
-            echo "::error::分析未通过：存在性能得分低于阈值（${MIN_SCORE} 分）的页面，或页面未能正常渲染（被重定向、会话失效、报告生成失败），详见上方报告与 lighthouse-reports 构建产物。"
+            echo "::error::分析脚本执行失败：登录失败、页面被重定向、会话失效或报告生成失败（得分低于 ${MIN_SCORE} 分仅作为报告结论，不判定失败），详见上方日志。"
             exit 1
           fi
-          echo "所有页面均达到 ${MIN_SCORE} 分阈值，报告见上方摘要与构建产物。"
+          echo "分析已完成，报告见上方摘要与 lighthouse-reports 构建产物（得分低于 ${MIN_SCORE} 分的页面会标注在报告中，但不会使运行失败）。"

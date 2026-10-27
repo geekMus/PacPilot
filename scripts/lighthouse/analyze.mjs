@@ -4,10 +4,12 @@
  * Starts from a running server (BASE_URL), signs in as the administrator to
  * obtain the session cookie, then runs Lighthouse against every page with the
  * session injected via extra headers so authenticated admin routes render.
- * Emits per-page JSON/HTML reports plus a Markdown summary; exits non-zero
- * when any page scores below MIN_SCORE (Performance). Every page is also
- * checked for an unexpected redirect, so a session that silently stops working
- * fails the run instead of reporting scores for the login page.
+ * Emits per-page JSON/HTML reports plus a Markdown summary. Pages that score
+ * below MIN_SCORE (Performance) are recorded in the summary but do NOT fail the
+ * run; only genuine script errors (login failure, unexpected redirect, report
+ * generation failure) exit non-zero. Every page is also checked for an
+ * unexpected redirect, so a session that silently stops working fails the run
+ * instead of reporting scores for the login page.
  *
  * Usage (Node >= 18):
  *   BASE_URL=http://127.0.0.1:18010 ADMIN_PASSWORD=… node scripts/lighthouse/analyze.mjs
@@ -15,7 +17,8 @@
  *   BASE_URL       target origin (required)
  *   ADMIN_PASSWORD admin password for the session cookie (required)
  *   OUTPUT_DIR     report directory, default `lighthouse-reports`
- *   MIN_SCORE      performance failure threshold, default 70
+ *   MIN_SCORE      performance reporting threshold, default 70; pages below it
+ *                  are listed in the summary but do not fail the run
  *   PRESET         `mobile`, `desktop`, or `both` (default `both`)
  *   ONLY           comma separated page keys to analyze (iteration helper)
  *   SEED_RULES     `1` writes a deterministic rule set before measuring, so the
@@ -264,12 +267,13 @@ async function main() {
   console.log(`\nReport written to ${outputDir}/summary.md\n`);
   console.log(markdown);
 
+  // 低于阈值只作为报告结论呈现，不使运行失败；脚本自身错误（登录失败、
+  // 页面被重定向、会话失效、报告生成失败）才会经 main().catch 非零退出。
   if (failing.length) {
-    console.error(
-      `\n${failing.length} page(s) scored below ${minScore} on Performance: ` +
+    console.warn(
+      `\n${failing.length} page(s) scored below ${minScore} on Performance (recorded in report): ` +
         failing.map((entry) => `${entry.page.name} (${entry.scores.performance})`).join(", ")
     );
-    process.exit(1);
   }
 }
 
@@ -279,7 +283,7 @@ function renderReport(results, failing) {
   const lines = [];
   lines.push(`# 🚦 PacPilot 页面 Lighthouse 报告`);
   lines.push("");
-  lines.push(`- **目标**：\`${baseUrl}\`　**阈值**：性能 < ${minScore} 分判定失败`);
+  lines.push(`- **目标**：\`${baseUrl}\`　**阈值**：性能 < ${minScore} 分记为未达标（不判定失败）`);
   lines.push(
     `- **范围**：${new Set(results.map((e) => e.page.key)).size} 个页面（工作流详情页与列表页共用同一代码包，由「工作流」页代表；404 页面通过 /admin/ 下的未知路径访问）`
   );

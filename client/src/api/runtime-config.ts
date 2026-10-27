@@ -37,7 +37,8 @@ function normalizeBase(value: string | undefined): string {
  */
 function readInlineConfig(): RuntimeConfig | null {
   if (typeof window === "undefined") return null;
-  const inline = (window as unknown as { __PAC_CONFIG__?: { apiBaseUrl?: unknown } }).__PAC_CONFIG__;
+  const inline = (window as unknown as { __PAC_CONFIG__?: { apiBaseUrl?: unknown } })
+    .__PAC_CONFIG__;
   if (!inline || typeof inline.apiBaseUrl !== "string") return null;
   return { apiBaseUrl: normalizeBase(inline.apiBaseUrl) };
 }

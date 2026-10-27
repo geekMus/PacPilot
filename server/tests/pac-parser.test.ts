@@ -72,7 +72,11 @@ describe("parsePacStatus", () => {
   });
 
   it("detects the custom template from any of its markers", () => {
-    for (const marker of ["var BLOCK_LIST = [];", "var DIRECT_LIST = [];", 'var PAC_PROXY = "DIRECT";']) {
+    for (const marker of [
+      "var BLOCK_LIST = [];",
+      "var DIRECT_LIST = [];",
+      'var PAC_PROXY = "DIRECT";',
+    ]) {
       expect(parsePacStatus(marker).mode).toBe("custom_parse_error");
     }
   });

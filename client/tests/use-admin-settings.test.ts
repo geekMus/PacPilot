@@ -122,7 +122,9 @@ describe("saveMode", () => {
     settingsApi.onModeChange("remote");
     settingsApi.form.listUrl = "not-a-url";
     settingsApi.saveMode();
-    await vi.waitFor(() => expect(notify).toHaveBeenCalledWith("settings.listUrlInvalid", "warning"));
+    await vi.waitFor(() =>
+      expect(notify).toHaveBeenCalledWith("settings.listUrlInvalid", "warning")
+    );
 
     expect(api.saveAndGenerate).not.toHaveBeenCalled();
     unmount();

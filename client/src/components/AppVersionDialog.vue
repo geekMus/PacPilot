@@ -64,7 +64,9 @@ const { t } = useI18n();
         >
           <span
             >{{ t("footer.latestVersion") }}
-            <small>{{ props.isChecking ? t("common.getting") : t("common.clickRefresh") }}</small></span
+            <small>{{
+              props.isChecking ? t("common.getting") : t("common.clickRefresh")
+            }}</small></span
           ><strong>{{
             props.latestVersion === t("common.temporarilyUnknown")
               ? props.latestVersion

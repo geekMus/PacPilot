@@ -1,6 +1,7 @@
-# 使用官方 Bun Alpine 镜像和默认软件源，保持标准构建流程。
+# 构建阶段使用官方 Bun Debian(glibc) 镜像，避免 vite/rollup/esbuild 等原生绑定
+# 在 Alpine(musl) 下加载崩溃或缺失；运行阶段仍用 Alpine 保持小体积。
 # ---------- 构建阶段 ----------
-FROM --platform=$BUILDPLATFORM oven/bun:1-alpine AS builder
+FROM --platform=$BUILDPLATFORM oven/bun:1 AS builder
 
 WORKDIR /app
 COPY package.json bunfig.toml bun.lock ./
