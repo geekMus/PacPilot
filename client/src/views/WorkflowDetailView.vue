@@ -809,7 +809,6 @@ onUnmounted(() => {
   }
   .stage-detail-pre {
     @apply text-[11px];
-    max-height: min(36vh, 240px);
   }
 }
 .stage-detail-body {
