@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import { onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { api, type WorkflowDetail, type WorkflowStage } from "@/api/client";
 import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AppDialog from "@/components/AppDialog.vue";
+import JsonTreeView from "@/components/JsonTreeView.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 import { useCopyFeedback } from "@/composables/useCopyFeedback";
 import { fetchAdminSession } from "@/composables/useAdminSession";
@@ -26,7 +27,7 @@ const confirmingCancel = ref(false);
 
 let previousStatus: string | null = null;
 let pollHandle: ReturnType<typeof setInterval> | undefined;
-let requestInFlight = false;
+let requestSequence = 0;
 
 const selectedStage = ref<WorkflowStage | null>(null);
 const stageDetailOpen = ref(false);
@@ -81,6 +82,16 @@ function formatStageDetail(raw: string | undefined | null): string {
     return String(raw);
   }
 }
+
+const stageDetailJson = computed(() => {
+  const raw = selectedStage.value?.detail;
+  if (!raw || !String(raw).trim()) return undefined;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return undefined;
+  }
+});
 
 function openStageDetail(stage: WorkflowStage): void {
   selectedStage.value = stage;
@@ -139,8 +150,10 @@ function stageIconName(status: string) {
 }
 
 async function load() {
-  if (requestInFlight) return;
-  requestInFlight = true;
+  // 用单调递增的序号识别"最新一次"请求：路由快速切换或轮询并发时，
+  // 旧请求的结果直接丢弃，只有最新一次请求会更新界面并负责收尾，
+  // 避免 finally 里的重入与 route watcher 形成重复请求竞态。
+  const sequence = ++requestSequence;
   const requestedId = Number(route.params.id);
   if (!Number.isSafeInteger(requestedId) || requestedId < 1) {
     // 非数字或非法的工作流 id（例如 /admin/workflows/nonexistent-id）：
@@ -150,19 +163,19 @@ async function load() {
     detail.value = null;
     loading.value = false;
     error.value = t("serverErrors.invalidWorkflowId");
-    requestInFlight = false;
     return;
   }
   try {
     // 复用路由守卫刚做过的会话探测（带短 TTL 缓存），避免首屏再串一次网络往返。
     const session = await fetchAdminSession();
+    if (sequence !== requestSequence) return;
     if (!session.loggedIn) {
       stopPolling();
       await router.replace({ name: "login", query: { redirect: route.fullPath } });
       return;
     }
     const next = await api.workflowDetail(requestedId);
-    if (requestedId !== Number(route.params.id)) return;
+    if (sequence !== requestSequence) return;
     if (
       previousStatus !== null &&
       isActiveStatus(previousStatus) &&
@@ -197,17 +210,14 @@ async function load() {
     }
     error.value = "";
   } catch (e) {
-    if (requestedId === Number(route.params.id)) {
+    if (sequence === requestSequence) {
       error.value = e instanceof Error ? e.message : String(e);
     }
   } finally {
-    loading.value = false;
-    requestInFlight = false;
-    if (requestedId !== Number(route.params.id)) {
-      void load();
-      return;
+    if (sequence === requestSequence) {
+      loading.value = false;
+      syncPolling();
     }
-    syncPolling();
   }
 }
 
@@ -489,7 +499,8 @@ onUnmounted(() => {
               <p class="stage-detail-hint">
                 {{ t("workflowDetailPage.k37") }}
               </p>
-              <pre class="stage-detail-pre">{{ formatStageDetail(selectedStage.detail) }}</pre>
+              <JsonTreeView v-if="stageDetailJson !== undefined" :data="stageDetailJson" />
+              <pre v-else class="stage-detail-pre">{{ formatStageDetail(selectedStage.detail) }}</pre>
             </section>
           </div>
         </template>
