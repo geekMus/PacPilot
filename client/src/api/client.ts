@@ -251,7 +251,11 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   // 204/空响应体没有 JSON 可解析，直接返回 undefined 交给调用方。
   const text = await res.text();
   if (!text) return undefined as T;
-  return JSON.parse(text) as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new ApiError(i18n.global.t("api.invalidResponse"), "invalid_response");
+  }
 }
 
 export const api = {

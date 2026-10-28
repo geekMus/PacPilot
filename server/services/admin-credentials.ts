@@ -77,6 +77,8 @@ export async function createInitialAdminCredentials(
   configuredPassword?: string,
   configuredSessionSecret?: string
 ): Promise<InitialCredentialResult> {
+  // 说明：read-then-write 非原子，但本项目为单进程运行，且仅在启动阶段调用一次，
+  // 不存在并发竞争窗口；多进程部署需要改为数据库层面的原子 upsert。
   if (await readRecord(repository)) return { password: null, source: null };
 
   const trimmed = configuredPassword?.trim() ?? "";

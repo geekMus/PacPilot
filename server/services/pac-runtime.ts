@@ -122,8 +122,9 @@ export function computeSourceVersion(settings: AppSettings, source: PacRuleSourc
     directList: settings.directList,
     listUrl: settings.listUrl,
     fetchedAt: source?.fetchedAt ?? "",
-    proxyHostCount: source?.proxyHosts.length ?? 0,
-    directHostCount: source?.directHosts.length ?? 0,
+    // 主机列表内容本身影响输出字节，必须计入指纹；排序保证同内容不同顺序不会触发重建。
+    proxyHosts: [...(source?.proxyHosts ?? [])].sort(),
+    directHosts: [...(source?.directHosts ?? [])].sort(),
   });
   return createHash("sha256").update(material).digest("hex").slice(0, 32);
 }

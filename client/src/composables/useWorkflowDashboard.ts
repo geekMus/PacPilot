@@ -114,10 +114,11 @@ export function useWorkflowDashboard() {
           }
         }
       }
-      previousStatuses = new Map([
-        ...previousStatuses,
-        ...result.runs.map((run) => [run.id, run.status] as [number, string]),
-      ]);
+      previousStatuses = new Map(
+        result.runs
+          .filter((run) => run.status === "pending" || run.status === "running")
+          .map((run) => [run.id, run.status] as [number, string])
+      );
       statusSnapshotReady = true;
       current.value = result.current;
       activeRuns.value = result.active ?? [];

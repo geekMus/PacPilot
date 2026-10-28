@@ -128,6 +128,10 @@ function isLoopbackOrMetadata(hostname: string): boolean {
  * Validate that a user-supplied URL is plain HTTP(S) without credentials.
  * By default also rejects private/loopback/metadata hosts (SSRF guard for
  * remote rule downloads). Pass allowPrivateHosts for intentional LAN webhooks.
+ *
+ * NOTE: this validates the hostname string only; the downstream fetch re-resolves
+ * DNS, so it does not defend against DNS-rebinding (a hostname that resolves to a
+ * public IP here but a private one at fetch time).
  */
 export function assertSafeHttpUrl(
   raw: string,

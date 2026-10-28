@@ -358,7 +358,10 @@ export function useAdminSettings() {
       // 复用路由守卫刚做过的会话探测（带短 TTL 缓存），避免首屏再串一次网络往返。
       const session = await fetchAdminSession();
       if (!session.loggedIn) {
-        await router.replace("/admin/login");
+        await router.replace({
+          name: "login",
+          query: { redirect: router.currentRoute.value.fullPath },
+        });
         return;
       }
       const [settings, probe] = await Promise.all([
@@ -375,7 +378,10 @@ export function useAdminSettings() {
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
       if (String(error.value).toLowerCase().includes("unauthorized")) {
-        await router.replace("/admin/login");
+        await router.replace({
+          name: "login",
+          query: { redirect: router.currentRoute.value.fullPath },
+        });
       }
     } finally {
       loading.value = false;

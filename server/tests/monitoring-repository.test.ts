@@ -78,8 +78,8 @@ describe("memory monitoring repository", () => {
     expect(repository.list()[0]!.path).toBe("/original");
   });
 
-  it("drops records older than seven days on every write", () => {
-    const repository = createMemoryMonitoringRepository(() => 30);
+  it("drops records older than the retention window on every write", () => {
+    const repository = createMemoryMonitoringRepository(() => 7);
     // The write-time sweep runs immediately, so an already-expired record never survives.
     repository.record(accessEvent({ created_at: new Date(NOW - 8 * 86400000).toISOString() }));
     expect(repository.count()).toBe(0);
@@ -88,7 +88,7 @@ describe("memory monitoring repository", () => {
     expect(repository.count()).toBe(1);
 
     repository.record(accessEvent());
-    // Six days is still inside the hard seven-day window.
+    // Six days is still inside the seven-day retention window.
     expect(repository.count()).toBe(2);
     expect(repository.list()[0]!.created_at).toBe(new Date(NOW).toISOString());
   });
@@ -109,20 +109,22 @@ describe("memory monitoring repository", () => {
   });
 
   it("cleans up records past the retention window", () => {
-    // A retention window shorter than the hard seven-day cap is what actually makes
-    // cleanup() able to delete anything: older records already went away on write.
-    const repository = createMemoryMonitoringRepository(() => 2);
+    // Records written under a wider retention survive the write-time sweep;
+    // lowering the retention and running cleanup() prunes them.
+    let retentionDays = 30;
+    const repository = createMemoryMonitoringRepository(() => retentionDays);
     repository.record(accessEvent({ created_at: new Date(NOW - 5 * 86400000).toISOString() }));
     repository.record(accessEvent({ created_at: new Date(NOW - 3 * 86400000).toISOString() }));
     repository.record(accessEvent({ created_at: new Date(NOW).toISOString() }));
 
+    retentionDays = 2;
     expect(repository.cleanup()).toBe(2);
     expect(repository.count()).toBe(1);
     expect(repository.list()[0]!.created_at).toBe(new Date(NOW).toISOString());
   });
 
   it("accepts an explicit retention window that overrides the configured one", () => {
-    const repository = createMemoryMonitoringRepository(() => 2);
+    const repository = createMemoryMonitoringRepository(() => 30);
     repository.record(accessEvent({ created_at: new Date(NOW - 5 * 86400000).toISOString() }));
     expect(repository.cleanup(30)).toBe(0);
     expect(repository.cleanup(3)).toBe(1);

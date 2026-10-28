@@ -631,7 +631,7 @@ describe("retryNotificationDelivery", () => {
     const delivery = document.deliveries.find((item) => item.id === deliveryId)!;
     expect(delivery.status).toBe("succeeded");
     expect(delivery.lastError).toBeUndefined();
-    expect(delivery.attemptCount).toBeGreaterThan(1);
+    expect(delivery.attemptCount).toBe(1);
   });
 
   it("rejects unknown, non-failed and sending deliveries", async () => {

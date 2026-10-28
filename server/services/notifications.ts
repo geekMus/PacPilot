@@ -342,7 +342,19 @@ async function deliver(
   const existing = await storage.notifications.get();
   const previousAttempts =
     existing.deliveries.find((item) => item.id === deliveryId)?.attemptCount ?? 0;
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+  const remainingAttempts = Math.max(0, MAX_ATTEMPTS - previousAttempts);
+  if (remainingAttempts === 0) {
+    // 已在崩溃/恢复边界用尽尝试次数，仍为 pending/sending 则标记失败，避免永久卡住。
+    await updateDelivery(storage, deliveryId, (delivery) => {
+      if (delivery.status === "sending" || delivery.status === "pending") {
+        delivery.status = "failed";
+        delivery.lastError = t(locale, "notificationErrors.deliveryFailed");
+        delivery.updatedAt = now();
+      }
+    });
+    return;
+  }
+  for (let attempt = 1; attempt <= remainingAttempts; attempt++) {
     const ready = await updateDelivery(storage, deliveryId, (delivery, document) => {
       const channel = document.channels.find(
         (item) => item.id === delivery.channelId && item.enabled
@@ -385,7 +397,7 @@ async function deliver(
         delivery.lastError = undefined;
       } else {
         delivery.lastError = message || t(locale, "notificationErrors.deliveryFailed");
-        if (permanent || attempt === MAX_ATTEMPTS) delivery.status = "failed";
+        if (permanent || previousAttempts + attempt >= MAX_ATTEMPTS) delivery.status = "failed";
         else delivery.status = "pending";
       }
     });
@@ -515,6 +527,7 @@ export async function retryNotificationDelivery(
     if (!event || !channel || !channel.enabled)
       throw new Error(t(locale, "notificationErrors.eventOrChannelMissing"));
     delivery.status = "pending";
+    delivery.attemptCount = 0;
     delivery.lastError = undefined;
     delivery.updatedAt = now();
     await storage.notifications.set(document);

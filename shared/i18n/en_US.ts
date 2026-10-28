@@ -1238,4 +1238,7 @@ export default {
     corruptCredentials:
       "Admin credential record is corrupt: the admin-auth record in the database is missing required fields or is not valid JSON.",
   },
+  api: {
+    invalidResponse: "The server returned an unparseable response.",
+  },
 };

@@ -1196,4 +1196,7 @@ export default {
     corruptCredentials:
       "管理员凭据记录损坏：数据库中的 admin-auth 记录缺失必要字段或不是合法 JSON。",
   },
+  api: {
+    invalidResponse: "服务器返回了无法解析的响应。",
+  },
 };
