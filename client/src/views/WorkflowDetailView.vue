@@ -142,6 +142,17 @@ async function load() {
   if (requestInFlight) return;
   requestInFlight = true;
   const requestedId = Number(route.params.id);
+  if (!Number.isSafeInteger(requestedId) || requestedId < 1) {
+    // 非数字或非法的工作流 id（例如 /admin/workflows/nonexistent-id）：
+    // Number("...") 会得到 NaN，而 NaN !== NaN 恒为 true，会在这里形成无限递归。
+    // 直接终止并展示错误，避免死循环。
+    stopPolling();
+    detail.value = null;
+    loading.value = false;
+    error.value = t("serverErrors.invalidWorkflowId");
+    requestInFlight = false;
+    return;
+  }
   try {
     // 复用路由守卫刚做过的会话探测（带短 TTL 缓存），避免首屏再串一次网络往返。
     const session = await fetchAdminSession();
