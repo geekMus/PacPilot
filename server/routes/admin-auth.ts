@@ -57,7 +57,9 @@ export function adminAuthRoutes(env: EnvConfig, storage: ApplicationStorage): Ro
     // cookies are blocked by Safari/Firefox), so it authenticates with the
     // bearer token returned here.
     if (env.corsMode !== "open") {
-      const secure = req.secure || req.headers["x-forwarded-proto"] === "https";
+      // 只用 req.secure（受 Express trust proxy 跳数限制）；直接读原始
+      // x-forwarded-proto 头会绕过跳数限制，使纯 HTTP 连接也下发 Secure Cookie。
+      const secure = req.secure;
       setSessionCookie(res, token, secure);
     }
     res.json({ ok: true, token, expiresAt });

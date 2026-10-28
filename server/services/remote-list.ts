@@ -162,15 +162,48 @@ export async function fetchAndParseRemoteList(
     Accept: "text/plain, text/*;q=0.9, */*;q=0.8",
   };
 
+  // 手动跟随重定向并对每一跳重新做 SSRF 校验，防止公网 URL 302 跳转到内网地址。
+  const MAX_REDIRECTS = 5;
+  const fetchOnce = async (targetUrl: string, redirectsLeft: number): Promise<Response> => {
+    const unsafe = assertSafeHttpUrl(targetUrl, t(locale, "remoteList.urlLabel"));
+    if (unsafe) throw new RemoteListError(unsafe);
+    const res = await fetch(targetUrl, {
+      headers: requestHeaders,
+      signal: AbortSignal.timeout(90_000),
+      redirect: "manual",
+    });
+    if (res.status >= 300 && res.status < 400) {
+      await res.text().catch(() => undefined);
+      if (redirectsLeft <= 0) {
+        throw new RemoteListError(
+          t(locale, "remoteList.httpError", {
+            status: String(res.status),
+            statusText: res.statusText || "",
+          })
+        );
+      }
+      const location = res.headers.get("location");
+      if (!location) {
+        // 3xx 但缺少 Location 头，无法继续跟随；按 HTTP 错误处理。
+        throw new RemoteListError(
+          t(locale, "remoteList.httpError", {
+            status: String(res.status),
+            statusText: res.statusText || "",
+          })
+        );
+      }
+      const next = new URL(location, targetUrl).toString();
+      return fetchOnce(next, redirectsLeft - 1);
+    }
+    return res;
+  };
+
   let lastError: unknown;
   // 远程源偶发断开连接时有限重试；HTTP 错误不重试，避免重复请求无效地址。
   for (let attempt = 0; attempt < 3; attempt++) {
     const started = Date.now();
     try {
-      const res = await fetch(url, {
-        headers: requestHeaders,
-        signal: AbortSignal.timeout(90_000),
-      });
+      const res = await fetchOnce(url, MAX_REDIRECTS);
       const duration_ms = Math.max(0, Date.now() - started);
       const text = await res.text();
       const fetchMeta: RemoteListFetchMeta = {
@@ -212,10 +245,6 @@ export async function fetchAndParseRemoteList(
   throw new RemoteListError(t(locale, "remoteList.connectionFailed", { detail }));
 }
 
-function escapeJsString(s: string): string {
-  return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-}
-
 function toJsArray(list: string[], compress: boolean): string {
   return list.map((item) => JSON.stringify(item)).join(compress ? "," : ",\n    ");
 }
@@ -231,9 +260,9 @@ export function buildRemoteListPac(
   userDirectList: string[],
   compress: boolean
 ): string {
-  const proxyObj = proxyHosts.map((h) => `"${escapeJsString(h)}":1`).join(compress ? "," : ",\n  ");
+  const proxyObj = proxyHosts.map((h) => `${JSON.stringify(h)}:1`).join(compress ? "," : ",\n  ");
   const remoteDirectObj = remoteDirectHosts
-    .map((h) => `"${escapeJsString(h)}":1`)
+    .map((h) => `${JSON.stringify(h)}:1`)
     .join(compress ? "," : ",\n  ");
   const blockJs = toJsArray(userBlockList, false);
   const directJs = toJsArray(userDirectList, false);

@@ -40,7 +40,10 @@ export function verifySessionToken(token: string | undefined, secret: string): b
 export function setSessionCookie(res: Response, token: string, secure: boolean): void {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
-    sameSite: secure ? "none" : "lax",
+    // Cookie 模式服务于同源部署，始终使用 SameSite=Lax（跨站写请求不携带
+    // Cookie）；跨源部署改用 bearer token，不依赖 Cookie。SameSite=None 会让
+    // 浏览器对跨站请求也携带会话 Cookie，削弱原生 CSRF 防护。
+    sameSite: "lax",
     secure,
     maxAge: SESSION_TTL_MS,
     path: "/",
