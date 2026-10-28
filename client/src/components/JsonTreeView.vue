@@ -31,7 +31,7 @@ defineProps<{
 @reference "@/styles/tailwind.css";
 
 .json-tree-view {
-  @apply overflow-hidden rounded-[10px] border;
+  @apply -mx-[18px] overflow-hidden border-y;
   border-color: var(--line);
   background: var(--surface-2);
 }
