@@ -1190,5 +1190,10 @@ export default {
     currentIncorrect: "当前管理密码不正确。",
     newEmpty: "新密码不能为空。",
     sameAsCurrent: "新密码不能与当前密码相同。",
+    newTooShort: "新密码长度不能少于 {min} 个字符。",
+  },
+  storageErrors: {
+    corruptCredentials:
+      "管理员凭据记录损坏：数据库中的 admin-auth 记录缺失必要字段或不是合法 JSON。",
   },
 };

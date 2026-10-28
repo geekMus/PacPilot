@@ -1232,5 +1232,10 @@ export default {
     currentIncorrect: "The current admin password is incorrect.",
     newEmpty: "New password cannot be empty.",
     sameAsCurrent: "New password cannot be the same as the current one.",
+    newTooShort: "New password must be at least {min} characters.",
+  },
+  storageErrors: {
+    corruptCredentials:
+      "Admin credential record is corrupt: the admin-auth record in the database is missing required fields or is not valid JSON.",
   },
 };

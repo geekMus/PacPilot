@@ -133,8 +133,11 @@ export function useWorkflowDashboard() {
       historyTotal.value = result.total;
       historyLoadError.value = "";
     } catch (caught) {
-      error.value = caught instanceof Error ? caught.message : String(caught);
-      if (!silent) notify(error.value, "error");
+      const message = caught instanceof Error ? caught.message : String(caught);
+      if (!silent) {
+        error.value = message;
+        notify(message, "error");
+      }
     } finally {
       loading.value = false;
       refreshing.value = false;

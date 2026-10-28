@@ -112,7 +112,7 @@ function buildContext(
       kind === "test"
         ? t(locale, "webhook.testTriggered")
         : message || (ok ? t(locale, "webhook.pacGenerated") : t(locale, "webhook.pacFailed")),
-    timestamp: new Date().toLocaleString("zh-CN", { timeZone }),
+    timestamp: new Date().toLocaleString(locale === "en_US" ? "en-US" : "zh-CN", { timeZone }),
   };
 }
 
@@ -221,7 +221,7 @@ async function sendCustom(
   if (errors.length) return { success: false, message: errors.join("\n") };
   try {
     const headers = JSON.parse(config.headers || "{}") as Record<string, string>;
-    const defaults = createDefaultWebhookConfig();
+    const defaults = createDefaultWebhookConfig(locale);
     const configuredBody =
       context.event === "webhook.test"
         ? config.testBody.trim() || config.body.trim() || defaults.body || defaults.testBody
@@ -327,7 +327,10 @@ export async function sendWebhookForEvent(
     ok: event.outcome == null ? null : event.outcome === "success",
     status: event.outcome || (event.phase === "started" ? "started" : "unknown"),
     message: event.summary || event.type + " " + event.phase,
-    timestamp: new Date(event.occurredAt).toLocaleString("zh-CN", { timeZone }),
+    timestamp: new Date(event.occurredAt).toLocaleString(
+      locale === "en_US" ? "en-US" : "zh-CN",
+      { timeZone }
+    ),
   };
   return config.provider === "dingtalk"
     ? sendDingTalk(config, context, locale)

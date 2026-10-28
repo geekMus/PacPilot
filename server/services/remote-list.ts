@@ -273,7 +273,7 @@ function hostInMap(host, map) {
   var parts = h.split(".");
   for (var i = 0; i < parts.length; i++) {
     var suffix = parts.slice(i).join(".");
-    if (map[suffix]) return true;
+    if (Object.prototype.hasOwnProperty.call(map, suffix)) return true;
   }
   return false;
 }

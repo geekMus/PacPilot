@@ -136,6 +136,15 @@ describe("resolveClientIp", () => {
     expect(resolveClientIp(request)).toBe("198.51.100.20");
   });
 
+  it("ignores X-Forwarded-For from a public peer without an allowlist", () => {
+    configureClientIp({ trustProxyHops: 1, trustCloudflare: false, trustedProxyCidrs: [] });
+    const request = fakeRequest({
+      remoteAddress: "198.51.100.20",
+      headers: { "x-forwarded-for": "203.0.113.7" },
+    });
+    expect(resolveClientIp(request)).toBe("198.51.100.20");
+  });
+
   it("ignores forwarded headers from peers outside the allowlist", () => {
     configureClientIp({
       trustProxyHops: 1,

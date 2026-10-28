@@ -159,7 +159,7 @@ function pumpQueue(type: string): void {
         const item = queue.shift()!;
         const run = await item.storage.workflows.get(item.workflowId);
         if (!run || run.status !== "pending") {
-          item.resolve(cancelledResult());
+          item.resolve(cancelledResult(item.locale));
           continue;
         }
         try {

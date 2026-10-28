@@ -96,6 +96,19 @@ export function createMemoryWorkflowRepository(): MemorySyncWorkflowRepository {
               ? Math.max(0, Date.parse(now) - Date.parse(run.started_at))
               : null,
           });
+          for (const [stageId, stage] of stages)
+            if (stage.run_id === id && ["running", "pending"].includes(stage.status)) {
+              const failed = stage.status === "running";
+              stages.set(stageId, {
+                ...stage,
+                status: failed ? "failed" : "skipped",
+                error: failed ? interrupted : "",
+                finished_at: stage.finished_at ?? now,
+                duration_ms: stage.started_at
+                  ? Math.max(0, Date.parse(now) - Date.parse(stage.started_at))
+                  : null,
+              });
+            }
         }
     },
     startStage(runId: number, stageKey: string, detail = "") {

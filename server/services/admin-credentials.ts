@@ -11,7 +11,10 @@ const SCRYPT_P = 1;
 type AdminAuthRecord = AdminCredentialRecord;
 
 export type AdminPasswordErrorCode =
-  "current_password_incorrect" | "new_password_empty" | "new_password_same_as_current";
+  | "current_password_incorrect"
+  | "new_password_empty"
+  | "new_password_same_as_current"
+  | "new_password_too_short";
 
 export class AdminPasswordError extends Error {
   constructor(
@@ -124,6 +127,12 @@ export async function changeAdminPassword(
   }
   if (typeof newPassword !== "string" || newPassword.length === 0) {
     throw new AdminPasswordError("new_password_empty", t(locale, "passwordErrors.newEmpty"));
+  }
+  if (newPassword.length < MIN_CONFIGURED_PASSWORD_LENGTH) {
+    throw new AdminPasswordError(
+      "new_password_too_short",
+      t(locale, "passwordErrors.newTooShort", { min: MIN_CONFIGURED_PASSWORD_LENGTH })
+    );
   }
   if (newPassword === currentPassword) {
     throw new AdminPasswordError("new_password_same_as_current", t(locale, "passwordErrors.sameAsCurrent"));
