@@ -58,7 +58,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
-    "@types/bun": "1.4.3",
+    "@types/bun": "1.4.4",
     "@types/compression": "^1.8.1",
     "@types/cookie-parser": "^1.4.8",
     "@types/express": "^5.0.6",
@@ -74,7 +74,7 @@
     "prettier": "3.9.10",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
-    "vite": "7.3.6",
+    "vite": "8.3.5",
     "vitest": "^5.0.5",
     "vue": "^3.5.13",
     "vue-router": "^5.4.0",
