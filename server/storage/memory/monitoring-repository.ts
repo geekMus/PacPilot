@@ -10,18 +10,31 @@ export function createMemoryMonitoringRepository(
   getRetentionDays: () => number
 ): SyncMonitoringRepository {
   const events = new Map<number, AccessEvent>();
+  // record() sweeps expired events on every write. Cache the parsed timestamp so
+  // a full sweep does not re-parse every ISO string (5005 writes would otherwise
+  // call Date.parse ~12.5M times and can exceed Vitest's 5s default timeout on CI).
+  const eventTimestamps = new Map<number, number>();
   let nextEventId = 1;
   const monitoring = {
     record(event: AccessEventInput) {
       const id = nextEventId++;
+      const timestamp = Date.parse(event.created_at);
       events.set(id, { ...clone(event), id });
+      eventTimestamps.set(id, timestamp);
       const retentionDays = getRetentionDays();
       if (retentionDays > 0) {
         const cutoff = Date.now() - retentionDays * 86400000;
-        for (const [eventId, item] of events)
-          if (Date.parse(item.created_at) < cutoff) events.delete(eventId);
+        for (const [eventId, recordedAt] of eventTimestamps)
+          if (recordedAt < cutoff) {
+            events.delete(eventId);
+            eventTimestamps.delete(eventId);
+          }
       }
-      while (events.size > 5000) events.delete(events.keys().next().value!);
+      while (events.size > 5000) {
+        const oldestId = events.keys().next().value!;
+        events.delete(oldestId);
+        eventTimestamps.delete(oldestId);
+      }
     },
     list(limit = 50, beforeId = 0) {
       const all = [...events.values()].sort((a, b) => b.id - a.id);
@@ -40,9 +53,10 @@ export function createMemoryMonitoringRepository(
       if (retentionDays <= 0) return 0;
       const cutoff = Date.now() - retentionDays * 86400000;
       let deleted = 0;
-      for (const [id, item] of events)
-        if (Date.parse(item.created_at) < cutoff) {
+      for (const [id, recordedAt] of eventTimestamps)
+        if (recordedAt < cutoff) {
           events.delete(id);
+          eventTimestamps.delete(id);
           deleted++;
         }
       return deleted;
@@ -50,6 +64,7 @@ export function createMemoryMonitoringRepository(
     clear() {
       const count = events.size;
       events.clear();
+      eventTimestamps.clear();
       return count;
     },
     summarize(activeRequests: number, tcpConnections: number): MonitorSummary {
