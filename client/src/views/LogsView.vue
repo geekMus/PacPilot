@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useMonitoringDashboard } from "@/composables/useMonitoringDashboard";
 import AdminLayout from "@/components/layout/AdminLayout.vue";
@@ -6,6 +7,7 @@ import AppIcon from "@/components/AppIcon.vue";
 import AppDialog from "@/components/AppDialog.vue";
 import AppSelect from "@/components/AppSelect.vue";
 import AppInput from "@/components/AppInput.vue";
+import JsonTreeView from "@/components/JsonTreeView.vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 import AppFooter from "@/components/AppFooter.vue";
 import VirtualTable from "@/components/VirtualTable.vue";
@@ -39,6 +41,22 @@ const {
   statusTone,
   error: monitorError,
 } = useMonitoringDashboard();
+
+// 请求头是 JSON 字符串；解析成功且非空时用彩色 JSON 树展示，
+// 否则回退到纯文本（含「无请求头」等占位文案）。
+const requestHeadersJson = computed(() => {
+  const raw = selectedAccess.value?.request_headers;
+  if (!raw || !String(raw).trim()) return undefined;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
+      return parsed;
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+});
 </script>
 
 <template>
@@ -328,7 +346,8 @@ const {
             </div>
             <div class="access-detail-block">
               <span>{{ t("monitor.k142") }}</span>
-              <pre>{{ formatAccessHeaders(selectedAccess.request_headers) }}</pre>
+              <JsonTreeView v-if="requestHeadersJson !== undefined" :data="requestHeadersJson" />
+              <pre v-else>{{ formatAccessHeaders(selectedAccess.request_headers) }}</pre>
             </div>
           </div>
         </template>

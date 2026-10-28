@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import VueJsonPretty from "vue-json-pretty";
 import "vue-json-pretty/lib/styles.css";
+import AppScrollArea from "@/components/AppScrollArea.vue";
 
 type JsonValue =
   | string
@@ -18,7 +19,11 @@ defineProps<{
 
 <template>
   <div class="json-tree-view">
-    <VueJsonPretty :data="data" :deep="3" :show-length="true" :show-double-quotes="true" />
+    <AppScrollArea orientation="horizontal" type="auto" overscroll="contain">
+      <div class="json-tree-inner">
+        <VueJsonPretty :data="data" :deep="3" :show-length="true" :show-double-quotes="true" />
+      </div>
+    </AppScrollArea>
   </div>
 </template>
 
@@ -26,10 +31,16 @@ defineProps<{
 @reference "@/styles/tailwind.css";
 
 .json-tree-view {
-  @apply rounded-[10px] border px-3 py-[11px];
+  @apply overflow-hidden rounded-[10px] border;
   border-color: var(--line);
   background: var(--surface-2);
-  overflow-x: auto;
+}
+
+/* 横向滚动交给公共组件 AppScrollArea，滚动条样式与全站统一；
+   内边距放在滚动内容上，随内容一起滚动，避免滚动条与边框之间留白。 */
+.json-tree-inner {
+  @apply px-3 py-[11px];
+  min-width: max-content;
 }
 
 /* 树根：统一项目等宽字体与字号，覆盖库默认的 Monaco 14px。 */
