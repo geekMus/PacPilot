@@ -51,8 +51,11 @@ export function createApp(env: EnvConfig, storage: ApplicationStorage): express.
     // Re-read interfaces per request so address changes do not require a restart.
     const localAddresses = getLocalInterfaceAddresses();
     const trustedOrigin = isTrustedOrigin(origin, requestOrigin, allowedOrigins, localAddresses);
+    // 大小写不敏感地判定 admin 写接口：Express 5 路由匹配默认大小写不敏感，
+    // 若此处仍大小写敏感，`/API/admin/...` 会绕过 Origin 校验却命中处理器。
     const isAdminMutation =
-      _req.path.startsWith("/api/admin/") && !["GET", "HEAD", "OPTIONS"].includes(_req.method);
+      _req.path.toLowerCase().startsWith("/api/admin/") &&
+      !["GET", "HEAD", "OPTIONS"].includes(_req.method.toUpperCase());
 
     if (openCors) {
       // Any origin may call the API; admin access is authenticated by bearer

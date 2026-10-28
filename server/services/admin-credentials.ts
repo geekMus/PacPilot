@@ -1,5 +1,7 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import type { AdminCredentialRecord, AdminCredentialRepository } from "../storage/repositories";
+import { t } from "../../shared/i18n";
+import type { AppLocale } from "../../shared/i18n/locale";
 
 const HASH_BYTES = 64;
 const SCRYPT_N = 16384;
@@ -9,7 +11,10 @@ const SCRYPT_P = 1;
 type AdminAuthRecord = AdminCredentialRecord;
 
 export type AdminPasswordErrorCode =
-  "current_password_incorrect" | "new_password_empty" | "new_password_same_as_current";
+  | "current_password_incorrect"
+  | "new_password_empty"
+  | "new_password_same_as_current"
+  | "new_password_too_short";
 
 export class AdminPasswordError extends Error {
   constructor(
@@ -72,6 +77,8 @@ export async function createInitialAdminCredentials(
   configuredPassword?: string,
   configuredSessionSecret?: string
 ): Promise<InitialCredentialResult> {
+  // 说明：read-then-write 非原子，但本项目为单进程运行，且仅在启动阶段调用一次，
+  // 不存在并发竞争窗口；多进程部署需要改为数据库层面的原子 upsert。
   if (await readRecord(repository)) return { password: null, source: null };
 
   const trimmed = configuredPassword?.trim() ?? "";
@@ -114,16 +121,23 @@ export async function verifyAdminPassword(
 export async function changeAdminPassword(
   repository: AdminCredentialRepository,
   currentPassword: string,
-  newPassword: string
+  newPassword: string,
+  locale: AppLocale = "zh_CN"
 ): Promise<void> {
   if (!(await verifyAdminPassword(repository, currentPassword))) {
-    throw new AdminPasswordError("current_password_incorrect", "当前管理密码不正确。");
+    throw new AdminPasswordError("current_password_incorrect", t(locale, "passwordErrors.currentIncorrect"));
   }
   if (typeof newPassword !== "string" || newPassword.length === 0) {
-    throw new AdminPasswordError("new_password_empty", "新密码不能为空。");
+    throw new AdminPasswordError("new_password_empty", t(locale, "passwordErrors.newEmpty"));
+  }
+  if (newPassword.length < MIN_CONFIGURED_PASSWORD_LENGTH) {
+    throw new AdminPasswordError(
+      "new_password_too_short",
+      t(locale, "passwordErrors.newTooShort", { min: MIN_CONFIGURED_PASSWORD_LENGTH })
+    );
   }
   if (newPassword === currentPassword) {
-    throw new AdminPasswordError("new_password_same_as_current", "新密码不能与当前密码相同。");
+    throw new AdminPasswordError("new_password_same_as_current", t(locale, "passwordErrors.sameAsCurrent"));
   }
   await writeRecord(repository, passwordRecord(newPassword));
 }

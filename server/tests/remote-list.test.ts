@@ -84,6 +84,52 @@ describe("parseRemoteListText", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("rejects redirects that point at a private or loopback address", async () => {
+    const redirectFetch = vi.fn().mockResolvedValue(
+      new Response("", { status: 302, headers: { location: "http://127.0.0.1/secret" } })
+    );
+    vi.stubGlobal("fetch", redirectFetch);
+    await expect(fetchAndParseRemoteList("https://rules.example.com/list.txt")).rejects.toThrow(
+      "SSRF protection"
+    );
+    expect(redirectFetch).toHaveBeenCalledOnce();
+  });
+
+  it("stops after too many redirects", async () => {
+    const loopFetch = vi.fn().mockResolvedValue(
+      new Response("", { status: 302, headers: { location: "https://rules.example.com/loop" } })
+    );
+    vi.stubGlobal("fetch", loopFetch);
+    await expect(fetchAndParseRemoteList("https://rules.example.com/list.txt")).rejects.toThrow(
+      "HTTP 302"
+    );
+    expect(loopFetch.mock.calls.length).toBeGreaterThan(1);
+  });
+
+  it("rejects a redirect response that has no Location header", async () => {
+    const noLocationFetch = vi.fn().mockResolvedValue(new Response("", { status: 302 }));
+    vi.stubGlobal("fetch", noLocationFetch);
+    await expect(fetchAndParseRemoteList("https://rules.example.com/list.txt")).rejects.toThrow(
+      "HTTP 302"
+    );
+    expect(noLocationFetch).toHaveBeenCalledOnce();
+  });
+
+  it("follows safe redirects and re-validates the final target", async () => {
+    const redirectFetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response("", { status: 302, headers: { location: "https://cdn.example.com/list" } })
+      )
+      .mockResolvedValueOnce(
+        new Response("example.com\nsub.example.com", { status: 200 })
+      );
+    vi.stubGlobal("fetch", redirectFetch);
+    const result = await fetchAndParseRemoteList("https://rules.example.com/list.txt");
+    expect(result.proxyHosts).toEqual(["example.com", "sub.example.com"]);
+    expect(redirectFetch).toHaveBeenCalledTimes(2);
+  });
+
   it("fetches, parses and returns bounded response metadata", async () => {
     const longHeader = "x".repeat(600);
     const fetchMock = vi.fn().mockResolvedValue(

@@ -174,7 +174,7 @@ export function useMonitoringDashboard() {
       summary.value = nextSummary;
       if (resetAccess || accesses.value.length === 0) {
         accesses.value = page.items;
-        accessHasMore.value = page.hasMore;
+        accessHasMore.value = accesses.value.length < page.total;
       } else {
         const merged = new Map<number, AccessEvent>();
         for (const item of [...page.items, ...accesses.value]) merged.set(item.id, item);
@@ -205,7 +205,7 @@ export function useMonitoringDashboard() {
       const seen = new Set(accesses.value.map((item) => item.id));
       accesses.value.push(...page.items.filter((item) => !seen.has(item.id)));
       accesses.value.sort((a, b) => b.id - a.id);
-      accessHasMore.value = page.hasMore;
+      accessHasMore.value = accesses.value.length < page.total;
       accessTotal.value = page.total;
     } catch (caught) {
       accessLoadError.value = caught instanceof Error ? caught.message : String(caught);

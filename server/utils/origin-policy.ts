@@ -53,8 +53,13 @@ function isLocalInterfaceOrigin(
     // not resolved here, avoiding DNS-based trust and rebinding surprises.
     // Only trust the service's effective port and Vite's fixed dev port. This
     // avoids trusting arbitrary web apps hosted on another port of this host.
+    // Vite's dev server runs on port 5173 during development only. Trusting it
+    // unconditionally would let any localhost page on that port forge
+    // SameSite=Lax cookie requests against a production instance.
     const trustedPort =
-      effectivePort(originUrl) === effectivePort(requestUrl) || effectivePort(originUrl) === 5173;
+      effectivePort(originUrl) === effectivePort(requestUrl) ||
+      (process.env.PACPILOT_RUNTIME_PROFILE !== "production" &&
+        effectivePort(originUrl) === 5173);
     if (!trustedPort) return false;
     if (hostname === "localhost") return true;
     if (isIP(hostname) === 0 || !localAddresses.has(hostname)) return false;

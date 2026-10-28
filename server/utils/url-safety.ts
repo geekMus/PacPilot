@@ -18,7 +18,7 @@ function parseIpv4(host: string): number[] | null {
   return octets;
 }
 
-/** Return the dotted IPv4 address embedded in any valid IPv4-mapped IPv6 form. */
+/** Return the dotted IPv4 embedded in an IPv4-mapped/compatible/translatable/NAT64 IPv6 form. */
 function mappedIpv4Address(host: string): string | null {
   let normalized =
     host
@@ -47,10 +47,23 @@ function mappedIpv4Address(host: string): string | null {
     return Number.parseInt(part, 16);
   });
   if (groups.length !== 8 || groups.some((group) => !Number.isFinite(group))) return null;
-  if (!groups.slice(0, 5).every((group) => group === 0) || groups[5] !== 0xffff) return null;
 
-  const high = groups[6];
-  const low = groups[7];
+  const zeroes = (from: number, to: number) =>
+    groups.slice(from, to).every((group) => group === 0);
+  // IPv4-mapped (RFC 4291): ::ffff:a.b.c.d → 0000:…:0000:ffff:aabb:ccdd.
+  if (zeroes(0, 5) && groups[5] === 0xffff) return ipv4FromGroups(groups[6], groups[7]);
+  // IPv4-compatible (deprecated): ::a.b.c.d → 0000:…:0000:0000:aabb:ccdd.
+  if (zeroes(0, 6)) return ipv4FromGroups(groups[6], groups[7]);
+  // IPv4-translatable (RFC 6052): ::ffff:0:0:a.b.c.d → 0000:…:ffff:0000:aabb:ccdd.
+  if (zeroes(0, 4) && groups[4] === 0xffff && groups[5] === 0)
+    return ipv4FromGroups(groups[6], groups[7]);
+  // NAT64 well-known prefix (RFC 6052): 64:ff9b::a.b.c.d.
+  if (groups[0] === 0x0064 && groups[1] === 0xff9b && zeroes(2, 6))
+    return ipv4FromGroups(groups[6], groups[7]);
+  return null;
+}
+
+function ipv4FromGroups(high: number, low: number): string {
   return [high >> 8, high & 0xff, low >> 8, low & 0xff].join(".");
 }
 
@@ -70,7 +83,12 @@ export function isBlockedIpAddress(host: string): boolean {
 
   const normalized = host.toLowerCase().replace(/^\[|\]$/g, "");
   if (normalized === "::1" || normalized === "::") return true;
-  if (normalized.startsWith("fe80:") || normalized.startsWith("fc") || normalized.startsWith("fd"))
+  // fc/fd are ULA only when part of an IPv6 address; require a colon so hostnames
+  // like "fcbayern.com" / "fc2.com" are not falsely blocked.
+  if (
+    normalized.startsWith("fe80:") ||
+    (normalized.includes(":") && (normalized.startsWith("fc") || normalized.startsWith("fd")))
+  )
     return true;
   const mappedIpv4 = mappedIpv4Address(normalized);
   if (mappedIpv4) return isBlockedIpAddress(mappedIpv4);
@@ -110,6 +128,10 @@ function isLoopbackOrMetadata(hostname: string): boolean {
  * Validate that a user-supplied URL is plain HTTP(S) without credentials.
  * By default also rejects private/loopback/metadata hosts (SSRF guard for
  * remote rule downloads). Pass allowPrivateHosts for intentional LAN webhooks.
+ *
+ * NOTE: this validates the hostname string only; the downstream fetch re-resolves
+ * DNS, so it does not defend against DNS-rebinding (a hostname that resolves to a
+ * public IP here but a private one at fetch time).
  */
 export function assertSafeHttpUrl(
   raw: string,

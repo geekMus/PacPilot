@@ -1,6 +1,7 @@
 import type { ApplicationStorage } from "../storage/repositories";
 import { generatePac, type GenerateResult } from "./pac-generator";
 import { t } from "../../shared/i18n";
+import type { AppLocale } from "../../shared/i18n/locale";
 import { runtimeLog } from "../utils/runtime-log";
 import { publishDomainEvent } from "./notifications";
 
@@ -13,6 +14,7 @@ interface QueueItem {
   workflowId: number;
   storage: ApplicationStorage;
   dataDir: string;
+  locale: AppLocale;
   resolve: (result: GenerateResult) => void;
   reject: (error: unknown) => void;
   promise: Promise<GenerateResult>;
@@ -29,10 +31,10 @@ function encodeWorkflowStageDetail(value: unknown): string {
     : json;
 }
 
-const cancelledResult = (): GenerateResult => ({
+const cancelledResult = (locale: AppLocale = "zh_CN"): GenerateResult => ({
   success: false,
   mode: "",
-  message: t("zh_CN", "serverErrors.workflowCancelled"),
+  message: t(locale, "serverErrors.workflowCancelled"),
   resultCode: "cancelled",
 });
 
@@ -41,21 +43,25 @@ export async function hasActivePacWorkflow(storage: ApplicationStorage): Promise
 }
 
 async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
-  const { storage, workflowId: id } = item;
+  const { storage, workflowId: id, locale } = item;
   const startedAt = new Date();
   let activeStageId: number | null = null;
   try {
     if (!(await storage.workflows.claim(id, startedAt.toISOString()))) {
-      return cancelledResult();
+      return cancelledResult(locale);
     }
     const settings = await storage.settings.get();
-    await publishDomainEvent(storage, {
-      type: "task.execution",
-      phase: "started",
-      subject: { type: "task", id: String(id), name: "PAC 生成任务" },
-      correlationId: "workflow-" + id,
-      summary: "PAC 生成任务已开始。",
-    });
+    await publishDomainEvent(
+      storage,
+      {
+        type: "task.execution",
+        phase: "started",
+        subject: { type: "task", id: String(id), name: t(locale, "workflowMessages.taskName") },
+        correlationId: "workflow-" + id,
+        summary: t(locale, "workflowMessages.taskStarted"),
+      },
+      locale
+    );
     const prepareDetail = encodeWorkflowStageDetail({
       mode: settings.mode,
       pac_proxy: settings.pacProxy,
@@ -76,7 +82,7 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
     const generationStage = await storage.workflows.startStage(id, "generate-pac");
     await storage.workflows.update(id, { stage: "generate-pac" });
     activeStageId = generationStage;
-    const generation = await generatePac(storage);
+    const generation = await generatePac(storage, locale);
     const finishedAt = new Date();
     const generationDetail = encodeWorkflowStageDetail(generation.detail || {});
     await storage.workflows.finishStage(
@@ -93,14 +99,18 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
       finished_at: finishedAt.toISOString(),
       duration_ms: Math.max(0, finishedAt.getTime() - startedAt.getTime()),
     });
-    await publishDomainEvent(storage, {
-      type: "task.execution",
-      phase: "finished",
-      outcome: generation.success ? "success" : "failure",
-      subject: { type: "task", id: String(id), name: "PAC 生成任务" },
-      correlationId: "workflow-" + id,
-      summary: generation.message,
-    });
+    await publishDomainEvent(
+      storage,
+      {
+        type: "task.execution",
+        phase: "finished",
+        outcome: generation.success ? "success" : "failure",
+        subject: { type: "task", id: String(id), name: t(locale, "workflowMessages.taskName") },
+        correlationId: "workflow-" + id,
+        summary: generation.message,
+      },
+      locale
+    );
     return generation;
   } catch (error) {
     const finishedAt = new Date();
@@ -124,14 +134,18 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
     } catch (recordError) {
       runtimeLog("error", "Failed to save workflow failure status: ", recordError);
     }
-    await publishDomainEvent(storage, {
-      type: "task.execution",
-      phase: "finished",
-      outcome: "failure",
-      subject: { type: "task", id: String(id), name: "PAC 生成任务" },
-      correlationId: "workflow-" + id,
-      summary: message,
-    });
+    await publishDomainEvent(
+      storage,
+      {
+        type: "task.execution",
+        phase: "finished",
+        outcome: "failure",
+        subject: { type: "task", id: String(id), name: t(locale, "workflowMessages.taskName") },
+        correlationId: "workflow-" + id,
+        summary: message,
+      },
+      locale
+    );
     throw error;
   }
 }
@@ -145,7 +159,7 @@ function pumpQueue(type: string): void {
         const item = queue.shift()!;
         const run = await item.storage.workflows.get(item.workflowId);
         if (!run || run.status !== "pending") {
-          item.resolve(cancelledResult());
+          item.resolve(cancelledResult(item.locale));
           continue;
         }
         try {
@@ -168,6 +182,7 @@ async function enqueueWorkflow(
   storage: ApplicationStorage,
   dataDir: string,
   source: WorkflowSource,
+  locale: AppLocale,
   execute: (item: QueueItem) => Promise<GenerateResult>
 ): Promise<QueueItem> {
   const workflowId = await storage.workflows.create(source, (await storage.settings.get()).mode);
@@ -177,7 +192,7 @@ async function enqueueWorkflow(
     resolve = res;
     reject = rej;
   });
-  const item: QueueItem = { workflowId, storage, dataDir, resolve, reject, promise, execute };
+  const item: QueueItem = { workflowId, storage, dataDir, locale, resolve, reject, promise, execute };
   const queue = queues.get(type) ?? [];
   queue.push(item);
   queues.set(type, queue);
@@ -187,18 +202,20 @@ async function enqueueWorkflow(
 async function enqueuePacWorkflow(
   storage: ApplicationStorage,
   dataDir: string,
-  source: WorkflowSource
+  source: WorkflowSource,
+  locale: AppLocale
 ): Promise<QueueItem> {
-  return await enqueueWorkflow(PAC_WORKFLOW_TYPE, storage, dataDir, source, executePacWorkflow);
+  return await enqueueWorkflow(PAC_WORKFLOW_TYPE, storage, dataDir, source, locale, executePacWorkflow);
 }
 
 /** Start a queued server-owned task and return its ID immediately. */
 export async function startPacWorkflow(
   storage: ApplicationStorage,
   dataDir: string,
-  source: WorkflowSource
+  source: WorkflowSource,
+  locale: AppLocale = "zh_CN"
 ): Promise<number> {
-  const item = await enqueuePacWorkflow(storage, dataDir, source);
+  const item = await enqueuePacWorkflow(storage, dataDir, source, locale);
   void item.promise.catch((error) => runtimeLog("error", "Workflow execution failed: ", error));
   return item.workflowId;
 }
@@ -207,9 +224,10 @@ export async function startPacWorkflow(
 export async function runPacWorkflow(
   storage: ApplicationStorage,
   dataDir: string,
-  source: WorkflowSource
+  source: WorkflowSource,
+  locale: AppLocale = "zh_CN"
 ): Promise<PacWorkflowResult> {
-  const item = await enqueuePacWorkflow(storage, dataDir, source);
+  const item = await enqueuePacWorkflow(storage, dataDir, source, locale);
   const generation = await item.promise;
   return { workflowId: item.workflowId, generation };
 }

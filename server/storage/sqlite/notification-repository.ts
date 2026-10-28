@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import type { NotificationDocument } from "../../../shared/contracts";
 import type { SyncNotificationRepository } from "../repositories";
+import { t } from "../../../shared/i18n";
 const empty = (): NotificationDocument => ({
   channels: [],
   rules: [],
@@ -23,7 +24,7 @@ export function createSqliteNotificationRepository(db: Database): SyncNotificati
           deliveries: Array.isArray(v.deliveries) ? v.deliveries : [],
         };
       } catch {
-        throw new Error("通知配置读取失败：数据库中的 notifications 记录不是合法的 JSON。");
+        throw new Error(t("zh_CN", "notificationErrors.corruptStorage"));
       }
     },
     set(d) {

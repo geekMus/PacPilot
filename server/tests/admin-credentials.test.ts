@@ -145,6 +145,19 @@ describe("changeAdminPassword", () => {
     await storage.close();
   });
 
+  it("rejects a new password shorter than the minimum length", async () => {
+    const storage = await freshStorage();
+    await createInitialAdminCredentials(storage.credentials, "old-password");
+
+    await expect(
+      changeAdminPassword(storage.credentials, "old-password", "short")
+    ).rejects.toMatchObject({
+      code: "new_password_too_short",
+      message: "新密码长度不能少于 8 个字符。",
+    });
+    await storage.close();
+  });
+
   it("rejects reusing the current password", async () => {
     const storage = await freshStorage();
     await createInitialAdminCredentials(storage.credentials, "old-password");

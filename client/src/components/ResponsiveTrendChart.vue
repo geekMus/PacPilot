@@ -4,19 +4,17 @@ import { useI18n } from "vue-i18n";
 import type { EChartsType } from "echarts/core";
 const { t, locale } = useI18n();
 
-type EChartsCoreModule = typeof import("echarts/core");
+type EChartsModule = typeof import("@/lib/echarts");
 
-let echartsLoading: Promise<EChartsCoreModule> | undefined;
+let echartsLoading: Promise<EChartsModule> | undefined;
 
 /** Load only the registered chart modules when a chart is actually rendered. */
-function loadEcharts(): Promise<EChartsCoreModule> {
+function loadEcharts(): Promise<EChartsModule> {
   if (!echartsLoading) {
-    echartsLoading = import("@/lib/echarts")
-      .then(({ echarts }) => echarts)
-      .catch((error: unknown) => {
-        echartsLoading = undefined;
-        throw error;
-      });
+    echartsLoading = import("@/lib/echarts").catch((error: unknown) => {
+      echartsLoading = undefined;
+      throw error;
+    });
   }
   return echartsLoading;
 }
@@ -323,11 +321,11 @@ function renderChart() {
   }
 
   void loadEcharts()
-    .then((echarts) => {
+    .then(({ init }) => {
       const element = host.value;
       if (!element || !props.points?.length) return;
       if (!chart.value) {
-        chart.value = echarts.init(element, undefined, { renderer: "canvas" });
+        chart.value = init(element, undefined, { renderer: "canvas" });
       }
       chart.value.setOption(buildOption(), true);
     })

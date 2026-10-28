@@ -4,6 +4,16 @@
  */
 
 import { assertSafeHttpUrl } from "../utils/url-safety";
+import { t } from "../../shared/i18n";
+import type { AppLocale } from "../../shared/i18n/locale";
+
+/** 远程列表解析 / 下载中的确定性错误（不重试）。 */
+class RemoteListError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RemoteListError";
+  }
+}
 
 export interface RemoteListFetchMeta {
   url: string;
@@ -96,9 +106,9 @@ function parsePlainDomains(text: string): RemoteListParseResult {
   };
 }
 
-export function parseRemoteListText(body: string): RemoteListParseResult {
+export function parseRemoteListText(body: string, locale: AppLocale = "zh_CN"): RemoteListParseResult {
   const trimmed = body.trim();
-  if (!trimmed) throw new Error("远程列表内容为空");
+  if (!trimmed) throw new RemoteListError(t(locale, "remoteList.empty"));
 
   const looksBase64 =
     !trimmed.includes("||") &&
@@ -111,12 +121,12 @@ export function parseRemoteListText(body: string): RemoteListParseResult {
       const decoded = Buffer.from(trimmed.replace(/\s+/g, ""), "base64").toString("utf8");
       const parsed = parseAbpOrAutoproxy(decoded);
       if (parsed.proxyHosts.length === 0) {
-        throw new Error("Base64 解码后没有有效域名");
+        throw new RemoteListError(t(locale, "remoteList.noDomainsAfterDecode"));
       }
       return { ...parsed, format: "gfwlist-base64" };
     } catch (e) {
-      if (e instanceof Error && e.message.includes("有效域名")) throw e;
-      throw new Error("列表 Base64 解码失败，请确认 URL 返回的是 GFWList 或明文规则");
+      if (e instanceof RemoteListError) throw e;
+      throw new RemoteListError(t(locale, "remoteList.decodeFailed"));
     }
   }
 
@@ -127,9 +137,7 @@ export function parseRemoteListText(body: string): RemoteListParseResult {
 
   const plain = parsePlainDomains(trimmed);
   if (plain.proxyHosts.length === 0) {
-    throw new Error(
-      "未能从远程列表解析出有效域名。请使用 GFWList、AutoProxy 规则或每行一个域名的明文列表。"
-    );
+    throw new RemoteListError(t(locale, "remoteList.parseFailed"));
   }
   return plain;
 }
@@ -142,8 +150,11 @@ function collectResponseHeaders(res: Response): Record<string, string> {
   return out;
 }
 
-export async function fetchAndParseRemoteList(url: string): Promise<RemoteListParseResult> {
-  const unsafe = assertSafeHttpUrl(url, "规则列表 URL");
+export async function fetchAndParseRemoteList(
+  url: string,
+  locale: AppLocale = "zh_CN"
+): Promise<RemoteListParseResult> {
+  const unsafe = assertSafeHttpUrl(url, t(locale, "remoteList.urlLabel"));
   if (unsafe) throw new Error(unsafe);
 
   const requestHeaders = {
@@ -151,15 +162,48 @@ export async function fetchAndParseRemoteList(url: string): Promise<RemoteListPa
     Accept: "text/plain, text/*;q=0.9, */*;q=0.8",
   };
 
+  // 手动跟随重定向并对每一跳重新做 SSRF 校验，防止公网 URL 302 跳转到内网地址。
+  const MAX_REDIRECTS = 5;
+  const fetchOnce = async (targetUrl: string, redirectsLeft: number): Promise<Response> => {
+    const unsafe = assertSafeHttpUrl(targetUrl, t(locale, "remoteList.urlLabel"));
+    if (unsafe) throw new RemoteListError(unsafe);
+    const res = await fetch(targetUrl, {
+      headers: requestHeaders,
+      signal: AbortSignal.timeout(90_000),
+      redirect: "manual",
+    });
+    if (res.status >= 300 && res.status < 400) {
+      await res.text().catch(() => undefined);
+      if (redirectsLeft <= 0) {
+        throw new RemoteListError(
+          t(locale, "remoteList.httpError", {
+            status: String(res.status),
+            statusText: res.statusText || "",
+          })
+        );
+      }
+      const location = res.headers.get("location");
+      if (!location) {
+        // 3xx 但缺少 Location 头，无法继续跟随；按 HTTP 错误处理。
+        throw new RemoteListError(
+          t(locale, "remoteList.httpError", {
+            status: String(res.status),
+            statusText: res.statusText || "",
+          })
+        );
+      }
+      const next = new URL(location, targetUrl).toString();
+      return fetchOnce(next, redirectsLeft - 1);
+    }
+    return res;
+  };
+
   let lastError: unknown;
   // 远程源偶发断开连接时有限重试；HTTP 错误不重试，避免重复请求无效地址。
   for (let attempt = 0; attempt < 3; attempt++) {
     const started = Date.now();
     try {
-      const res = await fetch(url, {
-        headers: requestHeaders,
-        signal: AbortSignal.timeout(90_000),
-      });
+      const res = await fetchOnce(url, MAX_REDIRECTS);
       const duration_ms = Math.max(0, Date.now() - started);
       const text = await res.text();
       const fetchMeta: RemoteListFetchMeta = {
@@ -175,23 +219,21 @@ export async function fetchAndParseRemoteList(url: string): Promise<RemoteListPa
         response_headers: collectResponseHeaders(res),
       };
       if (!res.ok) {
-        const err = new Error(`下载远程列表失败：HTTP ${res.status} ${res.statusText}`) as Error & {
-          fetchMeta?: RemoteListFetchMeta;
-        };
+        const err = new RemoteListError(
+          t(locale, "remoteList.httpError", {
+            status: String(res.status),
+            statusText: res.statusText || "",
+          })
+        ) as RemoteListError & { fetchMeta?: RemoteListFetchMeta };
         err.fetchMeta = fetchMeta;
         throw err;
       }
-      const parsed = parseRemoteListText(text);
+      const parsed = parseRemoteListText(text, locale);
       return { ...parsed, fetch: fetchMeta };
     } catch (error) {
       lastError = error;
       // HTTP 响应错误和列表格式错误是确定性错误，不应重试。
-      if (
-        error instanceof Error &&
-        /^(下载远程列表失败：HTTP|远程列表内容为空|未能从远程列表解析|列表 Base64 解码失败)/.test(
-          error.message
-        )
-      ) {
+      if (error instanceof RemoteListError) {
         throw error;
       }
       if (attempt < 2) {
@@ -200,13 +242,7 @@ export async function fetchAndParseRemoteList(url: string): Promise<RemoteListPa
     }
   }
   const detail = lastError instanceof Error ? lastError.message : String(lastError);
-  throw new Error(
-    `远程规则列表下载失败：连接意外中断（已重试 2 次）。请检查容器的 DNS、IPv4/IPv6 出口及列表源是否可访问。详情：${detail}`
-  );
-}
-
-function escapeJsString(s: string): string {
-  return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  throw new RemoteListError(t(locale, "remoteList.connectionFailed", { detail }));
 }
 
 function toJsArray(list: string[], compress: boolean): string {
@@ -224,9 +260,9 @@ export function buildRemoteListPac(
   userDirectList: string[],
   compress: boolean
 ): string {
-  const proxyObj = proxyHosts.map((h) => `"${escapeJsString(h)}":1`).join(compress ? "," : ",\n  ");
+  const proxyObj = proxyHosts.map((h) => `${JSON.stringify(h)}:1`).join(compress ? "," : ",\n  ");
   const remoteDirectObj = remoteDirectHosts
-    .map((h) => `"${escapeJsString(h)}":1`)
+    .map((h) => `${JSON.stringify(h)}:1`)
     .join(compress ? "," : ",\n  ");
   const blockJs = toJsArray(userBlockList, false);
   const directJs = toJsArray(userDirectList, false);
@@ -266,7 +302,7 @@ function hostInMap(host, map) {
   var parts = h.split(".");
   for (var i = 0; i < parts.length; i++) {
     var suffix = parts.slice(i).join(".");
-    if (map[suffix]) return true;
+    if (Object.prototype.hasOwnProperty.call(map, suffix)) return true;
   }
   return false;
 }

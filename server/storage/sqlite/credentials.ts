@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import type { AdminCredentialRecord, SyncAdminCredentialRepository } from "../repositories";
+import { t } from "../../../shared/i18n";
 
 /** SQLite persistence adapter for administrator credentials. */
 export class SqliteAdminCredentialRepository implements SyncAdminCredentialRepository {
@@ -10,22 +11,24 @@ export class SqliteAdminCredentialRepository implements SyncAdminCredentialRepos
       .query("SELECT value FROM settings WHERE key = ?")
       .get("admin-auth") as { value: string } | null;
     if (!row) return null;
+    let value: Partial<AdminCredentialRecord>;
     try {
-      const value = JSON.parse(row.value) as Partial<AdminCredentialRecord>;
-      if (
-        typeof value.passwordHash !== "string" ||
-        typeof value.salt !== "string" ||
-        typeof value.sessionSecret !== "string"
-      )
-        return null;
-      return {
-        passwordHash: value.passwordHash,
-        salt: value.salt,
-        sessionSecret: value.sessionSecret,
-      };
+      value = JSON.parse(row.value) as Partial<AdminCredentialRecord>;
     } catch {
-      return null;
+      throw new Error(t("zh_CN", "storageErrors.corruptCredentials"));
     }
+    if (
+      typeof value.passwordHash !== "string" ||
+      typeof value.salt !== "string" ||
+      typeof value.sessionSecret !== "string"
+    ) {
+      throw new Error(t("zh_CN", "storageErrors.corruptCredentials"));
+    }
+    return {
+      passwordHash: value.passwordHash,
+      salt: value.salt,
+      sessionSecret: value.sessionSecret,
+    };
   }
 
   set(record: AdminCredentialRecord): void {

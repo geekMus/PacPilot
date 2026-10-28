@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { ApplicationStorage } from "../storage/repositories";
 import { requireAdmin } from "../middleware/auth";
+import { resolveLocale } from "../../shared/i18n";
 import {
   getNotificationAdminView,
   removeNotificationChannel,
@@ -10,6 +11,11 @@ import {
   saveNotificationRule,
   testNotificationChannel,
 } from "../services/notifications";
+
+function requestLocale(req: import("express").Request): "zh_CN" | "en_US" {
+  return resolveLocale(req.get("accept-language"));
+}
+
 export function adminNotificationRoutes(s: ApplicationStorage) {
   const r = Router(),
     guard = requireAdmin(s.credentials),
@@ -22,21 +28,21 @@ export function adminNotificationRoutes(s: ApplicationStorage) {
   });
   r.post("/api/admin/notifications/channels", guard, async (q, res) => {
     try {
-      res.status(201).json(await saveNotificationChannel(s, q.body || {}));
+      res.status(201).json(await saveNotificationChannel(s, q.body || {}, undefined, requestLocale(q)));
     } catch (e) {
       fail(res, e);
     }
   });
   r.put("/api/admin/notifications/channels/:id", guard, async (q, res) => {
     try {
-      res.json(await saveNotificationChannel(s, q.body || {}, idOf(q.params.id)));
+      res.json(await saveNotificationChannel(s, q.body || {}, idOf(q.params.id), requestLocale(q)));
     } catch (e) {
       fail(res, e);
     }
   });
   r.delete("/api/admin/notifications/channels/:id", guard, async (q, res) => {
     try {
-      await removeNotificationChannel(s, idOf(q.params.id));
+      await removeNotificationChannel(s, idOf(q.params.id), requestLocale(q));
       res.json({ ok: true });
     } catch (e) {
       fail(res, e);
@@ -44,28 +50,28 @@ export function adminNotificationRoutes(s: ApplicationStorage) {
   });
   r.post("/api/admin/notifications/channels/:id/test", guard, async (q, res) => {
     try {
-      res.json(await testNotificationChannel(s, idOf(q.params.id)));
+      res.json(await testNotificationChannel(s, idOf(q.params.id), requestLocale(q)));
     } catch (e) {
       fail(res, e);
     }
   });
   r.post("/api/admin/notifications/rules", guard, async (q, res) => {
     try {
-      res.status(201).json(await saveNotificationRule(s, q.body || {}));
+      res.status(201).json(await saveNotificationRule(s, q.body || {}, undefined, requestLocale(q)));
     } catch (e) {
       fail(res, e);
     }
   });
   r.put("/api/admin/notifications/rules/:id", guard, async (q, res) => {
     try {
-      res.json(await saveNotificationRule(s, q.body || {}, idOf(q.params.id)));
+      res.json(await saveNotificationRule(s, q.body || {}, idOf(q.params.id), requestLocale(q)));
     } catch (e) {
       fail(res, e);
     }
   });
   r.delete("/api/admin/notifications/rules/:id", guard, async (q, res) => {
     try {
-      await removeNotificationRule(s, idOf(q.params.id));
+      await removeNotificationRule(s, idOf(q.params.id), requestLocale(q));
       res.json({ ok: true });
     } catch (e) {
       fail(res, e);
@@ -73,7 +79,7 @@ export function adminNotificationRoutes(s: ApplicationStorage) {
   });
   r.post("/api/admin/notifications/deliveries/:id/retry", guard, async (q, res) => {
     try {
-      await retryNotificationDelivery(s, idOf(q.params.id));
+      await retryNotificationDelivery(s, idOf(q.params.id), requestLocale(q));
       res.json({ ok: true });
     } catch (e) {
       fail(res, e);

@@ -105,6 +105,16 @@ describe("assertSafeHttpUrl", () => {
     expect(isBlockedIpAddress("0:0:0:0:0:ffff:7f00:1")).toBe(true);
     expect(isBlockedIpAddress("[::ffff:ac10:1]")).toBe(true);
     expect(isBlockedIpAddress("::ffff:808:808")).toBe(false);
+    // IPv4-compatible / translatable / NAT64 forms must also respect IPv4 SSRF rules.
+    expect(isBlockedIpAddress("::7f00:1")).toBe(true);
+    expect(isBlockedIpAddress("::ffff:0:7f00:1")).toBe(true);
+    expect(isBlockedIpAddress("64:ff9b::7f00:1")).toBe(true);
+    expect(isBlockedIpAddress("64:ff9b::808:808")).toBe(false);
+    expect(isBlockedIpAddress("::808:808")).toBe(false);
+    // fc/fd are ULA only inside an IPv6 address; hostnames must not be blocked.
+    expect(isBlockedIpAddress("fcbayern.com")).toBe(false);
+    expect(isBlockedIpAddress("fc2.com")).toBe(false);
+    expect(isBlockedHostname("fcbayern.com")).toBe(false);
     expect(assertSafeHttpUrl("http://[::ffff:7f00:1]", "rules")).toContain("SSRF protection");
   });
 

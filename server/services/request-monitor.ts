@@ -8,6 +8,15 @@ import { resolveClientIp } from "../utils/client-ip";
 const tcpSockets = new Set<Socket>();
 let activeRequests = 0;
 
+/** Header names whose values must never be persisted into access records. */
+const SENSITIVE_REQUEST_HEADERS = new Set([
+  "authorization",
+  "proxy-authorization",
+  "cookie",
+  "set-cookie",
+  "x-api-key",
+]);
+
 export function trackTcpConnection(socket: Socket): void {
   tcpSockets.add(socket);
   socket.once("close", () => tcpSockets.delete(socket));
@@ -134,8 +143,13 @@ function collectHeaders(req: Request): string {
   const out: Record<string, string> = {};
   for (const [name, value] of Object.entries(req.headers)) {
     if (value === undefined) continue;
+    const lowered = name.toLowerCase();
+    if (SENSITIVE_REQUEST_HEADERS.has(lowered)) {
+      out[lowered] = "[redacted]";
+      continue;
+    }
     const text = Array.isArray(value) ? value.join(", ") : String(value);
-    out[name.toLowerCase()] = text
+    out[lowered] = text
       .replace(/[\r\n\t]/g, " ")
       .trim()
       .slice(0, 2048);

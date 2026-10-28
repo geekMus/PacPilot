@@ -23,6 +23,7 @@ export default {
       "A workflow is running. Wait for it to finish before restoring defaults.",
     factoryResetCompleted:
       "Default settings were restored and runtime records were cleared. The admin password was unchanged.",
+    loginRateLimited: "Too many login attempts; try again in about 15 minutes.",
   },
   gen: {
     success: {
@@ -589,6 +590,8 @@ export default {
     engineAbnormal: "Engine status is abnormal",
     engineHint: "Check that the list URL is reachable, or switch to Custom rules mode.",
     engineUnknown: "Unable to check engine status",
+    engineDetail:
+      "Uses the Bun built-in engine: it pulls the rule list from your configured remote URL and generates the PAC (supports GFWList / plain-text domains / ABP rules), without Python or a database.",
     proxyAndRemote: "Proxy and remote list",
     proxyAndRemoteDesc: "Set the default proxy string and choose a remote rule-list source",
     pacProxy: "PAC proxy string",
@@ -1146,5 +1149,96 @@ export default {
       "Overlaps direct-list line {line}; the block list wins, so the overlap is blocked.",
     directList: "Direct list",
     blockList: "Block list",
+  },
+  pacProxy: {
+    empty: "Enter the PAC proxy string.",
+    separator: "Separate proxy entries with semicolons; empty entries are not allowed.",
+    format:
+      "Entry {index} “{entry}” is invalid. Use PROXY, HTTP, HTTPS, SOCKS, SOCKS4, SOCKS5, or DIRECT.",
+    address: "Entry {index} proxy address is invalid; use host:port, or [IPv6]:port for IPv6.",
+    port: "Entry {index} port is invalid; the port must be 1–65535.",
+    ipv6: "Entry {index} has an invalid IPv6 address.",
+    hostname: "Entry {index} has an invalid proxy hostname or IP address.",
+    compressFailed: "PAC compression failed: the minifier produced no valid code.",
+    obfuscateFailed: "PAC obfuscation failed: the obfuscator produced no valid code.",
+  },
+  remoteList: {
+    empty: "The remote list is empty.",
+    noDomainsAfterDecode: "No valid domains after Base64 decoding.",
+    decodeFailed: "Failed to decode the list; confirm the URL returns a GFWList or plain-text rules.",
+    parseFailed:
+      "No valid domains could be parsed from the remote list. Use a GFWList, AutoProxy rules, or a plain-text list with one domain per line.",
+    httpError: "Failed to download the remote list: HTTP {status} {statusText}",
+    connectionFailed:
+      "Failed to download the remote rule list: the connection dropped unexpectedly (2 retries). Check the container DNS, IPv4/IPv6 egress, and whether the list source is reachable. Detail: {detail}",
+    urlLabel: "Rule list URL",
+    notRemoteMode: "Remote rule mode is not active; nothing to refresh.",
+    remoteNeedsUrl: "Remote rule mode requires a list URL.",
+    refreshed: "Remote rules refreshed.",
+    noSnapshot:
+      "Remote rules have not been fetched yet; save the remote rule mode in settings first.",
+  },
+  webhook: {
+    webhookUrl: "Webhook URL",
+    dingtalkUrl: "DingTalk robot URL",
+    body: "Webhook Body",
+    testBody: "Webhook test body",
+    headers: "Request headers",
+    empty: "{label} cannot be empty.",
+    mustBeObject: "{label} must be a JSON object.",
+    mustBeObjectOrArray: "{label} must be a JSON object or array.",
+    invalidJson: "{label} is not valid JSON.",
+    headerNameValue: "Headers must be a JSON object of “name: string” pairs.",
+    headerTransport:
+      "Headers contain forbidden transport fields or newline characters; Content-Type is fixed to application/json.",
+    dingtalkToken: "The DingTalk robot URL is missing access_token; paste the full robot webhook URL.",
+    testTriggered: "The test notification request was triggered.",
+    pacGenerated: "PAC generated successfully.",
+    pacFailed: "PAC generation failed.",
+    accepted: "The target endpoint accepted the request.",
+    httpStatus: "The target endpoint returned HTTP {status}.",
+    timeout: "{provider} request timed out ({seconds} s).",
+    failed: "{provider} request failed: {message}",
+    providerDingTalk: "DingTalk",
+  },
+  notificationErrors: {
+    ruleNameRequired: "Rule name is required.",
+    unsupportedEventType: "Unsupported event type.",
+    unsupportedPhase: "This event type does not support the selected phase.",
+    phaseNoOutcome: "Started/in-progress phases have no final result; choose no restriction on result.",
+    unsupportedOutcome: "This event type does not support the selected result.",
+    noChannelSelected: "Select at least one notification channel.",
+    channelNotFound: "Notification channel not found.",
+    channelNameRequired: "Channel name is required.",
+    channelInUse: "This channel is still referenced by rules; edit or remove those rules first.",
+    ruleNotFound: "Notification rule not found.",
+    ruleChannelNotFound: "The rule references a channel that does not exist.",
+    deliveryDisabled: "The rule or channel is disabled.",
+    deliveryFailed: "Notification delivery failed.",
+    channelDisabled: "Enable the channel first.",
+    deliveryNotFound: "Delivery record not found.",
+    deliveryInProgress: "This notification is being sent; try again later.",
+    deliveryNotFailed: "Only failed notifications can be retried manually.",
+    eventOrChannelMissing: "The event or an enabled channel does not exist.",
+    corruptStorage:
+      "Failed to read notification configuration: the notifications record in the database is not valid JSON.",
+  },
+  workflowMessages: {
+    taskName: "PAC generation task",
+    taskStarted: "PAC generation task started.",
+    interrupted: "The service exited before the workflow completed.",
+  },
+  passwordErrors: {
+    currentIncorrect: "The current admin password is incorrect.",
+    newEmpty: "New password cannot be empty.",
+    sameAsCurrent: "New password cannot be the same as the current one.",
+    newTooShort: "New password must be at least {min} characters.",
+  },
+  storageErrors: {
+    corruptCredentials:
+      "Admin credential record is corrupt: the admin-auth record in the database is missing required fields or is not valid JSON.",
+  },
+  api: {
+    invalidResponse: "The server returned an unparseable response.",
   },
 };

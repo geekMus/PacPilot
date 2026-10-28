@@ -1,6 +1,6 @@
 {
   "name": "PacPilot",
-  "version": "2026.10.28",
+  "version": "2026.10.29",
   "private": false,
   "description": "带 Web 管理后台的 PAC 生成与管理服务，支持自定义规则、远程域名列表、工作流、定时更新和 Webhook 通知",
   "type": "module",
@@ -54,6 +54,7 @@
     "reka-ui": "^2.6.0",
     "terser": "^5.44.0",
     "vue-i18n": "11",
+    "vue-json-pretty": "^2.6.0",
     "vue-sonner": "^2.0.9"
   },
   "devDependencies": {

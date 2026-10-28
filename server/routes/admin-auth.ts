@@ -19,6 +19,11 @@ import {
   isAdminCredentialsMissing,
   verifyAdminPassword,
 } from "../services/admin-credentials";
+import { resolveLocale } from "../../shared/i18n";
+
+function requestLocale(req: import("express").Request): "zh_CN" | "en_US" {
+  return resolveLocale(req.get("accept-language"));
+}
 
 export function adminAuthRoutes(env: EnvConfig, storage: ApplicationStorage): Router {
   const router = Router();
@@ -34,7 +39,7 @@ export function adminAuthRoutes(env: EnvConfig, storage: ApplicationStorage): Ro
       res.status(428).json({ error: "setup_required" });
       return;
     }
-    const rateError = checkLoginRateLimit(req);
+    const rateError = checkLoginRateLimit(req, requestLocale(req));
     if (rateError) {
       res.status(429).json({ error: rateError });
       return;
@@ -52,7 +57,9 @@ export function adminAuthRoutes(env: EnvConfig, storage: ApplicationStorage): Ro
     // cookies are blocked by Safari/Firefox), so it authenticates with the
     // bearer token returned here.
     if (env.corsMode !== "open") {
-      const secure = req.secure || req.headers["x-forwarded-proto"] === "https";
+      // 只用 req.secure（受 Express trust proxy 跳数限制）；直接读原始
+      // x-forwarded-proto 头会绕过跳数限制，使纯 HTTP 连接也下发 Secure Cookie。
+      const secure = req.secure;
       setSessionCookie(res, token, secure);
     }
     res.json({ ok: true, token, expiresAt });
@@ -66,7 +73,8 @@ export function adminAuthRoutes(env: EnvConfig, storage: ApplicationStorage): Ro
       await changeAdminPassword(
         storage.credentials,
         String(req.body?.currentPassword ?? ""),
-        String(req.body?.newPassword ?? "")
+        String(req.body?.newPassword ?? ""),
+        requestLocale(req)
       );
       clearSessionCookie(res);
       res.json({ ok: true });

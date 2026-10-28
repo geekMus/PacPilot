@@ -3,6 +3,8 @@ import type { WebhookConfig } from "../domain/settings";
 import type { DomainEvent } from "../../shared/contracts";
 import { createDefaultWebhookConfig, normalizeWebhookConfig } from "../domain/settings";
 import { assertSafeHttpUrl } from "../utils/url-safety";
+import { t } from "../../shared/i18n";
+import type { AppLocale } from "../../shared/i18n/locale";
 
 const WEBHOOK_TIMEOUT_MS = 10_000;
 export interface WebhookDeliveryResult {
@@ -22,57 +24,66 @@ interface MessageContext {
   status?: string;
 }
 
-function urlValidationError(raw: string, label: string): string | null {
+function urlValidationError(raw: string, label: string, locale: AppLocale = "zh_CN"): string | null {
   const value = raw.trim();
-  if (!value) return label + "不能为空。";
+  if (!value) return t(locale, "webhook.empty", { label });
   // Webhooks may target LAN services (ntfy, Home Assistant); still block loopback/metadata.
   return assertSafeHttpUrl(value, label, { allowPrivateHosts: true });
 }
 
-function parseJson(raw: string, label: string, allowArray = false): string | null {
+function parseJson(
+  raw: string,
+  label: string,
+  allowArray = false,
+  locale: AppLocale = "zh_CN"
+): string | null {
   if (!raw.trim()) return null;
   try {
     const value: unknown = JSON.parse(raw);
     if (value === null || typeof value !== "object" || (!allowArray && Array.isArray(value))) {
-      return allowArray ? label + "必须是 JSON 对象或数组。" : label + "必须是 JSON 对象。";
+      return allowArray
+        ? t(locale, "webhook.mustBeObjectOrArray", { label })
+        : t(locale, "webhook.mustBeObject", { label });
     }
     return null;
   } catch {
-    return label + "不是合法 JSON。";
+    return t(locale, "webhook.invalidJson", { label });
   }
 }
 
 /** 保存设置或发送测试前的服务端校验，不能仅依赖前端表单。 */
-export function validateWebhookConfig(input: WebhookConfig): string[] {
+export function validateWebhookConfig(
+  input: WebhookConfig,
+  locale: AppLocale = "zh_CN"
+): string[] {
   const config = normalizeWebhookConfig(input);
   const errors: string[] = [];
   const urlError = urlValidationError(
     config.url,
-    config.provider === "dingtalk" ? "钉钉机器人 URL" : "Webhook URL"
+    config.provider === "dingtalk" ? t(locale, "webhook.dingtalkUrl") : t(locale, "webhook.webhookUrl"),
+    locale
   );
   if (urlError) errors.push(urlError);
 
   if (config.provider === "custom") {
-    const bodyError = parseJson(config.body, "Webhook Body", true);
+    const bodyError = parseJson(config.body, t(locale, "webhook.body"), true, locale);
     if (bodyError) errors.push(bodyError);
-    const testBodyError = parseJson(config.testBody, "Webhook 测试 Body", true);
+    const testBodyError = parseJson(config.testBody, t(locale, "webhook.testBody"), true, locale);
     if (testBodyError) errors.push(testBodyError);
-    const headersError = parseJson(config.headers, "请求头");
+    const headersError = parseJson(config.headers, t(locale, "webhook.headers"), false, locale);
     if (headersError) errors.push(headersError);
     if (!headersError) {
       const headers = JSON.parse(config.headers || "{}") as Record<string, unknown>;
       for (const [name, value] of Object.entries(headers)) {
         if (!name.trim() || typeof value !== "string") {
-          errors.push("请求头需要使用“名称: 字符串值”的 JSON 对象。");
+          errors.push(t(locale, "webhook.headerNameValue"));
           break;
         }
         if (
           /^(host|content-length|connection|transfer-encoding|content-type)$/i.test(name) ||
           /[\r\n]/.test(value)
         ) {
-          errors.push(
-            "请求头包含不允许覆盖的传输字段或换行字符；Content-Type 固定为 application/json。"
-          );
+          errors.push(t(locale, "webhook.headerTransport"));
           break;
         }
       }
@@ -81,7 +92,7 @@ export function validateWebhookConfig(input: WebhookConfig): string[] {
     // 钉钉未启用加签时不需要 Secret，access_token 仍必填。
     const target = new URL(config.url);
     if (!target.searchParams.has("access_token")) {
-      errors.push("钉钉机器人 URL 缺少 access_token，请粘贴完整的机器人 Webhook 地址。");
+      errors.push(t(locale, "webhook.dingtalkToken"));
     }
   }
   return errors;
@@ -90,7 +101,8 @@ export function validateWebhookConfig(input: WebhookConfig): string[] {
 function buildContext(
   kind: EventKind,
   message?: string,
-  timeZone = "Asia/Shanghai"
+  timeZone = "Asia/Shanghai",
+  locale: AppLocale = "zh_CN"
 ): MessageContext {
   const ok = kind === "success";
   return {
@@ -98,9 +110,9 @@ function buildContext(
     ok: kind === "test" ? true : kind === "success",
     message:
       kind === "test"
-        ? "测试通知请求已触发。"
-        : message || (ok ? "PAC 已成功生成。" : "PAC 生成失败。"),
-    timestamp: new Date().toLocaleString("zh-CN", { timeZone }),
+        ? t(locale, "webhook.testTriggered")
+        : message || (ok ? t(locale, "webhook.pacGenerated") : t(locale, "webhook.pacFailed")),
+    timestamp: new Date().toLocaleString(locale === "en_US" ? "en-US" : "zh-CN", { timeZone }),
   };
 }
 
@@ -147,7 +159,8 @@ async function readProviderResponse(response: Response): Promise<Record<string, 
 
 function providerMessage(
   body: Record<string, unknown> | null,
-  status: number
+  status: number,
+  locale: AppLocale = "zh_CN"
 ): WebhookDeliveryResult {
   const errcode = body?.errcode;
   const providerRejected = body?.ok === false || (errcode !== undefined && String(errcode) !== "0");
@@ -158,18 +171,26 @@ function providerMessage(
         ? body.errmsg
         : "";
   if (status >= 200 && status < 300 && !providerRejected) {
-    return { success: true, status, message: "目标端点已接受请求。" };
+    return { success: true, status, message: t(locale, "webhook.accepted") };
   }
-  return { success: false, status, message: apiMessage || "目标端点返回 HTTP " + status + "。" };
+  return {
+    success: false,
+    status,
+    message: apiMessage || t(locale, "webhook.httpStatus", { status: String(status) }),
+  };
 }
 
-function requestFailure(error: unknown, provider: string): WebhookDeliveryResult {
+function requestFailure(
+  error: unknown,
+  provider: string,
+  locale: AppLocale = "zh_CN"
+): WebhookDeliveryResult {
   const message = error instanceof Error ? error.message : String(error);
   return {
     success: false,
     message: isRequestTimeout(error, message)
-      ? provider + "请求超时（" + WEBHOOK_TIMEOUT_MS / 1000 + " 秒）。"
-      : provider + "请求失败：" + message,
+      ? t(locale, "webhook.timeout", { provider, seconds: WEBHOOK_TIMEOUT_MS / 1000 })
+      : t(locale, "webhook.failed", { provider, message }),
   };
 }
 
@@ -193,13 +214,14 @@ function isRequestTimeout(error: unknown, message: string): boolean {
 
 async function sendCustom(
   config: WebhookConfig,
-  context: MessageContext
+  context: MessageContext,
+  locale: AppLocale = "zh_CN"
 ): Promise<WebhookDeliveryResult> {
-  const errors = validateWebhookConfig(config);
+  const errors = validateWebhookConfig(config, locale);
   if (errors.length) return { success: false, message: errors.join("\n") };
   try {
     const headers = JSON.parse(config.headers || "{}") as Record<string, string>;
-    const defaults = createDefaultWebhookConfig();
+    const defaults = createDefaultWebhookConfig(locale);
     const configuredBody =
       context.event === "webhook.test"
         ? config.testBody.trim() || config.body.trim() || defaults.body || defaults.testBody
@@ -211,19 +233,20 @@ async function sendCustom(
       body: payload,
       signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
     });
-    const result = providerMessage(await readProviderResponse(response), response.status);
+    const result = providerMessage(await readProviderResponse(response), response.status, locale);
     await response.body?.cancel().catch(() => undefined);
     return result;
   } catch (error) {
-    return requestFailure(error, "Webhook");
+    return requestFailure(error, "Webhook", locale);
   }
 }
 
 async function sendDingTalk(
   config: WebhookConfig,
-  context: MessageContext
+  context: MessageContext,
+  locale: AppLocale = "zh_CN"
 ): Promise<WebhookDeliveryResult> {
-  const errors = validateWebhookConfig(config);
+  const errors = validateWebhookConfig(config, locale);
   if (errors.length) return { success: false, message: errors.join("\n") };
 
   const target = new URL(config.url);
@@ -262,11 +285,11 @@ async function sendDingTalk(
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
     });
-    const result = providerMessage(await readProviderResponse(response), response.status);
+    const result = providerMessage(await readProviderResponse(response), response.status, locale);
     await response.body?.cancel().catch(() => undefined);
     return result;
   } catch (error) {
-    return requestFailure(error, "钉钉");
+    return requestFailure(error, t(locale, "webhook.providerDingTalk"), locale);
   }
 }
 
@@ -274,26 +297,29 @@ export async function sendWebhook(
   input: WebhookConfig,
   kind: EventKind,
   detail?: string,
-  timeZone = "Asia/Shanghai"
+  timeZone = "Asia/Shanghai",
+  locale: AppLocale = "zh_CN"
 ): Promise<WebhookDeliveryResult> {
   const config = normalizeWebhookConfig(input);
-  const context = buildContext(kind, detail, timeZone);
+  const context = buildContext(kind, detail, timeZone, locale);
   return config.provider === "dingtalk"
-    ? sendDingTalk(config, context)
-    : sendCustom(config, context);
+    ? sendDingTalk(config, context, locale)
+    : sendCustom(config, context, locale);
 }
 
 export async function sendWebhookTest(
   config: WebhookConfig,
-  timeZone = "Asia/Shanghai"
+  timeZone = "Asia/Shanghai",
+  locale: AppLocale = "zh_CN"
 ): Promise<WebhookDeliveryResult> {
-  return sendWebhook(config, "test", undefined, timeZone);
+  return sendWebhook(config, "test", undefined, timeZone, locale);
 }
 
 export async function sendWebhookForEvent(
   input: WebhookConfig,
   event: DomainEvent,
-  timeZone = "Asia/Shanghai"
+  timeZone = "Asia/Shanghai",
+  locale: AppLocale = "zh_CN"
 ): Promise<WebhookDeliveryResult> {
   const config = normalizeWebhookConfig(input);
   const context: MessageContext = {
@@ -301,9 +327,12 @@ export async function sendWebhookForEvent(
     ok: event.outcome == null ? null : event.outcome === "success",
     status: event.outcome || (event.phase === "started" ? "started" : "unknown"),
     message: event.summary || event.type + " " + event.phase,
-    timestamp: new Date(event.occurredAt).toLocaleString("zh-CN", { timeZone }),
+    timestamp: new Date(event.occurredAt).toLocaleString(
+      locale === "en_US" ? "en-US" : "zh-CN",
+      { timeZone }
+    ),
   };
   return config.provider === "dingtalk"
-    ? sendDingTalk(config, context)
-    : sendCustom(config, context);
+    ? sendDingTalk(config, context, locale)
+    : sendCustom(config, context, locale);
 }

@@ -46,10 +46,8 @@ export function useNotificationLabels() {
     failed: "circle-alert",
   };
 
-  const evName = (value: string, catalog: NotificationEventDefinition[] = []) =>
-    eventNames[value]
-      ? t(eventNames[value])
-      : (catalog.find((x) => x.type === value)?.label ?? value);
+  const evName = (value: string, _catalog: NotificationEventDefinition[] = []) =>
+    eventNames[value] ? t(eventNames[value]) : value;
   const phaseName = (value: string) => (phaseNames[value] ? t(phaseNames[value]) : value);
   const outcomeName = (value?: string | null) =>
     t(outcomeNames[value ?? "any"] ?? "notifications.outcomeAny");

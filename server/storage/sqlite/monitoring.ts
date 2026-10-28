@@ -1,5 +1,7 @@
 import type { AppDatabase } from "./database";
 
+import { getSettings } from "./settings";
+
 import type { AccessEvent, AccessEventInput, MonitorSummary } from "../repositories";
 export type { AccessEvent, AccessEventInput, MonitorSummary } from "../repositories";
 
@@ -231,8 +233,16 @@ function maybePruneMonitoringData(database: AppDatabase): void {
 }
 
 function pruneMonitoringData(database: AppDatabase): void {
-  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  database.query("DELETE FROM access_events WHERE created_at < ?").run(cutoff);
+  let retentionDays = 7;
+  try {
+    retentionDays = getSettings(database).logRetentionDays;
+  } catch {
+    // Settings row not yet initialized; keep the default 7-day window.
+  }
+  if (retentionDays > 0) {
+    const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
+    database.query("DELETE FROM access_events WHERE created_at < ?").run(cutoff);
+  }
   database
     .query(
       "DELETE FROM access_events WHERE id NOT IN (SELECT id FROM access_events ORDER BY id DESC LIMIT 5000)"

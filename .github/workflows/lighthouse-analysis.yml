@@ -46,8 +46,6 @@ jobs:
       - name: 安装 Chrome
         id: chrome
         uses: browser-actions/setup-chrome@v2
-        with:
-          chrome-version: stable
 
       - name: 启动 PacPilot 服务
         id: server

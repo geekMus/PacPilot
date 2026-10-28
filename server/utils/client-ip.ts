@@ -96,7 +96,7 @@ export function resolveClientIp(req: Request): string {
     if (cloudflareIp) return cloudflareIp;
   }
 
-  if (config.trustProxyHops > 0) {
+  if (config.trustProxyHops > 0 && (peerTrusted || (!hasAllowlist && isPrivateAddress(peer)))) {
     const forwarded = headerValue(req, "x-forwarded-for")
       .split(",")
       .map((part) => part.trim())

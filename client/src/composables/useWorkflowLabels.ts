@@ -34,7 +34,7 @@ export function useWorkflowLabels() {
   const durationLabel = (run: WorkflowRun) => {
     const ms =
       run.duration_ms ?? (run.started_at ? Date.now() - new Date(run.started_at).getTime() : null);
-    if (ms === null) return "—";
+    if (ms === null || !Number.isFinite(ms)) return "—";
     if (ms < 1000) return ms + " ms";
     if (ms < 60000) return t("workflowPage.sec", { n: (ms / 1000).toFixed(1) });
     return t("workflowPage.minSec", {

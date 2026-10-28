@@ -21,12 +21,15 @@ export function createMemoryMonitoringRepository(
       const timestamp = Date.parse(event.created_at);
       events.set(id, { ...clone(event), id });
       eventTimestamps.set(id, timestamp);
-      const cutoff = Date.now() - 7 * 86400000;
-      for (const [eventId, recordedAt] of eventTimestamps)
-        if (recordedAt < cutoff) {
-          events.delete(eventId);
-          eventTimestamps.delete(eventId);
-        }
+      const retentionDays = getRetentionDays();
+      if (retentionDays > 0) {
+        const cutoff = Date.now() - retentionDays * 86400000;
+        for (const [eventId, recordedAt] of eventTimestamps)
+          if (recordedAt < cutoff) {
+            events.delete(eventId);
+            eventTimestamps.delete(eventId);
+          }
+      }
       while (events.size > 5000) {
         const oldestId = events.keys().next().value!;
         events.delete(oldestId);
