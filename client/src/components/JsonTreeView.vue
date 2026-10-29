@@ -25,8 +25,10 @@ defineProps<{
 <style scoped>
 @reference "@/styles/tailwind.css";
 
+/* 与弹窗内其他字段框（.access-detail-block pre 等）保持一致的内嵌圆角框样式，
+   不再通栏贴边，避免移动端与上下字段的间距视觉不一致。 */
 .json-tree-view {
-  @apply -mx-[18px] overflow-hidden border-y px-3 py-[11px];
+  @apply rounded-[10px] border px-3 py-[11px];
   border-color: var(--line);
   background: var(--surface-2);
 }
