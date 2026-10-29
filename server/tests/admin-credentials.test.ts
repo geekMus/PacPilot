@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { createMemoryApplicationStorage } from "../storage/memory/application-storage";
 import {
   AdminPasswordError,
-  MIN_CONFIGURED_PASSWORD_LENGTH,
   changeAdminPassword,
   createInitialAdminCredentials,
   getAdminSessionSecret,
@@ -37,12 +36,12 @@ describe("createInitialAdminCredentials", () => {
     await storage.close();
   });
 
-  it("rejects a configured password that is too short", async () => {
+  it("accepts a short configured password without a length floor", async () => {
     const storage = await freshStorage();
-    await expect(createInitialAdminCredentials(storage.credentials, "short")).rejects.toThrow(
-      `DEFAULT_ADMIN_PASSWORD is too short: use at least ${MIN_CONFIGURED_PASSWORD_LENGTH} characters.`
-    );
-    expect(await isAdminCredentialsMissing(storage.credentials)).toBe(true);
+    const result = await createInitialAdminCredentials(storage.credentials, "pw");
+
+    expect(result).toEqual({ password: "pw", source: "configured" });
+    await expect(verifyAdminPassword(storage.credentials, "pw")).resolves.toBe(true);
     await storage.close();
   });
 
@@ -142,19 +141,18 @@ describe("changeAdminPassword", () => {
       code: "new_password_empty",
       message: "新密码不能为空。",
     });
+
+    const whitespaceOnly = changeAdminPassword(storage.credentials, "old-password", "   ");
+    await expect(whitespaceOnly).rejects.toMatchObject({ code: "new_password_empty" });
     await storage.close();
   });
 
-  it("rejects a new password shorter than the minimum length", async () => {
+  it("accepts a short new password without a length floor", async () => {
     const storage = await freshStorage();
     await createInitialAdminCredentials(storage.credentials, "old-password");
 
-    await expect(
-      changeAdminPassword(storage.credentials, "old-password", "short")
-    ).rejects.toMatchObject({
-      code: "new_password_too_short",
-      message: "新密码长度不能少于 8 个字符。",
-    });
+    await changeAdminPassword(storage.credentials, "old-password", "pw");
+    await expect(verifyAdminPassword(storage.credentials, "pw")).resolves.toBe(true);
     await storage.close();
   });
 

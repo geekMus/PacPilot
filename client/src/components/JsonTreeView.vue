@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import VueJsonPretty from "vue-json-pretty";
 import "vue-json-pretty/lib/styles.css";
-import AppScrollArea from "@/components/AppScrollArea.vue";
 
 type JsonValue =
   | string
@@ -19,43 +18,40 @@ defineProps<{
 
 <template>
   <div class="json-tree-view">
-    <AppScrollArea orientation="horizontal" type="auto" overscroll="contain">
-      <div class="json-tree-inner">
-        <VueJsonPretty :data="data" :deep="3" :show-length="true" :show-double-quotes="true" />
-      </div>
-    </AppScrollArea>
+    <VueJsonPretty :data="data" :deep="3" :show-length="true" :show-double-quotes="true" />
   </div>
 </template>
 
 <style scoped>
 @reference "@/styles/tailwind.css";
 
+/* 与弹窗内其他字段框（.access-detail-block pre 等）保持一致的内嵌圆角框样式，
+   不再通栏贴边，避免移动端与上下字段的间距视觉不一致。 */
 .json-tree-view {
-  @apply -mx-[18px] overflow-hidden border-y;
+  @apply rounded-[10px] border px-3 py-[11px];
   border-color: var(--line);
   background: var(--surface-2);
 }
 
-/* 横向滚动交给公共组件 AppScrollArea，滚动条样式与全站统一；
-   内边距放在滚动内容上，随内容一起滚动，避免滚动条与边框之间留白。 */
-.json-tree-inner {
-  @apply px-3 py-[11px];
-  min-width: max-content;
-}
-
-/* 树根：统一项目等宽字体与字号，覆盖库默认的 Monaco 14px。 */
+/* 树根：统一项目等宽字体与字号，覆盖库默认的 Monaco 14px；
+   不设置 max-content 最小宽度，让长值（UA、Cookie 等）随弹窗宽度换行，
+   而不是撑出横向滚动条把内容裁断。 */
 .json-tree-view :deep(.vjs-tree) {
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.7;
   text-align: left;
-  min-width: max-content;
 }
 
-/* 键名用正文色，值的类型用项目强调令牌区分，形成"数据卡片"而非"编辑器"的观感。 */
+/* 树节点是弹性行：键保持单行，值允许收缩并在剩余宽度内换行
+   （换行所需的 pre-wrap / break-word 由库的非虚拟模式 dynamic-height 提供）。 */
 .json-tree-view :deep(.vjs-key) {
   color: var(--text);
   white-space: nowrap;
+}
+
+.json-tree-view :deep(.vjs-value) {
+  min-width: 0;
 }
 
 .json-tree-view :deep(.vjs-colon) {

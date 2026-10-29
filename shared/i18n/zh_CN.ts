@@ -1190,7 +1190,6 @@ export default {
     currentIncorrect: "当前管理密码不正确。",
     newEmpty: "新密码不能为空。",
     sameAsCurrent: "新密码不能与当前密码相同。",
-    newTooShort: "新密码长度不能少于 {min} 个字符。",
   },
   storageErrors: {
     corruptCredentials:

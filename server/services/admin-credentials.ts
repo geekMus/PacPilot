@@ -69,9 +69,6 @@ export interface InitialCredentialResult {
   source: InitialCredentialSource | null;
 }
 
-/** Minimum length accepted for a configured initial password. */
-export const MIN_CONFIGURED_PASSWORD_LENGTH = 8;
-
 export async function createInitialAdminCredentials(
   repository: AdminCredentialRepository,
   configuredPassword?: string,
@@ -81,12 +78,8 @@ export async function createInitialAdminCredentials(
   // 不存在并发竞争窗口；多进程部署需要改为数据库层面的原子 upsert。
   if (await readRecord(repository)) return { password: null, source: null };
 
+  // 完全信任用户输入，不做最小长度限制；空值或纯空白视为未配置，走随机生成。
   const trimmed = configuredPassword?.trim() ?? "";
-  if (trimmed && trimmed.length < MIN_CONFIGURED_PASSWORD_LENGTH) {
-    throw new Error(
-      `DEFAULT_ADMIN_PASSWORD is too short: use at least ${MIN_CONFIGURED_PASSWORD_LENGTH} characters.`
-    );
-  }
 
   const source: InitialCredentialSource = trimmed ? "configured" : "generated";
   const initialPassword = trimmed || randomBytes(18).toString("base64url");
@@ -127,14 +120,9 @@ export async function changeAdminPassword(
   if (!(await verifyAdminPassword(repository, currentPassword))) {
     throw new AdminPasswordError("current_password_incorrect", t(locale, "passwordErrors.currentIncorrect"));
   }
-  if (typeof newPassword !== "string" || newPassword.length === 0) {
+  // 完全信任用户输入，不做最小长度限制；仅拒绝空值或纯空白。
+  if (typeof newPassword !== "string" || newPassword.trim().length === 0) {
     throw new AdminPasswordError("new_password_empty", t(locale, "passwordErrors.newEmpty"));
-  }
-  if (newPassword.length < MIN_CONFIGURED_PASSWORD_LENGTH) {
-    throw new AdminPasswordError(
-      "new_password_too_short",
-      t(locale, "passwordErrors.newTooShort", { min: MIN_CONFIGURED_PASSWORD_LENGTH })
-    );
   }
   if (newPassword === currentPassword) {
     throw new AdminPasswordError("new_password_same_as_current", t(locale, "passwordErrors.sameAsCurrent"));
