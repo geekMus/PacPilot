@@ -102,7 +102,13 @@ async function load() {
       await router.replace("/admin/login");
       return;
     }
-    const [s, st, mem] = await Promise.all([api.settings(), api.storage(), api.memory()]);
+    // 内存指标是辅助观测：后端过旧没有该端点或单次请求失败时，
+    // 不应连带存储统计与系统设置一起加载失败。
+    const [s, st, mem] = await Promise.all([
+      api.settings(),
+      api.storage(),
+      api.memory().catch(() => null),
+    ]);
     settings.value = s;
     retention.value = s.logRetentionDays;
     timezone.value = s.timezone || "Asia/Shanghai";
