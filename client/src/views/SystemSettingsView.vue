@@ -137,25 +137,33 @@ async function saveRetention() {
     savingRetention.value = false;
   }
 }
-async function saveTimezone(next: string) {
-  if (savingTimezone.value || !settings.value) return;
-  const previous = settings.value.timezone || "Asia/Shanghai";
+// 时区保存串行排队：连续快速选择时依次保存，期间保持输入框可用，
+// 避免 disabled/失焦让选择框的焦点环闪烁。
+let timezoneSaveChain: Promise<void> = Promise.resolve();
+
+function saveTimezone(next: string) {
+  if (!settings.value) return;
+  const previous = timezone.value;
   timezone.value = next;
   if (next === previous) return;
-  savingTimezone.value = true;
-  try {
-    // 合并服务端最新配置，避免覆盖其他页面（PAC 生成设置、通知渠道）刚刚写入的字段。
-    const latest = await api.settings();
-    const saved = await api.saveSettings({ ...latest, timezone: next });
-    settings.value = saved;
-    timezone.value = saved.timezone || next;
-    notify(t("settings.savedTimeZone"), "success");
-  } catch (e) {
-    timezone.value = previous;
-    notify(e instanceof Error ? e.message : String(e), "error");
-  } finally {
-    savingTimezone.value = false;
-  }
+  const task = async () => {
+    savingTimezone.value = true;
+    try {
+      // 合并服务端最新配置，避免覆盖其他页面（PAC 生成设置、通知渠道）刚刚写入的字段。
+      const latest = await api.settings();
+      const saved = await api.saveSettings({ ...latest, timezone: next });
+      settings.value = saved;
+      // 保存期间用户可能又选了别的时区：只有界面仍显示本次结果时才回写。
+      if (timezone.value === next) timezone.value = saved.timezone || next;
+      notify(t("settings.savedTimeZone"), "success");
+    } catch (e) {
+      if (timezone.value === next) timezone.value = previous;
+      notify(e instanceof Error ? e.message : String(e), "error");
+    } finally {
+      savingTimezone.value = false;
+    }
+  };
+  timezoneSaveChain = timezoneSaveChain.then(task, task);
 }
 async function refreshStorage() {
   try {
@@ -316,7 +324,8 @@ onMounted(() => void load());
         </div>
         <TimeZoneField
           :model-value="timezone"
-          :disabled="loading || savingTimezone"
+          :aria-busy="savingTimezone"
+          :disabled="loading"
           @update:model-value="saveTimezone"
         />
       </section>

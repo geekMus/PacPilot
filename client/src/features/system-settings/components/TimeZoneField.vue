@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   ComboboxAnchor,
@@ -20,6 +20,7 @@ const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 
 const { t } = useI18n();
 const menuOpen = ref(false);
+const anchorEl = ref<HTMLElement | null>(null);
 const query = ref("");
 
 const filteredTimeZones = computed(() => {
@@ -35,10 +36,19 @@ const invalid = computed(() => !isValidTimeZone(props.modelValue));
 
 // 只有从候选项里选中或点击预设按钮才会提交；输入框里自由键入的文本不直接落库，
 // 避免把半截时区字符串写进设置。
+// 选择提交后由程序把焦点还给输入框；此标记让 focus 处理器不要因此重新打开菜单。
+let restoringFocusAfterCommit = false;
+
 function commit(value: string) {
   query.value = value;
   menuOpen.value = false;
   if (value !== props.modelValue) emit("update:modelValue", value);
+  // 焦点不还给输入框的话会落回 body，焦点环渐隐在视觉上就是选择框"闪一下"。
+  restoringFocusAfterCommit = true;
+  nextTick(() => {
+    anchorEl.value?.querySelector("input")?.focus({ preventScroll: true });
+    restoringFocusAfterCommit = false;
+  });
 }
 </script>
 
@@ -56,7 +66,7 @@ function commit(value: string) {
       @update:search-term="query = $event"
     >
       <ComboboxAnchor as-child>
-        <div class="timezone-picker">
+        <div ref="anchorEl" class="timezone-picker">
           <ComboboxInput
             id="timezone"
             class="timezone-combobox-input"
@@ -66,8 +76,10 @@ function commit(value: string) {
             :placeholder="t('settings.timezoneSearch')"
             :aria-invalid="invalid"
             @focus="
-              menuOpen = true;
-              query = '';
+              if (!restoringFocusAfterCommit) {
+                menuOpen = true;
+                query = '';
+              }
             "
           />
           <AppIcon class="timezone-picker-icon" name="chevron-down" :size="15" aria-hidden="true" />
