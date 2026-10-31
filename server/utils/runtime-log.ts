@@ -53,9 +53,14 @@ function getTimestampFormatter(timeZone: string | null): Intl.DateTimeFormat {
   return formatter;
 }
 
+// 运行时默认时区在进程生命周期内不变；未配置 TZ 时缓存一次解析结果，
+// 避免每行日志都为解析时区新建一个临时 formatter。
+let resolvedDefaultTimeZone: string | null = null;
+
 function getTimestamp(): string {
   try {
-    const configuredTimeZone = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const configuredTimeZone =
+      process.env.TZ || (resolvedDefaultTimeZone ??= Intl.DateTimeFormat().resolvedOptions().timeZone);
     return getTimestampFormatter(configuredTimeZone).format(new Date());
   } catch {
     // 无效的 TZ 配置不应导致业务日志本身丢失；退回运行时默认时区。
