@@ -31,8 +31,10 @@ COPY --from=builder /app/bun.lock ./bun.lock
 RUN echo "正在按构建锁文件安装运行阶段依赖（不执行开发生命周期脚本）……" \
  && bun install --production --frozen-lockfile --ignore-scripts
 
-# 运行镜像保留完整项目源码，避免遗漏服务端运行时导入的共享模块。
-COPY . .
+# 运行镜像只保留服务端与其导入的 shared 模块；完整源码只存在于构建阶段，
+# 前端编译产物由下方从构建阶段复制。
+COPY server ./server
+COPY shared ./shared
 COPY --from=builder /app/dist ./dist
 
 ENV HOST=0.0.0.0 \

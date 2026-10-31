@@ -1,6 +1,13 @@
 .git
 .idea
 .vscode
+.acl-recovery
+.husky
+.tmp
+.uv-cache
+.uv-tools
+.zcode
+.visual
 coverage
 data
 dist
