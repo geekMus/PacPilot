@@ -23,6 +23,8 @@ interface QueueItem {
 const queues = new Map<string, QueueItem[]>();
 const runningTypes = new Set<string>();
 const PAC_WORKFLOW_TYPE = "pac-generation";
+// 串行队列被慢任务卡住时，排队只会无限堆积内存；超过上限直接拒绝新任务。
+export const MAX_QUEUED_PER_TYPE = 100;
 function encodeWorkflowStageDetail(value: unknown): string {
   const json = JSON.stringify(value ?? {});
   if (json === undefined) throw new Error("Workflow stage detail is not JSON-serializable.");
@@ -194,6 +196,23 @@ async function enqueueWorkflow(
   });
   const item: QueueItem = { workflowId, storage, dataDir, locale, resolve, reject, promise, execute };
   const queue = queues.get(type) ?? [];
+  if (queue.length >= MAX_QUEUED_PER_TYPE) {
+    // 已创建的记录立即落为 failed，管理界面能看到拒绝原因，而不是残留 pending。
+    const message = t(locale, "serverErrors.workflowQueueFull");
+    try {
+      await storage.workflows.update(workflowId, {
+        status: "failed",
+        stage: "failed",
+        error: message,
+        finished_at: new Date().toISOString(),
+        duration_ms: 0,
+      });
+    } catch (recordError) {
+      runtimeLog("error", "Failed to save workflow queue-full status: ", recordError);
+    }
+    item.reject(new Error(message));
+    return item;
+  }
   queue.push(item);
   queues.set(type, queue);
   pumpQueue(type);

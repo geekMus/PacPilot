@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SETTINGS } from "../domain/settings";
 import { createMemoryApplicationStorage } from "../storage/memory/application-storage";
-import { hasActivePacWorkflow, runPacWorkflow, startPacWorkflow } from "../services/workflow";
+import { hasActivePacWorkflow, MAX_QUEUED_PER_TYPE, runPacWorkflow, startPacWorkflow } from "../services/workflow";
 import { invalidateRenderedPac } from "../services/pac-runtime";
 import type { ApplicationStorage } from "../storage/repositories";
 
@@ -233,6 +233,35 @@ describe("queue serialization", () => {
 
     await waitFor(async () => (await storage.workflows.get(third))?.status === "succeeded");
     expect(order).toEqual([first, second, third]);
+    await storage.close();
+  });
+});
+
+describe("queue cap", () => {
+  it("rejects workflows beyond the per-type cap and records them failed", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const storage = await storageWith();
+    const blocked = await blockQueue(storage);
+    const runnerId = await startPacWorkflow(storage, "/tmp/data", "manual"); // occupies the runner
+
+    const queued: number[] = [];
+    for (let i = 0; i < MAX_QUEUED_PER_TYPE; i += 1) {
+      queued.push(await startPacWorkflow(storage, "/tmp/data", "manual"));
+    }
+
+    await expect(runPacWorkflow(storage, "/tmp/data", "manual")).rejects.toThrow(/上限/);
+
+    // The rejected run is stored as a failed record instead of a pending zombie.
+    const runs = await storage.workflows.list();
+    expect(runs[0]).toMatchObject({ status: "failed", stage: "failed" });
+    expect(runs[0]!.error).toContain("上限");
+
+    // Drain without executing the hundred queued runs; let the runner finish
+    // while the storage is still open so closing does not interrupt it.
+    for (const id of queued) await storage.workflows.cancelPending(id);
+    blocked.release();
+    await waitFor(async () => (await storage.workflows.get(queued[0]!))?.status === "cancelled");
+    await waitFor(async () => (await storage.workflows.get(runnerId))?.status === "succeeded");
     await storage.close();
   });
 });

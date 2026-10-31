@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextFunction, Request, Response } from "express";
 import type { AccessEventInput, MonitoringRepository } from "../storage/repositories";
 import {
+  MAX_TRACKED_CONNECTIONS,
   getActiveRequestCount,
   getTcpConnectionCount,
   requestMonitoringMiddleware,
@@ -382,6 +383,27 @@ describe("trackTcpConnection", () => {
     expect(getTcpConnectionCount()).toBe(before + 1);
 
     (socket as unknown as EventEmitter).emit("close");
+    expect(getTcpConnectionCount()).toBe(before);
+  });
+
+  it("stops tracking new sockets past the cap but keeps releasing tracked ones", () => {
+    const sockets: EventEmitter[] = [];
+    const before = getTcpConnectionCount();
+
+    for (let i = 0; i < MAX_TRACKED_CONNECTIONS; i += 1) {
+      const socket = new EventEmitter() as never;
+      sockets.push(socket);
+      trackTcpConnection(socket);
+    }
+    expect(getTcpConnectionCount()).toBe(before + MAX_TRACKED_CONNECTIONS);
+
+    trackTcpConnection(new EventEmitter() as never);
+    expect(getTcpConnectionCount()).toBe(before + MAX_TRACKED_CONNECTIONS);
+
+    (sockets[0] as unknown as EventEmitter).emit("close");
+    expect(getTcpConnectionCount()).toBe(before + MAX_TRACKED_CONNECTIONS - 1);
+
+    for (const socket of sockets.slice(1)) socket.emit("close");
     expect(getTcpConnectionCount()).toBe(before);
   });
 });

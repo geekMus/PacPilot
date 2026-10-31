@@ -15,6 +15,7 @@ export default {
     workflowCannotCancel:
       "This workflow has started or finished and can no longer be cancelled from the queue.",
     workflowCancelled: "The workflow was cancelled while waiting in the queue.",
+    workflowQueueFull: "The generation queue is full; try again later.",
     activeWorkflowPacDelete:
       "The PAC cache cannot be cleared while a workflow is queued or running. Try again when it finishes.",
     invalidFactoryResetConfirmation:

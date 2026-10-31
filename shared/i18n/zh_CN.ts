@@ -14,6 +14,7 @@ export default {
     workflowNotFound: "找不到该工作流执行记录。",
     workflowCannotCancel: "该工作流已开始执行或已经结束，无法取消排队。",
     workflowCancelled: "工作流在排队期间已取消。",
+    workflowQueueFull: "生成任务排队已达上限，请稍后再试。",
     activeWorkflowPacDelete: "工作流正在排队或执行中，不能清空 PAC 缓存。请等任务结束后重试。",
     invalidFactoryResetConfirmation: "恢复出厂设置确认信息无效，请刷新页面后重试。",
     activeWorkflowFactoryReset: "工作流正在执行，请等待完成后再恢复出厂设置。",
