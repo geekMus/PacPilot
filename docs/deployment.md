@@ -12,7 +12,7 @@
 | ------------------------ | ------------------------------------------- | ---------------------------------------------------------------------- |
 | Docker `run`             | 单机快速部署（推荐）                        | 镜像 `ghcr.io/geekmus/pacpilot:latest`，挂载 `/data` 持久化            |
 | Docker Compose           | 希望以代码形式维护部署配置                  | 仓库提供 [docker-compose.yml](../docker-compose.yml)，按需启用端口与卷 |
-| 源码运行（Bun）          | 本机开发或自建环境                          | 需要 Bun >= 1.1.0；`bun install && bun run start`                      |
+| 源码运行（Bun）          | 本机开发或自建环境                          | 需要 Bun >= 1.4.1；`bun install && bun run start`                      |
 | 前后端分离（纯静态前端） | 前端托管在 Cloudflare Pages / Vercel 等平台 | 后端开启 `CORS_MODE=open`，前端用 Bearer 令牌访问                      |
 
 ## 环境参数参考
@@ -218,7 +218,7 @@ Compose 文件默认设置 `mem_limit: 512m`：服务稳态内存约 80MB（Bun 
 
 ## 源码运行
 
-需要 [Bun](https://bun.sh/) >= 1.1.0：
+需要 [Bun](https://bun.sh/) >= 1.4.1（仓库根目录的 `.bun-version` 固定了开发版本，1.4 起运行时内存占用显著低于 1.3）：
 
 ```bash
 bun install

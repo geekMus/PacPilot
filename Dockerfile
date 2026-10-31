@@ -1,7 +1,9 @@
 # 构建阶段使用官方 Bun Debian(glibc) 镜像，避免 vite/rollup/esbuild 等原生绑定
 # 在 Alpine(musl) 下加载崩溃或缺失；运行阶段仍用 Alpine 保持小体积。
+# 两阶段都钉在 1.4 大版本：1.4 起换用 mimalloc 分配器与新 scavenger，
+# 稳态内存显著低于 1.3（官方基准 76MB -> 53MB），且不再接受 1.3 的回退。
 # ---------- 构建阶段 ----------
-FROM --platform=$BUILDPLATFORM oven/bun:1 AS builder
+FROM --platform=$BUILDPLATFORM oven/bun:1.4 AS builder
 
 WORKDIR /app
 COPY package.json bunfig.toml bun.lock ./
@@ -16,7 +18,7 @@ COPY . .
 RUN echo "正在编译前端资源……" && bun run build:client
 
 # ---------- 运行阶段 ----------
-FROM oven/bun:1-alpine
+FROM oven/bun:1.4-alpine
 
 # 安装 IANA 时区数据库，使 TZ=Asia/Shanghai、TZ=Etc/UTC 等时区名称可用。
 RUN echo "正在安装时区数据库……" && apk add --no-cache tzdata

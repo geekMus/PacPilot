@@ -31,7 +31,7 @@
     "test:core": "bun test ./server/tests/core-validation.test.ts ./server/tests/storage-sqlite.bun.ts ./server/tests/storage-sqlite-migrations.bun.ts"
   },
   "engines": {
-    "bun": ">=1.1.0"
+    "bun": ">=1.4.1"
   },
   "dependencies": {
     "@codemirror/commands": "^6.8.0",
