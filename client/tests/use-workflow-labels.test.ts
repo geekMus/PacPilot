@@ -48,6 +48,34 @@ describe("useWorkflowLabels", () => {
     wrapper.unmount();
   });
 
+  it("assigns a tone per status and never marks in-progress runs as failures", () => {
+    setAppLocale("zh_CN");
+    const { labels, wrapper } = captureLabels();
+
+    expect(labels.statusTone("succeeded")).toBe("good");
+    expect(labels.statusTone("failed")).toBe("bad");
+    expect(labels.statusTone("running")).toBe("running");
+    expect(labels.statusTone("pending")).toBe("pending");
+    expect(labels.statusTone("cancelled")).toBe("idle");
+    expect(labels.statusTone("mystery")).toBe("idle");
+
+    wrapper.unmount();
+  });
+
+  it("picks an icon per status with a spinner for running and a clock for pending", () => {
+    setAppLocale("zh_CN");
+    const { labels, wrapper } = captureLabels();
+
+    expect(labels.statusIcon("succeeded")).toBe("circle-check");
+    expect(labels.statusIcon("failed")).toBe("circle-x");
+    expect(labels.statusIcon("running")).toBe("loader-circle");
+    expect(labels.statusIcon("pending")).toBe("clock");
+    expect(labels.statusIcon("cancelled")).toBe("circle");
+    expect(labels.statusIcon("mystery")).toBe("circle");
+
+    wrapper.unmount();
+  });
+
   it("maps known sources and falls back to the raw value", () => {
     setAppLocale("zh_CN");
     const { labels, wrapper } = captureLabels();

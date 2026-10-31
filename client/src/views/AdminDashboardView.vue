@@ -23,7 +23,7 @@ import { fetchAdminSession } from "@/composables/useAdminSession";
 
 const { t } = useI18n();
 const router = useRouter();
-const { statusLabel, sourceLabel, durationLabel, dateLabel } = useWorkflowLabels();
+const { statusLabel, statusTone, statusIcon, sourceLabel, durationLabel, dateLabel } = useWorkflowLabels();
 const loading = ref(true);
 const refreshing = ref(false);
 const generating = ref(false);
@@ -362,10 +362,11 @@ onMounted(() => {
               >
                 <td class="nowrap">{{ dateLabel(run.created_at) }}</td>
                 <td>
-                  <span class="result-pill" :class="run.status === 'succeeded' ? 'good' : 'bad'"
+                  <span class="result-pill" :class="statusTone(run.status)"
                     ><AppIcon
-                      :name="run.status === 'succeeded' ? 'circle-check' : 'circle-x'"
+                      :name="statusIcon(run.status)"
                       :size="13"
+                      :class="{ 'icon-spinning': run.status === 'running' }"
                     />{{ statusLabel(run.status) }}</span
                   >
                 </td>
@@ -635,6 +636,22 @@ onMounted(() => {
   color: var(--red);
   background: var(--red-soft);
   border-color: color-mix(in srgb, var(--red) 24%, var(--line));
+}
+.result-pill.running,
+.result-pill.pending {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--line));
+}
+.result-pill.idle {
+  color: var(--muted);
+  background: var(--surface-2);
+}
+@media (prefers-reduced-motion: reduce) {
+  .icon-spinning {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
 }
 .panel-empty {
   @apply rounded-lg border border-dashed px-3 py-6 text-center text-[11px];
