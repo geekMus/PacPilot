@@ -126,12 +126,15 @@ export function createApp(env: EnvConfig, storage: ApplicationStorage): express.
     app.use(express.static(clientDir, { index: false, maxAge: "1h" }));
   }
 
-  // 首屏要在入口脚本执行后才知道当前路由要下载哪个视图块，注入 <link rel=modulepreload>
-  // 可以让这次下载与入口脚本并行，少等一次往返（见 utils/spa-preload.ts）。
-  const spaPreloads = createSpaPreloads(clientDir);
   // 运行时配置直接内联：它是首屏第一个串行往返，而会话探测与首个 API 请求都必须等
   // 它解析完（config → session → 数据）。内联后这一跳消失，见 utils/spa-preload.ts。
   const inlineRuntimeConfig = readInlineRuntimeConfig(clientDir);
+  // 首屏要在入口脚本执行后才知道当前路由要下载哪个视图块，注入 <link rel=modulepreload>
+  // 可以让这次下载与入口脚本并行，少等一次往返（见 utils/spa-preload.ts）。
+  // 配置已内联时不再预加载 config.json：浏览器不会再请求它，留着只会产生无效预加载警告。
+  const spaPreloads = createSpaPreloads(clientDir, {
+    inlineRuntimeConfig: inlineRuntimeConfig.length > 0,
+  });
   let cachedIndexHtml: string | null = null;
   const renderSpa = (requestPath: string): string | null => {
     if (cachedIndexHtml === null) {

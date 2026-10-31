@@ -45,11 +45,20 @@ const HEAD_MARKER = "</head>";
  * `crossorigin` 必须与客户端 `fetch` 的 credentials 模式一致，否则浏览器不会复用
  * 预加载结果，反而多出一次真实请求：`config.json` 用 `credentials: "omit"`，会话
  * 接口走 cookie，用 `"include"`。
+ *
+ * 运行时配置被内联进 HTML 后浏览器根本不会请求 `config.json`，保留这条提示只会让
+ * Chrome 报「预加载未被使用」的警告，因此它按需输出（见 SpaPreloadOptions）。
  */
-const EARLY_FETCH_PRELOADS = [
-  `<link rel="preload" as="fetch" crossorigin="anonymous" href="/config.json">`,
-  `<link rel="preload" as="fetch" crossorigin="use-credentials" href="/api/admin/session">`,
-].join("");
+const CONFIG_PRELOAD = `<link rel="preload" as="fetch" crossorigin="anonymous" href="/config.json">`;
+const SESSION_PRELOAD = `<link rel="preload" as="fetch" crossorigin="use-credentials" href="/api/admin/session">`;
+
+export interface SpaPreloadOptions {
+  /**
+   * 运行时配置是否已经内联进 HTML。内联后浏览器不会再请求 `config.json`，
+   * 此时输出它的预加载提示只会触发浏览器的无效预加载警告。
+   */
+  inlineRuntimeConfig?: boolean;
+}
 
 export interface SpaPreloads {
   /** 给定请求路径，返回要注入到 </head> 前的标签串。 */
@@ -153,8 +162,13 @@ function readStyleFile(clientDir: string, file: string): string | null {
   }
 }
 
-export function createSpaPreloads(clientDir: string): SpaPreloads {
+export function createSpaPreloads(clientDir: string, options: SpaPreloadOptions = {}): SpaPreloads {
   const manifest = readManifest(clientDir);
+  // 配置已内联时不再提示浏览器预加载 config.json：浏览器不会发这个请求，
+  // 多余的预加载提示会被 Chrome 判为「预加载未被使用」并打印警告。
+  const earlyFetchPreloads = options.inlineRuntimeConfig
+    ? SESSION_PRELOAD
+    : CONFIG_PRELOAD + SESSION_PRELOAD;
   // 入口自身的 chunk 已由 index.html 声明，重复提示只是噪声；入口样式则改为内联。
   const declared = new Set<string>();
   const entry = manifest?.[ENTRY_KEY];
@@ -183,7 +197,7 @@ export function createSpaPreloads(clientDir: string): SpaPreloads {
 
   const forPath = (requestPath: string): string => {
     // 早期请求预加载不依赖构建 manifest：即使还没构建也要尽早发出探测请求。
-    if (!manifest) return EARLY_FETCH_PRELOADS;
+    if (!manifest) return earlyFetchPreloads;
     const hit = cache.get(requestPath);
     if (hit !== undefined) return hit;
 
@@ -203,7 +217,7 @@ export function createSpaPreloads(clientDir: string): SpaPreloads {
     } else {
       head = styles.map(toStyleTag).join("");
     }
-    const tags = EARLY_FETCH_PRELOADS + head + scripts.map(toTag).join("");
+    const tags = earlyFetchPreloads + head + scripts.map(toTag).join("");
     cache.set(requestPath, tags);
     return tags;
   };
