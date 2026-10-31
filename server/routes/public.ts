@@ -1,6 +1,7 @@
 import { Router } from "express";
+import { gzipSync } from "node:zlib";
 import { getRenderedPacBody } from "../services/pac-generator";
-import { parsePacStatus } from "../services/pac-parser";
+import { parsePacStatus, type PacStatusPayload } from "../services/pac-parser";
 import type { ApplicationStorage } from "../storage/repositories";
 import { APP_VERSION } from "../version";
 import { runtimeLog } from "../utils/runtime-log";
@@ -8,6 +9,20 @@ import { runtimeLog } from "../utils/runtime-log";
 const FALLBACK_PAC =
   "// PacPilot 尚未能构建 PAC（可能是远程规则未拉取）；临时回退策略为所有请求直连\n" +
   "function FindProxyForURL(url, host){return 'DIRECT';}\n";
+
+// /pac 会被客户端周期性轮询，而 compression 中间件每次响应都要重新跑 zlib；
+// ETag 由 body 字节派生，同一 ETag 必然同一 body，按它记住 gzip 结果后，
+// 未变化的 PAC 在请求路径上不再重复压缩。
+let gzipCache: { etag: string; body: Buffer } | null = null;
+
+// /api/status 每次都全文正则解析整份 PAC；source 等输入都来自同一个缓存的
+// rendered 对象，逐项相等即视为"还是上一次渲染"，重建后自然失效。
+let statusMemo: {
+  source: string;
+  timezone: string;
+  builtAtMs: number | null;
+  payload: PacStatusPayload;
+} | null = null;
 
 /**
  * ETag comparison supporting the weak validator prefix and comma-separated
@@ -79,6 +94,18 @@ async function sendPac(
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.setHeader("Content-Disposition", "inline");
   }
+  if (req.acceptsEncodings("gzip") === "gzip") {
+    if (!gzipCache || gzipCache.etag !== etag) {
+      gzipCache = { etag, body: gzipSync(Buffer.from(body, "utf8")) };
+    }
+    // 声明 Content-Encoding 与 Vary 后，compression 中间件会自动跳过，
+    // 不会在预压缩结果上再压一层。
+    res.setHeader("Content-Encoding", "gzip");
+    res.setHeader("Vary", "Accept-Encoding");
+    res.send(gzipCache.body);
+    return;
+  }
+
   res.send(body);
 }
 
@@ -105,7 +132,22 @@ export function publicRoutes(storage: ApplicationStorage): Router {
     } catch {
       source = "";
     }
-    res.json(parsePacStatus(source, (await storage.settings.get()).timezone, builtAt));
+    const timezone = (await storage.settings.get()).timezone;
+    const builtAtMs = builtAt ? builtAt.getTime() : null;
+
+    if (
+      statusMemo &&
+      statusMemo.source === source &&
+      statusMemo.timezone === timezone &&
+      statusMemo.builtAtMs === builtAtMs
+    ) {
+      res.json(statusMemo.payload);
+      return;
+    }
+
+    const payload = parsePacStatus(source, timezone, builtAt);
+    statusMemo = { source, timezone, builtAtMs, payload };
+    res.json(payload);
   });
 
   return router;

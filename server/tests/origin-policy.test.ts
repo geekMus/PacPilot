@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   getLocalInterfaceAddresses,
   isTrustedOrigin,
@@ -27,6 +27,27 @@ describe("getLocalInterfaceAddresses", () => {
     for (const address of addresses) {
       expect(address.includes("%")).toBe(false);
     }
+  });
+
+  it("reuses the cached snapshot within the TTL and re-enumerates after it", async () => {
+    // 模块级缓存在文件内多个用例间共享；重置模块注册表拿到一份全新缓存，
+    // 避免依赖其他用例的调用时机。
+    vi.resetModules();
+    const { getLocalInterfaceAddresses: cached } = await import("../utils/origin-policy");
+
+    let now = 1_700_000_000_000;
+    const clock = vi.spyOn(Date, "now").mockImplementation(() => now);
+
+    const first = cached();
+    const second = cached();
+    expect(second).toBe(first);
+
+    now += 30_001;
+    const third = cached();
+    expect(third).not.toBe(first);
+    expect(third.has("127.0.0.1")).toBe(true);
+
+    clock.mockRestore();
   });
 });
 

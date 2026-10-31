@@ -25,27 +25,41 @@ function colorize(value: string, color: string, enabled: boolean): string {
   return enabled && color ? `${color}${value}${ANSI.reset}` : value;
 }
 
+const TIMESTAMP_OPTIONS: Intl.DateTimeFormatOptions = {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+};
+
+// 每行日志都新建 Intl.DateTimeFormat 是持续的小额分配热点；formatter 只与时区
+// 相关，按解析出的时区键缓存，TZ 变化后自动重建。
+let timestampFormatter: { timeZone: string | null; formatter: Intl.DateTimeFormat } | null = null;
+
+function getTimestampFormatter(timeZone: string | null): Intl.DateTimeFormat {
+  if (timestampFormatter?.timeZone === timeZone) {
+    return timestampFormatter.formatter;
+  }
+
+  const formatter =
+    timeZone === null
+      ? new Intl.DateTimeFormat("sv-SE", TIMESTAMP_OPTIONS)
+      : new Intl.DateTimeFormat("sv-SE", { ...TIMESTAMP_OPTIONS, timeZone });
+
+  timestampFormatter = { timeZone, formatter };
+  return formatter;
+}
+
 function getTimestamp(): string {
-  const options: Intl.DateTimeFormatOptions = {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hourCycle: "h23",
-  };
-
-  const configuredTimeZone = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
-
   try {
-    return new Intl.DateTimeFormat("sv-SE", {
-      ...options,
-      timeZone: configuredTimeZone,
-    }).format(new Date());
+    const configuredTimeZone = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return getTimestampFormatter(configuredTimeZone).format(new Date());
   } catch {
     // 无效的 TZ 配置不应导致业务日志本身丢失；退回运行时默认时区。
-    return new Intl.DateTimeFormat("sv-SE", options).format(new Date());
+    return getTimestampFormatter(null).format(new Date());
   }
 }
 

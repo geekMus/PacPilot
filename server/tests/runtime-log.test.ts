@@ -119,4 +119,25 @@ describe("runtimeLog", () => {
     runtimeLog("info", "utc");
     expect(lastOutput(spy)).toMatch(/^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\] utc$/);
   });
+
+  it("rebuilds the cached formatter when TZ changes between calls", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2024-01-01T00:00:30Z"));
+    const spy = capture("info");
+
+    try {
+      process.env.TZ = "UTC";
+      runtimeLog("info", "utc line");
+      const utc = lastOutput(spy);
+
+      process.env.TZ = "Asia/Shanghai";
+      runtimeLog("info", "cst line");
+      const cst = lastOutput(spy);
+
+      expect(utc).toContain("[2024-01-01 00:00:30]");
+      expect(cst).toContain("[2024-01-01 08:00:30]");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
