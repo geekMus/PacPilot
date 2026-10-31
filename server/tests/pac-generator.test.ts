@@ -10,7 +10,7 @@ import {
   validatePacProxyString,
   warmPacCache,
 } from "../services/pac-generator";
-import { invalidateRenderedPac, readRuleSource, writeRuleSource } from "../services/pac-runtime";
+import { getRenderedPac, invalidateRenderedPac, readRuleSource, writeRuleSource } from "../services/pac-runtime";
 
 function settings(overrides: Partial<AppSettings> = {}): AppSettings {
   return {
@@ -453,6 +453,23 @@ describe("warmPacCache", () => {
     await warmPacCache(storage);
     const rendered = await getRenderedPacBody(storage);
     expect(rendered.body).toContain("warm.example");
+    await storage.close();
+  });
+
+  it("reuses the persisted render when inputs are unchanged", async () => {
+    const storage = await storageWith({ mode: "custom", pacCompress: false });
+    await warmPacCache(storage);
+    const first = getRenderedPac();
+    expect(first).not.toBeNull();
+
+    // Simulate a restart: memory cache is gone, but the persisted render is
+    // still valid, so warm must reload it instead of re-rendering (a rebuild
+    // would stamp a new generated-at time and thus a new builtAt/etag).
+    invalidateRenderedPac();
+    await warmPacCache(storage);
+    const second = getRenderedPac();
+    expect(second?.builtAt).toBe(first!.builtAt);
+    expect(second?.etag).toBe(first!.etag);
     await storage.close();
   });
 

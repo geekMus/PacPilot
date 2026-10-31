@@ -15,6 +15,7 @@ export default {
     workflowCannotCancel:
       "This workflow has started or finished and can no longer be cancelled from the queue.",
     workflowCancelled: "The workflow was cancelled while waiting in the queue.",
+    workflowQueueFull: "The generation queue is full; try again later.",
     activeWorkflowPacDelete:
       "The PAC cache cannot be cleared while a workflow is queued or running. Try again when it finishes.",
     invalidFactoryResetConfirmation:
@@ -336,6 +337,24 @@ export default {
     dbFileHint: "SQLite main file and WAL",
     logEstimate: "Estimated log usage",
     logEstimateHint: "Generation logs and access records",
+    memory: "Runtime memory",
+    memoryDesc: "View the live memory usage of the server process and its peak since startup.",
+    refreshMemory: "Refresh memory stats",
+    readingMemory: "Reading memory statistics…",
+    checkingMemory: "Checking memory usage and runtime status.",
+    memoryRss: "Resident memory",
+    memoryRssHint: "Physical memory currently used by the process",
+    memoryPeak: "Peak usage",
+    memoryPeakHint: "Highest watermark since this run started",
+    memoryHeap: "JS heap",
+    memoryHeapHint: "Used / total heap memory",
+    memoryLimit: "Memory limit",
+    memoryLimitNone: "No limit set",
+    memoryUptime: "Uptime {time}",
+    memoryUptimeDays: "{d} d {h} h",
+    memoryUptimeHours: "{h} h {m} min",
+    memoryUptimeMinutes: "{m} min",
+    refreshMemoryFailed: "Failed to refresh memory stats: ",
   },
   layout: {
     adminConsole: "Admin console",

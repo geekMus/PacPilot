@@ -21,8 +21,18 @@ function normalizeIpAddress(value: string): string {
     .toLowerCase();
 }
 
-/** Discover current non-loopback interface addresses on every call. */
+// 网卡地址极少变化，但全量枚举发生在每个请求的 Origin 校验里；缓存 30 秒，
+// DHCP/VPN 之类的地址变化仍会在半分钟内生效，而不是逐请求枚举。
+const INTERFACE_CACHE_TTL_MS = 30_000;
+let interfaceCache: { addresses: ReadonlySet<string>; at: number } | null = null;
+
+/** Local interface addresses, re-enumerated at most every 30 seconds. */
 export function getLocalInterfaceAddresses(): ReadonlySet<string> {
+  const now = Date.now();
+  if (interfaceCache && now - interfaceCache.at < INTERFACE_CACHE_TTL_MS) {
+    return interfaceCache.addresses;
+  }
+
   const addresses = new Set<string>(["127.0.0.1", "::1"]);
 
   for (const interfaces of Object.values(os.networkInterfaces())) {
@@ -32,6 +42,7 @@ export function getLocalInterfaceAddresses(): ReadonlySet<string> {
     }
   }
 
+  interfaceCache = { addresses, at: now };
   return addresses;
 }
 

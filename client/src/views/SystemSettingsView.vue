@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
-import { api, type AppSettings, type StorageSummary } from "@/api/client";
+import { api, type AppSettings, type MemorySummary, type StorageSummary } from "@/api/client";
 import { fetchAdminSession } from "@/composables/useAdminSession";
 import AdminLayout from "@/components/layout/AdminLayout.vue";
 import AppButton from "@/components/AppButton.vue";
@@ -36,6 +36,7 @@ const loading = ref(true),
   resetting = ref(false);
 const settings = ref<AppSettings | null>(null),
   storage = ref<StorageSummary | null>(null),
+  memory = ref<MemorySummary | null>(null),
   error = ref("");
 const retention = ref(30);
 const timezone = ref("Asia/Shanghai");
@@ -69,6 +70,19 @@ const clearPacCacheDisabledReason = computed(() => {
   if (!storage.value) return t("systemPage.k12");
   return t("systemPage.clearPacCacheAction");
 });
+const memoryLimitLabel = computed(() => {
+  const limit = memory.value?.limitBytes;
+  return limit ? formatBytes(limit) : t("system.memoryLimitNone");
+});
+const memoryUptimeLabel = computed(() => {
+  const seconds = memory.value?.uptimeSeconds ?? 0;
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (days > 0) return t("system.memoryUptimeDays", { d: days, h: hours });
+  if (hours > 0) return t("system.memoryUptimeHours", { h: hours, m: minutes });
+  return t("system.memoryUptimeMinutes", { m: minutes });
+});
 function timeLabel(value: string | null) {
   return value ? new Date(value).toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN") : "—";
 }
@@ -88,11 +102,18 @@ async function load() {
       await router.replace("/admin/login");
       return;
     }
-    const [s, st] = await Promise.all([api.settings(), api.storage()]);
+    // 内存指标是辅助观测：后端过旧没有该端点或单次请求失败时，
+    // 不应连带存储统计与系统设置一起加载失败。
+    const [s, st, mem] = await Promise.all([
+      api.settings(),
+      api.storage(),
+      api.memory().catch(() => null),
+    ]);
     settings.value = s;
     retention.value = s.logRetentionDays;
     timezone.value = s.timezone || "Asia/Shanghai";
     storage.value = st;
+    memory.value = mem;
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
     notify(error.value, "error");
@@ -116,31 +137,46 @@ async function saveRetention() {
     savingRetention.value = false;
   }
 }
-async function saveTimezone(next: string) {
-  if (savingTimezone.value || !settings.value) return;
-  const previous = settings.value.timezone || "Asia/Shanghai";
+// 时区保存串行排队：连续快速选择时依次保存，期间保持输入框可用，
+// 避免 disabled/失焦让选择框的焦点环闪烁。
+let timezoneSaveChain: Promise<void> = Promise.resolve();
+
+function saveTimezone(next: string) {
+  if (!settings.value) return;
+  const previous = timezone.value;
   timezone.value = next;
   if (next === previous) return;
-  savingTimezone.value = true;
-  try {
-    // 合并服务端最新配置，避免覆盖其他页面（PAC 生成设置、通知渠道）刚刚写入的字段。
-    const latest = await api.settings();
-    const saved = await api.saveSettings({ ...latest, timezone: next });
-    settings.value = saved;
-    timezone.value = saved.timezone || next;
-    notify(t("settings.savedTimeZone"), "success");
-  } catch (e) {
-    timezone.value = previous;
-    notify(e instanceof Error ? e.message : String(e), "error");
-  } finally {
-    savingTimezone.value = false;
-  }
+  const task = async () => {
+    savingTimezone.value = true;
+    try {
+      // 合并服务端最新配置，避免覆盖其他页面（PAC 生成设置、通知渠道）刚刚写入的字段。
+      const latest = await api.settings();
+      const saved = await api.saveSettings({ ...latest, timezone: next });
+      settings.value = saved;
+      // 保存期间用户可能又选了别的时区：只有界面仍显示本次结果时才回写。
+      if (timezone.value === next) timezone.value = saved.timezone || next;
+      notify(t("settings.savedTimeZone"), "success");
+    } catch (e) {
+      if (timezone.value === next) timezone.value = previous;
+      notify(e instanceof Error ? e.message : String(e), "error");
+    } finally {
+      savingTimezone.value = false;
+    }
+  };
+  timezoneSaveChain = timezoneSaveChain.then(task, task);
 }
 async function refreshStorage() {
   try {
     storage.value = await api.storage();
   } catch (e) {
     notify(t("systemPage.k16") + (e instanceof Error ? e.message : String(e)), "error");
+  }
+}
+async function refreshMemory() {
+  try {
+    memory.value = await api.memory();
+  } catch (e) {
+    notify(t("system.refreshMemoryFailed") + (e instanceof Error ? e.message : String(e)), "error");
   }
 }
 async function cleanupLogs() {
@@ -288,7 +324,8 @@ onMounted(() => void load());
         </div>
         <TimeZoneField
           :model-value="timezone"
-          :disabled="loading || savingTimezone"
+          :aria-busy="savingTimezone"
+          :disabled="loading"
           @update:model-value="saveTimezone"
         />
       </section>
@@ -362,6 +399,74 @@ onMounted(() => void load());
         <div v-else-if="storage" class="counts">
           <span>{{ t("systemPage.countAccess", { n: storage.counts.accessEvents }) }}</span
           ><span>{{ t("systemPage.countWorkflow", { n: storage.counts.workflows }) }}</span>
+        </div>
+      </section>
+      <section class="settings-panel">
+        <div class="heading">
+          <span class="icon-badge"><AppIcon name="activity" :size="19" /></span>
+          <div>
+            <h2>{{ t("system.memory") }}</h2>
+            <p>{{ t("system.memoryDesc") }}</p>
+          </div>
+          <button
+            class="app-button app-button--secondary"
+            type="button"
+            :disabled="loading"
+            :title="loading ? t('system.readingMemory') : t('system.refreshMemory')"
+            @click="refreshMemory"
+          >
+            <AppIcon name="refresh-cw" :size="14" /> {{ t("common.refresh") }}
+          </button>
+        </div>
+        <!--
+          与存储面板相同：加载态渲染与数据态同构的指标网格，只把数值换成占位符，
+          面板高度不随加载态变化，避免 CLS。
+        -->
+        <div v-if="loading" class="metrics" aria-busy="true">
+          <div class="metric">
+            <span>{{ t("system.memoryRss") }}</span
+            ><strong>—</strong><small>{{ t("system.memoryRssHint") }}</small>
+          </div>
+          <div class="metric">
+            <span>{{ t("system.memoryPeak") }}</span
+            ><strong>—</strong><small>{{ t("system.memoryPeakHint") }}</small>
+          </div>
+          <div class="metric">
+            <span>{{ t("system.memoryHeap") }}</span
+            ><strong>—</strong><small>{{ t("system.memoryHeapHint") }}</small>
+          </div>
+          <span class="loading-announce" role="status"
+            >{{ t("system.readingSystem") }} {{ t("system.checkingMemory") }}</span
+          >
+        </div>
+        <div v-else-if="error" class="state error" role="alert">
+          {{ error }}
+          <AppButton variant="secondary" @click="load">{{ t("common.retry") }}</AppButton>
+        </div>
+        <div v-else-if="memory" class="metrics">
+          <div class="metric">
+            <span>{{ t("system.memoryRss") }}</span
+            ><strong>{{ formatBytes(memory.rssBytes) }}</strong
+            ><small>{{ t("system.memoryRssHint") }}</small>
+          </div>
+          <div class="metric">
+            <span>{{ t("system.memoryPeak") }}</span
+            ><strong>{{ formatBytes(memory.peakRssBytes) }}</strong
+            ><small>{{ t("system.memoryPeakHint") }}</small>
+          </div>
+          <div class="metric">
+            <span>{{ t("system.memoryHeap") }}</span
+            ><strong>{{ formatBytes(memory.heapUsedBytes) }} / {{ formatBytes(memory.heapTotalBytes) }}</strong
+            ><small>{{ t("system.memoryHeapHint") }}</small>
+          </div>
+        </div>
+        <div v-if="loading" class="counts">
+          <span>{{ t("system.memoryLimit") }}: —</span
+          ><span>{{ t("system.memoryUptime", { time: "—" }) }}</span>
+        </div>
+        <div v-else-if="memory" class="counts">
+          <span>{{ t("system.memoryLimit") }}: {{ memoryLimitLabel }}</span
+          ><span>{{ t("system.memoryUptime", { time: memoryUptimeLabel }) }}</span>
         </div>
       </section>
       <section class="settings-panel">

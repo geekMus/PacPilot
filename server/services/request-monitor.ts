@@ -6,6 +6,9 @@ import { runtimeLog } from "../utils/runtime-log";
 import { resolveClientIp } from "../utils/client-ip";
 
 const tcpSockets = new Set<Socket>();
+// 连接只在 close 时移除，半开/慢速连接风暴下没有别的高水位；封顶后超限
+// 连接放弃跟踪（指标少算），已跟踪连接仍正常释放。
+export const MAX_TRACKED_CONNECTIONS = 2048;
 let activeRequests = 0;
 
 /** Header names whose values must never be persisted into access records. */
@@ -18,6 +21,7 @@ const SENSITIVE_REQUEST_HEADERS = new Set([
 ]);
 
 export function trackTcpConnection(socket: Socket): void {
+  if (tcpSockets.size >= MAX_TRACKED_CONNECTIONS) return;
   tcpSockets.add(socket);
   socket.once("close", () => tcpSockets.delete(socket));
 }

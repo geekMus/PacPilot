@@ -5,6 +5,7 @@ data/
 *.db-journal
 .DS_Store
 .env
+.tmp
 .env.local
 *.log
 coverage/

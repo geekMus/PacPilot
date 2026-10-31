@@ -1,7 +1,9 @@
 # 构建阶段使用官方 Bun Debian(glibc) 镜像，避免 vite/rollup/esbuild 等原生绑定
 # 在 Alpine(musl) 下加载崩溃或缺失；运行阶段仍用 Alpine 保持小体积。
+# 两阶段都钉在 1.4 大版本：1.4 起换用 mimalloc 分配器与新 scavenger，
+# 稳态内存显著低于 1.3（官方基准 76MB -> 53MB），且不再接受 1.3 的回退。
 # ---------- 构建阶段 ----------
-FROM --platform=$BUILDPLATFORM oven/bun:1 AS builder
+FROM --platform=$BUILDPLATFORM oven/bun:1.4 AS builder
 
 WORKDIR /app
 COPY package.json bunfig.toml bun.lock ./
@@ -16,7 +18,7 @@ COPY . .
 RUN echo "正在编译前端资源……" && bun run build:client
 
 # ---------- 运行阶段 ----------
-FROM oven/bun:1-alpine
+FROM oven/bun:1.4-alpine
 
 # 安装 IANA 时区数据库，使 TZ=Asia/Shanghai、TZ=Etc/UTC 等时区名称可用。
 RUN echo "正在安装时区数据库……" && apk add --no-cache tzdata
@@ -29,8 +31,10 @@ COPY --from=builder /app/bun.lock ./bun.lock
 RUN echo "正在按构建锁文件安装运行阶段依赖（不执行开发生命周期脚本）……" \
  && bun install --production --frozen-lockfile --ignore-scripts
 
-# 运行镜像保留完整项目源码，避免遗漏服务端运行时导入的共享模块。
-COPY . .
+# 运行镜像只保留服务端与其导入的 shared 模块；完整源码只存在于构建阶段，
+# 前端编译产物由下方从构建阶段复制。
+COPY server ./server
+COPY shared ./shared
 COPY --from=builder /app/dist ./dist
 
 ENV HOST=0.0.0.0 \

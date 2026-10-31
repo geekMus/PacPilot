@@ -235,7 +235,7 @@ jobs:
       - name: 安装 Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.1
 
       - name: 安装依赖
         run: bun install

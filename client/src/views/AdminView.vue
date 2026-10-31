@@ -16,6 +16,7 @@ const {
   t,
   loading,
   saving,
+  isSaving,
   error,
   pacpilotProbe,
   form,
@@ -84,16 +85,16 @@ const {
               <button
                 type="button"
                 class="app-button app-button--primary rules-save-button"
-                :class="{ 'is-loading': saving }"
+                :class="{ 'is-loading': isSaving('mode') }"
                 :disabled="!hasUnsavedMode"
-                :aria-busy="saving"
+                :aria-busy="isSaving('mode')"
                 :title="t('settings.saveModeHint')"
                 @click="saveMode"
               >
                 <AppIcon
-                  :name="saving ? 'loader-circle' : 'save'"
+                  :name="isSaving('mode') ? 'loader-circle' : 'save'"
                   :size="15"
-                  :class="{ 'save-spinner': saving }"
+                  :class="{ 'save-spinner': isSaving('mode') }"
                 />
                 {{ t("settings.saveModeBtn") }}
               </button>
@@ -247,16 +248,16 @@ const {
               <button
                 type="button"
                 class="app-button app-button--primary rules-save-button"
-                :class="{ 'is-loading': saving }"
+                :class="{ 'is-loading': isSaving('rules') }"
                 :disabled="!hasUnsavedRules || Boolean(ruleErrors)"
-                :aria-busy="saving"
+                :aria-busy="isSaving('rules')"
                 :title="t('settings.saveRulesHint')"
                 @click="saveRules"
               >
                 <AppIcon
-                  :name="saving ? 'loader-circle' : 'save'"
+                  :name="isSaving('rules') ? 'loader-circle' : 'save'"
                   :size="15"
-                  :class="{ 'save-spinner': saving }"
+                  :class="{ 'save-spinner': isSaving('rules') }"
                 />
                 {{ t("settings.saveRulesBtn") }}
               </button>

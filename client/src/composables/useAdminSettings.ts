@@ -8,6 +8,15 @@ import { createAdminSettingsValidators } from "@/utils/admin-settings-validation
 import { useToast } from "@/composables/useToast";
 import { fetchAdminSession } from "@/composables/useAdminSession";
 
+export type SettingsSaveSlot =
+  | "mode"
+  | "pacProxy"
+  | "listUrl"
+  | "pacCompress"
+  | "pacObfuscate"
+  | "cronSchedule"
+  | "rules";
+
 export function useAdminSettings() {
   const { t, locale } = useI18n();
 
@@ -22,7 +31,18 @@ export function useAdminSettings() {
 
   const loading = ref(true);
 
-  const saving = ref(false);
+  /**
+   * 按卡片维度记录正在保存的槽位。此前只有一个全局 saving 布尔，
+   * 任意一处即时保存（包括 PAC 压缩/混淆开关）都会让页面上所有卡片的
+   * 保存按钮同时进入加载态，与「该卡片自身没有未保存修改」的视觉预期不符。
+   */
+  const savingSlots = ref(new Set<SettingsSaveSlot>());
+
+  const saving = computed(() => savingSlots.value.size > 0);
+
+  function isSaving(slot: SettingsSaveSlot): boolean {
+    return savingSlots.value.has(slot);
+  }
 
   /** 即时保存的串行队列，保证同一时间只有一个请求在途。 */
   let saveQueue: Promise<void> = Promise.resolve();
@@ -183,7 +203,7 @@ export function useAdminSettings() {
    */
   async function tryApply(
     patch: Partial<AppSettings>,
-    options: { generate: boolean; message: string; invalid?: string }
+    options: { slot: SettingsSaveSlot; generate: boolean; message: string; invalid?: string }
   ): Promise<void> {
     const run = async (): Promise<void> => {
       if (!saved.value) return;
@@ -198,7 +218,7 @@ export function useAdminSettings() {
         notify(options.invalid, "warning");
         return;
       }
-      saving.value = true;
+      savingSlots.value.add(options.slot);
       try {
         // 合并服务端最新配置，避免覆盖其他页面（通知渠道、日志保留期）的修改。
         const latest = await api.settings();
@@ -219,7 +239,7 @@ export function useAdminSettings() {
       } catch (e) {
         notify(e instanceof Error ? e.message : String(e), "error");
       } finally {
-        saving.value = false;
+        savingSlots.value.delete(options.slot);
       }
     };
     const next = saveQueue.then(run, run).catch(() => undefined);
@@ -244,6 +264,7 @@ export function useAdminSettings() {
       generate: true,
       message: t("settings.savedMode"),
       invalid: listUrlError.value,
+      slot: "mode",
     });
   }
 
@@ -254,6 +275,7 @@ export function useAdminSettings() {
         generate: true,
         message: t("settings.savedPacProxy"),
         invalid: pacProxyError.value ?? undefined,
+        slot: "pacProxy",
       }
     );
   }
@@ -263,7 +285,7 @@ export function useAdminSettings() {
     const url = form.listUrl.trim() || DEFAULT_LIST_URL;
     void tryApply(
       { listUrl: url },
-      { generate: true, message: t("settings.savedListUrl"), invalid: listUrlError.value }
+      { generate: true, message: t("settings.savedListUrl"), invalid: listUrlError.value, slot: "listUrl" }
     );
   }
 
@@ -272,7 +294,7 @@ export function useAdminSettings() {
     form.pacCompress = checked;
     void tryApply(
       { pacCompress: checked },
-      { generate: true, message: t("settings.savedPacCompress") }
+      { generate: true, message: t("settings.savedPacCompress"), slot: "pacCompress" }
     );
   }
 
@@ -281,7 +303,7 @@ export function useAdminSettings() {
     form.pacObfuscate = checked;
     void tryApply(
       { pacObfuscate: checked },
-      { generate: true, message: t("settings.savedPacObfuscate") }
+      { generate: true, message: t("settings.savedPacObfuscate"), slot: "pacObfuscate" }
     );
   }
 
@@ -297,7 +319,7 @@ export function useAdminSettings() {
     await waitCronParsing();
     void tryApply(
       { cronSchedule: form.cronSchedule.trim() },
-      { generate: false, message: t("settings.savedCron"), invalid: cronError.value }
+      { generate: false, message: t("settings.savedCron"), invalid: cronError.value, slot: "cronSchedule" }
     );
   }
 
@@ -334,7 +356,7 @@ export function useAdminSettings() {
     }
     void tryApply(
       { directList: splitLines(form.directListText), blockList: splitLines(form.blockListText) },
-      { generate: true, message: t("settings.savedRules") }
+      { generate: true, message: t("settings.savedRules"), slot: "rules" }
     );
   }
 
@@ -396,6 +418,7 @@ export function useAdminSettings() {
     t,
     loading,
     saving,
+    isSaving,
     error,
     pacpilotProbe,
     form,

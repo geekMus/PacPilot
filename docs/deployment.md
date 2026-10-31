@@ -12,7 +12,7 @@
 | ------------------------ | ------------------------------------------- | ---------------------------------------------------------------------- |
 | Docker `run`             | 单机快速部署（推荐）                        | 镜像 `ghcr.io/geekmus/pacpilot:latest`，挂载 `/data` 持久化            |
 | Docker Compose           | 希望以代码形式维护部署配置                  | 仓库提供 [docker-compose.yml](../docker-compose.yml)，按需启用端口与卷 |
-| 源码运行（Bun）          | 本机开发或自建环境                          | 需要 Bun >= 1.1.0；`bun install && bun run start`                      |
+| 源码运行（Bun）          | 本机开发或自建环境                          | 需要 Bun >= 1.4.1；`bun install && bun run start`                      |
 | 前后端分离（纯静态前端） | 前端托管在 Cloudflare Pages / Vercel 等平台 | 后端开启 `CORS_MODE=open`，前端用 Bearer 令牌访问                      |
 
 ## 环境参数参考
@@ -210,9 +210,15 @@ volumes:
 
 注入环境参数使用 `environment:`，变量与语义见[环境参数参考](#环境参数参考)。
 
+### 内存上限与观测
+
+Compose 文件默认设置 `mem_limit: 512m`：服务稳态内存约 80MB（Bun 运行时基线 + PAC 首次压缩的临时峰值），512MB 已留足余量，同时防止远程规则列表异常膨胀拖垮宿主机。若容器因达到上限被结束（退出码 137），可在 `docker-compose.yml` 中上调该值；`deploy.resources.limits.memory` 仅在 Swarm 部署下生效，单机 `docker compose` 使用 `mem_limit`。
+
+宿主机侧可用 `docker stats pacpilot` 观察实时占用；管理界面「系统设置 → 运行时内存」展示进程内的常驻内存、运行峰值（内核高水位）、JS 堆与运行时长，对应接口 `GET /api/admin/memory`，无需登录宿主机即可排查。
+
 ## 源码运行
 
-需要 [Bun](https://bun.sh/) >= 1.1.0：
+需要 [Bun](https://bun.sh/) >= 1.4.1（仓库根目录的 `.bun-version` 固定了开发版本，1.4 起运行时内存占用显著低于 1.3）：
 
 ```bash
 bun install

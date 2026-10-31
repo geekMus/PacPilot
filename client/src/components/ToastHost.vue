@@ -2,6 +2,9 @@
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { Toaster, toast } from "vue-sonner";
+// vue-sonner v2 起样式拆出 JS 之外，必须显式引入；缺了它 Toaster 会退化成
+// 普通文档流元素，toast 全部渲染在视口之外（保存成功但永远看不见提示）。
+import "vue-sonner/style.css";
 import { markToastHostReady } from "@/composables/toast-bridge";
 
 const { locale } = useI18n();

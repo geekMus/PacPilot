@@ -6,6 +6,24 @@ import type { WorkflowRun } from "@/api/client";
  * useWorkflowDashboard so pages like the admin overview can reuse the same
  * wording without pulling in the polling/queue state machine.
  */
+export type WorkflowStatusTone = "good" | "bad" | "running" | "pending" | "idle";
+export type WorkflowStatusIcon = "circle-check" | "circle-x" | "loader-circle" | "clock" | "circle";
+
+const STATUS_TONES: Record<string, WorkflowStatusTone> = {
+  succeeded: "good",
+  failed: "bad",
+  running: "running",
+  pending: "pending",
+  cancelled: "idle",
+};
+const STATUS_ICONS: Record<string, WorkflowStatusIcon> = {
+  succeeded: "circle-check",
+  failed: "circle-x",
+  running: "loader-circle",
+  pending: "clock",
+  cancelled: "circle",
+};
+
 export function useWorkflowLabels() {
   const { t, locale } = useI18n();
 
@@ -23,6 +41,10 @@ export function useWorkflowLabels() {
     "save-and-generate": "workflowPage.k8",
   };
   const statusLabel = (status: string) => (statusNames[status] ? t(statusNames[status]) : status);
+  // 状态徽章的色调与图标：进行中的 running/pending 不能套用失败的红叉，
+  // 已取消属于中性收尾；未知状态按中性处理。
+  const statusTone = (status: string): WorkflowStatusTone => STATUS_TONES[status] ?? "idle";
+  const statusIcon = (status: string): WorkflowStatusIcon => STATUS_ICONS[status] ?? "circle";
   const stageLabel = (stage: string) => t(`workflow.stageNames.${stage}`);
   const sourceLabel = (source: string) => (sourceNames[source] ? t(sourceNames[source]) : source);
   const modeLabel = (mode: string) =>
@@ -45,5 +67,5 @@ export function useWorkflowLabels() {
   const dateLabel = (value: string | null) =>
     value ? new Date(value).toLocaleString(locale.value === "en_US" ? "en-US" : "zh-CN") : "—";
 
-  return { statusLabel, stageLabel, sourceLabel, modeLabel, durationLabel, dateLabel };
+  return { statusLabel, statusTone, statusIcon, stageLabel, sourceLabel, modeLabel, durationLabel, dateLabel };
 }

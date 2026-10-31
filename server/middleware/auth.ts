@@ -12,7 +12,15 @@ export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 /** Sliding window login throttle (per client address). */
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_MAX_FAILURES = 8;
+// clientKey 依赖可配置的代理链（Docker 下对端通常是内网地址，X-Forwarded-For
+// 会被采信），键数量可能被伪造到任意大，必须给整张表封顶。
+export const LOGIN_FAILURE_MAX_KEYS = 4096;
 const loginFailures = new Map<string, number[]>();
+
+/** Number of distinct client addresses currently tracked by the login throttle. */
+export function getLoginFailureKeyCount(): number {
+  return loginFailures.size;
+}
 
 function sign(value: string, secret: string): string {
   return crypto.createHmac("sha256", secret).update(value).digest("hex");
@@ -104,6 +112,19 @@ function pruneFailures(key: string, now: number): number[] {
   return recent;
 }
 
+/** Evict stale keys first, then oldest-inserted, so the table never grows unbounded. */
+function capFailureKeys(now: number): void {
+  if (loginFailures.size < LOGIN_FAILURE_MAX_KEYS) return;
+  for (const [key, stamps] of loginFailures) {
+    const live = stamps.some((ts) => now - ts < LOGIN_WINDOW_MS);
+    if (!live) loginFailures.delete(key);
+  }
+  for (const key of loginFailures.keys()) {
+    if (loginFailures.size < LOGIN_FAILURE_MAX_KEYS) break;
+    loginFailures.delete(key);
+  }
+}
+
 /** Returns null when allowed, or a human-readable error when throttled. */
 export function checkLoginRateLimit(req: Request, locale: AppLocale = "zh_CN"): string | null {
   const key = clientKey(req);
@@ -118,6 +139,7 @@ export function recordLoginFailure(req: Request): void {
   const key = clientKey(req);
   const now = Date.now();
   const recent = pruneFailures(key, now);
+  capFailureKeys(now);
   recent.push(now);
   loginFailures.set(key, recent);
 }

@@ -32,7 +32,7 @@ jobs:
         id: setup-bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.1
 
       - name: 安装依赖
         id: install
@@ -81,7 +81,7 @@ jobs:
         id: setup-bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.1
 
       - name: 安装依赖
         id: install

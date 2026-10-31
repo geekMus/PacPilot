@@ -38,13 +38,22 @@ describe("admin settings save buttons stay clickable", () => {
 
   it("keeps the mode and rules save buttons enabled while saving", () => {
     const view = withoutComments(readSource("views/AdminView.vue"));
-    for (const handler of ["saveMode", "saveRules"]) {
+    for (const [handler, slot] of [
+      ["saveMode", "mode"],
+      ["saveRules", "rules"],
+    ] as const) {
       const tag = buttonTag(view, handler);
       expect(tag, `${handler} 按钮不能因为 saving 而 disabled`).not.toMatch(
         /:disabled="[^"]*\bsaving\b/
       );
-      expect(tag, `${handler} 按钮需要暴露 aria-busy`).toContain(':aria-busy="saving"');
-      expect(tag, `${handler} 按钮需要保留加载态类名`).toContain("'is-loading': saving");
+      expect(tag, `${handler} 按钮需要暴露 aria-busy`).toContain(
+        `:aria-busy="isSaving('${slot}')"`
+      );
+      expect(tag, `${handler} 按钮需要保留加载态类名`).toContain(
+        `'is-loading': isSaving('${slot}')`
+      );
+      // 各卡片按钮只随本卡片保存而闪烁：不得绑定全局 saving。
+      expect(tag, `${handler} 按钮不得绑定全局 saving`).not.toContain("saving");
     }
   });
 

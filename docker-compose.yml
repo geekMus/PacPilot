@@ -5,6 +5,15 @@ services:
     container_name: pacpilot
     restart: unless-stopped
 
+    # 内存上限：稳态约 80MB（Bun 运行时 + PAC 首次压缩峰值），512MB 已留足余量，
+    # 同时防止远程列表异常膨胀或泄漏拖垮宿主机。容器若被 OOM Kill（退出码 137）可上调。
+    # 注意：deploy.resources.limits 仅在 Swarm 生效；单机 docker compose 用 mem_limit。
+    mem_limit: 512m
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512M
+
     # 默认使用 bridge 驱动的 Compose 项目网络，但不向宿主机发布端口。
     # 如需直接从宿主机 / 局域网访问，才取消下面两行的注释。
     # ports:
