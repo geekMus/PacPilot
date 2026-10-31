@@ -2,12 +2,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ApplicationStorage } from "../storage/repositories";
 import { createMemoryApplicationStorage } from "../storage/memory/application-storage";
 import {
+  clearRenderedPac,
   clearRuleSource,
   invalidateRenderedPac,
+  readRenderedPac,
   readRuleSource,
   withPacBuildLock,
+  writeRenderedPac,
   writeRuleSource,
   type PacRuleSource,
+  type RenderedPac,
 } from "../services/pac-runtime";
 
 function source(overrides: Partial<PacRuleSource> = {}): PacRuleSource {
@@ -84,6 +88,71 @@ describe("rule source snapshot", () => {
     const app = await storage();
     vi.spyOn(app.artifacts, "delete").mockRejectedValueOnce(new Error("read-only"));
     await expect(clearRuleSource(app)).resolves.toBeUndefined();
+    await app.close();
+  });
+});
+
+function rendered(overrides: Partial<RenderedPac> = {}): RenderedPac {
+  return {
+    body: "function FindProxyForURL(url, host) { return 'DIRECT'; }",
+    source: "function FindProxyForURL(url, host) { return 'DIRECT'; }",
+    etag: '"abc"',
+    builtAt: "2026-10-31T00:00:00.000Z",
+    sourceVersion: "deadbeefdeadbeefdeadbeefdeadbeef",
+    stale: false,
+    compressed: false,
+    obfuscated: false,
+    ...overrides,
+  };
+}
+
+describe("rendered PAC persistence", () => {
+  it("round-trips a rendered entry through the artifact store", async () => {
+    const app = await storage();
+    const value = rendered();
+    await writeRenderedPac(app, value);
+    expect(await readRenderedPac(app)).toEqual(value);
+    await app.close();
+  });
+
+  it("returns null when nothing has been persisted", async () => {
+    const app = await storage();
+    expect(await readRenderedPac(app)).toBeNull();
+    await app.close();
+  });
+
+  it("returns null for unparsable or incomplete payloads", async () => {
+    const app = await storage();
+    await app.artifacts.write("pac.rendered.json", "{not json");
+    expect(await readRenderedPac(app)).toBeNull();
+
+    await app.artifacts.write("pac.rendered.json", JSON.stringify({ body: "x" }));
+    expect(await readRenderedPac(app)).toBeNull();
+    await app.close();
+  });
+
+  it("returns null when the artifact read throws", async () => {
+    const app = await storage();
+    vi.spyOn(app.artifacts, "read").mockRejectedValueOnce(new Error("disk gone"));
+    expect(await readRenderedPac(app)).toBeNull();
+    await app.close();
+  });
+
+  it("swallows write failures", async () => {
+    const app = await storage();
+    vi.spyOn(app.artifacts, "write").mockRejectedValueOnce(new Error("disk gone"));
+    await expect(writeRenderedPac(app, rendered())).resolves.toBeUndefined();
+    await app.close();
+  });
+
+  it("clears the persisted render and swallows delete failures", async () => {
+    const app = await storage();
+    await writeRenderedPac(app, rendered());
+    await clearRenderedPac(app);
+    expect(await readRenderedPac(app)).toBeNull();
+
+    vi.spyOn(app.artifacts, "delete").mockRejectedValueOnce(new Error("read-only"));
+    await expect(clearRenderedPac(app)).resolves.toBeUndefined();
     await app.close();
   });
 });

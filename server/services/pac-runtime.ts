@@ -28,16 +28,38 @@ export interface PacRuleSource {
 
 const RULE_SOURCE_KEY = "pac.rule-source.json";
 
+/**
+ * Per-storage in-process cache for the rule snapshot.
+ *
+ * The snapshot only changes through `writeRuleSource` / `clearRuleSource`, both
+ * in-process, so caching per storage instance is coherent and saves a disk
+ * read plus a full JSON.parse of the (potentially very large) host lists on
+ * every `/pac` request. Keyed on the artifact store instead of a module global
+ * so independent storages (tests, memory adapters) never observe each other.
+ * Cached objects must be treated as immutable.
+ */
+const ruleSourceCache = new WeakMap<object, PacRuleSource | null>();
+
 export async function readRuleSource(
   storage: Pick<ApplicationStorage, "artifacts">
 ): Promise<PacRuleSource | null> {
+  const cacheKey = storage.artifacts;
+  if (ruleSourceCache.has(cacheKey)) return ruleSourceCache.get(cacheKey) ?? null;
   try {
     const bytes = await storage.artifacts.read(RULE_SOURCE_KEY);
-    if (!bytes) return null;
+    if (!bytes) {
+      ruleSourceCache.set(cacheKey, null);
+      return null;
+    }
     const parsed = JSON.parse(new TextDecoder().decode(bytes)) as PacRuleSource;
-    if (!Array.isArray(parsed.proxyHosts) || !Array.isArray(parsed.directHosts)) return null;
+    if (!Array.isArray(parsed.proxyHosts) || !Array.isArray(parsed.directHosts)) {
+      ruleSourceCache.set(cacheKey, null);
+      return null;
+    }
+    ruleSourceCache.set(cacheKey, parsed);
     return parsed;
   } catch {
+    ruleSourceCache.set(cacheKey, null);
     return null;
   }
 }
@@ -47,6 +69,7 @@ export async function writeRuleSource(
   source: PacRuleSource
 ): Promise<void> {
   await storage.artifacts.write(RULE_SOURCE_KEY, JSON.stringify(source));
+  ruleSourceCache.set(storage.artifacts, source);
 }
 
 export async function clearRuleSource(
@@ -57,6 +80,7 @@ export async function clearRuleSource(
   } catch {
     /* artifact may not exist */
   }
+  ruleSourceCache.set(storage.artifacts, null);
 }
 
 /**
@@ -108,6 +132,83 @@ export async function withPacBuildLock<T>(build: () => Promise<T>): Promise<T> {
   }
 }
 
+const RENDERED_PAC_KEY = "pac.rendered.json";
+
+/**
+ * Persisted copy of the rendered PAC.
+ *
+ * Reloading it at startup keeps the ETag stable across restarts (a rebuild
+ * embeds the generation time, so it always produces new bytes) and skips the
+ * terser pass whose transient memory peak is the main contributor to the
+ * container's high-water mark. The persisted entry is always validated against
+ * the current `sourceVersion` before use.
+ */
+export async function writeRenderedPac(
+  storage: Pick<ApplicationStorage, "artifacts">,
+  value: RenderedPac
+): Promise<void> {
+  try {
+    await storage.artifacts.write(RENDERED_PAC_KEY, JSON.stringify({ ...value, stale: false }));
+  } catch {
+    /* best-effort persistence; the in-memory cache still serves */
+  }
+}
+
+export async function readRenderedPac(
+  storage: Pick<ApplicationStorage, "artifacts">
+): Promise<RenderedPac | null> {
+  try {
+    const bytes = await storage.artifacts.read(RENDERED_PAC_KEY);
+    if (!bytes) return null;
+    const parsed = JSON.parse(new TextDecoder().decode(bytes)) as RenderedPac | null;
+    if (
+      !parsed ||
+      typeof parsed.body !== "string" ||
+      typeof parsed.source !== "string" ||
+      typeof parsed.etag !== "string" ||
+      typeof parsed.builtAt !== "string" ||
+      typeof parsed.sourceVersion !== "string"
+    ) {
+      return null;
+    }
+    return { ...parsed, stale: false };
+  } catch {
+    return null;
+  }
+}
+
+export async function clearRenderedPac(
+  storage: Pick<ApplicationStorage, "artifacts">
+): Promise<void> {
+  try {
+    await storage.artifacts.delete(RENDERED_PAC_KEY);
+  } catch {
+    /* artifact may not exist */
+  }
+}
+
+/** Sorted-hosts fingerprint of a rule snapshot. */
+function computeHostsVersion(source: PacRuleSource): string {
+  return (
+    createHash("sha256")
+      .update([...source.proxyHosts].sort().join("\n"))
+      .update("\u0000")
+      .update([...source.directHosts].sort().join("\n"))
+      .digest("hex")
+      .slice(0, 32)
+  );
+}
+
+/**
+ * Cache for `computeHostsVersion`, keyed on the snapshot object.
+ *
+ * Host lists can hold tens of thousands of entries; sorting them for the
+ * fingerprint on every request is a large allocation on the hot path. The
+ * snapshot is immutable (see `ruleSourceCache`), so the fingerprint is stable
+ * for the lifetime of the object.
+ */
+const hostsVersionCache = new WeakMap<PacRuleSource, string>();
+
 /** Stable fingerprint of everything that influences the rendered PAC. */
 export function computeSourceVersion(settings: AppSettings, source: PacRuleSource | null): string {
   const material = JSON.stringify({
@@ -123,10 +224,18 @@ export function computeSourceVersion(settings: AppSettings, source: PacRuleSourc
     listUrl: settings.listUrl,
     fetchedAt: source?.fetchedAt ?? "",
     // 主机列表内容本身影响输出字节，必须计入指纹；排序保证同内容不同顺序不会触发重建。
-    proxyHosts: [...(source?.proxyHosts ?? [])].sort(),
-    directHosts: [...(source?.directHosts ?? [])].sort(),
+    // 指纹按快照对象缓存，热路径上不再复制并排序全量主机列表。
+    hosts: source ? computeHostsVersionCached(source) : "",
   });
   return createHash("sha256").update(material).digest("hex").slice(0, 32);
+}
+
+function computeHostsVersionCached(source: PacRuleSource): string {
+  const cached = hostsVersionCache.get(source);
+  if (cached !== undefined) return cached;
+  const version = computeHostsVersion(source);
+  hostsVersionCache.set(source, version);
+  return version;
 }
 
 export function computeEtag(body: string): string {

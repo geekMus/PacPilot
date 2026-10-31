@@ -12,6 +12,7 @@ import {
   readRuleSource,
   invalidateRenderedPac,
   clearRuleSource,
+  clearRenderedPac,
 } from "../services/pac-runtime";
 import { resolveLocale, t as serverT } from "../../shared/i18n";
 
@@ -87,12 +88,13 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
     const deleted: string[] = [];
     try {
       // The PAC body is rendered in memory, so clearing means dropping the
-      // persisted remote rule snapshot and the in-memory render; the next
-      // request rebuilds from the current settings.
+      // persisted remote rule snapshot, the persisted render and the in-memory
+      // render; the next request rebuilds from the current settings.
       if (await storage.artifacts.exists("pac.rule-source.json")) {
         await clearRuleSource(storage);
         deleted.push("pac.rule-source.json");
       }
+      await clearRenderedPac(storage);
       invalidateRenderedPac();
       deleted.push("rendered");
       // The caller refreshes the full storage summary afterwards, so there is no
@@ -141,9 +143,11 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
     try {
       await storage.maintenance.resetOperationalData(DEFAULT_SETTINGS);
       if (env.storageDriver === "sqlite") await storage.maintenance.compact();
-      // Settings fall back to custom mode, so the remote rule snapshot and the
-      // in-memory render built from the previous settings are no longer valid.
+      // Settings fall back to custom mode, so the remote rule snapshot, the
+      // persisted render and the in-memory render built from the previous
+      // settings are no longer valid.
       await clearRuleSource(storage);
+      await clearRenderedPac(storage);
       invalidateRenderedPac();
       reschedule(storage, env.dataDir);
       res.json({

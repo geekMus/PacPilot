@@ -6,7 +6,6 @@ import { t } from "../../shared/i18n";
 import type { AppLocale } from "../../shared/i18n/locale";
 import type { AppSettings } from "../../shared/contracts";
 import { fetchAndParseRemoteList } from "./remote-list";
-import { obfuscatePac } from "./pac-obfuscator";
 import { runtimeLog } from "../utils/runtime-log";
 import {
   computeEtag,
@@ -14,10 +13,12 @@ import {
   getRenderedPac,
   invalidateRenderedPac,
   isRenderFresh,
+  readRenderedPac,
   readRuleSource,
   renderPacSource,
   setRenderedPac,
   withPacBuildLock,
+  writeRenderedPac,
   writeRuleSource,
   type RenderedPac,
 } from "./pac-runtime";
@@ -391,7 +392,11 @@ export async function getRenderedPacBody(
       // 先压缩再混淆：反过来的话 terser 会把混淆器生成的字符串数组求值内联，
       // 混淆强度会被削弱（实测字符串数组条目从 9 处降到 0 处）。
       const minified = await compressPac(raw, locale);
-      const finalCode = obfuscate ? obfuscatePac(minified, locale) : minified;
+      // javascript-obfuscator 体积大（加载即占 8-20MB 常驻内存），因此只在混淆
+      // 真正开启时动态加载；默认配置（pacObfuscate=false）不为它付出启动内存。
+      const finalCode = obfuscate
+        ? (await import("./pac-obfuscator")).obfuscatePac(minified, locale)
+        : minified;
       body = withPacInlineHeader(finalCode, generatedAt, freshSettings.timezone);
     }
 
@@ -406,6 +411,9 @@ export async function getRenderedPacBody(
       obfuscated: obfuscate,
     };
     setRenderedPac(value);
+    // 同步持久化渲染结果：下次启动 sourceVersion 仍一致时可直接复用，
+    // 不必再跑一遍 terser（其内存峰值是容器高水位的主要来源）。
+    await writeRenderedPac(storage, value);
     return value;
   });
 }
@@ -469,7 +477,16 @@ export async function warmPacCache(
         return;
       }
     }
-    await getRenderedPacBody(storage, { force: true });
+    // 优先复用上次运行持久化的渲染结果：sourceVersion 一致即可直接装载，
+    // 省掉启动时一次 terser 压缩（其内存峰值是大列表下的主要开销），
+    // 同时让 ETag 跨重启保持稳定；不一致则正常重建并回写持久化。
+    const source = settings.mode === "remote" ? await readRuleSource(storage) : null;
+    const persisted = await readRenderedPac(storage);
+    if (persisted && persisted.sourceVersion === computeSourceVersion(settings, source)) {
+      setRenderedPac(persisted);
+      return;
+    }
+    await getRenderedPacBody(storage);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     runtimeLog("error", "Unable to warm the PAC cache: " + message);
