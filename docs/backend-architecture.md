@@ -27,6 +27,23 @@ The memory and SQLite adapters implement the same contracts. Routes and services
 - `utils/`: small, framework-independent technical helpers. If a utility belongs to one domain, keep it next to that domain instead.
 - `tests/`: backend tests should mirror the boundary they exercise. Adapter contract behavior should be checked for both memory and SQLite where practical.
 
+## PAC build worker process
+
+PAC compression (terser) and obfuscation (javascript-obfuscator) are CPU-bound synchronous tasks. Running them inside the main process blocks the event loop for the whole build — `/pac` requests stall and the admin status endpoint waits for the build to finish — and the two packages also stay resident in the main process for the lifetime of the server.
+
+Both steps therefore run in a separate short-lived child process:
+
+- `server/workers/pac-build-worker.ts` is the process entry point. It reads one JSON request (`{ code, compress, obfuscate, locale }`) from stdin and writes one JSON response (`{ ok, code?, error? }`) to stdout.
+- `server/services/pac-build-client.ts` spawns that entry point (`bun run --no-env-file <worker>`) and exposes `buildPacBody(request)`. It fails the build when the process cannot start, times out (`PAC_BUILD_TIMEOUT_MS`), returns an unparsable payload, or reports a build error; terser and obfuscator error messages are forwarded verbatim.
+- `server/services/pac-generator.ts` calls `buildPacBody` instead of importing terser directly, so the main process no longer loads either package. The obfuscator is loaded dynamically inside the worker, and only when obfuscation is enabled.
+
+Rules for this boundary:
+
+- Keep the worker free of storage and HTTP concerns: it receives the rendered PAC source and returns the built code. It must not read settings, the database, or the network.
+- Keep the build deterministic. The obfuscator runs with a fixed seed so identical input produces byte-identical output; this is what keeps the PAC ETag stable across rebuilds.
+- Keep the request/response payload a single JSON document. The worker is a process entry point without exportable units, so it is intentionally excluded from coverage and is exercised end-to-end through the client by `server/tests/pac-build-worker.test.ts`.
+- Spawn a new child process per build rather than keeping a long-lived worker. A fresh process releases its whole heap to the operating system on exit, which is what keeps the steady-state memory of the server low.
+
 ## Refactoring rules
 
 1. Keep dependencies pointing toward contracts: routes/services may depend on storage contracts; adapters implement those contracts; contracts must not depend on adapters.

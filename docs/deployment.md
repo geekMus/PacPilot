@@ -214,6 +214,8 @@ volumes:
 
 Compose 文件默认设置 `mem_limit: 512m`：服务稳态内存约 80MB（Bun 运行时基线 + PAC 首次压缩的临时峰值），512MB 已留足余量，同时防止远程规则列表异常膨胀拖垮宿主机。若容器因达到上限被结束（退出码 137），可在 `docker-compose.yml` 中上调该值；`deploy.resources.limits.memory` 仅在 Swarm 部署下生效，单机 `docker compose` 使用 `mem_limit`。
 
+PAC 的压缩与混淆在独立子进程中执行（见[后端架构](backend-architecture.md#pac-构建子进程)）：主进程不再常驻 terser 与混淆器，生成期间的 CPU 峰值也落在子进程上。因此容器的瞬时峰值 = 主进程常驻内存 + 子进程构建峰值（规则量极大时子进程可达数百 MB），`mem_limit` 需要同时覆盖两者。
+
 宿主机侧可用 `docker stats pacpilot` 观察实时占用；管理界面「系统设置 → 运行时内存」展示进程内的常驻内存、运行峰值（内核高水位）、JS 堆与运行时长，对应接口 `GET /api/admin/memory`，无需登录宿主机即可排查。
 
 ## 源码运行
