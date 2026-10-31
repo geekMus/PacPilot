@@ -52,21 +52,27 @@ jobs:
           export LC_ALL=C
 
           VERSION="$(jq -er '.version' package.json)"
-          if [[ ! "$VERSION" =~ ^([0-9]{4})\.([0-9]{2})\.([0-9]{2})(-[rR]([1-9][0-9]*))?$ ]]; then
-            echo "::error::package.json.version 必须使用 YYYY.MM.DD 或 YYYY.MM.DD-rN 格式。"
+          # 月份与日期允许省略前导零：2026.11.1 与 2026.11.01 视为同一天。
+          if [[ ! "$VERSION" =~ ^([0-9]{4})\.([0-9]{1,2})\.([0-9]{1,2})(-[rR]([1-9][0-9]*))?$ ]]; then
+            echo "::error::package.json.version 必须使用 YYYY.MM.DD 或 YYYY.M.D 日期格式（可带 -rN 修订号）。"
             exit 1
           fi
 
           VERSION_DATE="${VERSION%%-[rR]*}"
+          VERSION_SUFFIX="${VERSION#"$VERSION_DATE"}"
           YEAR="${VERSION_DATE%%.*}"
           REST="${VERSION_DATE#*.}"
           MONTH="${REST%%.*}"
           DAY="${REST##*.}"
-          NORMALIZED_DATE="$(date -u -d "${YEAR}-${MONTH}-${DAY}" +%Y.%m.%d 2>/dev/null || true)"
-          if [[ "$NORMALIZED_DATE" != "$VERSION_DATE" ]]; then
+          # 统一补零后再用 date 往返校验日期真实有效；后续比较与输出均使用补零日期。
+          PADDED_DATE="$(printf '%04d.%02d.%02d' "$((10#$YEAR))" "$((10#$MONTH))" "$((10#$DAY))")"
+          NORMALIZED_DATE="$(date -u -d "${PADDED_DATE//./-}" +%Y.%m.%d 2>/dev/null || true)"
+          if [[ -z "$NORMALIZED_DATE" || "$NORMALIZED_DATE" != "$PADDED_DATE" ]]; then
             echo "::error::版本日期无效：$VERSION_DATE"
             exit 1
           fi
+          VERSION_DATE="$PADDED_DATE"
+          CANONICAL_VERSION="${VERSION_DATE}${VERSION_SUFFIX}"
 
           TODAY="$(TZ="$RELEASE_TIMEZONE" date +%Y.%m.%d)"
           if [[ "$VERSION_DATE" != "$TODAY" ]]; then
@@ -157,26 +163,42 @@ jobs:
           PUBLISH="true"
           REASON="GHCR 尚无 latest 镜像，允许首次发布 $VERSION。"
           if [[ -n "$PREVIOUS_VERSION" ]]; then
-            if [[ "$VERSION" == "$PREVIOUS_VERSION" ]]; then
-              PUBLISH="false"
-              REASON="当前版本与 GHCR latest 相同，跳过重复发布。"
-            elif [[ "$PREVIOUS_VERSION" =~ ^([0-9]{4})\.([0-9]{2})\.([0-9]{2})(-[rR]([1-9][0-9]*))?$ ]]; then
+            # GHCR 上的历史版本可能带或不带日期前导零，先归一成补零形式再比较。
+            NORMALIZED_PREVIOUS_DATE=""
+            if [[ "$PREVIOUS_VERSION" =~ ^([0-9]{4})\.([0-9]{1,2})\.([0-9]{1,2})(-[rR]([1-9][0-9]*))?$ ]]; then
               PREVIOUS_DATE="${PREVIOUS_VERSION%%-[rR]*}"
-              if [[ "$PREVIOUS_DATE" > "$VERSION_DATE" ]]; then
-                echo "::error::拒绝覆盖更新的 latest：GHCR 版本 $PREVIOUS_VERSION 晚于本次版本日期 $VERSION。"
-                exit 1
-              fi
-              if [[ "$PREVIOUS_DATE" == "$VERSION_DATE" ]]; then
-                CURRENT_REVISION="0"
-                PREVIOUS_REVISION="0"
-                [[ "$VERSION" == *-[rR]* ]] && CURRENT_REVISION="${VERSION##*-[rR]}"
-                [[ "$PREVIOUS_VERSION" == *-[rR]* ]] && PREVIOUS_REVISION="${PREVIOUS_VERSION##*-[rR]}"
-                if (( 10#$CURRENT_REVISION <= 10#$PREVIOUS_REVISION )); then
-                  echo "::error::同一天的修订序号必须高于 GHCR latest：上一版本 $PREVIOUS_VERSION，本次版本 $VERSION。"
+              PREVIOUS_SUFFIX="${PREVIOUS_VERSION#"$PREVIOUS_DATE"}"
+              PREVIOUS_YEAR="${PREVIOUS_DATE%%.*}"
+              PREVIOUS_REST="${PREVIOUS_DATE#*.}"
+              PREVIOUS_MONTH="${PREVIOUS_REST%%.*}"
+              PREVIOUS_DAY="${PREVIOUS_REST##*.}"
+              PREVIOUS_PADDED="$(printf '%04d.%02d.%02d' "$((10#$PREVIOUS_YEAR))" "$((10#$PREVIOUS_MONTH))" "$((10#$PREVIOUS_DAY))")"
+              NORMALIZED_PREVIOUS_DATE="$(date -u -d "${PREVIOUS_PADDED//./-}" +%Y.%m.%d 2>/dev/null || true)"
+              [[ "$NORMALIZED_PREVIOUS_DATE" == "$PREVIOUS_PADDED" ]] || NORMALIZED_PREVIOUS_DATE=""
+            fi
+            if [[ -n "$NORMALIZED_PREVIOUS_DATE" ]]; then
+              PREVIOUS_DATE="$NORMALIZED_PREVIOUS_DATE"
+              PREVIOUS_CANONICAL="${PREVIOUS_DATE}${PREVIOUS_SUFFIX}"
+              if [[ "$CANONICAL_VERSION" == "$PREVIOUS_CANONICAL" ]]; then
+                PUBLISH="false"
+                REASON="当前版本与 GHCR latest 相同，跳过重复发布。"
+              else
+                if [[ "$PREVIOUS_DATE" > "$VERSION_DATE" ]]; then
+                  echo "::error::拒绝覆盖更新的 latest：GHCR 版本 $PREVIOUS_VERSION 晚于本次版本日期 $VERSION。"
                   exit 1
                 fi
+                if [[ "$PREVIOUS_DATE" == "$VERSION_DATE" ]]; then
+                  CURRENT_REVISION="0"
+                  PREVIOUS_REVISION="0"
+                  [[ "$VERSION" == *-[rR]* ]] && CURRENT_REVISION="${VERSION##*-[rR]}"
+                  [[ "$PREVIOUS_VERSION" == *-[rR]* ]] && PREVIOUS_REVISION="${PREVIOUS_VERSION##*-[rR]}"
+                  if (( 10#$CURRENT_REVISION <= 10#$PREVIOUS_REVISION )); then
+                    echo "::error::同一天的修订序号必须高于 GHCR latest：上一版本 $PREVIOUS_VERSION，本次版本 $VERSION。"
+                    exit 1
+                  fi
+                fi
+                REASON="版本从 GHCR latest 的 $PREVIOUS_VERSION 更新为 $VERSION，允许发布。"
               fi
-              REASON="版本从 GHCR latest 的 $PREVIOUS_VERSION 更新为 $VERSION，允许发布。"
             else
               REASON="GHCR latest 使用旧版本格式 $PREVIOUS_VERSION；允许迁移到当天日历版本 $VERSION。"
             fi

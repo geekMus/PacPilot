@@ -17,7 +17,7 @@
 - 当前自动发布工作流构建 `linux/arm64` 镜像。
 - 版本号以根目录 `package.json` 的 `version` 为准。
 - 自动发布：`main` 分支上的 `package.json` 发生变更时触发；也可在 [GitHub Actions 发布页面](https://github.com/geekMus/PacPilot/actions/workflows/publish-image.yml) 手动运行工作流。
-- 发布校验：版本日期必须是 `Asia/Shanghai` 当天；同一天的修订号必须高于 GHCR 的 `latest` 版本。版本号相同会跳过重复发布。
+- 发布校验：版本日期必须是 `Asia/Shanghai` 当天；月份与日期允许省略前导零（`2026.11.1` 与 `2026.11.01` 视为同一版本）；同一天的修订号必须高于 GHCR 的 `latest` 版本。版本号相同会跳过重复发布。
 
 ## 更新已部署容器
 
