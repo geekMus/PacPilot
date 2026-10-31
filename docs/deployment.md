@@ -210,6 +210,12 @@ volumes:
 
 注入环境参数使用 `environment:`，变量与语义见[环境参数参考](#环境参数参考)。
 
+### 内存上限与观测
+
+Compose 文件默认设置 `mem_limit: 512m`：服务稳态内存约 80MB（Bun 运行时基线 + PAC 首次压缩的临时峰值），512MB 已留足余量，同时防止远程规则列表异常膨胀拖垮宿主机。若容器因达到上限被结束（退出码 137），可在 `docker-compose.yml` 中上调该值；`deploy.resources.limits.memory` 仅在 Swarm 部署下生效，单机 `docker compose` 使用 `mem_limit`。
+
+宿主机侧可用 `docker stats pacpilot` 观察实时占用；管理界面「系统设置 → 运行时内存」展示进程内的常驻内存、运行峰值（内核高水位）、JS 堆与运行时长，对应接口 `GET /api/admin/memory`，无需登录宿主机即可排查。
+
 ## 源码运行
 
 需要 [Bun](https://bun.sh/) >= 1.1.0：

@@ -4,6 +4,7 @@ import type { ApplicationStorage } from "../storage/repositories";
 
 import { DEFAULT_SETTINGS } from "../domain/settings";
 import { requireAdmin } from "../middleware/auth";
+import { readProcessMemorySnapshot } from "../utils/process-memory";
 import { hasActivePacWorkflow } from "../services/workflow";
 import { reschedule } from "../services/scheduler";
 import {
@@ -69,6 +70,12 @@ export function adminSystemRoutes(env: EnvConfig, storage: ApplicationStorage): 
           : { exists: false, fetchedAt: null, url: "", format: "", proxyHosts: 0, directHosts: 0 },
       },
     });
+  });
+  // Memory is polled more often than the storage summary, so it lives on its
+  // own cheap endpoint instead of inflating the (recursive) storage scan.
+  router.get("/api/admin/memory", requireAdmin(storage.credentials), (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.json(readProcessMemorySnapshot());
   });
   router.delete("/api/admin/pac-cache", requireAdmin(storage.credentials), async (req, res) => {
     if (await hasActivePacWorkflow(storage)) {

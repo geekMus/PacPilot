@@ -113,6 +113,19 @@ export interface StorageSummary {
   };
   pac?: PacRenderStatus;
 }
+/** Live process memory usage reported by the backend (`/api/admin/memory`). */
+export interface MemorySummary {
+  rssBytes: number;
+  peakRssBytes: number;
+  heapUsedBytes: number;
+  heapTotalBytes: number;
+  externalBytes: number;
+  arrayBuffersBytes: number;
+  uptimeSeconds: number;
+  systemTotalBytes: number;
+  systemFreeBytes: number;
+  limitBytes: number | null;
+}
 export interface PacPilotProbe {
   available: boolean;
   command?: string | null;
@@ -363,6 +376,7 @@ export const api = {
       method: "POST",
     }),
   storage: () => request<StorageSummary>("/api/admin/storage"),
+  memory: () => request<MemorySummary>("/api/admin/memory"),
   clearPacCache: () =>
     request<{ ok: boolean; deleted: string[] }>("/api/admin/pac-cache", { method: "DELETE" }),
   cleanupLogs: () =>
