@@ -154,28 +154,33 @@ async function executePacWorkflow(item: QueueItem): Promise<GenerateResult> {
 function pumpQueue(type: string): void {
   if (runningTypes.has(type)) return;
   runningTypes.add(type);
-  void (async () => {
-    const queue = queues.get(type);
-    try {
-      while (queue?.length) {
-        const item = queue.shift()!;
-        const run = await item.storage.workflows.get(item.workflowId);
-        if (!run || run.status !== "pending") {
-          item.resolve(cancelledResult(item.locale));
-          continue;
+  // 用 setImmediate 把真正的执行推到下一个宏任务：生成流程（PAC 渲染、terser 压缩、
+  // 混淆）都是 CPU 密集的同步任务，若在当前微任务里就跑起来，会先于 HTTP 响应续体
+  // 占满事件循环，导致「保存并生成」的 202 迟迟发不出去，前端的成功提示也跟着延迟。
+  setImmediate(() => {
+    void (async () => {
+      const queue = queues.get(type);
+      try {
+        while (queue?.length) {
+          const item = queue.shift()!;
+          const run = await item.storage.workflows.get(item.workflowId);
+          if (!run || run.status !== "pending") {
+            item.resolve(cancelledResult(item.locale));
+            continue;
+          }
+          try {
+            item.resolve(await item.execute(item));
+          } catch (error) {
+            item.reject(error);
+          }
         }
-        try {
-          item.resolve(await item.execute(item));
-        } catch (error) {
-          item.reject(error);
-        }
+      } finally {
+        runningTypes.delete(type);
+        if (queues.get(type)?.length) pumpQueue(type);
+        else queues.delete(type);
       }
-    } finally {
-      runningTypes.delete(type);
-      if (queues.get(type)?.length) pumpQueue(type);
-      else queues.delete(type);
-    }
-  })();
+    })();
+  });
 }
 
 /** Each workflow type owns an independent serial queue; different types can run concurrently. */

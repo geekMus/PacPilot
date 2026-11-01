@@ -1,4 +1,3 @@
-import { minify } from "terser";
 import { isIP } from "node:net";
 import type { ApplicationStorage } from "../storage/repositories";
 import { APP_VERSION } from "../version";
@@ -7,6 +6,7 @@ import type { AppLocale } from "../../shared/i18n/locale";
 import type { AppSettings } from "../../shared/contracts";
 import { fetchAndParseRemoteList } from "./remote-list";
 import { runtimeLog } from "../utils/runtime-log";
+import { buildPacBody } from "./pac-build-client";
 import {
   computeEtag,
   computeSourceVersion,
@@ -92,21 +92,6 @@ export function validatePacProxyString(value: string, locale: AppLocale = "zh_CN
   }
 
   return null;
-}
-
-async function compressPac(content: string, locale: AppLocale = "zh_CN"): Promise<string> {
-  const result = await minify(content, {
-    ecma: 5,
-    compress: { defaults: true, passes: 2 },
-    // 不混淆变量名，避免无意义的可读性损失。
-    mangle: false,
-    // 固定双引号输出：pac-parser 按此契约解析，不再兼容其他引号风格。
-    format: { comments: false, beautify: false, ecma: 5, quote_style: 2 },
-  });
-  if (typeof result.code !== "string" || !result.code.trim()) {
-    throw new Error(t(locale, "pacProxy.compressFailed"));
-  }
-  return result.code;
 }
 
 function formatPacGeneratedAt(date: Date, timeZone = "Asia/Shanghai"): string {
@@ -389,14 +374,16 @@ export async function getRenderedPacBody(
     const compress = Boolean(freshSettings.pacCompress);
     let body = sourceBody;
     if (compress || obfuscate) {
+      // 压缩与混淆都是 CPU 密集的同步任务，交给独立子进程执行：
+      // 主线程在生成期间继续处理 HTTP 请求，terser / 混淆器的内存也随子进程退出而归还。
       // 先压缩再混淆：反过来的话 terser 会把混淆器生成的字符串数组求值内联，
       // 混淆强度会被削弱（实测字符串数组条目从 9 处降到 0 处）。
-      const minified = await compressPac(raw, locale);
-      // javascript-obfuscator 体积大（加载即占 8-20MB 常驻内存），因此只在混淆
-      // 真正开启时动态加载；默认配置（pacObfuscate=false）不为它付出启动内存。
-      const finalCode = obfuscate
-        ? (await import("./pac-obfuscator")).obfuscatePac(minified, locale)
-        : minified;
+      const finalCode = await buildPacBody({
+        code: raw,
+        compress: true,
+        obfuscate,
+        locale,
+      });
       body = withPacInlineHeader(finalCode, generatedAt, freshSettings.timezone);
     }
 

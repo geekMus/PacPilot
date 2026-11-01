@@ -46,7 +46,7 @@ docker run -d \
 - [构建并发布 Docker 镜像](../.github/workflows/publish-image.yml)：在 `main` 上校验版本并发布 ARM64 镜像到 GHCR。
 - [清理废弃工作流运行记录](../.github/workflows/cleanup-obsolete-workflow-runs.yml)：定时清理已删除工作流留下的历史运行记录。
 - [Agent 项目级强制规则](../AGENTS.md)：分支操作、工作流触发限制、发布权限与并发策略，新增或修改工作流前必须阅读。
-- [Dependabot 配置](../.github/dependabot.yml)：每周检查 Bun 依赖和 GitHub Actions 依赖更新。
+- [Dependabot 配置](../.github/dependabot.yml)：每周检查 Bun 依赖和 GitHub Actions 依赖更新。其中 `vite` 屏蔽了 `>=8.0.0` 的版本更新，因为 Vite 8 的 dev server 会导致 Edge DevTools 卡死（[vitejs/vite#23549](https://github.com/vitejs/vite/issues/23549)），必须停留在 7.x；上游修复（Edge Stable 或 Vite 合并 #23561 并发布）后删除这条 `ignore`，并同步放开 `package.json` 中 `vite` 的版本范围。该规则只约束版本更新，安全更新仍会照常创建 PR。
 - [Release 分类配置](../.github/release.yml)：为 GitHub Release 自动生成分类说明。
 
 ### 工作流强制规则

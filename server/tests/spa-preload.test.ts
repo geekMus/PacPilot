@@ -73,6 +73,25 @@ describe("createSpaPreloads", () => {
     expect(createSpaPreloads(dir).forPath("/admin/logs")).not.toContain("modulepreload");
   });
 
+  it("配置已内联时不再预加载 config.json，避免浏览器报无效预加载", () => {
+    const tags = createSpaPreloads(makeDir(), { inlineRuntimeConfig: true }).forPath(
+      "/admin/logs"
+    );
+
+    expect(tags).not.toContain('href="/config.json"');
+    expect(tags).toContain('crossorigin="use-credentials" href="/api/admin/session"');
+  });
+
+  it("配置未内联时仍然预加载 config.json", () => {
+    const tags = createSpaPreloads(makeDir(), { inlineRuntimeConfig: false }).forPath(
+      "/admin/logs"
+    );
+
+    expect(tags).toContain(
+      '<link rel="preload" as="fetch" crossorigin="anonymous" href="/config.json">'
+    );
+  });
+
   it("注入视图块、静态依赖与样式的预加载标签，并跳过入口已声明的产物", () => {
     const tags = createSpaPreloads(makeDir(manifest)).forPath("/admin/logs");
 

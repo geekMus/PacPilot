@@ -53,15 +53,20 @@ const toastOptions = {
   />
 </template>
 
-<style scoped>
+<!--
+  这些样式必须是全局的：vue-sonner 的 Toaster 通过 Teleport 渲染到 body，
+  组件自身的 scope id 不会落到 toast 元素上，写成 scoped 只会让规则整体失效
+  （表现是提示能弹出、却没有主题配色）。
+-->
+<style>
 @reference "@/styles/tailwind.css";
 
-:deep([data-sonner-toaster][data-x-position="center"]) {
+[data-sonner-toaster][data-x-position="center"] {
   @apply max-w-[calc(100vw-32px)] font-sans;
   width: min(420px, calc(100vw - 32px)) !important;
 }
 
-:deep([data-sonner-toast]) {
+[data-sonner-toast] {
   @apply box-border w-full max-w-full tracking-[0.01em];
   overflow-wrap: anywhere;
   white-space: pre-line;
@@ -71,31 +76,31 @@ const toastOptions = {
   color: var(--text);
   box-shadow: var(--shadow);
 }
-:deep([data-sonner-toast][data-type="success"]) {
+[data-sonner-toast][data-type="success"] {
   border-color: color-mix(in srgb, var(--green) 35%, var(--line));
   /* -soft 令牌混有 transparent，透底的浮层必须改与不透明的 surface 混色。 */
   background: color-mix(in srgb, var(--green) 12%, var(--surface));
   color: var(--green);
 }
-:deep([data-sonner-toast][data-type="error"]) {
+[data-sonner-toast][data-type="error"] {
   border-color: color-mix(in srgb, var(--red) 35%, var(--line));
   background: color-mix(in srgb, var(--red) 12%, var(--surface));
   color: var(--red);
 }
-:deep([data-sonner-toast][data-type="warning"]) {
+[data-sonner-toast][data-type="warning"] {
   border-color: color-mix(in srgb, var(--warn) 35%, var(--line));
   background: color-mix(in srgb, var(--warn) 14%, var(--surface));
   color: var(--warn);
 }
 
-:deep([data-sonner-toast] [data-close-button]) {
+[data-sonner-toast] [data-close-button] {
   left: auto !important;
   right: 0 !important;
   transform: translate(35%, -35%) !important;
 }
 
 @media (max-width: 600px) {
-  :deep([data-sonner-toaster][data-x-position="center"]) {
+  [data-sonner-toaster][data-x-position="center"] {
     @apply max-w-[calc(100vw-24px)];
     width: calc(100vw - 24px) !important;
   }

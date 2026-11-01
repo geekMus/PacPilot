@@ -188,6 +188,18 @@ describe("startPacWorkflow", () => {
     await storage.close();
   });
 
+  it("does not occupy the event loop before the caller can respond", async () => {
+    const storage = await storageWith();
+    const id = await startPacWorkflow(storage, "/tmp/data", "save-and-generate");
+
+    // 生成被推到下一个宏任务：startPacWorkflow 返回时生成还没开始，事件循环仍然空闲，
+    // HTTP 响应因此可以先写出去（PAC 渲染、压缩与混淆都是 CPU 密集的同步任务）。
+    expect((await storage.workflows.get(id))!.status).toBe("pending");
+
+    await waitFor(async () => (await storage.workflows.get(id))?.status === "succeeded");
+    await storage.close();
+  });
+
   it("logs background failures instead of throwing", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const storage = await storageWith();

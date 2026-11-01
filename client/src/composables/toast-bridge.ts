@@ -46,8 +46,20 @@ function loadRuntime(): Promise<ToastRuntime> {
   return runtimePromise;
 }
 
+/**
+ * 投递一条提示。运行时加载失败时把提示放回队首等待重试，而不是直接丢弃：
+ * 提示已经由调用方发出，静默丢掉只会让用户以为操作没生效。
+ */
 async function deliver(entry: PendingToast): Promise<void> {
-  const { toast } = await loadRuntime();
+  let runtime: ToastRuntime;
+  try {
+    runtime = await loadRuntime();
+  } catch (error) {
+    pending.unshift(entry);
+    console.error("[toast] 运行时加载失败，提示已保留待重试", error);
+    return;
+  }
+  const { toast } = runtime;
   const options = { duration: entry.duration };
   switch (entry.kind) {
     case "success":
@@ -95,5 +107,8 @@ export function enqueueToast(entry: PendingToast): void {
     .then(() => {
       if (hostReady) flushPendingToasts();
     })
-    .catch(() => undefined);
+    .catch((error: unknown) => {
+      // 提示仍在队列里：加载成功后（Host 挂载或下次投递）会补投，这里只记录原因。
+      console.error("[toast] 提示运行时准备失败，提示已保留待重试", error);
+    });
 }
