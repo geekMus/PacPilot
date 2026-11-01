@@ -31,6 +31,8 @@
       此时 @/styles/tailwind.css 尚未加载，使用 @apply 或设计令牌都会失效。
       颜色统一用系统颜色关键字（Canvas / CanvasText），随 color-scheme 自动适配明暗，
       因此不需要硬编码主题色，也不会在深色模式下闪白。
+      color-scheme 由下面的内联脚本按应用内保存的主题落到 <html> 上：占位页必须和
+      应用本身一致（深色/浅色/跟随系统），只按系统解析会在两者不一致时闪一下反色。
       Vue 挂载时会清空 #app，占位随之消失。
     -->
     <style>
@@ -43,6 +45,18 @@
       body {
         margin: 0;
         padding: 0;
+      }
+      /*
+        与 theme.css 中的同名规则取值一致，在这里再写一份是因为占位页可能先于入口
+        样式表出现（开发模式下样式由 JS 注入，静态托管下样式是一次单独的往返）。
+        没有这两条时，占位页只能按系统的 prefers-color-scheme 取色；「跟随系统」
+        模式不加主题类，继续由 color-scheme: light dark 实时解析，系统切换无需重载。
+      */
+      html.theme-light {
+        color-scheme: light;
+      }
+      html.theme-dark {
+        color-scheme: dark;
       }
       /* 用 svh 跟随移动端可视高度，避免地址栏收起时 100vh 超出可视区产生滚动。 */
       #app {
@@ -94,6 +108,25 @@
         }
       }
     </style>
+    <!--
+      启动占位必须跟随应用内保存的主题，而不是只跟随系统：入口脚本要等 JS 包下载、
+      解析、执行完才运行，在那之前只有这段同步脚本能决定占位页的明暗，晚一步就会
+      先闪一帧反色。判定规则与 @/composables/useTheme.ts 完全一致——同一个 storage
+      key、同一组取值、同一个主题类名；「跟随系统」以及存储不可读时都不加类，交给
+      color-scheme: light dark 实时解析，这样系统主题在占位期间变化也不会停在旧配色。
+      两处实现的一致性由 client/tests/boot-theme.test.ts 守护。
+    -->
+    <script>
+      (() => {
+        try {
+          const stored = localStorage.getItem("pacpilot-theme");
+          if (stored !== "light" && stored !== "dark") return;
+          document.documentElement.classList.add(stored === "dark" ? "theme-dark" : "theme-light");
+        } catch {
+          // 隐私模式等场景下 localStorage 不可读：按跟随系统处理，与 useTheme 的降级一致。
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="app">

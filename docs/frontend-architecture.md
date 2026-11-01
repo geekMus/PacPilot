@@ -32,6 +32,15 @@
 - `TableFrame.vue` 负责表格的滚动与布局框架，`VirtualTable.vue` 负责虚拟化表格数据渲染；两者职责不同，不应相互复制。
 - 只有业务语义、状态或交互确实专属某一 feature 时，才在 feature 目录保留独立组件。不要为了“只有一个组件”而把业务诊断、工具栏等内容塞进公共 UI 原语。
 
+## 启动占位（boot shell）
+
+`client/index.html` 里的 `.boot` 占位在 JS 包下载、解析、执行完成前显示，此时入口样式表还没到达，因此这里只能写原生 CSS，不能用 Tailwind 或设计令牌。它必须和应用自身的主题一致，否则在系统主题与设置不一致时会先闪一下反色：
+
+- 颜色用系统颜色关键字（`Canvas` / `CanvasText`），由 `color-scheme` 决定明暗，不要硬编码主题色。
+- `client/index.html` 头部的同步内联脚本会在入口样式表之前，按 `localStorage["pacpilot-theme"]` 把 `theme-light` / `theme-dark` 类落到 `<html>` 上；值为 `system`、无值、非法值或存储不可用时都不加类，继续由 `color-scheme: light dark` 跟随系统实时解析（系统主题在占位期间切换无需重载）。
+- 内联样式里的 `html.theme-light` / `html.theme-dark` 与 `client/src/styles/theme.css` 中的同名规则取值必须保持一致。`client/src/composables/useTheme.ts`（`initThemeEarly()`）和内联脚本是两份实现，改动其中任意一份都要同步检查另一份。
+- 该行为由 `client/tests/boot-theme.test.ts` 守护：它从 `client/index.html` 提取内联脚本并执行，断言占位页的解析结果与 `initThemeEarly()` 一致。
+
 ## 命名和验证
 
 - Vue、TypeScript 文件与目录统一使用 `kebab-case`；类型和类使用 `PascalCase`，变量与函数使用 `camelCase`，真正的全局常量使用 `UPPER_SNAKE_CASE`。
