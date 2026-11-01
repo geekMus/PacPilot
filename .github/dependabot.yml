@@ -10,6 +10,17 @@ updates:
         dependency-type: production
       development-dependencies:
         dependency-type: development
+    ignore:
+      # Vite 8 的 dev server 会把 sourcemap 内联成超长 data URI，导致 Edge DevTools 卡死
+      # （vitejs/vite#23549：8.0.5 正常，8.1.0 起复现；Edge Canary 已修、Stable 未修，
+      # Vite 侧改外链 map 的 PR #23561 尚未发布），因此必须停留在 7.x。
+      # 这里屏蔽 8.0.0 及以上的版本更新，避免再被 development-dependencies 分组连带升级
+      # （历史上 e2edaf4 就是这样冲掉了 9ae70ef 对 vite 7.3.6 的固定）。
+      # 解除条件：Edge Stable 修复该问题，或 Vite 发布 PR #23561 之后的版本；
+      # 届时删除这条 ignore，并同步放开 package.json 里 vite 的版本范围。
+      # 该规则只约束版本更新，安全更新仍会照常创建 PR。
+      - dependency-name: "vite"
+        versions: [">=8.0.0"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
